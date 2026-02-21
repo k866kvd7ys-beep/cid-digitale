@@ -1,0 +1,28 @@
+{
+  "@@locale": "fr",
+  "appTitle": "CID Digitale",
+  "faultLiabilityHintA": "Selon vous, le conducteur A est responsable.",
+  "faultLiabilityHintB": "Selon vous, le conducteur B est responsable.",
+  "integrityNotVerifiedWarning": "Attention : intégrité non vérifiée (données ou pièces jointes peuvent avoir été modifiées).",
+  "labelDateTime": "Date et heure :",
+  "labelPlace": "Lieu :",
+  "labelDriverA": "Conducteur A",
+  "labelDriverB": "Conducteur B",
+  "labelDriverAText": "Conducteur A (texte) :",
+  "labelDriverBText": "Conducteur B (texte) :",
+  "labelDriverAVoice": "Note vocale conducteur A",
+  "labelDriverBVoice": "Note vocale conducteur B",
+  "labelDriverAColon": "Conducteur A :",
+  "labelDriverBColon": "Conducteur B :",
+  "pdfDriverA": "Conducteur A",
+  "pdfDriverB": "Conducteur B",
+  "pdfLiabilityHeading": "Responsabilité (déclarée par les parties) :",
+  "pdfLiabilityAccordingToParties": "Selon les parties, le conducteur responsable est {driver}.",
+  "pdfDriverLabelA": "Conducteur A",
+  "pdfDriverLabelB": "Conducteur B",
+  "@pdfLiabilityAccordingToParties": {
+    "placeholders": {
+      "driver": {}
+    }
+  }
+}

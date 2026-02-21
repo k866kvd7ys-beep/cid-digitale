@@ -1,0 +1,77 @@
+name: cid_digitale
+description: CID Digitale con firme, QR, PDF, OCR e storico
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.1.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI / Material
+  cupertino_icons: ^1.0.6
+
+  # Storage locale
+  shared_preferences: ^2.2.2
+  path_provider: ^2.1.2
+
+  # QR
+  qr_flutter: ^4.1.0
+
+  # URL / chiamate / mail
+  url_launcher: ^6.2.5
+
+  # Camera live
+  camera: ^0.10.5+5
+
+  # PDF
+  pdf: ^3.10.7
+
+  # Condivisione (PDF + foto + QR)
+  share_plus: ^10.0.2
+
+  # Fotocamera / immagini
+  image_picker: ^1.0.7
+
+  # Firma digitale
+  signature: ^5.4.0
+
+  # OCR (libretto + targa)
+  google_mlkit_text_recognition: ^0.13.0
+
+  # GPS
+  geolocator: ^11.0.0
+  geocoding: ^3.0.0
+
+  # Localizzazioni (IT / DE / FR / EN)
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+  supabase_flutter: ^2.5.6
+
+  # ✅ STEP B – hash integrità pratica
+  crypto: ^3.0.3
+
+  # ✅ AUDIO (VERSIONI STABILI E COMPATIBILI)
+  record: ^5.2.0
+  audioplayers: ^6.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^3.0.1
+
+# ✅ FIX DEFINITIVO PER L’ERRORE startStream / record_linux
+dependency_overrides:
+  record_platform_interface: ^1.4.0
+  record_linux: ^1.2.0
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/images/
