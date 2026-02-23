@@ -186,6 +186,48 @@ abstract class AppLocalizations {
   /// **'Fahrer B:'**
   String get labelDriverBColon;
 
+  /// No description provided for @driverA.
+  ///
+  /// In de, this message translates to:
+  /// **'Fahrer A'**
+  String get driverA;
+
+  /// No description provided for @driverB.
+  ///
+  /// In de, this message translates to:
+  /// **'Fahrer B'**
+  String get driverB;
+
+  /// No description provided for @firstName.
+  ///
+  /// In de, this message translates to:
+  /// **'Vorname'**
+  String get firstName;
+
+  /// No description provided for @lastName.
+  ///
+  /// In de, this message translates to:
+  /// **'Nachname'**
+  String get lastName;
+
+  /// No description provided for @damageTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Beschädigung'**
+  String get damageTitle;
+
+  /// No description provided for @damageVehicleA.
+  ///
+  /// In de, this message translates to:
+  /// **'Beschädigung des Fahrzeugs A'**
+  String get damageVehicleA;
+
+  /// No description provided for @damageVehicleB.
+  ///
+  /// In de, this message translates to:
+  /// **'Beschädigung des Fahrzeugs B'**
+  String get damageVehicleB;
+
   /// No description provided for @pdfDriverA.
   ///
   /// In de, this message translates to:

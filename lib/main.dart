@@ -16,7 +16,7 @@ import 'package:signature/signature.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:record/record.dart';
@@ -156,6 +156,7 @@ class Incidente {
   final String luogo;
 
   final String nomeA;
+  final String cognomeA;
   final String targaA;
   final String assicurazioneA;
 
@@ -164,6 +165,7 @@ class Incidente {
   final String indirizzoA;
 
   final String nomeB;
+  final String cognomeB;
   final String targaB;
   final String assicurazioneB;
 
@@ -172,6 +174,8 @@ class Incidente {
   final String indirizzoB;
 
   final String descrizione;
+  final String danniVeicoloA;
+  final String danniVeicoloB;
 
   final List<Testimone> testimoni;
   final List<Ferito> feriti;
@@ -204,18 +208,22 @@ class Incidente {
     required this.dataOra,
     required this.luogo,
     required this.nomeA,
+    required this.cognomeA,
     required this.targaA,
     required this.assicurazioneA,
     required this.telefonoA,
     required this.emailA,
     required this.indirizzoA,
     required this.nomeB,
+    required this.cognomeB,
     required this.targaB,
     required this.assicurazioneB,
     required this.telefonoB,
     required this.emailB,
     required this.indirizzoB,
     required this.descrizione,
+    required this.danniVeicoloA,
+    required this.danniVeicoloB,
     required this.testimoni,
     required this.feriti,
     required this.notaVocaleA,
@@ -239,18 +247,22 @@ class Incidente {
         'dataOra': dataOra.toIso8601String(),
         'luogo': luogo,
         'nomeA': nomeA,
+        'cognomeA': cognomeA,
         'targaA': targaA,
         'assicurazioneA': assicurazioneA,
         'telefonoA': telefonoA,
         'emailA': emailA,
         'indirizzoA': indirizzoA,
         'nomeB': nomeB,
+        'cognomeB': cognomeB,
         'targaB': targaB,
         'assicurazioneB': assicurazioneB,
         'telefonoB': telefonoB,
         'emailB': emailB,
         'indirizzoB': indirizzoB,
         'descrizione': descrizione,
+        'danniVeicoloA': danniVeicoloA,
+        'danniVeicoloB': danniVeicoloB,
         'testimoni': testimoni.map((t) => t.toJson()).toList(),
         'feriti': feriti.map((f) => f.toJson()).toList(),
         'notaVocaleA': notaVocaleA,
@@ -305,18 +317,22 @@ class Incidente {
       dataOra: DateTime.tryParse(json['dataOra'] ?? '') ?? DateTime.now(),
       luogo: json['luogo'] ?? '',
       nomeA: json['nomeA'] ?? '',
+      cognomeA: json['cognomeA'] ?? '',
       targaA: json['targaA'] ?? '',
       assicurazioneA: json['assicurazioneA'] ?? '',
       telefonoA: json['telefonoA'] ?? '',
       emailA: json['emailA'] ?? '',
       indirizzoA: json['indirizzoA'] ?? '',
       nomeB: json['nomeB'] ?? '',
+      cognomeB: json['cognomeB'] ?? '',
       targaB: json['targaB'] ?? '',
       assicurazioneB: json['assicurazioneB'] ?? '',
       telefonoB: json['telefonoB'] ?? '',
       emailB: json['emailB'] ?? '',
       indirizzoB: json['indirizzoB'] ?? '',
       descrizione: json['descrizione'] ?? '',
+      danniVeicoloA: json['danniVeicoloA'] ?? '',
+      danniVeicoloB: json['danniVeicoloB'] ?? '',
       testimoni: parsedTestimoni,
       feriti: parsedFeriti,
       notaVocaleA: json['notaVocaleA'] ?? '',
@@ -447,18 +463,22 @@ Future<Incidente> aggiornaHashIncidente(Incidente inc) async {
     dataOra: inc.dataOra,
     luogo: inc.luogo,
     nomeA: inc.nomeA,
+    cognomeA: inc.cognomeA,
     targaA: inc.targaA,
     assicurazioneA: inc.assicurazioneA,
     telefonoA: inc.telefonoA,
     emailA: inc.emailA,
     indirizzoA: inc.indirizzoA,
     nomeB: inc.nomeB,
+    cognomeB: inc.cognomeB,
     targaB: inc.targaB,
     assicurazioneB: inc.assicurazioneB,
     telefonoB: inc.telefonoB,
     emailB: inc.emailB,
     indirizzoB: inc.indirizzoB,
     descrizione: inc.descrizione,
+    danniVeicoloA: inc.danniVeicoloA,
+    danniVeicoloB: inc.danniVeicoloB,
     testimoni: inc.testimoni,
     feriti: inc.feriti,
     notaVocaleA: inc.notaVocaleA,
@@ -1727,6 +1747,12 @@ String txStatic(String it) {
   return entry[lang] ?? entry['it'] ?? it;
 }
 
+String formatNomeCompleto(String nome, String cognome) {
+  if (nome.isEmpty) return cognome;
+  if (cognome.isEmpty) return nome;
+  return '$nome $cognome';
+}
+
 /// HOME ////////////////////////////////////////////////////////////////
 
 class HomePage extends StatefulWidget {
@@ -2022,21 +2048,23 @@ class _HomePageState extends State<HomePage> {
                 label: Text(tx(context, 'Chiama numeri di emergenza')),
               ),
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const SupabaseDemoScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.cloud),
-                label: const Text('Test Supabase'),
+            if (kDebugMode) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const SupabaseDemoScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.cloud),
+                  label: const Text('Test Supabase'),
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -2187,6 +2215,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   bool _validazioneContattiAttiva = true;
 
   final _nomeAController = TextEditingController();
+  final _cognomeAController = TextEditingController();
   final _targaAController = TextEditingController();
   final _assicurazioneAController = TextEditingController();
 
@@ -2195,6 +2224,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   final _indirizzoAController = TextEditingController();
 
   final _nomeBController = TextEditingController();
+  final _cognomeBController = TextEditingController();
   final _targaBController = TextEditingController();
   final _assicurazioneBController = TextEditingController();
 
@@ -2203,6 +2233,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   final _indirizzoBController = TextEditingController();
 
   final _descrizioneController = TextEditingController();
+  final _damageVehicleAController = TextEditingController();
+  final _damageVehicleBController = TextEditingController();
 
   final List<_TestimoneFormData> _testimoni = [];
   final List<_FeritoFormData> _feriti = [];
@@ -2254,6 +2286,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
   bool _isAnyCampoBCompilato() {
     return _nomeBController.text.trim().isNotEmpty ||
+        _cognomeBController.text.trim().isNotEmpty ||
         _targaBController.text.trim().isNotEmpty ||
         _assicurazioneBController.text.trim().isNotEmpty ||
         _telefonoBController.text.trim().isNotEmpty ||
@@ -2276,6 +2309,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     _luogoController.dispose();
 
     _nomeAController.dispose();
+    _cognomeAController.dispose();
     _targaAController.dispose();
     _assicurazioneAController.dispose();
     _telefonoAController.dispose();
@@ -2283,6 +2317,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     _indirizzoAController.dispose();
 
     _nomeBController.dispose();
+    _cognomeBController.dispose();
     _targaBController.dispose();
     _assicurazioneBController.dispose();
     _telefonoBController.dispose();
@@ -2290,6 +2325,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     _indirizzoBController.dispose();
 
     _descrizioneController.dispose();
+    _damageVehicleAController.dispose();
+    _damageVehicleBController.dispose();
 
     _notaVocaleAController.dispose();
     _notaVocaleBController.dispose();
@@ -2752,7 +2789,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(ctx).pop('A'),
-                  child: const Text('Conducente A'),
+                  child: Text(AppLocalizations.of(context)!.driverA),
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(ctx).pop('B'),
@@ -2940,18 +2977,22 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       dataOra: _dataOra,
       luogo: _luogoController.text.trim(),
       nomeA: _nomeAController.text.trim(),
+      cognomeA: _cognomeAController.text.trim(),
       targaA: _targaAController.text.trim(),
       assicurazioneA: _assicurazioneAController.text.trim(),
       telefonoA: _telefonoAController.text.trim(),
       emailA: _emailAController.text.trim(),
       indirizzoA: _indirizzoAController.text.trim(),
       nomeB: _nomeBController.text.trim(),
+      cognomeB: _cognomeBController.text.trim(),
       targaB: _targaBController.text.trim(),
       assicurazioneB: _assicurazioneBController.text.trim(),
       telefonoB: _telefonoBController.text.trim(),
       emailB: _emailBController.text.trim(),
       indirizzoB: _indirizzoBController.text.trim(),
       descrizione: _descrizioneController.text.trim(),
+      danniVeicoloA: _damageVehicleAController.text.trim(),
+      danniVeicoloB: _damageVehicleBController.text.trim(),
       testimoni: testimoni,
       feriti: feriti,
       notaVocaleA: _notaVocaleAController.text.trim(),
@@ -3050,7 +3091,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               ),
               const Divider(height: 24),
               Text(
-                tx(context, 'Conducente A'),
+                AppLocalizations.of(context)!.driverA,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
@@ -3088,13 +3129,20 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               TextFormField(
                 controller: _nomeAController,
                 decoration: InputDecoration(
-                    labelText: tx(context, 'Nome conducente A')),
+                  labelText: AppLocalizations.of(context)!.firstName,
+                ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return txStatic('Inserisci il nome del conducente A');
                   }
                   return null;
                 },
+              ),
+              TextFormField(
+                controller: _cognomeAController,
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.lastName,
+                ),
               ),
               TextFormField(
                 controller: _indirizzoAController,
@@ -3141,7 +3189,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               ),
               const SizedBox(height: 24),
               Text(
-                tx(context, 'Conducente B'),
+                AppLocalizations.of(context)!.driverB,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
@@ -3179,7 +3227,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               TextFormField(
                 controller: _nomeBController,
                 decoration: InputDecoration(
-                    labelText: tx(context, 'Nome conducente B')),
+                  labelText: AppLocalizations.of(context)!.firstName,
+                ),
                 validator: (value) {
                   if (!_isAnyCampoBCompilato()) return null;
                   if (value == null || value.trim().isEmpty) {
@@ -3187,6 +3236,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                   }
                   return null;
                 },
+              ),
+              TextFormField(
+                controller: _cognomeBController,
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.lastName,
+                ),
               ),
               TextFormField(
                 controller: _indirizzoBController,
@@ -3391,25 +3446,23 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               ),
               const SizedBox(height: 24),
               Text(
-                tx(context, 'Note dei conducenti'),
+                AppLocalizations.of(context)!.damageTitle,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
               TextFormField(
-                controller: _notaVocaleAController,
-                maxLines: 2,
+                controller: _damageVehicleAController,
+                maxLines: 3,
                 decoration: InputDecoration(
-                  labelText: tx(context, 'Nota conducente A'),
-                  hintText: tx(context, 'Nota conducente A'),
+                  labelText: AppLocalizations.of(context)!.damageVehicleA,
                 ),
               ),
               const SizedBox(height: 12),
               TextFormField(
-                controller: _notaVocaleBController,
-                maxLines: 2,
+                controller: _damageVehicleBController,
+                maxLines: 3,
                 decoration: InputDecoration(
-                  labelText: tx(context, 'Nota conducente B'),
-                  hintText: tx(context, 'Nota conducente B'),
+                  labelText: AppLocalizations.of(context)!.damageVehicleB,
                 ),
               ),
               const SizedBox(height: 16),
@@ -3516,11 +3569,11 @@ class _StoricoPageState extends State<StoricoPage> {
                     leading: const Icon(Icons.description_outlined),
                     title: Text('$dataOra - ${inc.luogo}'),
                     subtitle: Text(
-                      'A: ${inc.nomeA} (${inc.targaA})'
+                      'A: ${formatNomeCompleto(inc.nomeA, inc.cognomeA)} (${inc.targaA})'
                       '${inc.telefonoA.isNotEmpty ? ' · ${inc.telefonoA}' : ''}'
                       '${inc.indirizzoA.isNotEmpty ? ' · ${inc.indirizzoA}' : ''}'
                       '${inc.emailA.isNotEmpty ? '\n   ${inc.emailA}' : ''}\n'
-                      'B: ${inc.nomeB} (${inc.targaB})'
+                      'B: ${formatNomeCompleto(inc.nomeB, inc.cognomeB)} (${inc.targaB})'
                       '${inc.telefonoB.isNotEmpty ? ' · ${inc.telefonoB}' : ''}'
                       '${inc.indirizzoB.isNotEmpty ? ' · ${inc.indirizzoB}' : ''}'
                       '${inc.emailB.isNotEmpty ? '\n   ${inc.emailB}' : ''}\n'
@@ -4230,6 +4283,10 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
     // ✅ STEP B: hash integrità
     final hash = await _calcolaHashPratica();
+    final driverAName =
+        formatNomeCompleto(incidente.nomeA, incidente.cognomeA);
+    final driverBName =
+        formatNomeCompleto(incidente.nomeB, incidente.cognomeB);
 
     pw.ImageProvider? firmaAImage;
     pw.ImageProvider? firmaBImage;
@@ -4276,8 +4333,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
               pw.Text('${l10n.labelDateTime} $dataOra'),
               pw.Text('${l10n.labelPlace} ${incidente.luogo}'),
               pw.SizedBox(height: 8),
-              pw.Text(
-                  '${l10n.pdfDriverA}: ${incidente.nomeA} (${incidente.targaA})'),
+              pw.Text('${l10n.pdfDriverA}: $driverAName (${incidente.targaA})'),
               pw.Text(
                   '${txStatic('Assicurazione A:')} ${incidente.assicurazioneA.isEmpty ? '-' : incidente.assicurazioneA}'),
               pw.Text(
@@ -4287,8 +4343,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
               pw.Text(
                   '${txStatic('Indirizzo A:')} ${incidente.indirizzoA.isEmpty ? '-' : incidente.indirizzoA}'),
               pw.SizedBox(height: 6),
-              pw.Text(
-                  '${l10n.pdfDriverB}: ${incidente.nomeB} (${incidente.targaB})'),
+              pw.Text('${l10n.pdfDriverB}: $driverBName (${incidente.targaB})'),
               pw.Text(
                   '${txStatic('Assicurazione B:')} ${incidente.assicurazioneB.isEmpty ? '-' : incidente.assicurazioneB}'),
               pw.Text(
@@ -4328,14 +4383,26 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                   ),
               ],
               pw.SizedBox(height: 12),
-              pw.Text(txStatic('Note dei conducenti:'),
+              pw.Text(l10n.damageTitle,
                   style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              if (incidente.notaVocaleA.isEmpty &&
-                  incidente.notaVocaleB.isEmpty &&
-                  incidente.notaAudioAPath.isEmpty &&
-                  incidente.notaAudioBPath.isEmpty)
-                pw.Text(txStatic('Nessuna nota indicata.'))
+              if (incidente.danniVeicoloA.isEmpty &&
+                  incidente.danniVeicoloB.isEmpty)
+                pw.Text('-')
               else ...[
+                pw.Text(
+                  '${l10n.damageVehicleA}: ${incidente.danniVeicoloA.isEmpty ? '-' : incidente.danniVeicoloA}',
+                ),
+                pw.Text(
+                  '${l10n.damageVehicleB}: ${incidente.danniVeicoloB.isEmpty ? '-' : incidente.danniVeicoloB}',
+                ),
+              ],
+              if (incidente.notaVocaleA.isNotEmpty ||
+                  incidente.notaVocaleB.isNotEmpty ||
+                  incidente.notaAudioAPath.isNotEmpty ||
+                  incidente.notaAudioBPath.isNotEmpty) ...[
+                pw.SizedBox(height: 12),
+                pw.Text(txStatic('Note vocali'),
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                 if (incidente.notaVocaleA.isNotEmpty)
                   pw.Text('${l10n.labelDriverAText} ${incidente.notaVocaleA}'),
                 if (incidente.notaAudioAPath.isNotEmpty)
@@ -4547,18 +4614,22 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       dataOra: incidente.dataOra,
       luogo: incidente.luogo,
       nomeA: incidente.nomeA,
+      cognomeA: incidente.cognomeA,
       targaA: incidente.targaA,
       assicurazioneA: incidente.assicurazioneA,
       telefonoA: incidente.telefonoA,
       emailA: incidente.emailA,
       indirizzoA: incidente.indirizzoA,
       nomeB: incidente.nomeB,
+      cognomeB: incidente.cognomeB,
       targaB: incidente.targaB,
       assicurazioneB: incidente.assicurazioneB,
       telefonoB: incidente.telefonoB,
       emailB: incidente.emailB,
       indirizzoB: incidente.indirizzoB,
       descrizione: incidente.descrizione,
+      danniVeicoloA: incidente.danniVeicoloA,
+      danniVeicoloB: incidente.danniVeicoloB,
       testimoni: incidente.testimoni,
       feriti: incidente.feriti,
       notaVocaleA: incidente.notaVocaleA,
@@ -4608,18 +4679,22 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       dataOra: incidente.dataOra,
       luogo: incidente.luogo,
       nomeA: incidente.nomeA,
+      cognomeA: incidente.cognomeA,
       targaA: incidente.targaA,
       assicurazioneA: incidente.assicurazioneA,
       telefonoA: incidente.telefonoA,
       emailA: incidente.emailA,
       indirizzoA: incidente.indirizzoA,
       nomeB: incidente.nomeB,
+      cognomeB: incidente.cognomeB,
       targaB: incidente.targaB,
       assicurazioneB: incidente.assicurazioneB,
       telefonoB: incidente.telefonoB,
       emailB: incidente.emailB,
       indirizzoB: incidente.indirizzoB,
       descrizione: incidente.descrizione,
+      danniVeicoloA: incidente.danniVeicoloA,
+      danniVeicoloB: incidente.danniVeicoloB,
       testimoni: incidente.testimoni,
       feriti: incidente.feriti,
       notaVocaleA: incidente.notaVocaleA,
@@ -4657,10 +4732,12 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final dataOra = formatDataOraLocale(context, incidente.dataOra);
-    final bool haNoteConducenti = incidente.notaVocaleA.isNotEmpty ||
+    final bool hasNoteVocali = incidente.notaVocaleA.isNotEmpty ||
         incidente.notaVocaleB.isNotEmpty ||
         incidente.notaAudioAPath.isNotEmpty ||
         incidente.notaAudioBPath.isNotEmpty;
+    final bool hasDanni = incidente.danniVeicoloA.isNotEmpty ||
+        incidente.danniVeicoloB.isNotEmpty;
     final firmaAFile =
         incidente.firmaAPath.isNotEmpty ? File(incidente.firmaAPath) : null;
     final firmaBFile =
@@ -4772,7 +4849,55 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
             const SizedBox(height: 12),
 
-            if (haNoteConducenti) ...[
+            if (hasDanni) ...[
+              Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 1,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.car_repair, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          Text(
+                            AppLocalizations.of(context)!.damageTitle,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (incidente.danniVeicoloA.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Text(
+                            '${AppLocalizations.of(context)!.damageVehicleA}: ${incidente.danniVeicoloA}',
+                            style: const TextStyle(color: Colors.black87),
+                          ),
+                        ),
+                      if (incidente.danniVeicoloB.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Text(
+                            '${AppLocalizations.of(context)!.damageVehicleB}: ${incidente.danniVeicoloB}',
+                            style: const TextStyle(color: Colors.black87),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            if (hasNoteVocali) ...[
               Card(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -4789,7 +4914,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                               color: Colors.blue),
                           const SizedBox(width: 8),
                           Text(
-                            tx(context, 'Note dei conducenti'),
+                            tx(context, 'Note vocali'),
                             style: Theme.of(context)
                                 .textTheme
                                 .titleMedium

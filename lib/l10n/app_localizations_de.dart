@@ -52,6 +52,27 @@ class AppLocalizationsDe extends AppLocalizations {
   String get labelDriverBColon => 'Fahrer B:';
 
   @override
+  String get driverA => 'Fahrer A';
+
+  @override
+  String get driverB => 'Fahrer B';
+
+  @override
+  String get firstName => 'Vorname';
+
+  @override
+  String get lastName => 'Nachname';
+
+  @override
+  String get damageTitle => 'Beschädigung';
+
+  @override
+  String get damageVehicleA => 'Beschädigung des Fahrzeugs A';
+
+  @override
+  String get damageVehicleB => 'Beschädigung des Fahrzeugs B';
+
+  @override
   String get pdfDriverA => 'Fahrer A';
 
   @override
