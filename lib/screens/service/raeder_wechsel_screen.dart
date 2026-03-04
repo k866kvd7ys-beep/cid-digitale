@@ -1,53 +1,47 @@
-import 'package:add_2_calendar/add_2_calendar.dart';
+import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'workshop_slot_picker_screen.dart';
 
 class RaederWechselScreen extends StatelessWidget {
   const RaederWechselScreen({super.key});
 
-  Future<void> _openCalendar(BuildContext context,
-      {required String title}) async {
-    // default: fra 2 giorni alle 09:00, durata 30 min (modifica se vuoi)
-    final now = DateTime.now();
-    final start =
-        DateTime(now.year, now.month, now.day).add(const Duration(days: 2, hours: 9));
-    final end = start.add(const Duration(minutes: 30));
-
-    final event = Event(
-      title: title,
-      description: 'Räderwechsel Termin',
-      location: '', // opzionale
-      startDate: start,
-      endDate: end,
-      allDay: false,
-      iosParams: const IOSParams(
-        reminder: Duration(minutes: 60), // 1h prima
-      ),
-      androidParams: const AndroidParams(
-        emailInvites: [], // opzionale
-      ),
-    );
-
-    await Add2Calendar.addEvent2Cal(event);
-  }
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Räder wechsel')),
+      appBar: AppBar(title: Text(l10n.raeder_wechsel_title)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             _OptionTile(
-              title: 'Räder wechsel Sommer',
+              title: l10n.raeder_wechsel_sommer,
               icon: Icons.wb_sunny_outlined,
-              onTap: () => _openCalendar(context, title: 'Räder wechsel Sommer'),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const WorkshopSlotPickerScreen(
+                      title: 'Räder wechsel Sommer',
+                      serviceType: 'raeder_sommer',
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 12),
             _OptionTile(
-              title: 'Räder wechsel Winter',
+              title: l10n.raeder_wechsel_winter,
               icon: Icons.ac_unit_outlined,
-              onTap: () => _openCalendar(context, title: 'Räder wechsel Winter'),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const WorkshopSlotPickerScreen(
+                      title: 'Räder wechsel Winter',
+                      serviceType: 'raeder_winter',
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),

@@ -26,8 +26,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'ocr_utils.dart';
 import 'scanner_libretto_page.dart';
 import 'config/supabase_config.dart';
+import 'screens/officina/appointments_screen.dart';
 import 'screens/service/raeder_wechsel_screen.dart';
-import 'screens/service/service_anmelden_screen.dart';
+import 'screens/service/workshop_slot_picker_screen.dart';
 import 'services/supabase_service.dart';
 import 'package:intl/intl.dart';
 import 'qr/qr_payload.dart';
@@ -773,7 +774,10 @@ class CidDigitaleApp extends StatelessWidget {
             ),
           ),
           routes: {
-            '/service_anmelden': (_) => const ServiceAnmeldenScreen(),
+            '/service_anmelden': (_) => const WorkshopSlotPickerScreen(
+                  title: 'Service anmelden',
+                  serviceType: 'service_anmelden',
+                ),
             '/raeder_wechsel': (_) => const RaederWechselScreen(),
           },
           home: const HomePage(),
@@ -2088,7 +2092,14 @@ class _HomePageState extends State<HomePage> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () {
-                  Navigator.of(context).pushNamed('/service_anmelden');
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const WorkshopSlotPickerScreen(
+                        title: 'Service anmelden',
+                        serviceType: 'service_anmelden',
+                      ),
+                    ),
+                  );
                 },
                 icon: const Icon(Icons.build_outlined),
                 label: Text(l10n.service_anmelden),
@@ -2199,6 +2210,23 @@ class _ImpostazioniOfficinaPageState extends State<ImpostazioniOfficinaPage> {
               ),
             ),
             const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AppointmentsScreen(
+                        workshopId: 'INSERISCI_WORKSHOP_UUID_QUI',
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.calendar_month_outlined),
+                label: const Text('Kalender'),
+              ),
+            ),
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
