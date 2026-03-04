@@ -16,7 +16,7 @@ import 'package:signature/signature.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:record/record.dart';
@@ -26,7 +26,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'ocr_utils.dart';
 import 'scanner_libretto_page.dart';
 import 'config/supabase_config.dart';
-import 'screens/supabase_demo_screen.dart';
+import 'screens/service/raeder_wechsel_screen.dart';
+import 'screens/service/service_anmelden_screen.dart';
 import 'services/supabase_service.dart';
 import 'package:intl/intl.dart';
 import 'qr/qr_payload.dart';
@@ -163,6 +164,8 @@ class Incidente {
   final String telefonoA;
   final String emailA;
   final String indirizzoA;
+  final String zipA;
+  final String cityA;
 
   final String nomeB;
   final String cognomeB;
@@ -172,6 +175,8 @@ class Incidente {
   final String telefonoB;
   final String emailB;
   final String indirizzoB;
+  final String zipB;
+  final String cityB;
 
   final String descrizione;
   final String danniVeicoloA;
@@ -214,6 +219,8 @@ class Incidente {
     required this.telefonoA,
     required this.emailA,
     required this.indirizzoA,
+    required this.zipA,
+    required this.cityA,
     required this.nomeB,
     required this.cognomeB,
     required this.targaB,
@@ -221,6 +228,8 @@ class Incidente {
     required this.telefonoB,
     required this.emailB,
     required this.indirizzoB,
+    required this.zipB,
+    required this.cityB,
     required this.descrizione,
     required this.danniVeicoloA,
     required this.danniVeicoloB,
@@ -253,6 +262,8 @@ class Incidente {
         'telefonoA': telefonoA,
         'emailA': emailA,
         'indirizzoA': indirizzoA,
+        'zipA': zipA,
+        'cityA': cityA,
         'nomeB': nomeB,
         'cognomeB': cognomeB,
         'targaB': targaB,
@@ -260,6 +271,8 @@ class Incidente {
         'telefonoB': telefonoB,
         'emailB': emailB,
         'indirizzoB': indirizzoB,
+        'zipB': zipB,
+        'cityB': cityB,
         'descrizione': descrizione,
         'danniVeicoloA': danniVeicoloA,
         'danniVeicoloB': danniVeicoloB,
@@ -323,6 +336,8 @@ class Incidente {
       telefonoA: json['telefonoA'] ?? '',
       emailA: json['emailA'] ?? '',
       indirizzoA: json['indirizzoA'] ?? '',
+      zipA: json['zipA'] ?? '',
+      cityA: json['cityA'] ?? '',
       nomeB: json['nomeB'] ?? '',
       cognomeB: json['cognomeB'] ?? '',
       targaB: json['targaB'] ?? '',
@@ -330,6 +345,8 @@ class Incidente {
       telefonoB: json['telefonoB'] ?? '',
       emailB: json['emailB'] ?? '',
       indirizzoB: json['indirizzoB'] ?? '',
+      zipB: json['zipB'] ?? '',
+      cityB: json['cityB'] ?? '',
       descrizione: json['descrizione'] ?? '',
       danniVeicoloA: json['danniVeicoloA'] ?? '',
       danniVeicoloB: json['danniVeicoloB'] ?? '',
@@ -469,6 +486,8 @@ Future<Incidente> aggiornaHashIncidente(Incidente inc) async {
     telefonoA: inc.telefonoA,
     emailA: inc.emailA,
     indirizzoA: inc.indirizzoA,
+    zipA: inc.zipA,
+    cityA: inc.cityA,
     nomeB: inc.nomeB,
     cognomeB: inc.cognomeB,
     targaB: inc.targaB,
@@ -476,6 +495,8 @@ Future<Incidente> aggiornaHashIncidente(Incidente inc) async {
     telefonoB: inc.telefonoB,
     emailB: inc.emailB,
     indirizzoB: inc.indirizzoB,
+    zipB: inc.zipB,
+    cityB: inc.cityB,
     descrizione: inc.descrizione,
     danniVeicoloA: inc.danniVeicoloA,
     danniVeicoloB: inc.danniVeicoloB,
@@ -751,6 +772,10 @@ class CidDigitaleApp extends StatelessWidget {
               elevation: 0,
             ),
           ),
+          routes: {
+            '/service_anmelden': (_) => const ServiceAnmeldenScreen(),
+            '/raeder_wechsel': (_) => const RaederWechselScreen(),
+          },
           home: const HomePage(),
         );
       },
@@ -838,6 +863,15 @@ String formatDataOraLocale(BuildContext context, DateTime dt) {
 String formatDataOraGeneric(DateTime dt, {Locale? locale}) {
   final tag = (locale ?? linguaSelezionata.value).toLanguageTag();
   return DateFormat.yMMMMd(tag).add_Hm().format(dt);
+}
+
+String formatFullAddress(String indirizzo, String zip, String city) {
+  final parts = [
+    indirizzo.trim(),
+    zip.trim(),
+    city.trim(),
+  ].where((part) => part.isNotEmpty).toList();
+  return parts.join(', ');
 }
 
 /// Traduzioni rapide per testi brevi (pulsanti/etichette) /////////////////////
@@ -1919,6 +1953,7 @@ class _HomePageState extends State<HomePage> {
         ),
       );
     }
+    final l10n = AppLocalizations.of(context)!;
     final count = incidentiSalvati.length;
     final historyLabel = count == 0
         ? tr(context, 'home_history_empty')
@@ -2048,23 +2083,28 @@ class _HomePageState extends State<HomePage> {
                 label: Text(tx(context, 'Chiama numeri di emergenza')),
               ),
             ),
-            if (kDebugMode) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const SupabaseDemoScreen(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.cloud),
-                  label: const Text('Test Supabase'),
-                ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pushNamed('/service_anmelden');
+                },
+                icon: const Icon(Icons.build_outlined),
+                label: Text(l10n.service_anmelden),
               ),
-            ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pushNamed('/raeder_wechsel');
+                },
+                icon: const Icon(Icons.tire_repair_outlined),
+                label: Text(l10n.raeder_wechsel),
+              ),
+            ),
           ],
         ),
       ),
@@ -2222,6 +2262,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   final _telefonoAController = TextEditingController();
   final _emailAController = TextEditingController();
   final _indirizzoAController = TextEditingController();
+  final _driverAZipController = TextEditingController();
+  final _driverACityController = TextEditingController();
 
   final _nomeBController = TextEditingController();
   final _cognomeBController = TextEditingController();
@@ -2231,6 +2273,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   final _telefonoBController = TextEditingController();
   final _emailBController = TextEditingController();
   final _indirizzoBController = TextEditingController();
+  final _driverBZipController = TextEditingController();
+  final _driverBCityController = TextEditingController();
 
   final _descrizioneController = TextEditingController();
   final _damageVehicleAController = TextEditingController();
@@ -2315,6 +2359,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     _telefonoAController.dispose();
     _emailAController.dispose();
     _indirizzoAController.dispose();
+    _driverAZipController.dispose();
+    _driverACityController.dispose();
 
     _nomeBController.dispose();
     _cognomeBController.dispose();
@@ -2323,6 +2369,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     _telefonoBController.dispose();
     _emailBController.dispose();
     _indirizzoBController.dispose();
+    _driverBZipController.dispose();
+    _driverBCityController.dispose();
 
     _descrizioneController.dispose();
     _damageVehicleAController.dispose();
@@ -2983,6 +3031,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       telefonoA: _telefonoAController.text.trim(),
       emailA: _emailAController.text.trim(),
       indirizzoA: _indirizzoAController.text.trim(),
+      zipA: _driverAZipController.text.trim(),
+      cityA: _driverACityController.text.trim(),
       nomeB: _nomeBController.text.trim(),
       cognomeB: _cognomeBController.text.trim(),
       targaB: _targaBController.text.trim(),
@@ -2990,6 +3040,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       telefonoB: _telefonoBController.text.trim(),
       emailB: _emailBController.text.trim(),
       indirizzoB: _indirizzoBController.text.trim(),
+      zipB: _driverBZipController.text.trim(),
+      cityB: _driverBCityController.text.trim(),
       descrizione: _descrizioneController.text.trim(),
       danniVeicoloA: _damageVehicleAController.text.trim(),
       danniVeicoloB: _damageVehicleBController.text.trim(),
@@ -3150,6 +3202,23 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                   labelText: tx(context, 'Indirizzo conducente A'),
                 ),
               ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _driverAZipController,
+                textInputAction: TextInputAction.next,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.zip,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _driverACityController,
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.city,
+                ),
+              ),
               TextFormField(
                 controller: _targaAController,
                 decoration:
@@ -3247,6 +3316,23 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                 controller: _indirizzoBController,
                 decoration: InputDecoration(
                   labelText: tx(context, 'Indirizzo conducente B'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _driverBZipController,
+                textInputAction: TextInputAction.next,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.zip,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _driverBCityController,
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.city,
                 ),
               ),
               TextFormField(
@@ -3550,6 +3636,10 @@ class _StoricoPageState extends State<StoricoPage> {
               itemBuilder: (context, index) {
                 final inc = incidentiSalvati[index];
                 final dataOra = formatDataOraLocale(context, inc.dataOra);
+                final indirizzoACompleto =
+                    formatFullAddress(inc.indirizzoA, inc.zipA, inc.cityA);
+                final indirizzoBCompleto =
+                    formatFullAddress(inc.indirizzoB, inc.zipB, inc.cityB);
 
                 String resp;
                 if (inc.colpevole == 'A') {
@@ -3571,11 +3661,11 @@ class _StoricoPageState extends State<StoricoPage> {
                     subtitle: Text(
                       'A: ${formatNomeCompleto(inc.nomeA, inc.cognomeA)} (${inc.targaA})'
                       '${inc.telefonoA.isNotEmpty ? ' · ${inc.telefonoA}' : ''}'
-                      '${inc.indirizzoA.isNotEmpty ? ' · ${inc.indirizzoA}' : ''}'
+                      '${indirizzoACompleto.isNotEmpty ? ' · $indirizzoACompleto' : ''}'
                       '${inc.emailA.isNotEmpty ? '\n   ${inc.emailA}' : ''}\n'
                       'B: ${formatNomeCompleto(inc.nomeB, inc.cognomeB)} (${inc.targaB})'
                       '${inc.telefonoB.isNotEmpty ? ' · ${inc.telefonoB}' : ''}'
-                      '${inc.indirizzoB.isNotEmpty ? ' · ${inc.indirizzoB}' : ''}'
+                      '${indirizzoBCompleto.isNotEmpty ? ' · $indirizzoBCompleto' : ''}'
                       '${inc.emailB.isNotEmpty ? '\n   ${inc.emailB}' : ''}\n'
                       '$resp\n'
                       'Cod. officina: ${inc.codiceOfficina}',
@@ -4287,6 +4377,10 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         formatNomeCompleto(incidente.nomeA, incidente.cognomeA);
     final driverBName =
         formatNomeCompleto(incidente.nomeB, incidente.cognomeB);
+    final indirizzoACompleto =
+        formatFullAddress(incidente.indirizzoA, incidente.zipA, incidente.cityA);
+    final indirizzoBCompleto =
+        formatFullAddress(incidente.indirizzoB, incidente.zipB, incidente.cityB);
 
     pw.ImageProvider? firmaAImage;
     pw.ImageProvider? firmaBImage;
@@ -4341,7 +4435,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
               pw.Text(
                   '${txStatic('Email A:')} ${incidente.emailA.isEmpty ? '-' : incidente.emailA}'),
               pw.Text(
-                  '${txStatic('Indirizzo A:')} ${incidente.indirizzoA.isEmpty ? '-' : incidente.indirizzoA}'),
+                  '${txStatic('Indirizzo A:')} ${indirizzoACompleto.isEmpty ? '-' : indirizzoACompleto}'),
               pw.SizedBox(height: 6),
               pw.Text('${l10n.pdfDriverB}: $driverBName (${incidente.targaB})'),
               pw.Text(
@@ -4351,7 +4445,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
               pw.Text(
                   '${txStatic('Email B:')} ${incidente.emailB.isEmpty ? '-' : incidente.emailB}'),
               pw.Text(
-                  '${txStatic('Indirizzo B:')} ${incidente.indirizzoB.isEmpty ? '-' : incidente.indirizzoB}'),
+                  '${txStatic('Indirizzo B:')} ${indirizzoBCompleto.isEmpty ? '-' : indirizzoBCompleto}'),
               pw.SizedBox(height: 12),
               pw.Text(txStatic('Descrizione:'),
                   style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
@@ -4620,6 +4714,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       telefonoA: incidente.telefonoA,
       emailA: incidente.emailA,
       indirizzoA: incidente.indirizzoA,
+      zipA: incidente.zipA,
+      cityA: incidente.cityA,
       nomeB: incidente.nomeB,
       cognomeB: incidente.cognomeB,
       targaB: incidente.targaB,
@@ -4627,6 +4723,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       telefonoB: incidente.telefonoB,
       emailB: incidente.emailB,
       indirizzoB: incidente.indirizzoB,
+      zipB: incidente.zipB,
+      cityB: incidente.cityB,
       descrizione: incidente.descrizione,
       danniVeicoloA: incidente.danniVeicoloA,
       danniVeicoloB: incidente.danniVeicoloB,
@@ -4685,6 +4783,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       telefonoA: incidente.telefonoA,
       emailA: incidente.emailA,
       indirizzoA: incidente.indirizzoA,
+      zipA: incidente.zipA,
+      cityA: incidente.cityA,
       nomeB: incidente.nomeB,
       cognomeB: incidente.cognomeB,
       targaB: incidente.targaB,
@@ -4692,6 +4792,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       telefonoB: incidente.telefonoB,
       emailB: incidente.emailB,
       indirizzoB: incidente.indirizzoB,
+      zipB: incidente.zipB,
+      cityB: incidente.cityB,
       descrizione: incidente.descrizione,
       danniVeicoloA: incidente.danniVeicoloA,
       danniVeicoloB: incidente.danniVeicoloB,

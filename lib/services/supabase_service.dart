@@ -1,7 +1,15 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+class ClaimByTokenResult {
+  final String claimId;
+  final dynamic payloadJson;
+
+  ClaimByTokenResult({required this.claimId, required this.payloadJson});
+}
 
 class SupabaseService {
   SupabaseClient get client {
@@ -27,20 +35,51 @@ class SupabaseService {
 
   Future<String> createClaimLink({
     required String claimId,
-    String purpose = 'workshop',
-    int maxUses = 50,
+    required String purpose,
+    int expiresHours = 24 * 14,
+    int maxUses = 5,
   }) async {
-    final response = await client
-        .from('claim_links')
-        .insert({
-          'claim_id': claimId,
-          'purpose': purpose,
-          'max_uses': maxUses,
-        })
-        .select('token')
-        .single();
+    final res = await client.rpc(
+      'create_claim_link',
+      params: {
+        'p_claim_id': claimId,
+        'p_expires_hours': expiresHours,
+        'p_max_uses': maxUses,
+        'p_purpose': purpose,
+      },
+    );
 
-    return response['token'] as String;
+    if (res == null) {
+      throw Exception('create_claim_link non ha restituito un token');
+    }
+
+    String token = '';
+
+    if (res is Map && res['token'] != null) {
+      token = res['token'].toString().trim();
+    } else if (res is String) {
+      final trimmed = res.trim();
+      if (trimmed.startsWith('{')) {
+        try {
+          final parsed = jsonDecode(trimmed);
+          if (parsed is Map && parsed['token'] != null) {
+            token = parsed['token'].toString().trim();
+          }
+        } catch (_) {
+          token = trimmed;
+        }
+      } else {
+        token = trimmed;
+      }
+    } else {
+      token = res.toString().trim();
+    }
+
+    if (token.isEmpty) {
+      throw Exception('Token vuoto dalla RPC create_claim_link: $res');
+    }
+
+    return token;
   }
 
   Future<String> rpcCreateClaimDraft({
@@ -64,46 +103,13 @@ class SupabaseService {
     required String claimId,
     int expiresHours = 72,
     int maxUses = 1,
-  }) async {
-    final res = await client.rpc(
-      'create_claim_link',
-      params: {
-        'p_claim_id': claimId,
-        'p_expires_hours': expiresHours,
-        'p_max_uses': maxUses,
-        'p_purpose': 'workshop_intake',
-      },
+  }) {
+    return createClaimLink(
+      claimId: claimId,
+      purpose: 'workshop_intake',
+      expiresHours: expiresHours,
+      maxUses: maxUses,
     );
-
-    if (res == null) {
-      throw Exception('RPC returned null');
-    }
-
-    String token = '';
-
-    if (res is String) {
-      final trimmed = res.trim();
-      if (trimmed.startsWith('{')) {
-        try {
-          final parsed = jsonDecode(trimmed);
-          if (parsed is Map && parsed['token'] is String) {
-            token = parsed['token'] as String;
-          }
-        } catch (_) {
-          token = trimmed;
-        }
-      } else {
-        token = trimmed;
-      }
-    } else if (res is Map && res['token'] is String) {
-      token = res['token'] as String;
-    }
-
-    if (token.isEmpty) {
-      throw Exception('Invalid RPC response: $res');
-    }
-
-    return token;
   }
 
   Future<String> uploadClaimImageBytes({
@@ -141,7 +147,7 @@ class SupabaseService {
     return Map<String, dynamic>.from(response);
   }
 
-  Future<Map<String, dynamic>> fetchClaimByToken(String token) async {
+  Future<ClaimByTokenResult> fetchClaimByToken(String token) async {
     final link = await client
         .from('claim_links')
         .select('claim_id, expires_at, used_count, max_uses, purpose')
@@ -163,7 +169,79 @@ class SupabaseService {
       throw Exception('Token has no claim_id');
     }
 
-    return getClaim(claimId);
+    final claim = await getClaim(claimId);
+
+    return ClaimByTokenResult(
+      claimId: claimId,
+      payloadJson: claim['payload_json'],
+    );
+  }
+
+  Future<String?> getCurrentWorkshopOrgId() async {
+    try {
+      final user = client.auth.currentUser;
+      final Map<String, dynamic>? meta =
+          user != null ? user.userMetadata as Map<String, dynamic>? : null;
+      if (meta != null) {
+        final candidates = [
+          'workshop_org_id',
+          'org_id',
+          'organization_id',
+          'organisation_id',
+        ];
+        for (final key in candidates) {
+          final v = meta[key];
+          if (v != null && v.toString().trim().isNotEmpty) {
+            return v.toString().trim();
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> markClaimAsInLavorazioneIfWorkshop(String claimId) async {
+    try {
+      final currentOrgId = await getCurrentWorkshopOrgId();
+
+      final claim = await client
+          .from('claims')
+          .select('id,status,workshop_org_id')
+          .eq('id', claimId)
+          .maybeSingle();
+
+      if (claim == null) return;
+
+      final String status =
+          (claim['status'] ?? '').toString().trim().toLowerCase();
+      final dynamic orgField = claim['workshop_org_id'];
+      final String? workshopOrgId = (orgField == null ||
+              (orgField is String && orgField.trim().isEmpty))
+          ? null
+          : orgField.toString().trim();
+
+      final initialStatuses = <String>{
+        'temp',
+        'warten_auf_freigabe',
+        'in_attesa',
+        'pending',
+        'draft',
+      };
+
+      final Map<String, dynamic> update = {};
+      if (status.isNotEmpty && initialStatuses.contains(status)) {
+        update['status'] = 'in_lavorazione';
+      }
+      if (workshopOrgId == null && currentOrgId != null) {
+        update['workshop_org_id'] = currentOrgId;
+      }
+
+      if (update.isEmpty) return;
+
+      await client.from('claims').update(update).eq('id', claimId);
+    } catch (e) {
+      debugPrint('markClaimAsInLavorazioneIfWorkshop failed: $e');
+    }
   }
 
   Future<List<Map<String, dynamic>>> listClaims({int limit = 50}) async {

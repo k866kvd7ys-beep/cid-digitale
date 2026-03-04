@@ -32,6 +32,7 @@ dependencies:
 
   # Condivisione (PDF + foto + QR)
   share_plus: ^10.0.2
+  add_2_calendar: ^3.0.1
 
   # Fotocamera / immagini
   image_picker: ^1.0.7

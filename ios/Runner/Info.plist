@@ -34,6 +34,8 @@
 	<string>Necessario per compilare automaticamente il luogo dell'incidente.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Necessario per registrare audio o note vocali.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>We need access to add your appointment to your calendar.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

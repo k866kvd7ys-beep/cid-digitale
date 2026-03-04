@@ -1,11 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../config/supabase_config.dart';
-import '../qr/qr_parser.dart';
+import '../models/incidente.dart';
+import '../qr/qr_token_parser.dart';
 import '../services/supabase_service.dart';
 
 class SupabaseDemoScreen extends StatefulWidget {
@@ -245,32 +247,12 @@ class _SupabaseDemoScreenState extends State<SupabaseDemoScreen> {
     });
 
     try {
-      final parsed = parseQr(raw);
-
-      if (parsed.token != null && parsed.token!.isNotEmpty) {
-        final claim = await _supabaseService.fetchClaimByToken(parsed.token!);
-
-        if (!mounted) return;
-        setState(() {
-          _claimId = claim['id']?.toString();
-          _qrToken = parsed.token;
-          _qrUrl = '$officinaWebBaseUrl?token=${parsed.token}';
-          _claimDetail = claim;
-        });
-
-        await _loadClaimsList();
-        _showSnack('Pratica importata tramite token.');
+      final token = extractTokenFromQr(raw);
+      if (token == null) {
+        _showSnack('QR non valido');
         return;
       }
-
-      if (parsed.legacyClaimId != null && parsed.legacyClaimId!.isNotEmpty) {
-        _showSnack(
-          'QR legacy non supportato: rigenera il QR (serve token in claim_links).',
-        );
-        return;
-      }
-
-      _showSnack('QR non riconosciuto.');
+      await _openClaimFromToken(token);
     } catch (e, _) {
       debugPrint('QR import error: ${e.toString()}');
       if (mounted) {
@@ -283,6 +265,67 @@ class _SupabaseDemoScreenState extends State<SupabaseDemoScreen> {
           _loadingDetail = false;
         });
       }
+    }
+  }
+
+  Future<void> _openClaimFromToken(String token) async {
+    try {
+      final result = await _supabaseService.fetchClaimByToken(token);
+      final payload = result.payloadJson;
+
+      if (payload == null ||
+          (payload is Map && payload.isEmpty) ||
+          (payload is String && payload.isEmpty)) {
+        _showSnack('Pratica senza dati (payload mancante)');
+        return;
+      }
+
+      Map<String, dynamic> payloadMap;
+      try {
+        payloadMap = payload is Map
+            ? Map<String, dynamic>.from(payload)
+            : Map<String, dynamic>.from(jsonDecode(payload) as Map);
+      } catch (_) {
+        _showSnack('Pratica senza dati (payload mancante)');
+        return;
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+            'claim ${result.claimId} payload keys: ${payloadMap.keys.join(",")}');
+      }
+
+      await _supabaseService.markClaimAsInLavorazioneIfWorkshop(result.claimId);
+
+      final detail = await _loadClaimDetail(result.claimId);
+
+      if (!mounted) return;
+      setState(() {
+        _claimId = result.claimId;
+        _qrToken = token;
+        _qrUrl = '$officinaWebBaseUrl?token=$token';
+        _claimDetail = detail ?? {'payload_json': payloadMap};
+      });
+
+      await _loadClaimsList();
+
+      final inc = Incidente.fromJson(payloadMap);
+
+      if (kDebugMode) {
+        debugPrint(
+            'claim ${result.claimId} parsed nomeA=${inc.nomeA}, telA=${inc.telefonoA}');
+      }
+
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => _ImportedClaimDetailPage(incidente: inc),
+        ),
+      );
+
+      _showSnack('Pratica importata tramite token.');
+    } catch (e) {
+      _showSnack('Errore apertura pratica: $e');
     }
   }
 
@@ -539,6 +582,55 @@ class _SupabaseDemoScreenState extends State<SupabaseDemoScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ImportedClaimDetailPage extends StatelessWidget {
+  final Incidente incidente;
+
+  const _ImportedClaimDetailPage({required this.incidente});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Dettaglio pratica importata'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          ListTile(
+            title: const Text('Targa A'),
+            subtitle: Text(incidente.targaA.isEmpty ? '-' : incidente.targaA),
+          ),
+          ListTile(
+            title: const Text('Targa B'),
+            subtitle: Text(incidente.targaB.isEmpty ? '-' : incidente.targaB),
+          ),
+          ListTile(
+            title: const Text('Luogo'),
+            subtitle: Text(incidente.luogo.isEmpty ? '-' : incidente.luogo),
+          ),
+          ListTile(
+            title: const Text('Descrizione'),
+            subtitle: Text(
+                incidente.descrizione.isEmpty ? '-' : incidente.descrizione),
+          ),
+          ListTile(
+            title: const Text('Codice officina'),
+            subtitle: Text(incidente.codiceOfficina.isEmpty
+                ? '-'
+                : incidente.codiceOfficina),
+          ),
+          ListTile(
+            title: const Text('Hash integrità'),
+            subtitle: Text(incidente.hashIntegrita.isEmpty
+                ? '-'
+                : incidente.hashIntegrita),
+          ),
+        ],
       ),
     );
   }
