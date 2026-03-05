@@ -35,6 +35,7 @@ import 'package:intl/intl.dart';
 import 'qr/qr_payload.dart';
 import 'package:cid_digitale/widgets/damage_type_picker_sheet.dart';
 import 'package:cid_digitale/widgets/quick_action_tile.dart';
+import 'widgets/auth/auth_gate.dart';
 import 'screens/my_requests_page.dart';
 
 // ✅ STEP B (hash integrità)
@@ -735,6 +736,9 @@ Future<void> main() async {
     await Supabase.initialize(
       url: supabaseUrl,
       anonKey: supabaseAnonKey,
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
+      ),
     );
   } catch (e) {
     debugPrint('Supabase init failed: $e');
@@ -792,12 +796,16 @@ class CidDigitaleApp extends StatelessWidget {
                 ),
             '/raeder_wechsel': (_) => const RaederWechselScreen(),
           },
-          home: const HomePage(),
+          home: const AuthGate(
+            homeBuilder: _homeBuilder,
+          ),
         );
       },
     );
   }
 }
+
+Widget _homeBuilder(BuildContext context) => const HomePage();
 
 /// Traduttore semplice per la HOME //////////////////////////
 String tr(BuildContext context, String key, {Map<String, String>? params}) {

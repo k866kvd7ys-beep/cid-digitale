@@ -168,7 +168,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
     try {
       final locale = Localizations.localeOf(context).languageCode;
-      await _appointmentService.submitRequest(
+      await _appointmentService.createRequest(
         serviceType: widget.serviceType,
         damageType: widget.damageType,
         appointmentDate: _selectedSlot,
