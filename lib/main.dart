@@ -2100,7 +2100,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) {
+    const bool blockWebAccess = false;
+    if (kIsWeb && blockWebAccess) {
       return Scaffold(
         body: Center(
           child: Padding(
