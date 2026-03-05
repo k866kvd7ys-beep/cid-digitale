@@ -30,8 +30,12 @@ import 'screens/officina/appointments_screen.dart';
 import 'screens/service/raeder_wechsel_screen.dart';
 import 'screens/service/workshop_slot_picker_screen.dart';
 import 'services/supabase_service.dart';
+import 'services/incidents_sync_service.dart';
 import 'package:intl/intl.dart';
 import 'qr/qr_payload.dart';
+import 'package:cid_digitale/widgets/damage_type_picker_sheet.dart';
+import 'package:cid_digitale/widgets/quick_action_tile.dart';
+import 'screens/my_requests_page.dart';
 
 // ✅ STEP B (hash integrità)
 import 'package:crypto/crypto.dart';
@@ -182,6 +186,8 @@ class Incidente {
   final String descrizione;
   final String danniVeicoloA;
   final String danniVeicoloB;
+  final bool? otherObjectDamage;
+  final bool? otherVehicleDamage;
 
   final List<Testimone> testimoni;
   final List<Ferito> feriti;
@@ -234,6 +240,8 @@ class Incidente {
     required this.descrizione,
     required this.danniVeicoloA,
     required this.danniVeicoloB,
+    required this.otherObjectDamage,
+    required this.otherVehicleDamage,
     required this.testimoni,
     required this.feriti,
     required this.notaVocaleA,
@@ -277,6 +285,8 @@ class Incidente {
         'descrizione': descrizione,
         'danniVeicoloA': danniVeicoloA,
         'danniVeicoloB': danniVeicoloB,
+        'otherObjectDamage': otherObjectDamage,
+        'otherVehicleDamage': otherVehicleDamage,
         'testimoni': testimoni.map((t) => t.toJson()).toList(),
         'feriti': feriti.map((f) => f.toJson()).toList(),
         'notaVocaleA': notaVocaleA,
@@ -351,6 +361,12 @@ class Incidente {
       descrizione: json['descrizione'] ?? '',
       danniVeicoloA: json['danniVeicoloA'] ?? '',
       danniVeicoloB: json['danniVeicoloB'] ?? '',
+      otherObjectDamage: json['otherObjectDamage'] is bool
+          ? json['otherObjectDamage'] as bool
+          : null,
+      otherVehicleDamage: json['otherVehicleDamage'] is bool
+          ? json['otherVehicleDamage'] as bool
+          : null,
       testimoni: parsedTestimoni,
       feriti: parsedFeriti,
       notaVocaleA: json['notaVocaleA'] ?? '',
@@ -501,6 +517,8 @@ Future<Incidente> aggiornaHashIncidente(Incidente inc) async {
     descrizione: inc.descrizione,
     danniVeicoloA: inc.danniVeicoloA,
     danniVeicoloB: inc.danniVeicoloB,
+    otherObjectDamage: inc.otherObjectDamage,
+    otherVehicleDamage: inc.otherVehicleDamage,
     testimoni: inc.testimoni,
     feriti: inc.feriti,
     notaVocaleA: inc.notaVocaleA,
@@ -566,14 +584,11 @@ Future<String> _ensureClientQrToken(
   final now = DateTime.now().toUtc();
   final expiresAtIso = now.add(expiresIn).toIso8601String();
 
-  await client
-      .from('claims')
-      .update({
-        'payload_json': inc.toJson(),
-        'workshop_code': inc.codiceOfficina,
-        'hashed_token': inc.hashIntegrita,
-      })
-      .eq('id', claimUuid);
+  await client.from('claims').update({
+    'payload_json': inc.toJson(),
+    'workshop_code': inc.codiceOfficina,
+    'hashed_token': inc.hashIntegrita,
+  }).eq('id', claimUuid);
 
   final future = _clientQrTokenCache.putIfAbsent(cacheKey, () async {
     final existing = await client
@@ -587,18 +602,15 @@ Future<String> _ensureClientQrToken(
 
     if (existing != null) {
       final token = (existing['token'] as String?)?.trim() ?? '';
-      final usedCount =
-          int.tryParse('${existing['used_count'] ?? '0'}') ?? 0;
+      final usedCount = int.tryParse('${existing['used_count'] ?? '0'}') ?? 0;
       final maxUsesExisting =
           int.tryParse('${existing['max_uses'] ?? maxUses}') ?? maxUses;
       final expiresExistingStr = existing['expires_at']?.toString();
       final expiresExisting = expiresExistingStr != null
           ? DateTime.tryParse(expiresExistingStr)
           : null;
-      final expired =
-          expiresExisting != null && expiresExisting.isBefore(now);
-      final exhausted =
-          maxUsesExisting > 0 && usedCount >= maxUsesExisting;
+      final expired = expiresExisting != null && expiresExisting.isBefore(now);
+      final exhausted = maxUsesExisting > 0 && usedCount >= maxUsesExisting;
       if (token.isNotEmpty &&
           !expired &&
           !exhausted &&
@@ -1809,17 +1821,169 @@ class _HomePageState extends State<HomePage> {
     setState(() {});
   }
 
-  void _vaiAStorico() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const StoricoPage()),
-    );
-  }
-
   void _vaiAImpostazioni() async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const ImpostazioniOfficinaPage()),
     );
     setState(() {});
+  }
+
+  Future<void> _openDamageTypePicker(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    final selected = await showModalBottomSheet<DamageType>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          child: DamageTypePickerSheet(
+            title: l10n.damage_type_title,
+            subtitle: l10n.damage_type_subtitle,
+            cancelText: l10n.cancel,
+            types: const [
+              DamageType.glass,
+              DamageType.hail,
+              DamageType.marten,
+              DamageType.parking,
+              DamageType.comprehensive,
+            ],
+            selectedDamageType: null,
+            iconFor: (t) {
+              switch (t) {
+                case DamageType.glass:
+                  return Icons.grid_view_rounded;
+                case DamageType.hail:
+                  return Icons.grain_rounded;
+                case DamageType.marten:
+                  return Icons.pets_rounded;
+                case DamageType.parking:
+                  return Icons.local_parking_rounded;
+                case DamageType.comprehensive:
+                  return Icons.description_rounded;
+              }
+            },
+            labelFor: (t) {
+              switch (t) {
+                case DamageType.glass:
+                  return l10n.damage_glass;
+                case DamageType.hail:
+                  return l10n.damage_hail;
+                case DamageType.marten:
+                  return l10n.damage_marten;
+                case DamageType.parking:
+                  return l10n.damage_parking;
+                case DamageType.comprehensive:
+                  return l10n.damage_comprehensive;
+              }
+            },
+            onSelected: (t) => Navigator.of(ctx).pop(t),
+          ),
+        );
+      },
+    );
+
+    if (selected == null) return;
+
+    _openCalendarSameLogic(selected, l10n);
+  }
+
+  void _openCalendarSameLogic(DamageType damageType, AppLocalizations l10n) {
+    final serviceType = _damageServiceType(damageType);
+    final title =
+        '${l10n.damage_type_title} - ${_damageLabel(l10n, damageType)}';
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WorkshopSlotPickerScreen(
+          title: title,
+          serviceType: serviceType,
+          damageType: damageType.name,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openServiceAnmelden(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const WorkshopSlotPickerScreen(
+          title: 'Service anmelden',
+          serviceType: 'service_anmelden',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openRaederWechsel(BuildContext context) async {
+    await Navigator.of(context).pushNamed('/raeder_wechsel');
+  }
+
+  Widget _quickActionChip({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: const Color(0xFF2D2D2D).withOpacity(0.25),
+          ),
+          color: Colors.white.withOpacity(0.35),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: const Color(0xFF2B4B6B)),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _damageLabel(AppLocalizations l10n, DamageType type) {
+    switch (type) {
+      case DamageType.glass:
+        return l10n.damage_glass;
+      case DamageType.hail:
+        return l10n.damage_hail;
+      case DamageType.marten:
+        return l10n.damage_marten;
+      case DamageType.parking:
+        return l10n.damage_parking;
+      case DamageType.comprehensive:
+        return l10n.damage_comprehensive;
+    }
+  }
+
+  String _damageServiceType(DamageType type) {
+    switch (type) {
+      case DamageType.glass:
+        return 'damage_glass';
+      case DamageType.hail:
+        return 'damage_hail';
+      case DamageType.marten:
+        return 'damage_marten';
+      case DamageType.parking:
+        return 'damage_parking';
+      case DamageType.comprehensive:
+        return 'damage_comprehensive';
+    }
   }
 
   Future<void> _apriUrl(Uri uri, String messaggioErrore) async {
@@ -1958,10 +2122,6 @@ class _HomePageState extends State<HomePage> {
       );
     }
     final l10n = AppLocalizations.of(context)!;
-    final count = incidentiSalvati.length;
-    final historyLabel = count == 0
-        ? tr(context, 'home_history_empty')
-        : tr(context, 'home_history_count', params: {'count': '$count'});
 
     return Scaffold(
       appBar: AppBar(
@@ -2004,119 +2164,278 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            const SizedBox(height: 24),
-            Image.asset(
-              'assets/images/crashform_logo.png',
-              height: 140,
-              width: 140,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              tr(context, 'home_subtitle'),
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(color: Colors.black87),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: _vaiANuovoIncidente,
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(56),
-                shape: const StadiumBorder(),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 12),
+              Image.asset(
+                'assets/images/crashform_logo.png',
+                height: 120,
+                width: 120,
+                fit: BoxFit.contain,
               ),
-              child: Text(
-                tr(context, 'home_new_incident'),
-                style: const TextStyle(color: Colors.black),
+              const SizedBox(height: 12),
+              Text(
+                tr(context, 'home_subtitle'),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(color: Colors.black87),
+                textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton(
-              onPressed: count == 0 ? null : _vaiAStorico,
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(56),
-                shape: const StadiumBorder(),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _vaiANuovoIncidente,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                  shape: const StadiumBorder(),
+                ),
+                child: Text(
+                  tr(context, 'home_new_incident'),
+                  style: const TextStyle(color: Colors.black),
+                ),
               ),
-              child: Text(
-                historyLabel,
-                style: const TextStyle(color: Colors.black),
-              ),
-            ),
-
-            // ✅ QUI: i 3 pulsanti anche in HOME (sotto “Chiama la mia carrozzeria” ecc.)
-            const SizedBox(height: 20),
-            const Divider(height: 1),
-            const SizedBox(height: 16),
-
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _chiamaCarrozzeria,
-                icon: const Icon(Icons.phone_enabled),
-                label: Text(tx(context, 'Chiama la mia carrozzeria')),
-              ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  _apriUrl(
-                    Uri.parse(
-                      'https://www.google.com/maps/search/?api=1&query=carrozzeria+vicino+a+me',
-                    ),
-                    'Impossibile aprire Google Maps.',
-                  );
-                },
-                icon: const Icon(Icons.location_on_outlined),
-                label: Text(tx(context, 'Trova carrozzeria e i dintorni')),
-              ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _mostraEmergenze,
-                icon: const Icon(Icons.phone_in_talk),
-                label: Text(tx(context, 'Chiama numeri di emergenza')),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
+              const SizedBox(height: 12),
+              _PremiumActionButton(
+                icon: Icons.inbox_outlined,
+                label: l10n.my_requests_title,
+                onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => const WorkshopSlotPickerScreen(
-                        title: 'Service anmelden',
-                        serviceType: 'service_anmelden',
+                      builder: (_) => const MyRequestsPage(
+                        incidentsTab: StoricoPage(embedOnlyBody: true),
                       ),
                     ),
                   );
                 },
-                icon: const Icon(Icons.build_outlined),
-                label: Text(l10n.service_anmelden),
               ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pushNamed('/raeder_wechsel');
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  l10n.workshop_services_title,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SizedBox(height: 12),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  const gap = 12.0;
+                  final tileWidth = (constraints.maxWidth - gap) / 2;
+                  return Column(
+                    children: [
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: tileWidth,
+                            child: _HomeServiceTile(
+                              icon: Icons.build,
+                              title: l10n.service_anmelden,
+                              onTap: () => _openServiceAnmelden(context),
+                            ),
+                          ),
+                          const SizedBox(width: gap),
+                          SizedBox(
+                            width: tileWidth,
+                            child: _HomeServiceTile(
+                              icon: Icons.tire_repair,
+                              title: l10n.raeder_wechsel,
+                              onTap: () => _openRaederWechsel(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _HomeServiceTile(
+                        icon: Icons.car_crash,
+                        title: l10n.damage_type_title,
+                        onTap: () => _openDamageTypePicker(context),
+                      ),
+                    ],
+                  );
                 },
-                icon: const Icon(Icons.tire_repair_outlined),
-                label: Text(l10n.raeder_wechsel),
               ),
+              const SizedBox(height: 20),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              Text(
+                l10n.quick_actions_title,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                alignment: WrapAlignment.center,
+                children: [
+                  _quickActionChip(
+                    context: context,
+                    icon: Icons.phone,
+                    label: tx(context, 'Chiama la mia carrozzeria'),
+                    onTap: _chiamaCarrozzeria,
+                  ),
+                  _quickActionChip(
+                    context: context,
+                    icon: Icons.place,
+                    label: tx(context, 'Trova carrozzeria e i dintorni'),
+                    onTap: () {
+                      _apriUrl(
+                        Uri.parse(
+                          'https://www.google.com/maps/search/?api=1&query=carrozzeria+vicino+a+me',
+                        ),
+                        'Impossibile aprire Google Maps.',
+                      );
+                    },
+                  ),
+                  _quickActionChip(
+                    context: context,
+                    icon: Icons.emergency,
+                    label: tx(context, 'Chiama numeri di emergenza'),
+                    onTap: _mostraEmergenze,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PremiumActionButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final IconData icon;
+  final String label;
+
+  const _PremiumActionButton({
+    required this.onTap,
+    required this.icon,
+    required this.label,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface.withOpacity(0.30),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.dividerColor.withOpacity(0.35),
+              width: 1,
             ),
-          ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: theme.colorScheme.primary.withOpacity(0.12),
+                ),
+                child: Icon(icon, color: theme.colorScheme.primary),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  label,
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ),
+              Icon(Icons.chevron_right,
+                  color: theme.colorScheme.onSurface.withOpacity(0.55)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeServiceTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  const _HomeServiceTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          height: 74,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface.withOpacity(0.55),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.dividerColor.withOpacity(0.25),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: primary.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  icon,
+                  size: 22,
+                  color: primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right,
+                color: theme.iconTheme.color?.withOpacity(0.6),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -2281,6 +2600,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
   final _luogoController = TextEditingController();
   bool _validazioneContattiAttiva = true;
+  bool? _otherObjectDamage;
+  bool? _otherVehicleDamage;
 
   final _nomeAController = TextEditingController();
   final _cognomeAController = TextEditingController();
@@ -2424,6 +2745,60 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     unawaited(_audioPlayer.stop());
     _audioPlayer.dispose();
     super.dispose();
+  }
+
+  Widget _yesNoRow({
+    required String title,
+    required bool? value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: RadioListTile<bool>(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.yes),
+                  value: true,
+                  groupValue: value,
+                  onChanged: (_) => onChanged(true),
+                ),
+              ),
+              Expanded(
+                child: RadioListTile<bool>(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.no),
+                  value: false,
+                  groupValue: value,
+                  onChanged: (_) => onChanged(false),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   void _mostraSnack(String testo) {
@@ -3073,6 +3448,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       descrizione: _descrizioneController.text.trim(),
       danniVeicoloA: _damageVehicleAController.text.trim(),
       danniVeicoloB: _damageVehicleBController.text.trim(),
+      otherObjectDamage: _otherObjectDamage,
+      otherVehicleDamage: _otherVehicleDamage,
       testimoni: testimoni,
       feriti: feriti,
       notaVocaleA: _notaVocaleAController.text.trim(),
@@ -3095,6 +3472,19 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
     incidentiSalvati.insert(0, nuovo);
     await salvaIncidenti();
+
+    final sync = IncidentsSyncService();
+    try {
+      await sync.uploadIncident(
+        payload: nuovo.toJson(),
+        hashSha256: nuovo.hashIntegrita,
+        timestampUtc: DateTime.now().toUtc(),
+        locale: Localizations.localeOf(context).languageCode,
+        deviceId: null,
+      );
+    } catch (_) {
+      // silent fail if offline
+    }
 
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
@@ -3413,6 +3803,17 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                       "Scrivi brevemente come è successo l'incidente..."),
                 ),
               ),
+              const SizedBox(height: 16),
+              _yesNoRow(
+                title: AppLocalizations.of(context)!.other_object_damage_q,
+                value: _otherObjectDamage,
+                onChanged: (v) => setState(() => _otherObjectDamage = v),
+              ),
+              _yesNoRow(
+                title: AppLocalizations.of(context)!.other_vehicle_damage_q,
+                value: _otherVehicleDamage,
+                onChanged: (v) => setState(() => _otherVehicleDamage = v),
+              ),
               const SizedBox(height: 24),
               Text(
                 tx(context, 'Testimoni (se presenti)'),
@@ -3643,7 +4044,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 /// STORICO /////////////////////////////////////////////////////////////
 
 class StoricoPage extends StatefulWidget {
-  const StoricoPage({super.key});
+  final bool embedOnlyBody;
+
+  const StoricoPage({super.key, this.embedOnlyBody = false});
 
   @override
   State<StoricoPage> createState() => _StoricoPageState();
@@ -3652,67 +4055,71 @@ class StoricoPage extends StatefulWidget {
 class _StoricoPageState extends State<StoricoPage> {
   @override
   Widget build(BuildContext context) {
+    final body = incidentiSalvati.isEmpty
+        ? Center(child: Text(tx(context, 'Nessun incidente salvato.')))
+        : ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: incidentiSalvati.length,
+            itemBuilder: (context, index) {
+              final inc = incidentiSalvati[index];
+              final dataOra = formatDataOraLocale(context, inc.dataOra);
+              final indirizzoACompleto =
+                  formatFullAddress(inc.indirizzoA, inc.zipA, inc.cityA);
+              final indirizzoBCompleto =
+                  formatFullAddress(inc.indirizzoB, inc.zipB, inc.cityB);
+
+              String resp;
+              if (inc.colpevole == 'A') {
+                resp = 'Resp: A';
+              } else if (inc.colpevole == 'B') {
+                resp = 'Resp: B';
+              } else {
+                resp = 'Resp: n/d';
+              }
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.description_outlined),
+                  title: Text('$dataOra - ${inc.luogo}'),
+                  subtitle: Text(
+                    'A: ${formatNomeCompleto(inc.nomeA, inc.cognomeA)} (${inc.targaA})'
+                    '${inc.telefonoA.isNotEmpty ? ' · ${inc.telefonoA}' : ''}'
+                    '${indirizzoACompleto.isNotEmpty ? ' · $indirizzoACompleto' : ''}'
+                    '${inc.emailA.isNotEmpty ? '\n   ${inc.emailA}' : ''}\n'
+                    'B: ${formatNomeCompleto(inc.nomeB, inc.cognomeB)} (${inc.targaB})'
+                    '${inc.telefonoB.isNotEmpty ? ' · ${inc.telefonoB}' : ''}'
+                    '${indirizzoBCompleto.isNotEmpty ? ' · $indirizzoBCompleto' : ''}'
+                    '${inc.emailB.isNotEmpty ? '\n   ${inc.emailB}' : ''}\n'
+                    '$resp\n'
+                    'Cod. officina: ${inc.codiceOfficina}',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => DettaglioIncidentePage(
+                          incidente: inc,
+                          readOnly: true,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          );
+
+    if (widget.embedOnlyBody) return body;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(tx(context, 'Storico incidenti')),
       ),
-      body: incidentiSalvati.isEmpty
-          ? Center(child: Text(tx(context, 'Nessun incidente salvato.')))
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: incidentiSalvati.length,
-              itemBuilder: (context, index) {
-                final inc = incidentiSalvati[index];
-                final dataOra = formatDataOraLocale(context, inc.dataOra);
-                final indirizzoACompleto =
-                    formatFullAddress(inc.indirizzoA, inc.zipA, inc.cityA);
-                final indirizzoBCompleto =
-                    formatFullAddress(inc.indirizzoB, inc.zipB, inc.cityB);
-
-                String resp;
-                if (inc.colpevole == 'A') {
-                  resp = 'Resp: A';
-                } else if (inc.colpevole == 'B') {
-                  resp = 'Resp: B';
-                } else {
-                  resp = 'Resp: n/d';
-                }
-
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    leading: const Icon(Icons.description_outlined),
-                    title: Text('$dataOra - ${inc.luogo}'),
-                    subtitle: Text(
-                      'A: ${formatNomeCompleto(inc.nomeA, inc.cognomeA)} (${inc.targaA})'
-                      '${inc.telefonoA.isNotEmpty ? ' · ${inc.telefonoA}' : ''}'
-                      '${indirizzoACompleto.isNotEmpty ? ' · $indirizzoACompleto' : ''}'
-                      '${inc.emailA.isNotEmpty ? '\n   ${inc.emailA}' : ''}\n'
-                      'B: ${formatNomeCompleto(inc.nomeB, inc.cognomeB)} (${inc.targaB})'
-                      '${inc.telefonoB.isNotEmpty ? ' · ${inc.telefonoB}' : ''}'
-                      '${indirizzoBCompleto.isNotEmpty ? ' · $indirizzoBCompleto' : ''}'
-                      '${inc.emailB.isNotEmpty ? '\n   ${inc.emailB}' : ''}\n'
-                      '$resp\n'
-                      'Cod. officina: ${inc.codiceOfficina}',
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => DettaglioIncidentePage(
-                            incidente: inc,
-                            readOnly: true,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
+      body: body,
     );
   }
 }
@@ -4401,14 +4808,12 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
     // ✅ STEP B: hash integrità
     final hash = await _calcolaHashPratica();
-    final driverAName =
-        formatNomeCompleto(incidente.nomeA, incidente.cognomeA);
-    final driverBName =
-        formatNomeCompleto(incidente.nomeB, incidente.cognomeB);
-    final indirizzoACompleto =
-        formatFullAddress(incidente.indirizzoA, incidente.zipA, incidente.cityA);
-    final indirizzoBCompleto =
-        formatFullAddress(incidente.indirizzoB, incidente.zipB, incidente.cityB);
+    final driverAName = formatNomeCompleto(incidente.nomeA, incidente.cognomeA);
+    final driverBName = formatNomeCompleto(incidente.nomeB, incidente.cognomeB);
+    final indirizzoACompleto = formatFullAddress(
+        incidente.indirizzoA, incidente.zipA, incidente.cityA);
+    final indirizzoBCompleto = formatFullAddress(
+        incidente.indirizzoB, incidente.zipB, incidente.cityB);
 
     pw.ImageProvider? firmaAImage;
     pw.ImageProvider? firmaBImage;
@@ -4756,6 +5161,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       descrizione: incidente.descrizione,
       danniVeicoloA: incidente.danniVeicoloA,
       danniVeicoloB: incidente.danniVeicoloB,
+      otherObjectDamage: incidente.otherObjectDamage,
+      otherVehicleDamage: incidente.otherVehicleDamage,
       testimoni: incidente.testimoni,
       feriti: incidente.feriti,
       notaVocaleA: incidente.notaVocaleA,
@@ -4825,6 +5232,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       descrizione: incidente.descrizione,
       danniVeicoloA: incidente.danniVeicoloA,
       danniVeicoloB: incidente.danniVeicoloB,
+      otherObjectDamage: incidente.otherObjectDamage,
+      otherVehicleDamage: incidente.otherVehicleDamage,
       testimoni: incidente.testimoni,
       feriti: incidente.feriti,
       notaVocaleA: incidente.notaVocaleA,
@@ -5403,8 +5812,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              tx(
-                                  context,
+                              tx(context,
                                   'Mostra questo QR alla carrozzeria per importare i dati.'),
                               textAlign: TextAlign.center,
                             ),

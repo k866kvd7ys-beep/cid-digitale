@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:cid_digitale/l10n/app_localizations.dart';
+import 'package:cid_digitale/services/appointment_requests_service.dart';
 
 class WorkshopSlotPickerScreen extends StatefulWidget {
   final String title; // UI title
-  final String serviceType; // 'raeder_sommer' | 'raeder_winter' | 'service_anmelden'
+  final String
+      serviceType; // 'raeder_sommer' | 'raeder_winter' | 'service_anmelden'
+  final String? damageType;
 
   const WorkshopSlotPickerScreen({
     super.key,
     required this.title,
     required this.serviceType,
+    this.damageType,
   });
 
   @override
-  State<WorkshopSlotPickerScreen> createState() => _WorkshopSlotPickerScreenState();
+  State<WorkshopSlotPickerScreen> createState() =>
+      _WorkshopSlotPickerScreenState();
 }
 
 class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
@@ -21,26 +27,94 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   DateTime _selectedDay = DateTime.now();
   DateTime? _selectedSlot;
   bool _loading = false;
+  bool _submitting = false;
 
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
+  final _plateCtrl = TextEditingController();
+  final _appointmentService = AppointmentRequestsService();
 
-  // OFFLINE DEMO: slot occupati in memoria (per serviceType)
-  static final Map<String, Set<String>> _bookedByService = {};
+  bool _isTaken(DateTime slot) => false;
 
-  String _slotKey(DateTime dt) {
-    final d = DateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute);
-    return d.toIso8601String();
+  Widget _licensePlateCard(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withOpacity(0.30),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.dividerColor.withOpacity(0.35),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: theme.colorScheme.primary.withOpacity(0.12),
+            ),
+            child: Icon(Icons.confirmation_number_outlined,
+                color: theme.colorScheme.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.license_plate_label,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.70),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _plateCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: AppLocalizations.of(context)!.license_plate_hint,
+                    border: InputBorder.none,
+                  ),
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  bool _isTaken(DateTime slot) {
-    return _bookedByService[widget.serviceType]?.contains(_slotKey(slot)) ?? false;
-  }
-
-  void _markTaken(DateTime slot) {
-    final set = _bookedByService.putIfAbsent(widget.serviceType, () => <String>{});
-    set.add(_slotKey(slot));
+  InputDecoration _premiumFieldDec(BuildContext context, String hint) {
+    final theme = Theme.of(context);
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: theme.colorScheme.surface.withOpacity(0.22),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.35)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.35)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+            color: theme.colorScheme.primary.withOpacity(0.6), width: 1.2),
+      ),
+    );
   }
 
   @override
@@ -48,6 +122,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
+    _plateCtrl.dispose();
     super.dispose();
   }
 
@@ -62,7 +137,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     return slots;
   }
 
-  Future<void> _bookOffline() async {
+  Future<void> _onBookPressed() async {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -70,6 +145,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       );
       return;
     }
+    final plate = _plateCtrl.text.trim();
     if (_selectedSlot == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Bitte Uhrzeit auswählen')),
@@ -83,31 +159,51 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       return;
     }
 
-    setState(() => _loading = true);
-
-    // OFFLINE: finta chiamata rete
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    _markTaken(_selectedSlot!);
-
-    final slotStr = DateFormat('dd.MM.yyyy HH:mm').format(_selectedSlot!);
-    debugPrint(
-      'BOOK OFFLINE -> ${widget.serviceType} | $slotStr | $name | ${_phoneCtrl.text.trim()} | ${_emailCtrl.text.trim()}',
-    );
-
-    if (!mounted) return;
     setState(() {
-      _loading = false;
-      _selectedSlot = null;
+      _loading = true;
+      _submitting = true;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Termin gespeichert (offline): $slotStr')),
-    );
+    final slotStr = DateFormat('dd.MM.yyyy HH:mm').format(_selectedSlot!);
+
+    try {
+      final locale = Localizations.localeOf(context).languageCode;
+      await _appointmentService.submitRequest(
+        serviceType: widget.serviceType,
+        damageType: widget.damageType,
+        appointmentDate: _selectedSlot,
+        appointmentTime: DateFormat('HH:mm:ss').format(_selectedSlot!),
+        durationMinutes: 60,
+        customerName: _nameCtrl.text,
+        phone: _phoneCtrl.text,
+        email: _emailCtrl.text,
+        licensePlate: _plateCtrl.text,
+        notes: null,
+        locale: locale,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('✅ Termin gesendet ($slotStr)')),
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Errore invio: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _submitting = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final df = DateFormat('EEE, dd.MM.yyyy');
     final tf = DateFormat('HH:mm');
 
@@ -127,17 +223,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(widget.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  Text(widget.title,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 12),
-
-                  // DATI CLIENTE
+                  _licensePlateCard(context),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: _nameCtrl,
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: 'Name und Nachname',
-                      border: OutlineInputBorder(),
-                    ),
+                    decoration: _premiumFieldDec(context, 'Name und Nachname'),
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -147,10 +242,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                           controller: _phoneCtrl,
                           textInputAction: TextInputAction.next,
                           keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(
-                            labelText: 'Telefon',
-                            border: OutlineInputBorder(),
-                          ),
+                          decoration: _premiumFieldDec(context, 'Telefon'),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -159,10 +251,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                           controller: _emailCtrl,
                           textInputAction: TextInputAction.done,
                           keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
-                            labelText: 'E-Mail',
-                            border: OutlineInputBorder(),
-                          ),
+                          decoration: _premiumFieldDec(context, 'E-Mail'),
                         ),
                       ),
                     ],
@@ -191,7 +280,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text(df.format(_selectedDay), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                child: Text(df.format(_selectedDay),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w800)),
               ),
             ),
 
@@ -211,48 +302,34 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                         _selectedSlot!.hour == slot.hour &&
                         _selectedSlot!.minute == slot.minute;
 
-                    final bg = taken
-                        ? Colors.black12
-                        : (selected ? Colors.blue.shade100 : Colors.white);
-
-                    final border = taken
-                        ? Colors.black12
-                        : (selected ? Colors.blue : Colors.black26);
-
-                    return InkWell(
-                      onTap: taken
+                    return ChoiceChip(
+                      label: Text(
+                        tf.format(slot),
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelLarge
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      selected: selected,
+                      onSelected: taken
                           ? null
-                          : () {
+                          : (_) {
                               setState(() => _selectedSlot = slot);
                             },
-                      borderRadius: BorderRadius.circular(999),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: bg,
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: border),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              tf.format(slot),
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: taken ? Colors.black45 : Colors.black,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              taken ? 'Belegt' : (selected ? '✓' : ''),
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: taken ? Colors.black45 : Colors.black,
-                              ),
-                            ),
-                          ],
-                        ),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18)),
+                      selectedColor: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.18),
+                      backgroundColor: Theme.of(context)
+                          .colorScheme
+                          .surface
+                          .withOpacity(0.22),
+                      labelPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
+                      side: BorderSide(
+                        color: Theme.of(context).dividerColor.withOpacity(0.35),
                       ),
                     );
                   }).toList(),
@@ -269,8 +346,20 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             width: double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: _loading ? null : _bookOffline,
-              child: Text(_loading ? '...' : 'Termin buchen'),
+              onPressed: _loading || _submitting ? null : _onBookPressed,
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                _loading || _submitting ? '...' : l10n.termin_buchen,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w800),
+              ),
             ),
           ),
         ),
