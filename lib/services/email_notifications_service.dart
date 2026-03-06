@@ -61,6 +61,8 @@ class EmailNotificationsService {
         return 'Räderwechsel Winter';
       case 'service_anmelden':
         return 'Service';
+      case 'damage_glass':
+        return 'Glasschaden';
       default:
         return serviceType;
     }
