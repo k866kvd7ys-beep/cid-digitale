@@ -98,19 +98,26 @@ class AppointmentRequestsService {
     final list = (res as List).cast<Map<String, dynamic>>();
     final base = DateTime(day.year, day.month, day.day);
 
-    return list.map((row) {
-      final tRaw = (row['appointment_time'] ?? '') as String;
-      final t = tRaw.length == 5 ? '$tRaw:00' : tRaw;
-      final parsed = DateFormat('HH:mm:ss').parse(t);
-      return DateTime(
-        base.year,
-        base.month,
-        base.day,
-        parsed.hour,
-        parsed.minute,
-        parsed.second,
-      );
-    }).toList();
+    final parsed = list
+        .map((row) {
+          final tRaw = row['appointment_time']?.toString() ?? '';
+          if (tRaw.isEmpty) return null;
+          final t = tRaw.length == 5 ? '$tRaw:00' : tRaw;
+          final parsedTime = DateFormat('HH:mm:ss').tryParse(t);
+          if (parsedTime == null) return null;
+          return DateTime(
+            base.year,
+            base.month,
+            base.day,
+            parsedTime.hour,
+            parsedTime.minute,
+            parsedTime.second,
+          );
+        })
+        .whereType<DateTime>()
+        .toList();
+
+    return parsed;
   }
 
   Future<void> cancelRequest(String id) async {

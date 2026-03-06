@@ -30,12 +30,19 @@ class AppointmentRequest {
   final String? notes;
 
   factory AppointmentRequest.fromMap(Map<String, dynamic> map) {
+    final createdStr = map['created_at']?.toString();
+    final updatedStr = map['updated_at']?.toString();
+    final dateStr = map['appointment_date']?.toString();
+
     return AppointmentRequest(
       id: (map['id'] ?? '').toString(),
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: DateTime.parse(map['updated_at'] as String),
+      createdAt: DateTime.tryParse(createdStr ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      updatedAt: DateTime.tryParse(updatedStr ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
       serviceType: (map['service_type'] ?? '').toString(),
-      appointmentDate: DateTime.parse(map['appointment_date'] as String),
+      appointmentDate: DateTime.tryParse(dateStr ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
       appointmentTime: (map['appointment_time'] ?? '').toString(),
       durationMinutes: (map['duration_minutes'] as num?)?.toInt() ?? 60,
       customerName: (map['customer_name'] ?? map['customerName']) as String?,
