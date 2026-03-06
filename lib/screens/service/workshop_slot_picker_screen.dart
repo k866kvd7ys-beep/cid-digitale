@@ -137,6 +137,11 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     return slots;
   }
 
+  Future<void> _loadAvailableSlots(DateTime day) async {
+    // Placeholder for future async loading; rebuild to reflect selected day.
+    setState(() {});
+  }
+
   Future<void> _onBookPressed() async {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) {
@@ -275,6 +280,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                             _focusedDay = focusedDay;
                             _selectedSlot = null;
                           });
+                          unawaited(_loadAvailableSlots(selectedDay));
                         },
                       ),
 
