@@ -301,26 +301,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surface
-                                .withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Theme.of(context)
-                                  .dividerColor
-                                  .withOpacity(0.35),
-                            ),
-                          ),
-                          child: const Text('Keine Uhrzeiten verfügbar'),
+                          color: Colors.red.withOpacity(0.12),
+                          child: const Text('DEBUG: nessun orario disponibile'),
                         )
                       else
-                        Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
+                        Column(
                           children: slots.map((slot) {
-                            final taken = _isTaken(slot);
                             final selected = _selectedSlot != null &&
                                 _selectedSlot!.year == slot.year &&
                                 _selectedSlot!.month == slot.month &&
@@ -328,36 +314,26 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                                 _selectedSlot!.hour == slot.hour &&
                                 _selectedSlot!.minute == slot.minute;
 
-                            return ChoiceChip(
-                              label: Text(
-                                tf.format(slot),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelLarge
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                              selected: selected,
-                              onSelected: taken
-                                  ? null
-                                  : (_) {
-                                      setState(() => _selectedSlot = slot);
-                                    },
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18)),
-                              selectedColor: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withOpacity(0.18),
-                              backgroundColor: Theme.of(context)
-                                  .colorScheme
-                                  .surface
-                                  .withOpacity(0.22),
-                              labelPadding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 6),
-                              side: BorderSide(
-                                color: Theme.of(context)
-                                    .dividerColor
-                                    .withOpacity(0.35),
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    backgroundColor: selected
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withOpacity(0.15)
+                                        : null,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedSlot = slot;
+                                    });
+                                  },
+                                  child: Text(tf.format(slot)),
+                                ),
                               ),
                             );
                           }).toList(),
