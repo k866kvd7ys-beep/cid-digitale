@@ -1,12 +1,20 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+
 import '../models/appointment_request.dart';
+import 'email_notifications_service.dart';
 
 class AppointmentRequestsService {
-  AppointmentRequestsService({SupabaseClient? client})
-      : _client = client ?? Supabase.instance.client;
+  AppointmentRequestsService(
+      {SupabaseClient? client, EmailNotificationsService? emailService})
+      : _client = client ?? Supabase.instance.client,
+        _emailNotifications = emailService ??
+            EmailNotificationsService(
+                client: client ?? Supabase.instance.client);
 
   final SupabaseClient _client;
+  final EmailNotificationsService _emailNotifications;
 
   Future<List<AppointmentRequest>> fetchMyRequests({
     String? email,
@@ -79,7 +87,17 @@ class AppointmentRequestsService {
         .insert(payload)
         .select()
         .single();
-    return AppointmentRequest.fromMap(res as Map<String, dynamic>);
+
+    final record = AppointmentRequest.fromMap(res as Map<String, dynamic>);
+
+    // Best-effort email confirmation: do not block the booking flow.
+    try {
+      await _emailNotifications.sendAppointmentConfirmation(request: record);
+    } catch (e) {
+      debugPrint('Appointment email send failed: $e');
+    }
+
+    return record;
   }
 
   Future<List<DateTime>> fetchBookedSlots({
