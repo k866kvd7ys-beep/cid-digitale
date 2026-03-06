@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
 import '../models/appointment_request.dart';
 
 class AppointmentRequestsService {
@@ -79,6 +80,37 @@ class AppointmentRequestsService {
         .select()
         .single();
     return AppointmentRequest.fromMap(res as Map<String, dynamic>);
+  }
+
+  Future<List<DateTime>> fetchBookedSlots({
+    required String serviceKey,
+    required DateTime day,
+  }) async {
+    final dateStr = DateFormat('yyyy-MM-dd').format(day);
+
+    final res = await _client
+        .from('appointment_requests')
+        .select('appointment_time, appointment_date, status')
+        .eq('service_type', serviceKey)
+        .eq('appointment_date', dateStr)
+        .neq('status', 'cancelled');
+
+    final list = (res as List).cast<Map<String, dynamic>>();
+    final base = DateTime(day.year, day.month, day.day);
+
+    return list.map((row) {
+      final tRaw = (row['appointment_time'] ?? '') as String;
+      final t = tRaw.length == 5 ? '$tRaw:00' : tRaw;
+      final parsed = DateFormat('HH:mm:ss').parse(t);
+      return DateTime(
+        base.year,
+        base.month,
+        base.day,
+        parsed.hour,
+        parsed.minute,
+        parsed.second,
+      );
+    }).toList();
   }
 
   Future<void> cancelRequest(String id) async {

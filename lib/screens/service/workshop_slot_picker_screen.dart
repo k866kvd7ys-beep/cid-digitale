@@ -28,6 +28,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   DateTime? _selectedSlot;
   bool _loading = false;
   bool _submitting = false;
+  bool _loadingSlots = false;
+  List<DateTime> _bookedSlots = const [];
 
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
@@ -126,6 +128,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _loadAvailableSlots(_selectedDay);
+  }
+
   // Orari officina: 08:00-18:00 ogni 30 min
   List<DateTime> _buildSlots(DateTime day) {
     final base = DateTime(day.year, day.month, day.day);
@@ -138,8 +146,29 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   }
 
   Future<void> _loadAvailableSlots(DateTime day) async {
-    // Placeholder for future async loading; rebuild to reflect selected day.
-    setState(() {});
+    setState(() {
+      _loadingSlots = true;
+    });
+    try {
+      final booked = await _appointmentService.fetchBookedSlots(
+        serviceKey: widget.serviceType,
+        day: day,
+      );
+      if (mounted) setState(() => _bookedSlots = booked);
+    } catch (_) {
+      if (mounted) setState(() => _bookedSlots = const []);
+    } finally {
+      if (mounted) setState(() => _loadingSlots = false);
+    }
+  }
+
+  bool _isBooked(DateTime slot) {
+    return _bookedSlots.any((b) =>
+        b.year == slot.year &&
+        b.month == slot.month &&
+        b.day == slot.day &&
+        b.hour == slot.hour &&
+        b.minute == slot.minute);
   }
 
   Future<void> _onBookPressed() async {
@@ -212,7 +241,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final df = DateFormat('EEE, dd.MM.yyyy');
     final tf = DateFormat('HH:mm');
 
-    final slots = _buildSlots(_selectedDay);
+    final slots =
+        _buildSlots(_selectedDay).where((slot) => !_isBooked(slot)).toList();
     final debugSelectedDay = _selectedDay.toIso8601String();
     final debugFocusedDay = _focusedDay.toIso8601String();
     final debugSlotsCount = slots.length;
@@ -279,6 +309,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                   _focusedDay = focusedDay;
                   _selectedSlot = null;
                 });
+                _loadAvailableSlots(selectedDay);
               },
             ),
             const SizedBox(height: 12),
@@ -291,7 +322,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             ),
             const SizedBox(height: 8),
 
-            if (slots.isEmpty)
+            if (_loadingSlots)
+              const Center(child: CircularProgressIndicator())
+            else if (slots.isEmpty)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
