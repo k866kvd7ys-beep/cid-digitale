@@ -15,25 +15,26 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   final _df = DateFormat('dd.MM.yyyy');
   final _tf = DateFormat('HH:mm');
 
-  Future<List<dynamic>> _load() async {
-    final now = DateTime.now().toUtc().toIso8601String();
+  Future<List<Map<String, dynamic>>> _load() async {
     final res = await _sb
-        .from('workshop_appointments')
+        .from('appointment_requests')
         .select('*')
-        .eq('workshop_id', widget.workshopId)
-        .gte('start_time', now)
-        .order('start_time', ascending: true);
-    return res as List<dynamic>;
+        .neq('status', 'cancelled')
+        .order('appointment_date', ascending: true)
+        .order('appointment_time', ascending: true)
+        .limit(500);
+    return (res as List).cast<Map<String, dynamic>>();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Kalender')),
-      body: FutureBuilder<List<dynamic>>(
+      body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _load(),
         builder: (context, snap) {
-          if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+          if (!snap.hasData)
+            return const Center(child: CircularProgressIndicator());
           final items = snap.data!;
           if (items.isEmpty) return const Center(child: Text('Keine Termine'));
 
@@ -42,10 +43,23 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
             itemCount: items.length,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, i) {
-              final r = items[i] as Map<String, dynamic>;
-              final start = DateTime.parse(r['start_time'] as String).toLocal();
-              final end = DateTime.parse(r['end_time'] as String).toLocal();
-              final type = (r['service_type'] as String) == 'raeder_sommer' ? 'Sommer' : 'Winter';
+              final r = items[i];
+
+              final dateStr = r['appointment_date']?.toString() ?? '';
+              final timeStr = r['appointment_time']?.toString() ?? '00:00:00';
+              final combined = DateTime.tryParse('${dateStr}T$timeStr');
+              final start = combined?.toLocal();
+              final durationMinutes =
+                  (r['duration_minutes'] as num?)?.toInt() ?? 60;
+              final end = start?.add(Duration(minutes: durationMinutes));
+              final type = (r['service_type'] ?? '').toString();
+
+              if (start == null) {
+                return const SizedBox.shrink();
+              }
+
+              final startLabel = '${_df.format(start)}  ${_tf.format(start)}';
+              final endLabel = end != null ? _tf.format(end) : '';
 
               return Container(
                 padding: const EdgeInsets.all(14),
@@ -57,8 +71,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        '${_df.format(start)}  ${_tf.format(start)} - ${_tf.format(end)}   •   $type',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                        '$startLabel - $endLabel   •   $type',
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
