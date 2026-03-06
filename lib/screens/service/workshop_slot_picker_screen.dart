@@ -215,128 +215,129 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         title: const Text('Termin auswählen'),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // HEADER
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(widget.title,
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 12),
-                  _licensePlateCard(context),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _nameCtrl,
-                    textInputAction: TextInputAction.next,
-                    decoration: _premiumFieldDec(context, 'Name und Nachname'),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _phoneCtrl,
-                          textInputAction: TextInputAction.next,
-                          keyboardType: TextInputType.phone,
-                          decoration: _premiumFieldDec(context, 'Telefon'),
-                        ),
+                      // HEADER
+                      Text(widget.title,
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 12),
+                      _licensePlateCard(context),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _nameCtrl,
+                        textInputAction: TextInputAction.next,
+                        decoration:
+                            _premiumFieldDec(context, 'Name und Nachname'),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: _emailCtrl,
-                          textInputAction: TextInputAction.done,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: _premiumFieldDec(context, 'E-Mail'),
-                        ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _phoneCtrl,
+                              textInputAction: TextInputAction.next,
+                              keyboardType: TextInputType.phone,
+                              decoration: _premiumFieldDec(context, 'Telefon'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              controller: _emailCtrl,
+                              textInputAction: TextInputAction.done,
+                              keyboardType: TextInputType.emailAddress,
+                              decoration: _premiumFieldDec(context, 'E-Mail'),
+                            ),
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 16),
+
+                      // CALENDARIO
+                      TableCalendar(
+                        firstDay: DateTime.now(),
+                        lastDay: DateTime.now().add(const Duration(days: 120)),
+                        focusedDay: _focusedDay,
+                        selectedDayPredicate: (d) => isSameDay(d, _selectedDay),
+                        onDaySelected: (selectedDay, focusedDay) {
+                          setState(() {
+                            _selectedDay = selectedDay;
+                            _focusedDay = focusedDay;
+                            _selectedSlot = null;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 12),
+                      Text(df.format(_selectedDay),
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 8),
+
+                      // SLOT "PILLOLE"
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: slots.map((slot) {
+                          final taken = _isTaken(slot);
+                          final selected = _selectedSlot != null &&
+                              _selectedSlot!.year == slot.year &&
+                              _selectedSlot!.month == slot.month &&
+                              _selectedSlot!.day == slot.day &&
+                              _selectedSlot!.hour == slot.hour &&
+                              _selectedSlot!.minute == slot.minute;
+
+                          return ChoiceChip(
+                            label: Text(
+                              tf.format(slot),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelLarge
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            selected: selected,
+                            onSelected: taken
+                                ? null
+                                : (_) {
+                                    setState(() => _selectedSlot = slot);
+                                  },
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18)),
+                            selectedColor: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withOpacity(0.18),
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .surface
+                                .withOpacity(0.22),
+                            labelPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 6),
+                            side: BorderSide(
+                              color: Theme.of(context)
+                                  .dividerColor
+                                  .withOpacity(0.35),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 80),
                     ],
                   ),
-                ],
-              ),
-            ),
-
-            // CALENDARIO
-            TableCalendar(
-              firstDay: DateTime.now(),
-              lastDay: DateTime.now().add(const Duration(days: 120)),
-              focusedDay: _focusedDay,
-              selectedDayPredicate: (d) => isSameDay(d, _selectedDay),
-              onDaySelected: (selectedDay, focusedDay) {
-                setState(() {
-                  _selectedDay = selectedDay;
-                  _focusedDay = focusedDay;
-                  _selectedSlot = null;
-                });
-              },
-            ),
-
-            // DATA
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(df.format(_selectedDay),
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w800)),
-              ),
-            ),
-
-            // SLOT "PILLOLE" (GRID)
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: slots.map((slot) {
-                    final taken = _isTaken(slot);
-                    final selected = _selectedSlot != null &&
-                        _selectedSlot!.year == slot.year &&
-                        _selectedSlot!.month == slot.month &&
-                        _selectedSlot!.day == slot.day &&
-                        _selectedSlot!.hour == slot.hour &&
-                        _selectedSlot!.minute == slot.minute;
-
-                    return ChoiceChip(
-                      label: Text(
-                        tf.format(slot),
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelLarge
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      selected: selected,
-                      onSelected: taken
-                          ? null
-                          : (_) {
-                              setState(() => _selectedSlot = slot);
-                            },
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18)),
-                      selectedColor: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withOpacity(0.18),
-                      backgroundColor: Theme.of(context)
-                          .colorScheme
-                          .surface
-                          .withOpacity(0.22),
-                      labelPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 6),
-                      side: BorderSide(
-                        color: Theme.of(context).dividerColor.withOpacity(0.35),
-                      ),
-                    );
-                  }).toList(),
                 ),
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
       bottomNavigationBar: SafeArea(
