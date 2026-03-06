@@ -299,51 +299,52 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 child: const Text('Nessun orario disponibile'),
               )
             else
-              Column(
-                children: [
-                  ...slots.map((slot) {
-                    final selected = _selectedSlot != null &&
-                        _selectedSlot!.year == slot.year &&
-                        _selectedSlot!.month == slot.month &&
-                        _selectedSlot!.day == slot.day &&
-                        _selectedSlot!.hour == slot.hour &&
-                        _selectedSlot!.minute == slot.minute;
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 2.6,
+                ),
+                itemCount: slots.length,
+                itemBuilder: (context, index) {
+                  final slot = slots[index];
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: SizedBox(
-                        height: 44,
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
-                            backgroundColor: selected
-                                ? Theme.of(context)
-                                    .colorScheme
-                                    .primary
-                                    .withOpacity(0.15)
-                                : null,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _selectedSlot = slot;
-                            });
-                          },
-                          child: Text(
-                            tf.format(slot),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
+                  final selected = _selectedSlot != null &&
+                      _selectedSlot!.year == slot.year &&
+                      _selectedSlot!.month == slot.month &&
+                      _selectedSlot!.day == slot.day &&
+                      _selectedSlot!.hour == slot.hour &&
+                      _selectedSlot!.minute == slot.minute;
+
+                  return OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: selected
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                      foregroundColor: selected
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    );
-                  }).toList(),
-                ],
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _selectedSlot = slot;
+                      });
+                    },
+                    child: Text(
+                      tf.format(slot),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  );
+                },
               ),
 
             const SizedBox(height: 140),
