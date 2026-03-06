@@ -277,6 +277,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                         onDaySelected: (selectedDay, focusedDay) {
                           setState(() {
                             _selectedDay = selectedDay;
+                            _focusedDay = focusedDay;
                             _selectedSlot = null;
                           });
                         },
