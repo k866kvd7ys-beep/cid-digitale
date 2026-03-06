@@ -235,6 +235,21 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             Text(widget.title,
                 style:
                     const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              margin: const EdgeInsets.only(bottom: 16, top: 8),
+              color: Colors.red,
+              child: const Text(
+                'DEBUG VERSIONE SLOT 09:45',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
             const SizedBox(height: 12),
             _licensePlateCard(context),
             const SizedBox(height: 12),
