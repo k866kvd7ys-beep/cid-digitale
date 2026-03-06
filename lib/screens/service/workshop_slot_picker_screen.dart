@@ -227,206 +227,189 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         title: const Text('Termin auswählen'),
       ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // HEADER
-                      Text(widget.title,
-                          style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 12),
-                      _licensePlateCard(context),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _nameCtrl,
-                        textInputAction: TextInputAction.next,
-                        decoration:
-                            _premiumFieldDec(context, 'Name und Nachname'),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _phoneCtrl,
-                              textInputAction: TextInputAction.next,
-                              keyboardType: TextInputType.phone,
-                              decoration: _premiumFieldDec(context, 'Telefon'),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: _emailCtrl,
-                              textInputAction: TextInputAction.done,
-                              keyboardType: TextInputType.emailAddress,
-                              decoration: _premiumFieldDec(context, 'E-Mail'),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // DEBUG INFO TOP
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.orangeAccent.withOpacity(0.25),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'DEBUG TOP\n'
-                          'selectedDay: $debugSelectedDay\n'
-                          'focusedDay: $debugFocusedDay\n'
-                          'slotsCount: $debugSlotsCount\n'
-                          'firstSlot: $debugFirstSlot\n'
-                          'lastSlot: $debugLastSlot\n'
-                          'selectedSlot: $debugSelectedSlot',
-                          style: const TextStyle(color: Colors.black87),
-                        ),
-                      ),
-
-                      // CALENDARIO
-                      TableCalendar(
-                        firstDay: DateTime.now(),
-                        lastDay: DateTime.now().add(const Duration(days: 120)),
-                        focusedDay: _focusedDay,
-                        selectedDayPredicate: (d) => isSameDay(d, _selectedDay),
-                        onDaySelected: (selectedDay, focusedDay) {
-                          setState(() {
-                            _selectedDay = selectedDay;
-                            _focusedDay = focusedDay;
-                            _selectedSlot = null;
-                          });
-                        },
-                      ),
-
-                      const SizedBox(height: 12),
-                      Text(df.format(_selectedDay),
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Bitte Uhrzeit auswählen',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleSmall
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // DEBUG SLOTS SECTION
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.only(bottom: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.orangeAccent.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          'DEBUG SLOTS SECTION\n'
-                          'slots.isEmpty = ${slots.isEmpty}\n'
-                          'slotsCount = $debugSlotsCount',
-                          style: const TextStyle(color: Colors.black87),
-                        ),
-                      ),
-
-                      if (slots.isEmpty)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          color: Colors.red.withOpacity(0.12),
-                          child: const Text('DEBUG: slots vuota'),
-                        )
-                      else
-                        Column(
-                          children: [
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(10),
-                              margin: const EdgeInsets.only(bottom: 8),
-                              color: Colors.greenAccent.withOpacity(0.2),
-                              child: Text(
-                                'DEBUG: sto renderizzando ${slots.length} slot',
-                                style: const TextStyle(color: Colors.black87),
-                              ),
-                            ),
-                            ...slots.map((slot) {
-                              final selected = _selectedSlot != null &&
-                                  _selectedSlot!.year == slot.year &&
-                                  _selectedSlot!.month == slot.month &&
-                                  _selectedSlot!.day == slot.day &&
-                                  _selectedSlot!.hour == slot.hour &&
-                                  _selectedSlot!.minute == slot.minute;
-
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  child: OutlinedButton(
-                                    style: OutlinedButton.styleFrom(
-                                      backgroundColor: selected
-                                          ? Theme.of(context)
-                                              .colorScheme
-                                              .primary
-                                              .withOpacity(0.15)
-                                          : null,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _selectedSlot = slot;
-                                      });
-                                    },
-                                    child: Text(tf.format(slot)),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ],
-                        ),
-                      const SizedBox(height: 80),
-                    ],
+        child: ListView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            // HEADER
+            Text(widget.title,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 12),
+            _licensePlateCard(context),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _nameCtrl,
+              textInputAction: TextInputAction.next,
+              decoration: _premiumFieldDec(context, 'Name und Nachname'),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _phoneCtrl,
+                    textInputAction: TextInputAction.next,
+                    keyboardType: TextInputType.phone,
+                    decoration: _premiumFieldDec(context, 'Telefon'),
                   ),
                 ),
-              ),
-            );
-          },
-        ),
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: _loading || _submitting ? null : _onBookPressed,
-              style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _emailCtrl,
+                    textInputAction: TextInputAction.done,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: _premiumFieldDec(context, 'E-Mail'),
+                  ),
                 ),
-                elevation: 0,
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // DEBUG INFO TOP
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.orangeAccent.withOpacity(0.25),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                _loading || _submitting ? '...' : l10n.termin_buchen,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w800),
+                'DEBUG TOP\n'
+                'selectedDay: $debugSelectedDay\n'
+                'focusedDay: $debugFocusedDay\n'
+                'slotsCount: $debugSlotsCount\n'
+                'firstSlot: $debugFirstSlot\n'
+                'lastSlot: $debugLastSlot\n'
+                'selectedSlot: $debugSelectedSlot',
+                style: const TextStyle(color: Colors.black87),
               ),
             ),
-          ),
+
+            // CALENDARIO
+            TableCalendar(
+              firstDay: DateTime.now(),
+              lastDay: DateTime.now().add(const Duration(days: 120)),
+              focusedDay: _focusedDay,
+              selectedDayPredicate: (d) => isSameDay(d, _selectedDay),
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                  _selectedSlot = null;
+                });
+              },
+            ),
+
+            const SizedBox(height: 12),
+            Text(df.format(_selectedDay),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 12),
+            Text(
+              'Bitte Uhrzeit auswählen',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+
+            // DEBUG SLOTS SECTION
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: Colors.orangeAccent.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'DEBUG SLOTS SECTION\n'
+                'slots.isEmpty = ${slots.isEmpty}\n'
+                'slotsCount = $debugSlotsCount',
+                style: const TextStyle(color: Colors.black87),
+              ),
+            ),
+
+            if (slots.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                color: Colors.red.withOpacity(0.12),
+                child: const Text('DEBUG: slots vuota'),
+              )
+            else
+              Column(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    color: Colors.greenAccent.withOpacity(0.2),
+                    child: Text(
+                      'DEBUG: sto renderizzando ${slots.length} slot',
+                      style: const TextStyle(color: Colors.black87),
+                    ),
+                  ),
+                  ...slots.map((slot) {
+                    final selected = _selectedSlot != null &&
+                        _selectedSlot!.year == slot.year &&
+                        _selectedSlot!.month == slot.month &&
+                        _selectedSlot!.day == slot.day &&
+                        _selectedSlot!.hour == slot.hour &&
+                        _selectedSlot!.minute == slot.minute;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: selected
+                                ? Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withOpacity(0.15)
+                                : null,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _selectedSlot = slot;
+                            });
+                          },
+                          child: Text(tf.format(slot)),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
+
+            const SizedBox(height: 140),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: _loading || _submitting ? null : _onBookPressed,
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  _loading || _submitting ? '...' : l10n.termin_buchen,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
