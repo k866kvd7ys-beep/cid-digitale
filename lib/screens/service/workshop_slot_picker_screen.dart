@@ -235,21 +235,6 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             Text(widget.title,
                 style:
                     const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              margin: const EdgeInsets.only(bottom: 16, top: 8),
-              color: Colors.red,
-              child: const Text(
-                'DEBUG VERSIONE SLOT 09:45',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
             const SizedBox(height: 12),
             _licensePlateCard(context),
             const SizedBox(height: 12),
@@ -282,27 +267,6 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             ),
             const SizedBox(height: 16),
 
-            // DEBUG INFO TOP
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: Colors.orangeAccent.withOpacity(0.25),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'DEBUG TOP\n'
-                'selectedDay: $debugSelectedDay\n'
-                'focusedDay: $debugFocusedDay\n'
-                'slotsCount: $debugSlotsCount\n'
-                'firstSlot: $debugFirstSlot\n'
-                'lastSlot: $debugLastSlot\n'
-                'selectedSlot: $debugSelectedSlot',
-                style: const TextStyle(color: Colors.black87),
-              ),
-            ),
-
             // CALENDARIO
             TableCalendar(
               firstDay: DateTime.now(),
@@ -317,11 +281,6 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 });
               },
             ),
-
-            const SizedBox(height: 12),
-            Text(df.format(_selectedDay),
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
             const SizedBox(height: 12),
             Text(
               'Bitte Uhrzeit auswählen',
@@ -332,43 +291,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             ),
             const SizedBox(height: 8),
 
-            // DEBUG SLOTS SECTION
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.only(bottom: 10),
-              decoration: BoxDecoration(
-                color: Colors.orangeAccent.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                'DEBUG SLOTS SECTION\n'
-                'slots.isEmpty = ${slots.isEmpty}\n'
-                'slotsCount = $debugSlotsCount',
-                style: const TextStyle(color: Colors.black87),
-              ),
-            ),
-
             if (slots.isEmpty)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 color: Colors.red.withOpacity(0.12),
-                child: const Text('DEBUG: slots vuota'),
+                child: const Text('Nessun orario disponibile'),
               )
             else
               Column(
                 children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    margin: const EdgeInsets.only(bottom: 8),
-                    color: Colors.greenAccent.withOpacity(0.2),
-                    child: Text(
-                      'DEBUG: sto renderizzando ${slots.length} slot',
-                      style: const TextStyle(color: Colors.black87),
-                    ),
-                  ),
                   ...slots.map((slot) {
                     final selected = _selectedSlot != null &&
                         _selectedSlot!.year == slot.year &&
@@ -378,24 +310,35 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                         _selectedSlot!.minute == slot.minute;
 
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.only(bottom: 8),
                       child: SizedBox(
-                        width: double.infinity,
+                        height: 44,
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                             backgroundColor: selected
                                 ? Theme.of(context)
                                     .colorScheme
                                     .primary
                                     .withOpacity(0.15)
                                 : null,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                           ),
                           onPressed: () {
                             setState(() {
                               _selectedSlot = slot;
                             });
                           },
-                          child: Text(tf.format(slot)),
+                          child: Text(
+                            tf.format(slot),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
                     );
