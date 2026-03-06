@@ -213,6 +213,13 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final tf = DateFormat('HH:mm');
 
     final slots = _buildSlots(_selectedDay);
+    final debugSelectedDay = _selectedDay.toIso8601String();
+    final debugFocusedDay = _focusedDay.toIso8601String();
+    final debugSlotsCount = slots.length;
+    final debugFirstSlot = slots.isNotEmpty ? tf.format(slots.first) : 'NONE';
+    final debugLastSlot = slots.isNotEmpty ? tf.format(slots.last) : 'NONE';
+    final debugSelectedSlot =
+        _selectedSlot != null ? tf.format(_selectedSlot!) : 'NULL';
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -268,6 +275,27 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                       ),
                       const SizedBox(height: 16),
 
+                      // DEBUG INFO TOP
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.orangeAccent.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'DEBUG TOP\n'
+                          'selectedDay: $debugSelectedDay\n'
+                          'focusedDay: $debugFocusedDay\n'
+                          'slotsCount: $debugSlotsCount\n'
+                          'firstSlot: $debugFirstSlot\n'
+                          'lastSlot: $debugLastSlot\n'
+                          'selectedSlot: $debugSelectedSlot',
+                          style: const TextStyle(color: Colors.black87),
+                        ),
+                      ),
+
                       // CALENDARIO
                       TableCalendar(
                         firstDay: DateTime.now(),
@@ -297,46 +325,75 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                       ),
                       const SizedBox(height: 8),
 
+                      // DEBUG SLOTS SECTION
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.orangeAccent.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          'DEBUG SLOTS SECTION\n'
+                          'slots.isEmpty = ${slots.isEmpty}\n'
+                          'slotsCount = $debugSlotsCount',
+                          style: const TextStyle(color: Colors.black87),
+                        ),
+                      ),
+
                       if (slots.isEmpty)
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(12),
                           color: Colors.red.withOpacity(0.12),
-                          child: const Text('DEBUG: nessun orario disponibile'),
+                          child: const Text('DEBUG: slots vuota'),
                         )
                       else
                         Column(
-                          children: slots.map((slot) {
-                            final selected = _selectedSlot != null &&
-                                _selectedSlot!.year == slot.year &&
-                                _selectedSlot!.month == slot.month &&
-                                _selectedSlot!.day == slot.day &&
-                                _selectedSlot!.hour == slot.hour &&
-                                _selectedSlot!.minute == slot.minute;
-
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton(
-                                  style: OutlinedButton.styleFrom(
-                                    backgroundColor: selected
-                                        ? Theme.of(context)
-                                            .colorScheme
-                                            .primary
-                                            .withOpacity(0.15)
-                                        : null,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _selectedSlot = slot;
-                                    });
-                                  },
-                                  child: Text(tf.format(slot)),
-                                ),
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(10),
+                              margin: const EdgeInsets.only(bottom: 8),
+                              color: Colors.greenAccent.withOpacity(0.2),
+                              child: Text(
+                                'DEBUG: sto renderizzando ${slots.length} slot',
+                                style: const TextStyle(color: Colors.black87),
                               ),
-                            );
-                          }).toList(),
+                            ),
+                            ...slots.map((slot) {
+                              final selected = _selectedSlot != null &&
+                                  _selectedSlot!.year == slot.year &&
+                                  _selectedSlot!.month == slot.month &&
+                                  _selectedSlot!.day == slot.day &&
+                                  _selectedSlot!.hour == slot.hour &&
+                                  _selectedSlot!.minute == slot.minute;
+
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      backgroundColor: selected
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .primary
+                                              .withOpacity(0.15)
+                                          : null,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _selectedSlot = slot;
+                                      });
+                                    },
+                                    child: Text(tf.format(slot)),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ],
                         ),
                       const SizedBox(height: 80),
                     ],
