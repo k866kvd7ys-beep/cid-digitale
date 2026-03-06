@@ -19,7 +19,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     final res = await _sb
         .from('appointment_requests')
         .select('*')
-        .neq('status', 'cancelled')
+        .filter('status', 'in', '(pending,confirmed)')
         .order('appointment_date', ascending: true)
         .order('appointment_time', ascending: true)
         .limit(500);
