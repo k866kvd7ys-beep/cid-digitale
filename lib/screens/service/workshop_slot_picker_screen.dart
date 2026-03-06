@@ -306,7 +306,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                   crossAxisCount: 3,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
-                  childAspectRatio: 2.6,
+                  childAspectRatio: 2.8,
                 ),
                 itemCount: slots.length,
                 itemBuilder: (context, index) {
@@ -319,14 +319,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                       _selectedSlot!.hour == slot.hour &&
                       _selectedSlot!.minute == slot.minute;
 
+                  final primary = Theme.of(context).colorScheme.primary;
+                  final borderColor = selected
+                      ? primary
+                      : Theme.of(context).dividerColor.withOpacity(0.6);
+
                   return OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      backgroundColor: selected
-                          ? Theme.of(context).colorScheme.primary
-                          : null,
-                      foregroundColor: selected
-                          ? Colors.white
-                          : Theme.of(context).colorScheme.primary,
+                      backgroundColor: selected ? primary : Colors.transparent,
+                      foregroundColor: selected ? Colors.white : primary,
+                      side: BorderSide(color: borderColor),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
