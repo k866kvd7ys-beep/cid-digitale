@@ -3426,7 +3426,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return _draftClaimId!;
   }
 
-  Future<void> _pickAndUploadImage({required String kind}) async {
+  Future<void> _pickAndUploadImage(
+      {required String kind, String? quale}) async {
     final claimId = _ensureDraftId();
     try {
       final picked = await _picker.pickImage(
@@ -3461,6 +3462,39 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         ),
       );
       if (confirmed != true) return;
+
+      debugPrint(
+        'Foto $kind selezionata (quale: ${quale ?? '-'}) nome: $name',
+      );
+
+      if (kind == 'libretto' && quale != null) {
+        setState(() {
+          if (quale == 'A') {
+            _fotoLibrettoABytes = bytes;
+            _fotoLibrettoAPath = null;
+          } else {
+            _fotoLibrettoBBytes = bytes;
+            _fotoLibrettoBPath = null;
+          }
+        });
+      }
+
+      if (kind == 'libretto') {
+        debugPrint('OCR libretto avviato (quale: ${quale ?? 'A'})');
+        try {
+          await _leggiDatiDaLibretto(picked.path, quale ?? 'A');
+          final targaVal = (quale == 'B'
+                  ? _targaBController.text.trim()
+                  : _targaAController.text.trim())
+              .trim();
+          debugPrint(
+            'Campo targa ${quale ?? 'A'} dopo OCR: ${targaVal.isEmpty ? 'vuoto' : targaVal}',
+          );
+        } catch (e, st) {
+          debugPrint('OCR libretto errore: $e\n$st');
+          _mostraSnack('Nessun dato riconosciuto dal libretto.');
+        }
+      }
 
       await _supabaseService.uploadClaimImageBytes(
         claimId: claimId,
@@ -3703,6 +3737,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
   Future<void> _leggiDatiDaLibretto(String imagePath, String quale) async {
     try {
+      debugPrint('OCR libretto start ($quale) path: $imagePath');
       final inputImage = InputImage.fromFilePath(imagePath);
       final textRecognizer =
           TextRecognizer(script: TextRecognitionScript.latin);
@@ -3762,12 +3797,18 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         }
       });
 
+      final campoTarga = quale == 'A'
+          ? _targaAController.text.trim()
+          : _targaBController.text.trim();
+      debugPrint('Campo targa $quale post OCR: '
+          '${campoTarga.isEmpty ? 'vuoto' : campoTarga}');
+
       if (targaFinale == null &&
           nomeTrovato == null &&
           assicurazioneTrovata == null &&
           indirizzoTrovato == null) {
         _mostraSnack(
-          'Foto letta, ma non sono riuscito a trovare chiaramente targa / nome / assicurazione. Inseriscili a mano.',
+          'Nessun dato riconosciuto dal libretto.',
         );
       } else {
         final buffer = StringBuffer('Ho letto la foto:');
@@ -3881,7 +3922,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
   Future<void> _scattaFotoLibretto(String quale) async {
     if (kIsWeb) {
-      await _pickAndUploadImage(kind: 'libretto');
+      await _pickAndUploadImage(kind: 'libretto', quale: quale);
       return;
     }
     try {
@@ -4165,7 +4206,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                 ),
               if (kIsWeb)
                 OutlinedButton.icon(
-                  onPressed: () => _pickAndUploadImage(kind: 'libretto'),
+                  onPressed: () =>
+                      _pickAndUploadImage(kind: 'libretto', quale: 'A'),
                   icon: const Icon(Icons.photo_camera),
                   label: const Text('Foto libretto'),
                 ),
@@ -4280,7 +4322,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                 ),
               if (kIsWeb)
                 OutlinedButton.icon(
-                  onPressed: () => _pickAndUploadImage(kind: 'libretto'),
+                  onPressed: () =>
+                      _pickAndUploadImage(kind: 'libretto', quale: 'B'),
                   icon: const Icon(Icons.photo_camera),
                   label: const Text('Foto libretto'),
                 ),
