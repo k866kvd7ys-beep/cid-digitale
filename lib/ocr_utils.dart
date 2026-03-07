@@ -62,14 +62,21 @@ String? extractSwissPlate(String text) {
   cleaned = cleaned.replaceAll('\n', ' ');
   cleaned = cleaned.replaceAll(RegExp(r'[\-_:;.,/]'), ' ');
   cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
+  debugPrint('[OCR] Swiss plate input: '
+      '${cleaned.length > 200 ? cleaned.substring(0, 200) : cleaned}');
 
-  final chRegex = RegExp(r'\b([A-Z]{2})\s*([0-9]{1,6})\b');
+  final chRegex =
+      RegExp(r'\b([A-Z]{2})\s*([0-9]{1,3}(?:\s*[0-9]{1,3}){0,2})\b');
   for (final m in chRegex.allMatches(cleaned)) {
     final canton = m.group(1)!;
-    final digits = m.group(2)!.replaceAll(' ', '');
+    final digitsRaw = m.group(2) ?? '';
+    final digits = digitsRaw.replaceAll(' ', '');
     if (!_swissCantons.contains(canton)) continue;
     if (digits.isEmpty || digits.length > 6) continue;
-    return '$canton $digits';
+    final plate = '$canton $digits';
+    debugPrint(
+        '[OCR] Swiss plate candidate: $canton | raw "$digitsRaw" -> "$plate"');
+    return plate;
   }
 
   return null;
