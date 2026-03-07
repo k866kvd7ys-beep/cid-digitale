@@ -3711,6 +3711,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       await textRecognizer.close();
 
       final fullText = recognizedText.text;
+      debugPrint(
+          'OCR libretto ($quale) testo: ${fullText.replaceAll('\n', ' ')}');
 
       final targaTrovata = estraiTargaDaTesto(fullText);
       final extra = estraiNomeAssicurazioneIndirizzoDaTesto(
@@ -3728,10 +3730,13 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         if (targaSecondoPass != null) break;
       }
       final targaFinale = targaTrovata ?? targaSecondoPass;
+      debugPrint('Targa OCR ($quale): ${targaFinale ?? 'non trovata'}');
 
       setState(() {
         if (quale == 'A') {
-          if (targaFinale != null) _targaAController.text = targaFinale;
+          if (targaFinale != null && _targaAController.text.trim().isEmpty) {
+            _targaAController.text = targaFinale;
+          }
           if (nomeTrovato != null && _nomeAController.text.trim().isEmpty) {
             _nomeAController.text = nomeTrovato;
           }
@@ -3740,7 +3745,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             _assicurazioneAController.text = assicurazioneTrovata;
           }
         } else {
-          if (targaFinale != null) _targaBController.text = targaFinale;
+          if (targaFinale != null && _targaBController.text.trim().isEmpty) {
+            _targaBController.text = targaFinale;
+          }
           if (nomeTrovato != null && _nomeBController.text.trim().isEmpty) {
             _nomeBController.text = nomeTrovato;
           }
@@ -3790,6 +3797,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
       final fullText = recognizedText.text;
       final targaTrovata = estraiTargaDaTesto(fullText);
+      debugPrint('OCR foto danno testo: ${fullText.replaceAll('\n', ' ')}');
+      debugPrint('Targa da foto danno: ${targaTrovata ?? 'non trovata'}');
 
       if (!mounted) return;
 
@@ -3915,9 +3924,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
       if (result.targa != null) {
         setState(() {
-          if (quale == 'A') {
+          if (quale == 'A' && _targaAController.text.trim().isEmpty) {
             _targaAController.text = result.targa!;
-          } else {
+          } else if (quale == 'B' && _targaBController.text.trim().isEmpty) {
             _targaBController.text = result.targa!;
           }
         });

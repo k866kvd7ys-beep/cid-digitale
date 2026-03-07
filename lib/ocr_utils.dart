@@ -18,12 +18,61 @@ class OcrLibrettoResult {
   });
 }
 
+const _swissCantons = <String>{
+  'AG',
+  'AI',
+  'AR',
+  'BE',
+  'BL',
+  'BS',
+  'FR',
+  'GE',
+  'GL',
+  'GR',
+  'JU',
+  'LU',
+  'NE',
+  'NW',
+  'OW',
+  'SG',
+  'SH',
+  'SO',
+  'SZ',
+  'TG',
+  'TI',
+  'UR',
+  'VD',
+  'VS',
+  'ZG',
+  'ZH',
+};
+
 String _normalizeOcrText(String raw) {
   var text = raw.toUpperCase();
   text = text.replaceAll(RegExp(r'[^A-Z0-9À-ÿ\s]'), ' ');
   text = text.replaceAll('\n', ' ');
   text = text.replaceAll(RegExp(r'\s+'), ' ').trim();
   return text;
+}
+
+String? extractSwissPlate(String text) {
+  if (text.isEmpty) return null;
+
+  var cleaned = text.toUpperCase();
+  cleaned = cleaned.replaceAll('\n', ' ');
+  cleaned = cleaned.replaceAll(RegExp(r'[\-_:;.,/]'), ' ');
+  cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+  final chRegex = RegExp(r'\b([A-Z]{2})\s*([0-9]{1,6})\b');
+  for (final m in chRegex.allMatches(cleaned)) {
+    final canton = m.group(1)!;
+    final digits = m.group(2)!.replaceAll(' ', '');
+    if (!_swissCantons.contains(canton)) continue;
+    if (digits.isEmpty || digits.length > 6) continue;
+    return '$canton $digits';
+  }
+
+  return null;
 }
 
 String? estraiTargaDaTesto(String rawText) {
@@ -76,6 +125,9 @@ String? estraiTargaDaTesto(String rawText) {
   }
 
   final normalized = _normalizeOcrText(rawText);
+
+  final swissPlate = extractSwissPlate(normalized);
+  if (swissPlate != null) return swissPlate;
 
   final itRegex = RegExp(r'\b([A-Z]{2})\s*([0-9]{3})\s*([A-Z]{2})\b');
   final itMatch = itRegex.firstMatch(normalized);
@@ -264,6 +316,9 @@ Map<String, String?> estraiNomeAssicurazioneIndirizzoDaTesto(
   };
 
   String? extractTarga(String text) {
+    final swiss = extractSwissPlate(text);
+    if (swiss != null) return swiss;
+
     // DO NOT MODIFY: pattern targa CH “AG 399 854” o compatto 6 cifre
     final up = text.toUpperCase().replaceAll(RegExp(r'[-_:;.,/]'), ' ');
     final chSplit = RegExp(r'\b([A-Z]{1,2})\s+([0-9]{1,3})\s+([0-9]{2,3})\b');
