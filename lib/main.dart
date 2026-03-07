@@ -952,6 +952,40 @@ const Map<String, Map<String, String>> _tMap = {
     'fr': 'Adresse non disponible',
     'en': 'Address not available',
   },
+  'Consenti la posizione in Safari per compilare automaticamente il luogo dell’incidente.':
+      {
+    'it':
+        'Consenti la posizione in Safari per compilare automaticamente il luogo dell’incidente.',
+    'de':
+        'Erlaube den Standort in Safari, um den Unfallort automatisch zu erfassen.',
+    'fr':
+        'Autorise la localisation dans Safari pour renseigner automatiquement le lieu de l’accident.',
+    'en':
+        'Allow location in Safari to automatically fill the accident location.',
+  },
+  'Attiva la localizzazione sul telefono per compilare automaticamente il luogo dell’incidente.':
+      {
+    'it':
+        'Attiva la localizzazione sul telefono per compilare automaticamente il luogo dell’incidente.',
+    'de':
+        'Aktiviere die Ortung auf dem Telefon, um den Unfallort automatisch zu erfassen.',
+    'fr':
+        'Active la localisation sur le téléphone pour renseigner automatiquement le lieu de l’accident.',
+    'en':
+        'Enable location on your phone to automatically fill the accident location.',
+  },
+  'Impossibile ottenere la posizione (timeout).': {
+    'it': 'Impossibile ottenere la posizione (timeout).',
+    'de': 'Position konnte nicht ermittelt werden (Timeout).',
+    'fr': 'Impossible d’obtenir la position (délai dépassé).',
+    'en': 'Unable to get location (timeout).',
+  },
+  'Errore durante la geolocalizzazione.': {
+    'it': 'Errore durante la geolocalizzazione.',
+    'de': 'Fehler bei der Geolokalisierung.',
+    'fr': 'Erreur lors de la géolocalisation.',
+    'en': 'Error during geolocation.',
+  },
   'Consenti la posizione per compilare automaticamente il luogo dell’incidente.':
       {
     'it':
@@ -2651,6 +2685,14 @@ enum _GeoStatus { idle, loading, success, error }
 
 enum _AddressStatus { idle, loading, success, unavailable }
 
+enum _GeoPermissionState {
+  denied,
+  deniedForever,
+  whileInUse,
+  always,
+  unknown,
+}
+
 class NuovaPraticaIncidentePage extends StatefulWidget {
   const NuovaPraticaIncidentePage({super.key});
 
@@ -2665,6 +2707,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   final _luogoController = TextEditingController();
   _GeoStatus _geoStatus = _GeoStatus.idle;
   Position? _geoPosition;
+  _GeoPermissionState _geoPermission = _GeoPermissionState.unknown;
+  String? _geoErrorMessage;
   _AddressStatus _addressStatus = _AddressStatus.idle;
   String? _addressReadable;
   bool _validazioneContattiAttiva = true;
@@ -2726,6 +2770,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   @override
   void initState() {
     super.initState();
+    debugPrint('[Geo] init NuovaPraticaIncidentePage');
     _audioPlayerSub = _audioPlayer.onPlayerComplete.listen((event) {
       if (mounted) {
         setState(() {
@@ -2755,28 +2800,65 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   Future<void> _impostaLuogoAutomatico() async {
     if (_geoStatus == _GeoStatus.loading) return;
 
+    debugPrint('[Geo] start geolocation request');
     setState(() {
       _geoStatus = _GeoStatus.loading;
       _geoPosition = null;
+      _geoPermission = _GeoPermissionState.unknown;
+      _geoErrorMessage = null;
       _addressStatus = _AddressStatus.idle;
       _addressReadable = null;
     });
 
     try {
-      final pos = await getPosizioneConPermessi();
-      if (pos == null) {
-        if (!mounted) return;
-        setState(() {
-          _geoStatus = _GeoStatus.error;
-        });
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      debugPrint('[Geo] service enabled: $serviceEnabled');
+      if (!serviceEnabled) {
+        _setGeoError(
+          _GeoPermissionState.unknown,
+          tx(context,
+              'Attiva la localizzazione sul telefono per compilare automaticamente il luogo dell’incidente.'),
+        );
         return;
       }
+
+      var permission = await Geolocator.checkPermission();
+      _geoPermission = _mapPermission(permission);
+      debugPrint(
+        '[Geo] permission (initial): $permission -> ${_geoPermission.name}',
+      );
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        _geoPermission = _mapPermission(permission);
+        debugPrint(
+          '[Geo] permission (after request): $permission -> ${_geoPermission.name}',
+        );
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        _setGeoError(
+          _geoPermission,
+          tx(context,
+              'Consenti la posizione in Safari per compilare automaticamente il luogo dell’incidente.'),
+        );
+        return;
+      }
+
+      debugPrint('[Geo] calling getCurrentPosition() ...');
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      ).timeout(const Duration(seconds: 12));
+      debugPrint(
+        '[Geo] position acquired lat=${pos.latitude}, lon=${pos.longitude}',
+      );
 
       final indirizzo = await getIndirizzoDaGps(position: pos);
       if (!mounted) return;
       setState(() {
         _geoStatus = _GeoStatus.success;
         _geoPosition = pos;
+        _geoErrorMessage = null;
         _addressStatus = _AddressStatus.loading;
         _addressReadable = null;
         if (_luogoController.text.trim().isEmpty) {
@@ -2786,18 +2868,55 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         }
       });
       unawaited(_caricaIndirizzoDaPosizione(pos));
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _geoStatus = _GeoStatus.error;
-        _geoPosition = null;
-        _addressStatus = _AddressStatus.idle;
-        _addressReadable = null;
-      });
+    } on TimeoutException catch (e) {
+      debugPrint('[Geo] timeout while getting position: $e');
+      _setGeoError(
+        _geoPermission,
+        tx(context, 'Impossibile ottenere la posizione (timeout).'),
+      );
+    } catch (e, st) {
+      debugPrint('[Geo] geolocation exception: $e\n$st');
+      _setGeoError(
+        _geoPermission,
+        tx(context, 'Errore durante la geolocalizzazione.'),
+      );
+    }
+  }
+
+  void _setGeoError(_GeoPermissionState permissionState, String message) {
+    debugPrint(
+      '[Geo] error: $message (permission=$permissionState)',
+    );
+    if (!mounted) return;
+    setState(() {
+      _geoStatus = _GeoStatus.error;
+      _geoPosition = null;
+      _geoPermission = permissionState;
+      _geoErrorMessage = message;
+      _addressStatus = _AddressStatus.idle;
+      _addressReadable = null;
+    });
+  }
+
+  _GeoPermissionState _mapPermission(LocationPermission permission) {
+    switch (permission) {
+      case LocationPermission.denied:
+        return _GeoPermissionState.denied;
+      case LocationPermission.deniedForever:
+        return _GeoPermissionState.deniedForever;
+      case LocationPermission.whileInUse:
+        return _GeoPermissionState.whileInUse;
+      case LocationPermission.always:
+        return _GeoPermissionState.always;
+      default:
+        return _GeoPermissionState.unknown;
     }
   }
 
   Future<void> _caricaIndirizzoDaPosizione(Position pos) async {
+    debugPrint(
+      '[Geo] reverse geocoding start lat=${pos.latitude}, lon=${pos.longitude}',
+    );
     setState(() {
       _addressStatus = _AddressStatus.loading;
       _addressReadable = null;
@@ -2819,6 +2938,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       final res = await http.get(uri, headers: headers).timeout(
             const Duration(seconds: 10),
           );
+      debugPrint('[Geo] reverse geocoding status: ${res.statusCode}');
 
       if (!mounted) return;
 
@@ -2831,6 +2951,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           if (addr != null && addr.isNotEmpty) {
             _addressStatus = _AddressStatus.success;
             _addressReadable = addr;
+            debugPrint('[Geo] reverse geocoding success: $addr');
             final current = _luogoController.text.trim();
             if (current.isEmpty || current.startsWith('LAT:')) {
               _luogoController.text = addr;
@@ -2838,6 +2959,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           } else {
             _addressStatus = _AddressStatus.unavailable;
             _addressReadable = null;
+            debugPrint('[Geo] reverse geocoding address unavailable');
           }
         });
       } else {
@@ -2846,7 +2968,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           _addressReadable = null;
         });
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[Geo] reverse geocoding error: $e');
       if (!mounted) return;
       setState(() {
         _addressStatus = _AddressStatus.unavailable;
@@ -3030,6 +3153,11 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           children: widgets,
         );
       case _GeoStatus.error:
+        final errorText = _geoErrorMessage ??
+            tx(
+              context,
+              'Consenti la posizione per compilare automaticamente il luogo dell’incidente.',
+            );
         return Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -3037,10 +3165,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                tx(
-                  context,
-                  'Consenti la posizione per compilare automaticamente il luogo dell’incidente.',
-                ),
+                errorText,
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: Colors.redAccent),
               ),
