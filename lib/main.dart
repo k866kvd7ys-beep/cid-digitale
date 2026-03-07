@@ -38,9 +38,27 @@ import 'package:cid_digitale/widgets/damage_type_picker_sheet.dart';
 import 'package:cid_digitale/widgets/quick_action_tile.dart';
 import 'widgets/auth/auth_gate.dart';
 import 'screens/my_requests_page.dart';
-
-// ✅ STEP B (hash integrità)
 import 'package:crypto/crypto.dart';
+
+class NominatimSuggestion {
+  final String displayName;
+  final double lat;
+  final double lon;
+
+  NominatimSuggestion({
+    required this.displayName,
+    required this.lat,
+    required this.lon,
+  });
+
+  factory NominatimSuggestion.fromJson(Map<String, dynamic> json) {
+    return NominatimSuggestion(
+      displayName: (json['display_name'] as String?) ?? '',
+      lat: double.tryParse(json['lat']?.toString() ?? '') ?? 0,
+      lon: double.tryParse(json['lon']?.toString() ?? '') ?? 0,
+    );
+  }
+}
 
 /// CONFIG OFFICINA //////////////////////////////////////////////////////
 
@@ -2736,6 +2754,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   String? _addressReadable;
   bool _geoLoading = false;
   String? _geoMessage;
+  final List<NominatimSuggestion> _suggestions = [];
+  bool _suggestionsLoading = false;
+  Timer? _suggestionDebounce;
   bool _validazioneContattiAttiva = true;
   bool? _otherObjectDamage;
   bool? _otherVehicleDamage;
@@ -2804,6 +2825,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       }
     });
     _dataOra = DateTime.now();
+    _luogoController.addListener(_onLuogoChanged);
     _testimoni.add(
       _TestimoneFormData(
         nomeController: TextEditingController(),
@@ -3153,6 +3175,34 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                 ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
         ],
+        if (_suggestionsLoading)
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: LinearProgressIndicator(minHeight: 2),
+          ),
+        if (_suggestions.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: theme.colorScheme.outlineVariant),
+            ),
+            child: Column(
+              children: _suggestions
+                  .map(
+                    (s) => ListTile(
+                      dense: true,
+                      title: Text(
+                        s.displayName,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      onTap: () => _selezionaSuggerimento(s),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
       ],
     );
   }
@@ -3187,6 +3237,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
     _notaVocaleAController.dispose();
     _notaVocaleBController.dispose();
+    _suggestionDebounce?.cancel();
+    _luogoController.removeListener(_onLuogoChanged);
 
     for (final t in _testimoni) {
       t.nomeController.dispose();
@@ -3267,6 +3319,68 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
   }
 
+  void _onLuogoChanged() {
+    final query = _luogoController.text.trim();
+    if (query.length < 3) {
+      _suggestionDebounce?.cancel();
+      if (_suggestions.isNotEmpty || _suggestionsLoading) {
+        setState(() {
+          _suggestions.clear();
+          _suggestionsLoading = false;
+        });
+      }
+      return;
+    }
+
+    _suggestionDebounce?.cancel();
+    _suggestionDebounce = Timer(const Duration(milliseconds: 400), () {
+      _fetchSuggestions(query);
+    });
+  }
+
+  Future<void> _fetchSuggestions(String query) async {
+    setState(() {
+      _suggestionsLoading = true;
+    });
+    try {
+      final uri = Uri.parse(
+          'https://nominatim.openstreetmap.org/search?q=$query&format=json&limit=5');
+      final res = await http.get(uri, headers: {
+        'Accept-Language': Localizations.localeOf(context).toLanguageTag(),
+        'User-Agent': 'cid-digitale-client/1.0',
+      }).timeout(const Duration(seconds: 8));
+
+      if (!mounted) return;
+
+      if (res.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(res.body) as List<dynamic>;
+        final parsed = data
+            .take(5)
+            .map((item) =>
+                NominatimSuggestion.fromJson(item as Map<String, dynamic>))
+            .where((s) => s.displayName.isNotEmpty)
+            .toList();
+        setState(() {
+          _suggestions
+            ..clear()
+            ..addAll(parsed);
+          _suggestionsLoading = false;
+        });
+      } else {
+        setState(() {
+          _suggestions..clear();
+          _suggestionsLoading = false;
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _suggestions..clear();
+        _suggestionsLoading = false;
+      });
+    }
+  }
+
   Future<void> _apriMappa() async {
     final pos = _geoPosition;
     final uri = pos != null
@@ -3280,6 +3394,31 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     if (!ok && mounted) {
       _mostraSnack(tx(context, 'Impossibile aprire Google Maps.'));
     }
+  }
+
+  void _selezionaSuggerimento(NominatimSuggestion s) {
+    final position = Position(
+      latitude: s.lat,
+      longitude: s.lon,
+      timestamp: DateTime.now(),
+      accuracy: 0,
+      altitude: 0,
+      altitudeAccuracy: 0,
+      heading: 0,
+      headingAccuracy: 0,
+      speed: 0,
+      speedAccuracy: 0,
+      isMocked: false,
+    );
+
+    setState(() {
+      _luogoController.text = s.displayName;
+      _geoPosition = position;
+      _addressReadable = s.displayName;
+      _suggestions.clear();
+      _suggestionsLoading = false;
+      _geoMessage = null;
+    });
   }
 
   String _ensureDraftId() {
