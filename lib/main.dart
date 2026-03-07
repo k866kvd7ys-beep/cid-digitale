@@ -963,22 +963,33 @@ const Map<String, Map<String, String>> _tMap = {
     'en':
         'Allow location in Safari to automatically fill the accident location.',
   },
-  'Attiva la localizzazione sul telefono per compilare automaticamente il luogo dell’incidente.':
+  'Attiva la localizzazione sul dispositivo per compilare automaticamente il luogo dell’incidente.':
       {
     'it':
-        'Attiva la localizzazione sul telefono per compilare automaticamente il luogo dell’incidente.',
+        'Attiva la localizzazione sul dispositivo per compilare automaticamente il luogo dell’incidente.',
     'de':
-        'Aktiviere die Ortung auf dem Telefon, um den Unfallort automatisch zu erfassen.',
+        'Bitte aktiviere die Standortdienste auf deinem Gerät, um den Unfallort automatisch zu erfassen.',
     'fr':
-        'Active la localisation sur le téléphone pour renseigner automatiquement le lieu de l’accident.',
+        'Active la localisation sur ton appareil pour renseigner automatiquement le lieu de l’accident.',
     'en':
-        'Enable location on your phone to automatically fill the accident location.',
+        'Please enable location services on your device to automatically fill the accident location.',
   },
   'Impossibile ottenere la posizione (timeout).': {
     'it': 'Impossibile ottenere la posizione (timeout).',
     'de': 'Position konnte nicht ermittelt werden (Timeout).',
     'fr': 'Impossible d’obtenir la position (délai dépassé).',
     'en': 'Unable to get location (timeout).',
+  },
+  'Non siamo riusciti a ottenere la posizione. Verifica che la geolocalizzazione sia attiva e riprova.':
+      {
+    'it':
+        'Non siamo riusciti a ottenere la posizione. Verifica che la geolocalizzazione sia attiva e riprova.',
+    'de':
+        'Standort konnte nicht ermittelt werden. Bitte prüfe die Standortfreigabe und versuche es erneut.',
+    'fr':
+        'Impossible de déterminer votre position. Vérifie l’accès à la localisation puis réessaie.',
+    'en':
+        'We could not determine your location. Please check location access and try again.',
   },
   'Errore durante la geolocalizzazione.': {
     'it': 'Errore durante la geolocalizzazione.',
@@ -2699,22 +2710,6 @@ enum _GeoPermissionState {
   unknown,
 }
 
-String _geoPermissionStateToCode(_GeoPermissionState state) {
-  switch (state) {
-    case _GeoPermissionState.denied:
-      return 'permission_denied';
-    case _GeoPermissionState.deniedForever:
-      return 'permission_denied_forever';
-    case _GeoPermissionState.whileInUse:
-      return 'while_in_use';
-    case _GeoPermissionState.always:
-      return 'always';
-    case _GeoPermissionState.unknown:
-    default:
-      return 'unknown';
-  }
-}
-
 class NuovaPraticaIncidentePage extends StatefulWidget {
   const NuovaPraticaIncidentePage({super.key});
 
@@ -2731,7 +2726,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   Position? _geoPosition;
   _GeoPermissionState _geoPermission = _GeoPermissionState.unknown;
   String? _geoErrorMessage;
-  String? _geoErrorCode;
   _AddressStatus _addressStatus = _AddressStatus.idle;
   String? _addressReadable;
   bool _validazioneContattiAttiva = true;
@@ -2829,7 +2823,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       _geoPosition = null;
       _geoPermission = _GeoPermissionState.unknown;
       _geoErrorMessage = null;
-      _geoErrorCode = null;
       _addressStatus = _AddressStatus.idle;
       _addressReadable = null;
     });
@@ -2841,8 +2834,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         _setGeoError(
           _GeoPermissionState.unknown,
           tx(context,
-              'Attiva la localizzazione sul telefono per compilare automaticamente il luogo dell’incidente.'),
-          code: 'service_disabled',
+              'Attiva la localizzazione sul dispositivo per compilare automaticamente il luogo dell’incidente.'),
         );
         return;
       }
@@ -2866,59 +2858,98 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           _geoPermission,
           tx(context,
               'Consenti la posizione in Safari per compilare automaticamente il luogo dell’incidente.'),
-          code: permission == LocationPermission.deniedForever
-              ? 'permission_denied_forever'
-              : 'permission_denied',
         );
         return;
       }
 
       debugPrint('[Geo] calling getCurrentPosition() ...');
-      final pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      ).timeout(const Duration(seconds: 12));
+      Position? pos;
+      String? lastErrorCode;
+
+      try {
+        pos = await _getPositionWithTimeout(
+          accuracy: LocationAccuracy.high,
+          timeout: const Duration(seconds: 9),
+        );
+      } on TimeoutException catch (e) {
+        lastErrorCode = 'timeout_primary';
+        debugPrint('[Geo] timeout first attempt: $e');
+      } catch (e, st) {
+        lastErrorCode = 'error_primary';
+        debugPrint('[Geo] exception first attempt: $e\n$st');
+      }
+
+      if (pos == null) {
+        debugPrint('[Geo] fallback geolocation attempt (balanced accuracy)');
+        try {
+          pos = await _getPositionWithTimeout(
+            accuracy: LocationAccuracy.medium,
+            timeout: const Duration(seconds: 5),
+          );
+        } on TimeoutException catch (e) {
+          lastErrorCode = 'timeout_secondary';
+          debugPrint('[Geo] timeout second attempt: $e');
+        } catch (e, st) {
+          lastErrorCode = 'error_secondary';
+          debugPrint('[Geo] exception second attempt: $e\n$st');
+        }
+      }
+
+      if (pos == null) {
+        _setGeoError(
+          _geoPermission,
+          tx(context,
+              'Non siamo riusciti a ottenere la posizione. Verifica che la geolocalizzazione sia attiva e riprova.'),
+        );
+        return;
+      }
+
+      final position = pos;
+
       debugPrint(
-        '[Geo] position acquired lat=${pos.latitude}, lon=${pos.longitude}',
+        '[Geo] position acquired lat=${position.latitude}, lon=${position.longitude}',
       );
 
-      final indirizzo = await getIndirizzoDaGps(position: pos);
+      final indirizzo = await getIndirizzoDaGps(position: position);
       if (!mounted) return;
       setState(() {
         _geoStatus = _GeoStatus.success;
-        _geoPosition = pos;
+        _geoPosition = position;
         _geoErrorMessage = null;
-        _geoErrorCode = null;
         _addressStatus = _AddressStatus.loading;
         _addressReadable = null;
         if (_luogoController.text.trim().isEmpty) {
           _luogoController.text = indirizzo ??
-              'LAT: ${pos.latitude.toStringAsFixed(5)}, '
-                  'LNG: ${pos.longitude.toStringAsFixed(5)}';
+              'LAT: ${position.latitude.toStringAsFixed(5)}, '
+                  'LNG: ${position.longitude.toStringAsFixed(5)}';
         }
       });
-      unawaited(_caricaIndirizzoDaPosizione(pos));
-    } on TimeoutException catch (e) {
-      debugPrint('[Geo] timeout while getting position: $e');
-      _setGeoError(
-        _geoPermission,
-        tx(context, 'Impossibile ottenere la posizione (timeout).'),
-        code: 'timeout',
-      );
+      unawaited(_caricaIndirizzoDaPosizione(position));
     } catch (e, st) {
       debugPrint('[Geo] geolocation exception: $e\n$st');
       _setGeoError(
         _geoPermission,
-        tx(context, 'Errore durante la geolocalizzazione.'),
-        code: 'exception',
+        tx(context,
+            'Non siamo riusciti a ottenere la posizione. Verifica che la geolocalizzazione sia attiva e riprova.'),
       );
     }
   }
 
+  Future<Position> _getPositionWithTimeout({
+    required LocationAccuracy accuracy,
+    required Duration timeout,
+  }) {
+    debugPrint(
+        '[Geo] getCurrentPosition acc=$accuracy timeout=${timeout.inSeconds}s');
+    return Geolocator.getCurrentPosition(
+      desiredAccuracy: accuracy,
+    ).timeout(timeout);
+  }
+
   void _setGeoError(
     _GeoPermissionState permissionState,
-    String message, {
-    String? code,
-  }) {
+    String message,
+  ) {
     debugPrint(
       '[Geo] error: $message (permission=$permissionState)',
     );
@@ -2928,8 +2959,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       _geoPosition = null;
       _geoPermission = permissionState;
       _geoErrorMessage = message;
-      _geoErrorCode =
-          code ?? _geoErrorCode ?? _geoPermissionStateToCode(permissionState);
       _addressStatus = _AddressStatus.idle;
       _addressReadable = null;
     });
@@ -3099,6 +3128,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       case _GeoStatus.success:
         final pos = _geoPosition;
         if (pos == null) return const SizedBox.shrink();
+        final lat = pos.latitude;
+        final lng = pos.longitude;
         final widgets = <Widget>[
           Row(
             children: [
@@ -3110,8 +3141,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'LAT: ${pos.latitude.toStringAsFixed(5)}, '
-                  'LNG: ${pos.longitude.toStringAsFixed(5)}',
+                  'LAT: ${lat.toStringAsFixed(5)}, '
+                  'LNG: ${lng.toStringAsFixed(5)}',
                   style: theme.textTheme.bodySmall,
                 ),
               ),
@@ -3207,15 +3238,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                     ?.copyWith(color: Colors.redAccent),
               ),
             ),
-            if (_geoErrorCode != null)
-              Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: Text(
-                  'Geo error: ${_geoErrorCode}',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: Colors.redAccent, fontSize: 11),
-                ),
-              ),
             TextButton(
               onPressed: _impostaLuogoAutomatico,
               style: TextButton.styleFrom(
