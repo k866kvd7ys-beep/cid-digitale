@@ -39,6 +39,7 @@ import 'package:cid_digitale/widgets/quick_action_tile.dart';
 import 'widgets/auth/auth_gate.dart';
 import 'screens/my_requests_page.dart';
 import 'package:crypto/crypto.dart';
+import 'web_ocr_stub.dart' if (dart.library.html) 'web_ocr_html.dart';
 
 class NominatimSuggestion {
   final String displayName;
@@ -3480,19 +3481,56 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       }
 
       if (kind == 'libretto') {
-        debugPrint('OCR libretto avviato (quale: ${quale ?? 'A'})');
-        try {
-          await _leggiDatiDaLibretto(picked.path, quale ?? 'A');
-          final targaVal = (quale == 'B'
-                  ? _targaBController.text.trim()
-                  : _targaAController.text.trim())
-              .trim();
+        debugPrint(
+          'OCR libretto ${kIsWeb ? 'web' : 'mobile'} avviato (quale: ${quale ?? 'A'})',
+        );
+        if (kIsWeb) {
+          final webText = await performWebOcr(bytes);
           debugPrint(
-            'Campo targa ${quale ?? 'A'} dopo OCR: ${targaVal.isEmpty ? 'vuoto' : targaVal}',
+            'OCR web text length: ${webText?.length ?? 0}',
           );
-        } catch (e, st) {
-          debugPrint('OCR libretto errore: $e\n$st');
-          _mostraSnack('Nessun dato riconosciuto dal libretto.');
+          if (webText == null) {
+            _mostraSnack(
+              'OCR non disponibile nel browser per questa immagine.',
+            );
+          } else if (webText.trim().isEmpty) {
+            _mostraSnack('Nessun dato riconosciuto dal libretto.');
+          } else {
+            debugPrint(
+              'OCR web text preview: ${webText.length > 200 ? webText.substring(0, 200) : webText}',
+            );
+            final targaWeb = estraiTargaDaTesto(webText);
+            debugPrint('Targa OCR web (${quale ?? 'A'}): '
+                '${targaWeb ?? 'non trovata'}');
+            if (targaWeb != null) {
+              setState(() {
+                final controller =
+                    quale == 'B' ? _targaBController : _targaAController;
+                if (controller.text.trim().isEmpty) {
+                  controller.text = targaWeb;
+                }
+              });
+              debugPrint(
+                'Campo targa ${quale ?? 'A'} aggiornato (web): $targaWeb',
+              );
+            } else {
+              _mostraSnack('Nessun dato riconosciuto dal libretto.');
+            }
+          }
+        } else {
+          try {
+            await _leggiDatiDaLibretto(picked.path, quale ?? 'A');
+            final targaVal = (quale == 'B'
+                    ? _targaBController.text.trim()
+                    : _targaAController.text.trim())
+                .trim();
+            debugPrint(
+              'Campo targa ${quale ?? 'A'} dopo OCR: ${targaVal.isEmpty ? 'vuoto' : targaVal}',
+            );
+          } catch (e, st) {
+            debugPrint('OCR libretto errore: $e\n$st');
+            _mostraSnack('Nessun dato riconosciuto dal libretto.');
+          }
         }
       }
 
