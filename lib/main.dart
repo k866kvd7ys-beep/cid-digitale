@@ -32,6 +32,7 @@ import 'screens/service/workshop_slot_picker_screen.dart';
 import 'services/supabase_service.dart';
 import 'services/incidents_sync_service.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 import 'qr/qr_payload.dart';
 import 'package:cid_digitale/widgets/damage_type_picker_sheet.dart';
 import 'package:cid_digitale/widgets/quick_action_tile.dart';
@@ -678,17 +679,32 @@ Future<String> buildClientQrData(Incidente inc) async {
 
 /// GPS /////////////////////////////////////////////////////////////
 
-Future<String?> getIndirizzoDaGps() async {
-  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+Future<Position?> getPosizioneConPermessi() async {
+  final serviceEnabled = await Geolocator.isLocationServiceEnabled();
   if (!serviceEnabled) return null;
 
   var permission = await Geolocator.checkPermission();
   if (permission == LocationPermission.denied) {
     permission = await Geolocator.requestPermission();
   }
-  if (permission == LocationPermission.deniedForever) return null;
+  if (permission == LocationPermission.denied ||
+      permission == LocationPermission.deniedForever) {
+    return null;
+  }
 
-  final pos = await Geolocator.getCurrentPosition();
+  try {
+    return await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    ).timeout(const Duration(seconds: 12));
+  } on TimeoutException {
+    return null;
+  }
+}
+
+Future<String?> getIndirizzoDaGps({Position? position}) async {
+  final pos = position ?? await getPosizioneConPermessi();
+  if (pos == null) return null;
+
   final placemarks =
       await placemarkFromCoordinates(pos.latitude, pos.longitude);
 
@@ -917,6 +933,41 @@ const Map<String, Map<String, String>> _tMap = {
     'de': 'Notrufnummern anrufen',
     'fr': 'Appeler les numéros d’urgence',
     'en': 'Call emergency numbers',
+  },
+  'Posizione in rilevamento...': {
+    'it': 'Posizione in rilevamento...',
+    'de': 'Standort wird automatisch ermittelt...',
+    'fr': 'Localisation en cours...',
+    'en': 'Detecting location...',
+  },
+  'Indirizzo in caricamento...': {
+    'it': 'Indirizzo in caricamento...',
+    'de': 'Adresse wird geladen...',
+    'fr': 'Chargement de l’adresse...',
+    'en': 'Loading address...',
+  },
+  'Indirizzo non disponibile': {
+    'it': 'Indirizzo non disponibile',
+    'de': 'Adresse nicht verfügbar',
+    'fr': 'Adresse non disponible',
+    'en': 'Address not available',
+  },
+  'Consenti la posizione per compilare automaticamente il luogo dell’incidente.':
+      {
+    'it':
+        'Consenti la posizione per compilare automaticamente il luogo dell’incidente.',
+    'de':
+        'Bitte erlaube deinen Standort, um den Unfallort automatisch zu erfassen.',
+    'fr':
+        'Autorise la localisation pour renseigner automatiquement le lieu de l’accident.',
+    'en':
+        'Please allow location access to automatically fill the accident location.',
+  },
+  'Riprova': {
+    'it': 'Riprova',
+    'de': 'Erneut versuchen',
+    'fr': 'Réessayer',
+    'en': 'Try again',
   },
   'Salva impostazioni': {
     'it': 'Salva impostazioni',
@@ -2596,6 +2647,10 @@ class _FeritoFormData {
 
 /// NUOVA PRATICA ///////////////////////////////////////////////////////
 
+enum _GeoStatus { idle, loading, success, error }
+
+enum _AddressStatus { idle, loading, success, unavailable }
+
 class NuovaPraticaIncidentePage extends StatefulWidget {
   const NuovaPraticaIncidentePage({super.key});
 
@@ -2608,6 +2663,10 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   final _formKey = GlobalKey<FormState>();
 
   final _luogoController = TextEditingController();
+  _GeoStatus _geoStatus = _GeoStatus.idle;
+  Position? _geoPosition;
+  _AddressStatus _addressStatus = _AddressStatus.idle;
+  String? _addressReadable;
   bool _validazioneContattiAttiva = true;
   bool? _otherObjectDamage;
   bool? _otherVehicleDamage;
@@ -2675,9 +2734,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       }
     });
     _dataOra = DateTime.now();
-    if (!kIsWeb) {
-      _impostaLuogoAutomatico();
-    }
+    _impostaLuogoAutomatico();
     _testimoni.add(
       _TestimoneFormData(
         nomeController: TextEditingController(),
@@ -2696,13 +2753,312 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   }
 
   Future<void> _impostaLuogoAutomatico() async {
-    if (kIsWeb) return;
-    final indirizzo = await getIndirizzoDaGps();
-    if (indirizzo != null && _luogoController.text.trim().isEmpty) {
+    if (_geoStatus == _GeoStatus.loading) return;
+
+    setState(() {
+      _geoStatus = _GeoStatus.loading;
+      _geoPosition = null;
+      _addressStatus = _AddressStatus.idle;
+      _addressReadable = null;
+    });
+
+    try {
+      final pos = await getPosizioneConPermessi();
+      if (pos == null) {
+        if (!mounted) return;
+        setState(() {
+          _geoStatus = _GeoStatus.error;
+        });
+        return;
+      }
+
+      final indirizzo = await getIndirizzoDaGps(position: pos);
       if (!mounted) return;
       setState(() {
-        _luogoController.text = indirizzo;
+        _geoStatus = _GeoStatus.success;
+        _geoPosition = pos;
+        _addressStatus = _AddressStatus.loading;
+        _addressReadable = null;
+        if (_luogoController.text.trim().isEmpty) {
+          _luogoController.text = indirizzo ??
+              'LAT: ${pos.latitude.toStringAsFixed(5)}, '
+                  'LNG: ${pos.longitude.toStringAsFixed(5)}';
+        }
       });
+      unawaited(_caricaIndirizzoDaPosizione(pos));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _geoStatus = _GeoStatus.error;
+        _geoPosition = null;
+        _addressStatus = _AddressStatus.idle;
+        _addressReadable = null;
+      });
+    }
+  }
+
+  Future<void> _caricaIndirizzoDaPosizione(Position pos) async {
+    setState(() {
+      _addressStatus = _AddressStatus.loading;
+      _addressReadable = null;
+    });
+
+    final headers = <String, String>{
+      'Accept-Language': Localizations.localeOf(context).toLanguageTag(),
+    };
+    if (!kIsWeb) {
+      headers['User-Agent'] = 'cid-digitale-client/1.0';
+    }
+
+    final uri = Uri.parse(
+      'https://nominatim.openstreetmap.org/reverse?format=jsonv2'
+      '&addressdetails=1&lat=${pos.latitude}&lon=${pos.longitude}',
+    );
+
+    try {
+      final res = await http.get(uri, headers: headers).timeout(
+            const Duration(seconds: 10),
+          );
+
+      if (!mounted) return;
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        final addr = _formatNominatimAddress(
+          body['address'] as Map<String, dynamic>?,
+        );
+        setState(() {
+          if (addr != null && addr.isNotEmpty) {
+            _addressStatus = _AddressStatus.success;
+            _addressReadable = addr;
+            final current = _luogoController.text.trim();
+            if (current.isEmpty || current.startsWith('LAT:')) {
+              _luogoController.text = addr;
+            }
+          } else {
+            _addressStatus = _AddressStatus.unavailable;
+            _addressReadable = null;
+          }
+        });
+      } else {
+        setState(() {
+          _addressStatus = _AddressStatus.unavailable;
+          _addressReadable = null;
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _addressStatus = _AddressStatus.unavailable;
+        _addressReadable = null;
+      });
+    }
+  }
+
+  String? _formatNominatimAddress(Map<String, dynamic>? address) {
+    if (address == null || address.isEmpty) return null;
+
+    String? firstNonEmpty(List<String?> values) {
+      for (final value in values) {
+        if (value != null && value.trim().isNotEmpty) {
+          return value.trim();
+        }
+      }
+      return null;
+    }
+
+    final road = firstNonEmpty([
+      address['road'] as String?,
+      address['pedestrian'] as String?,
+      address['path'] as String?,
+    ]);
+    final houseNumber = address['house_number'] as String?;
+    final postcode = address['postcode'] as String?;
+    final city = firstNonEmpty([
+      address['city'] as String?,
+      address['town'] as String?,
+      address['village'] as String?,
+      address['municipality'] as String?,
+    ]);
+    final state = address['state'] as String?;
+    final country = address['country'] as String?;
+
+    final parts = <String>[];
+
+    final streetParts = [
+      if (road != null) road,
+      if (houseNumber != null && houseNumber.trim().isNotEmpty)
+        houseNumber.trim(),
+    ];
+    final streetLine = streetParts.join(' ').trim();
+    if (streetLine.isNotEmpty) {
+      parts.add(streetLine);
+    }
+
+    final cityParts = [
+      if (postcode != null && postcode.trim().isNotEmpty) postcode.trim(),
+      if (city != null) city,
+    ];
+    final cityLine = cityParts.join(' ').trim();
+    if (cityLine.isNotEmpty) {
+      parts.add(cityLine);
+    }
+
+    if (state != null && state.trim().isNotEmpty) {
+      parts.add(state.trim());
+    }
+    if (country != null && country.trim().isNotEmpty) {
+      parts.add(country.trim());
+    }
+
+    final formatted = parts.join(', ');
+    return formatted.isEmpty ? null : formatted;
+  }
+
+  Widget _buildGeoStatus() {
+    final theme = Theme.of(context);
+
+    switch (_geoStatus) {
+      case _GeoStatus.loading:
+        return Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                tx(context, 'Posizione in rilevamento...'),
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+          ],
+        );
+      case _GeoStatus.success:
+        final pos = _geoPosition;
+        if (pos == null) return const SizedBox.shrink();
+        final widgets = <Widget>[
+          Row(
+            children: [
+              Icon(
+                Icons.my_location,
+                color: theme.colorScheme.primary,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'LAT: ${pos.latitude.toStringAsFixed(5)}, '
+                  'LNG: ${pos.longitude.toStringAsFixed(5)}',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+            ],
+          ),
+        ];
+
+        if (_addressStatus == _AddressStatus.loading) {
+          widgets.add(const SizedBox(height: 4));
+          widgets.add(
+            Row(
+              children: [
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    tx(context, 'Indirizzo in caricamento...'),
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+          );
+        } else if (_addressStatus == _AddressStatus.success &&
+            _addressReadable != null &&
+            _addressReadable!.isNotEmpty) {
+          widgets.add(const SizedBox(height: 4));
+          widgets.add(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.place_outlined,
+                  color: theme.colorScheme.primary,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _addressReadable!,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+          );
+        } else if (_addressStatus == _AddressStatus.unavailable) {
+          widgets.add(const SizedBox(height: 4));
+          widgets.add(
+            Row(
+              children: [
+                const Icon(
+                  Icons.place_outlined,
+                  color: Colors.grey,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    tx(context, 'Indirizzo non disponibile'),
+                    style:
+                        theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: widgets,
+        );
+      case _GeoStatus.error:
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                tx(
+                  context,
+                  'Consenti la posizione per compilare automaticamente il luogo dell’incidente.',
+                ),
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: Colors.redAccent),
+              ),
+            ),
+            TextButton(
+              onPressed: _impostaLuogoAutomatico,
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(tx(context, 'Riprova')),
+            ),
+          ],
+        );
+      case _GeoStatus.idle:
+      default:
+        return const SizedBox.shrink();
     }
   }
 
@@ -2819,30 +3175,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   String _ensureDraftId() {
     _draftClaimId ??= DateTime.now().millisecondsSinceEpoch.toString();
     return _draftClaimId!;
-  }
-
-  Future<void> _usaPosizioneWeb() async {
-    if (!kIsWeb) return;
-    try {
-      LocationPermission perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied ||
-          perm == LocationPermission.deniedForever) {
-        perm = await Geolocator.requestPermission();
-      }
-      if (perm == LocationPermission.denied ||
-          perm == LocationPermission.deniedForever) {
-        _mostraSnack('Permesso posizione negato.');
-        return;
-      }
-      final pos = await Geolocator.getCurrentPosition();
-      if (!mounted) return;
-      setState(() {
-        _luogoController.text =
-            'LAT: ${pos.latitude.toStringAsFixed(5)}, LNG: ${pos.longitude.toStringAsFixed(5)}';
-      });
-    } catch (e) {
-      _mostraSnack('Errore posizione: $e');
-    }
   }
 
   Future<void> _pickAndUploadImage({required String kind}) async {
@@ -3545,15 +3877,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                   return null;
                 },
               ),
-              if (kIsWeb)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: OutlinedButton.icon(
-                    onPressed: _usaPosizioneWeb,
-                    icon: const Icon(Icons.my_location),
-                    label: const Text('Usa la mia posizione'),
-                  ),
-                ),
+              const SizedBox(height: 8),
+              _buildGeoStatus(),
               const SizedBox(height: 24),
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,

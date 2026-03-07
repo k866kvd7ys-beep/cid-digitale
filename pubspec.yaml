@@ -47,6 +47,9 @@ dependencies:
   geolocator: ^11.0.0
   geocoding: ^3.0.0
 
+  # HTTP (reverse geocoding OSM)
+  http: ^1.2.0
+
   # Localizzazioni (IT / DE / FR / EN)
   flutter_localizations:
     sdk: flutter
