@@ -946,6 +946,18 @@ const Map<String, Map<String, String>> _tMap = {
     'fr': 'Chargement de l’adresse...',
     'en': 'Loading address...',
   },
+  'Usa la mia posizione': {
+    'it': 'Usa la mia posizione',
+    'de': 'Meinen Standort verwenden',
+    'fr': 'Utiliser ma position',
+    'en': 'Use my location',
+  },
+  'Apri mappa': {
+    'it': 'Apri mappa',
+    'de': 'Karte öffnen',
+    'fr': 'Ouvrir la carte',
+    'en': 'Open map',
+  },
   'Indirizzo non disponibile': {
     'it': 'Indirizzo non disponibile',
     'de': 'Adresse nicht verfügbar',
@@ -3110,11 +3122,27 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                 )
               : const Icon(Icons.my_location, size: 18),
           label: Text(
-            'Usa la mia posizione',
+            tx(context, 'Usa la mia posizione'),
             style: theme.textTheme.bodySmall?.copyWith(
               color:
                   _geoLoading ? theme.disabledColor : theme.colorScheme.primary,
             ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        TextButton.icon(
+          onPressed: _apriMappa,
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(0, 0),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+          ),
+          icon: const Icon(Icons.map_outlined, size: 18),
+          label: Text(
+            tx(context, 'Apri mappa'),
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: theme.colorScheme.primary),
           ),
         ),
         if (_geoMessage != null) ...[
@@ -3237,6 +3265,21 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(testo)),
     );
+  }
+
+  Future<void> _apriMappa() async {
+    final pos = _geoPosition;
+    final uri = pos != null
+        ? Uri.parse(
+            'https://www.google.com/maps?q=${pos.latitude},${pos.longitude}')
+        : Uri.parse('https://www.google.com/maps');
+    final ok = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (!ok && mounted) {
+      _mostraSnack(tx(context, 'Impossibile aprire Google Maps.'));
+    }
   }
 
   String _ensureDraftId() {

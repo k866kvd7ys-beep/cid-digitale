@@ -22,7 +22,7 @@ dependencies:
   qr_flutter: ^4.1.0
 
   # URL / chiamate / mail
-  url_launcher: ^6.2.5
+  url_launcher: ^6.3.2
 
   # Camera live
   camera: ^0.10.5+5
