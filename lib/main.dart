@@ -2698,10 +2698,6 @@ class _FeritoFormData {
 
 /// NUOVA PRATICA ///////////////////////////////////////////////////////
 
-enum _GeoStatus { idle, loading, success, error }
-
-enum _AddressStatus { idle, loading, success, unavailable }
-
 enum _GeoPermissionState {
   denied,
   deniedForever,
@@ -2722,12 +2718,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   final _formKey = GlobalKey<FormState>();
 
   final _luogoController = TextEditingController();
-  _GeoStatus _geoStatus = _GeoStatus.idle;
   Position? _geoPosition;
   _GeoPermissionState _geoPermission = _GeoPermissionState.unknown;
   String? _geoErrorMessage;
-  _AddressStatus _addressStatus = _AddressStatus.idle;
   String? _addressReadable;
+  bool _geoLoading = false;
+  String? _geoMessage;
   bool _validazioneContattiAttiva = true;
   bool? _otherObjectDamage;
   bool? _otherVehicleDamage;
@@ -2796,7 +2792,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       }
     });
     _dataOra = DateTime.now();
-    _impostaLuogoAutomatico();
     _testimoni.add(
       _TestimoneFormData(
         nomeController: TextEditingController(),
@@ -2815,16 +2810,16 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   }
 
   Future<void> _impostaLuogoAutomatico() async {
-    if (_geoStatus == _GeoStatus.loading) return;
+    if (_geoLoading) return;
 
     debugPrint('[Geo] start geolocation request');
     setState(() {
-      _geoStatus = _GeoStatus.loading;
+      _geoLoading = true;
       _geoPosition = null;
       _geoPermission = _GeoPermissionState.unknown;
       _geoErrorMessage = null;
-      _addressStatus = _AddressStatus.idle;
       _addressReadable = null;
+      _geoMessage = null;
     });
 
     try {
@@ -2913,10 +2908,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       final indirizzo = await getIndirizzoDaGps(position: position);
       if (!mounted) return;
       setState(() {
-        _geoStatus = _GeoStatus.success;
+        _geoLoading = false;
         _geoPosition = position;
         _geoErrorMessage = null;
-        _addressStatus = _AddressStatus.loading;
         _addressReadable = null;
         if (_luogoController.text.trim().isEmpty) {
           _luogoController.text = indirizzo ??
@@ -2955,12 +2949,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
     if (!mounted) return;
     setState(() {
-      _geoStatus = _GeoStatus.error;
+      _geoLoading = false;
       _geoPosition = null;
       _geoPermission = permissionState;
       _geoErrorMessage = message;
-      _addressStatus = _AddressStatus.idle;
       _addressReadable = null;
+      _geoMessage = message;
     });
   }
 
@@ -2984,7 +2978,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       '[Geo] reverse geocoding start lat=${pos.latitude}, lon=${pos.longitude}',
     );
     setState(() {
-      _addressStatus = _AddressStatus.loading;
       _addressReadable = null;
     });
 
@@ -3015,7 +3008,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         );
         setState(() {
           if (addr != null && addr.isNotEmpty) {
-            _addressStatus = _AddressStatus.success;
             _addressReadable = addr;
             debugPrint('[Geo] reverse geocoding success: $addr');
             final current = _luogoController.text.trim();
@@ -3023,24 +3015,17 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               _luogoController.text = addr;
             }
           } else {
-            _addressStatus = _AddressStatus.unavailable;
             _addressReadable = null;
             debugPrint('[Geo] reverse geocoding address unavailable');
           }
         });
       } else {
-        setState(() {
-          _addressStatus = _AddressStatus.unavailable;
-          _addressReadable = null;
-        });
+        setState(() => _addressReadable = null);
       }
     } catch (e) {
       debugPrint('[Geo] reverse geocoding error: $e');
       if (!mounted) return;
-      setState(() {
-        _addressStatus = _AddressStatus.unavailable;
-        _addressReadable = null;
-      });
+      setState(() => _addressReadable = null);
     }
   }
 
@@ -3104,155 +3089,44 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return formatted.isEmpty ? null : formatted;
   }
 
-  Widget _buildGeoStatus() {
+  Widget _buildGeoActions() {
     final theme = Theme.of(context);
-
-    switch (_geoStatus) {
-      case _GeoStatus.loading:
-        return Row(
-          children: [
-            SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                tx(context, 'Posizione in rilevamento...'),
-                style: theme.textTheme.bodySmall,
-              ),
-            ),
-          ],
-        );
-      case _GeoStatus.success:
-        final pos = _geoPosition;
-        if (pos == null) return const SizedBox.shrink();
-        final lat = pos.latitude;
-        final lng = pos.longitude;
-        final widgets = <Widget>[
-          Row(
-            children: [
-              Icon(
-                Icons.my_location,
-                color: theme.colorScheme.primary,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'LAT: ${lat.toStringAsFixed(5)}, '
-                  'LNG: ${lng.toStringAsFixed(5)}',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextButton.icon(
+          onPressed: _geoLoading ? null : _impostaLuogoAutomatico,
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(0, 0),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
           ),
-        ];
-
-        if (_addressStatus == _AddressStatus.loading) {
-          widgets.add(const SizedBox(height: 4));
-          widgets.add(
-            Row(
-              children: [
-                SizedBox(
+          icon: _geoLoading
+              ? SizedBox(
                   width: 14,
                   height: 14,
                   child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    tx(context, 'Indirizzo in caricamento...'),
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              ],
+                )
+              : const Icon(Icons.my_location, size: 18),
+          label: Text(
+            'Usa la mia posizione',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color:
+                  _geoLoading ? theme.disabledColor : theme.colorScheme.primary,
             ),
-          );
-        } else if (_addressStatus == _AddressStatus.success &&
-            _addressReadable != null &&
-            _addressReadable!.isNotEmpty) {
-          widgets.add(const SizedBox(height: 4));
-          widgets.add(
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.place_outlined,
-                  color: theme.colorScheme.primary,
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _addressReadable!,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ),
-          );
-        } else if (_addressStatus == _AddressStatus.unavailable) {
-          widgets.add(const SizedBox(height: 4));
-          widgets.add(
-            Row(
-              children: [
-                const Icon(
-                  Icons.place_outlined,
-                  color: Colors.grey,
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    tx(context, 'Indirizzo non disponibile'),
-                    style:
-                        theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: widgets,
-        );
-      case _GeoStatus.error:
-        final errorText = _geoErrorMessage ??
-            tx(
-              context,
-              'Consenti la posizione per compilare automaticamente il luogo dell’incidente.',
-            );
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                errorText,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: Colors.redAccent),
-              ),
-            ),
-            TextButton(
-              onPressed: _impostaLuogoAutomatico,
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(0, 0),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(tx(context, 'Riprova')),
-            ),
-          ],
-        );
-      case _GeoStatus.idle:
-      default:
-        return const SizedBox.shrink();
-    }
+          ),
+        ),
+        if (_geoMessage != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            _geoMessage!,
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ],
+      ],
+    );
   }
 
   @override
@@ -4071,7 +3945,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                 },
               ),
               const SizedBox(height: 8),
-              _buildGeoStatus(),
+              _buildGeoActions(),
               const SizedBox(height: 24),
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
