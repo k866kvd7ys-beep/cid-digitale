@@ -986,6 +986,12 @@ const Map<String, Map<String, String>> _tMap = {
     'fr': 'Erreur lors de la géolocalisation.',
     'en': 'Error during geolocation.',
   },
+  'Posizione non disponibile.': {
+    'it': 'Posizione non disponibile.',
+    'de': 'Position nicht verfügbar.',
+    'fr': 'Position non disponible.',
+    'en': 'Position not available.',
+  },
   'Consenti la posizione per compilare automaticamente il luogo dell’incidente.':
       {
     'it':
@@ -2693,6 +2699,22 @@ enum _GeoPermissionState {
   unknown,
 }
 
+String _geoPermissionStateToCode(_GeoPermissionState state) {
+  switch (state) {
+    case _GeoPermissionState.denied:
+      return 'permission_denied';
+    case _GeoPermissionState.deniedForever:
+      return 'permission_denied_forever';
+    case _GeoPermissionState.whileInUse:
+      return 'while_in_use';
+    case _GeoPermissionState.always:
+      return 'always';
+    case _GeoPermissionState.unknown:
+    default:
+      return 'unknown';
+  }
+}
+
 class NuovaPraticaIncidentePage extends StatefulWidget {
   const NuovaPraticaIncidentePage({super.key});
 
@@ -2709,6 +2731,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   Position? _geoPosition;
   _GeoPermissionState _geoPermission = _GeoPermissionState.unknown;
   String? _geoErrorMessage;
+  String? _geoErrorCode;
   _AddressStatus _addressStatus = _AddressStatus.idle;
   String? _addressReadable;
   bool _validazioneContattiAttiva = true;
@@ -2806,6 +2829,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       _geoPosition = null;
       _geoPermission = _GeoPermissionState.unknown;
       _geoErrorMessage = null;
+      _geoErrorCode = null;
       _addressStatus = _AddressStatus.idle;
       _addressReadable = null;
     });
@@ -2818,6 +2842,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           _GeoPermissionState.unknown,
           tx(context,
               'Attiva la localizzazione sul telefono per compilare automaticamente il luogo dell’incidente.'),
+          code: 'service_disabled',
         );
         return;
       }
@@ -2841,6 +2866,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           _geoPermission,
           tx(context,
               'Consenti la posizione in Safari per compilare automaticamente il luogo dell’incidente.'),
+          code: permission == LocationPermission.deniedForever
+              ? 'permission_denied_forever'
+              : 'permission_denied',
         );
         return;
       }
@@ -2859,6 +2887,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         _geoStatus = _GeoStatus.success;
         _geoPosition = pos;
         _geoErrorMessage = null;
+        _geoErrorCode = null;
         _addressStatus = _AddressStatus.loading;
         _addressReadable = null;
         if (_luogoController.text.trim().isEmpty) {
@@ -2873,17 +2902,23 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       _setGeoError(
         _geoPermission,
         tx(context, 'Impossibile ottenere la posizione (timeout).'),
+        code: 'timeout',
       );
     } catch (e, st) {
       debugPrint('[Geo] geolocation exception: $e\n$st');
       _setGeoError(
         _geoPermission,
         tx(context, 'Errore durante la geolocalizzazione.'),
+        code: 'exception',
       );
     }
   }
 
-  void _setGeoError(_GeoPermissionState permissionState, String message) {
+  void _setGeoError(
+    _GeoPermissionState permissionState,
+    String message, {
+    String? code,
+  }) {
     debugPrint(
       '[Geo] error: $message (permission=$permissionState)',
     );
@@ -2893,6 +2928,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       _geoPosition = null;
       _geoPermission = permissionState;
       _geoErrorMessage = message;
+      _geoErrorCode =
+          code ?? _geoErrorCode ?? _geoPermissionStateToCode(permissionState);
       _addressStatus = _AddressStatus.idle;
       _addressReadable = null;
     });
@@ -3170,6 +3207,15 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                     ?.copyWith(color: Colors.redAccent),
               ),
             ),
+            if (_geoErrorCode != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Text(
+                  'Geo error: ${_geoErrorCode}',
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: Colors.redAccent, fontSize: 11),
+                ),
+              ),
             TextButton(
               onPressed: _impostaLuogoAutomatico,
               style: TextButton.styleFrom(

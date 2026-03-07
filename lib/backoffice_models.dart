@@ -94,7 +94,8 @@ class ClaimMessage {
 @immutable
 class ClaimRecord {
   final String idPratica;
-  final String hashedToken; // Solo hash salvato per GDPR; mai salvare il token in chiaro.
+  final String
+      hashedToken; // Solo hash salvato per GDPR; mai salvare il token in chiaro.
   final DateTime createdAt;
   final DateTime expiresAt; // Validità: 30 giorni.
   final DateTime retentionUntil; // Conservazione: fino a 10 anni.

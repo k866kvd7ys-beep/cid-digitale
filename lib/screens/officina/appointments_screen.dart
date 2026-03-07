@@ -47,7 +47,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
 
           DateTime? _parseEnd(Map<String, dynamic> r, DateTime? start) {
             if (start == null) return null;
-            final durationMinutes = (r['duration_minutes'] as num?)?.toInt() ?? 60;
+            final durationMinutes =
+                (r['duration_minutes'] as num?)?.toInt() ?? 60;
             return start.add(Duration(minutes: durationMinutes));
           }
 

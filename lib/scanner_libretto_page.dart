@@ -356,7 +356,8 @@ class _WebUploadLibrettoPageState extends State<WebUploadLibrettoPage> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Errore durante la selezione della foto.')),
+          const SnackBar(
+              content: Text('Errore durante la selezione della foto.')),
         );
       }
     } finally {
@@ -375,7 +376,8 @@ class _WebUploadLibrettoPageState extends State<WebUploadLibrettoPage> {
     }
     Navigator.of(context).pop({
       'kind': 'libretto_photo',
-      'filename': _fileName ?? 'libretto_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      'filename':
+          _fileName ?? 'libretto_${DateTime.now().millisecondsSinceEpoch}.jpg',
       'bytes': _bytes!,
     });
   }

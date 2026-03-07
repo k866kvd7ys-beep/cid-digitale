@@ -215,10 +215,10 @@ class SupabaseService {
       final String status =
           (claim['status'] ?? '').toString().trim().toLowerCase();
       final dynamic orgField = claim['workshop_org_id'];
-      final String? workshopOrgId = (orgField == null ||
-              (orgField is String && orgField.trim().isEmpty))
-          ? null
-          : orgField.toString().trim();
+      final String? workshopOrgId =
+          (orgField == null || (orgField is String && orgField.trim().isEmpty))
+              ? null
+              : orgField.toString().trim();
 
       final initialStatuses = <String>{
         'temp',

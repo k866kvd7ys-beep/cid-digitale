@@ -28,7 +28,8 @@ String buildQrPayload({required String claimId, required String token}) {
 }
 
 /// Validazione token: confronta l'hash calcolato con quello salvato.
-bool validateToken({required String providedToken, required String storedHash}) {
+bool validateToken(
+    {required String providedToken, required String storedHash}) {
   return hashToken(providedToken) == storedHash;
 }
 
