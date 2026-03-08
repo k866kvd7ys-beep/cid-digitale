@@ -101,6 +101,30 @@ class _OcrBlock {
   });
 }
 
+bool _isPlausibleName(String? v) =>
+    v != null &&
+    v.trim().length >= 2 &&
+    RegExp(r"^[A-Za-zÀ-ÿ'\-\s]{2,}$").hasMatch(v) &&
+    !RegExp(r'\d').hasMatch(v);
+
+bool _isPlausibleAddress(String? v) =>
+    v != null &&
+    v.trim().length >= 5 &&
+    RegExp(r'\d').hasMatch(v) &&
+    RegExp(r'[A-Za-z]').hasMatch(v);
+
+bool _isPlausibleCity(String? v) =>
+    v != null &&
+    v.trim().length >= 2 &&
+    RegExp(r'^[A-Za-zÀ-ÿ\s\-]{2,}$').hasMatch(v) &&
+    !RegExp(r'PERSONENWAGEN|LIMOUSINE|FAHRZEUG', caseSensitive: false)
+        .hasMatch(v);
+
+bool _isPlausibleInsurance(String? v) =>
+    v != null &&
+    v.trim().length >= 3 &&
+    RegExp(r'[A-Za-z]').hasMatch(v);
+
 /// CONFIG OFFICINA //////////////////////////////////////////////////////
 
 class OfficinaConfig {
@@ -3472,14 +3496,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return data.values.any((v) => v != null && v!.trim().isNotEmpty);
   }
 
-  bool _isPlausibleName(String? v) =>
-      v != null &&
-      v.trim().length >= 2 &&
-      RegExp(r'[A-Za-zÀ-ÿ]{2,}').hasMatch(v);
-
-  bool _isPlausibleInsurance(String? v) =>
-      v != null && v.trim().length >= 3 && RegExp(r'[A-Za-z]').hasMatch(v);
-
   bool _shouldFallbackOcr(String? text, String? plate) {
     final textLen = text?.trim().length ?? 0;
     if (textLen < 15) return true;
@@ -3535,6 +3551,144 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     if (combined.isEmpty) return {};
     final parsed = estraiNomeAssicurazioneIndirizzoDaTesto(combined);
     return parsed;
+  }
+
+  Map<String, String?> _extractSwissFieldsFromAnchors(List<_OcrBlock> blocks) {
+    if (blocks.isEmpty) return {};
+    Map<String, String?> result = {};
+
+    _OcrBlock? findAnchor(List<String> pats, {double? xMax}) {
+      final ups = pats.map((p) => p.toUpperCase()).toList();
+      for (final b in blocks) {
+        if (xMax != null && b.nx > xMax) continue;
+        final up = b.text.toUpperCase();
+        if (ups.any((p) => up.contains(p))) return b;
+      }
+      return null;
+    }
+
+    List<_OcrBlock> rightOf(_OcrBlock anchor,
+        {double dy = 0.15, double dx = 0.05}) {
+      return blocks
+          .where((b) =>
+              b.nx > anchor.nx + dx &&
+              (b.ny - anchor.ny).abs() <= dy &&
+              b.ny >= anchor.ny - dy)
+          .toList()
+        ..sort((a, b) => a.nx.compareTo(b.nx));
+    }
+
+    // Campo 15 - targa
+    final anchor15 =
+        findAnchor(['15', 'SCHILD', 'PLAQUE', 'TARGA', 'NUMMER'], xMax: 0.9);
+    if (anchor15 != null) {
+      final candidates = rightOf(anchor15);
+      String? bestPlate;
+      for (final b in candidates) {
+        bestPlate = _selectBetterPlate(bestPlate, extractSwissPlate(b.text));
+      }
+      result['targa'] = bestPlate;
+      debugPrint('Anchor 15 found -> plate: ${bestPlate ?? '-'}');
+    } else {
+      debugPrint('Anchor 15 not found');
+    }
+
+    // Campo 09 - assicurazione
+    final anchor09 = findAnchor(
+      ['09', 'VERSICHERUNG', 'ASSURANCE', 'ASSICURAZIONE', 'ASSICURANZA'],
+      xMax: 0.75,
+    );
+    if (anchor09 != null) {
+      final candidates = rightOf(anchor09, dy: 0.2);
+      const providers = [
+        'AXA',
+        'ALLIANZ',
+        'ZURICH',
+        'GENERALI',
+        'HELVETIA',
+        'MOBILIAR',
+        'VAUDOISE',
+        'BALOISE'
+      ];
+      String? bestIns;
+      for (final b in candidates) {
+        final up = b.text.toUpperCase();
+        if (providers.any((p) => up.contains(p))) {
+          bestIns = b.text.trim();
+          break;
+        }
+        if (_isPlausibleInsurance(b.text)) {
+          bestIns ??= b.text.trim();
+        }
+      }
+      result['assicurazione'] = bestIns;
+      debugPrint('Anchor 09 found -> assicurazione: ${bestIns ?? '-'}');
+    } else {
+      debugPrint('Anchor 09 not found');
+    }
+
+    // Campi 01-06 - anagrafica
+    final anchor0106 = findAnchor([
+      '01',
+      '02',
+      '03',
+      '04',
+      '05',
+      '06',
+      'NAME',
+      'NOM',
+      'COGNOME',
+      'VORNAME',
+      'PRENOM',
+      'PRENOMS',
+      'DOMICILE',
+      'DOMICILIO',
+      'DOMICIL'
+    ], xMax: 0.65);
+    if (anchor0106 != null) {
+      final region = blocks
+          .where((b) =>
+              b.nx > anchor0106.nx + 0.05 &&
+              b.ny >= anchor0106.ny - 0.02 &&
+              b.ny <= anchor0106.ny + 0.45)
+          .toList()
+        ..sort((a, b) => a.ny.compareTo(b.ny));
+      final lines = region.map((b) => b.text.trim()).toList();
+      String? cognome;
+      String? nome;
+      String? indirizzo;
+      String? cap;
+      String? city;
+      if (lines.isNotEmpty && _isPlausibleName(lines.first)) {
+        cognome = lines.first;
+      }
+      if (lines.length >= 2 && _isPlausibleName(lines[1])) {
+        nome = lines[1];
+      }
+      for (final l in lines.skip(2)) {
+        if (indirizzo == null && _isPlausibleAddress(l)) {
+          indirizzo = l;
+          continue;
+        }
+        final m = RegExp(r'\b([0-9]{4})\s+([A-Za-zÀ-ÿ\-\s]{2,})\b')
+            .firstMatch(l);
+        if (m != null && cap == null && city == null) {
+          cap = m.group(1);
+          city = m.group(2)?.trim();
+        }
+      }
+      if (cognome != null) result['cognome'] = cognome;
+      if (nome != null) result['nome'] = nome;
+      if (indirizzo != null) result['indirizzo'] = indirizzo;
+      if (cap != null) result['cap'] = cap;
+      if (city != null) result['city'] = city;
+      debugPrint(
+          'Anchor 01-06 found -> ${result['cognome'] ?? '-'} | ${result['nome'] ?? '-'} | ${indirizzo ?? '-'} | ${cap ?? '-'} ${city ?? '-'}');
+    } else {
+      debugPrint('Anchor 01-06 not found');
+    }
+
+    return result;
   }
 
   Future<_CloudOcrResult> _callCloudOcr(List<int> bytes) async {
@@ -3712,7 +3866,11 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                   miglioreTarga =
                       _selectBetterPlate(miglioreTarga, plateByBlocks);
                 }
-                final extraByBlocks = _extraFromBlocks(cloudResult.blocks);
+                final anchorParsed =
+                    _extractSwissFieldsFromAnchors(cloudResult.blocks);
+                final extraByBlocks = anchorParsed.isNotEmpty
+                    ? anchorParsed
+                    : _extraFromBlocks(cloudResult.blocks);
                 if (extraByBlocks.isNotEmpty) {
                   extraWeb = extraByBlocks;
                   debugPrint(
