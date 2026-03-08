@@ -3556,18 +3556,22 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             'OCR web text length: ${webText?.length ?? 0}',
           );
           String? miglioreTarga = estraiTargaDaTesto(webText ?? '');
+          Map<String, String?> extraWeb = {};
           if (webText != null && webText.isNotEmpty) {
             debugPrint(
               'OCR web text preview: ${webText.length > 200 ? webText.substring(0, 200) : webText}',
             );
+            extraWeb = estraiNomeAssicurazioneIndirizzoDaTesto(webText);
           }
           debugPrint('Targa OCR web (${quale ?? 'A'}): '
               '${miglioreTarga ?? 'non trovata'}');
 
           final fallbackNeeded = _shouldFallbackOcr(webText, miglioreTarga);
+          _CloudOcrResult? cloudResult;
+          bool snackShown = false;
           if (fallbackNeeded) {
             debugPrint('OCR cloud fallback start (${quale ?? 'A'})');
-            final cloudResult = await _callCloudOcr(bytes);
+            cloudResult = await _callCloudOcr(bytes);
             debugPrint(
               'OCR cloud success: ${cloudResult.success}, status: ${cloudResult.status}, text length: ${cloudResult.text?.length ?? 0}, error: ${cloudResult.error ?? '-'}, details: ${cloudResult.details ?? '-'}',
             );
@@ -3580,13 +3584,18 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               if (targaCloud != null) {
                 miglioreTarga = _selectBetterPlate(miglioreTarga, targaCloud);
               }
+              extraWeb =
+                  estraiNomeAssicurazioneIndirizzoDaTesto(cloudResult.text!);
             } else {
               miglioreTarga = null;
               _mostraSnack(
                 'Non siamo riusciti a leggere il libretto. Prova con una foto più nitida.',
               );
+              snackShown = true;
             }
           }
+
+          bool somethingSet = false;
 
           if (miglioreTarga != null) {
             setState(() {
@@ -3600,18 +3609,117 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                 debugPrint(
                   'Campo targa ${quale ?? 'A'} aggiornato (web): $miglioreTarga',
                 );
+                somethingSet = true;
               }
             });
           } else if (fallbackNeeded) {
             _mostraSnack(
               'Non siamo riusciti a leggere il libretto. Prova con una foto più nitida.',
             );
+            snackShown = true;
           } else {
             _mostraSnack('Nessun dato riconosciuto dal libretto.');
+            snackShown = true;
           }
+
+          // Usa anche gli altri dati parsati se disponibili
+          if (extraWeb.isNotEmpty) {
+            setState(() {
+              if (quale == 'A') {
+                if (extraWeb['nome'] != null &&
+                    extraWeb['nome']!.trim().isNotEmpty &&
+                    _nomeAController.text.trim().isEmpty) {
+                  _nomeAController.text = extraWeb['nome']!;
+                  somethingSet = true;
+                }
+                if (extraWeb['cognome'] != null &&
+                    extraWeb['cognome']!.trim().isNotEmpty &&
+                    _cognomeAController.text.trim().isEmpty) {
+                  _cognomeAController.text = extraWeb['cognome']!;
+                  somethingSet = true;
+                }
+                if (extraWeb['indirizzo'] != null &&
+                    extraWeb['indirizzo']!.trim().isNotEmpty &&
+                    _indirizzoAController.text.trim().isEmpty) {
+                  _indirizzoAController.text = extraWeb['indirizzo']!;
+                  somethingSet = true;
+                }
+                if (extraWeb['cap'] != null &&
+                    extraWeb['cap']!.trim().isNotEmpty &&
+                    _driverAZipController.text.trim().isEmpty) {
+                  _driverAZipController.text = extraWeb['cap']!;
+                  somethingSet = true;
+                }
+                if (extraWeb['city'] != null &&
+                    extraWeb['city']!.trim().isNotEmpty &&
+                    _driverACityController.text.trim().isEmpty) {
+                  _driverACityController.text = extraWeb['city']!;
+                  somethingSet = true;
+                }
+                if (extraWeb['assicurazione'] != null &&
+                    extraWeb['assicurazione']!.trim().isNotEmpty &&
+                    _assicurazioneAController.text.trim().isEmpty) {
+                  _assicurazioneAController.text = extraWeb['assicurazione']!;
+                  somethingSet = true;
+                }
+              } else {
+                if (extraWeb['nome'] != null &&
+                    extraWeb['nome']!.trim().isNotEmpty &&
+                    _nomeBController.text.trim().isEmpty) {
+                  _nomeBController.text = extraWeb['nome']!;
+                  somethingSet = true;
+                }
+                if (extraWeb['cognome'] != null &&
+                    extraWeb['cognome']!.trim().isNotEmpty &&
+                    _cognomeBController.text.trim().isEmpty) {
+                  _cognomeBController.text = extraWeb['cognome']!;
+                  somethingSet = true;
+                }
+                if (extraWeb['indirizzo'] != null &&
+                    extraWeb['indirizzo']!.trim().isNotEmpty &&
+                    _indirizzoBController.text.trim().isEmpty) {
+                  _indirizzoBController.text = extraWeb['indirizzo']!;
+                  somethingSet = true;
+                }
+                if (extraWeb['cap'] != null &&
+                    extraWeb['cap']!.trim().isNotEmpty &&
+                    _driverBZipController.text.trim().isEmpty) {
+                  _driverBZipController.text = extraWeb['cap']!;
+                  somethingSet = true;
+                }
+                if (extraWeb['city'] != null &&
+                    extraWeb['city']!.trim().isNotEmpty &&
+                    _driverBCityController.text.trim().isEmpty) {
+                  _driverBCityController.text = extraWeb['city']!;
+                  somethingSet = true;
+                }
+                if (extraWeb['assicurazione'] != null &&
+                    extraWeb['assicurazione']!.trim().isNotEmpty &&
+                    _assicurazioneBController.text.trim().isEmpty) {
+                  _assicurazioneBController.text = extraWeb['assicurazione']!;
+                  somethingSet = true;
+                }
+              }
+
+              if (extraWeb['indirizzo'] != null &&
+                  extraWeb['indirizzo']!.trim().isNotEmpty &&
+                  _luogoController.text.trim().isEmpty) {
+                _luogoController.text = extraWeb['indirizzo']!;
+                somethingSet = true;
+              }
+            });
+          }
+
           debugPrint(
             'OCR final plate (${quale ?? 'A'}): ${miglioreTarga ?? 'none'}',
           );
+          debugPrint(
+            'OCR final extra (${quale ?? 'A'}): nome=${extraWeb['nome'] ?? '-'}, cognome=${extraWeb['cognome'] ?? '-'}, indirizzo=${extraWeb['indirizzo'] ?? '-'}, cap=${extraWeb['cap'] ?? '-'}, city=${extraWeb['city'] ?? '-'}, assicurazione=${extraWeb['assicurazione'] ?? '-'}',
+          );
+
+          if (!somethingSet && miglioreTarga == null && !snackShown) {
+            _mostraSnack('Nessun dato riconosciuto dal libretto.');
+          }
         } else {
           try {
             await _leggiDatiDaLibretto(picked.path, quale ?? 'A');
