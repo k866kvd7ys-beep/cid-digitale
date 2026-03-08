@@ -3427,6 +3427,38 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return _draftClaimId!;
   }
 
+  bool _shouldFallbackOcr(String? text, String? plate) {
+    final textLen = text?.trim().length ?? 0;
+    if (textLen < 15) return true;
+    final digitCount = RegExp(r'\d').allMatches(plate ?? '').length;
+    if (plate == null || digitCount < 4) return true;
+    return false;
+  }
+
+  String? _selectBetterPlate(String? current, String? candidate) {
+    if (candidate == null) return current;
+    if (current == null || current.isEmpty) return candidate;
+    final currentDigits = RegExp(r'\d').allMatches(current).length;
+    final candidateDigits = RegExp(r'\d').allMatches(candidate).length;
+    return candidateDigits > currentDigits ? candidate : current;
+  }
+
+  Future<String?> _callCloudOcr(List<int> bytes) async {
+    try {
+      final res = await Supabase.instance.client.functions.invoke(
+        'ocr-libretto-cloud',
+        body: {'imageBase64': base64Encode(bytes)},
+      );
+      final data = res.data;
+      if (data is Map && data['success'] == true) {
+        return (data['text'] as String?)?.trim();
+      }
+    } catch (e, st) {
+      debugPrint('OCR cloud error: $e\n$st');
+    }
+    return null;
+  }
+
   Future<void> _pickAndUploadImage(
       {required String kind, String? quale}) async {
     final claimId = _ensureDraftId();
@@ -3489,33 +3521,56 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           debugPrint(
             'OCR web text length: ${webText?.length ?? 0}',
           );
-          if (webText == null) {
-            _mostraSnack(
-              'OCR non disponibile nel browser per questa immagine.',
-            );
-          } else if (webText.trim().isEmpty) {
-            _mostraSnack('Nessun dato riconosciuto dal libretto.');
-          } else {
+          String? miglioreTarga = estraiTargaDaTesto(webText ?? '');
+          if (webText != null && webText.isNotEmpty) {
             debugPrint(
               'OCR web text preview: ${webText.length > 200 ? webText.substring(0, 200) : webText}',
             );
-            final targaWeb = estraiTargaDaTesto(webText);
-            debugPrint('Targa OCR web (${quale ?? 'A'}): '
-                '${targaWeb ?? 'non trovata'}');
-            if (targaWeb != null) {
-              setState(() {
-                final controller =
-                    quale == 'B' ? _targaBController : _targaAController;
-                if (controller.text.trim().isEmpty) {
-                  controller.text = targaWeb;
-                }
-              });
-              debugPrint(
-                'Campo targa ${quale ?? 'A'} aggiornato (web): $targaWeb',
-              );
+          }
+          debugPrint('Targa OCR web (${quale ?? 'A'}): '
+              '${miglioreTarga ?? 'non trovata'}');
+
+          final fallbackNeeded = _shouldFallbackOcr(webText, miglioreTarga);
+          if (fallbackNeeded) {
+            debugPrint('OCR cloud fallback start (${quale ?? 'A'})');
+            final cloudText = await _callCloudOcr(bytes);
+            debugPrint(
+              'OCR cloud result length: ${cloudText?.length ?? 0}',
+            );
+            if (cloudText != null && cloudText.trim().isNotEmpty) {
+              final targaCloud = estraiTargaDaTesto(cloudText);
+              debugPrint('Targa OCR cloud (${quale ?? 'A'}): '
+                  '${targaCloud ?? 'non trovata'}');
+              if (targaCloud != null) {
+                miglioreTarga = _selectBetterPlate(miglioreTarga, targaCloud);
+              }
             } else {
-              _mostraSnack('Nessun dato riconosciuto dal libretto.');
+              _mostraSnack(
+                'Non siamo riusciti a leggere il libretto. Prova con una foto più nitida.',
+              );
             }
+          }
+
+          if (miglioreTarga != null) {
+            setState(() {
+              final controller =
+                  quale == 'B' ? _targaBController : _targaAController;
+              final current = controller.text.trim();
+              final currentDigits = RegExp(r'\d').allMatches(current).length;
+              final newDigits = RegExp(r'\d').allMatches(miglioreTarga!).length;
+              if (current.isEmpty || newDigits > currentDigits) {
+                controller.text = miglioreTarga!;
+                debugPrint(
+                  'Campo targa ${quale ?? 'A'} aggiornato (web): $miglioreTarga',
+                );
+              }
+            });
+          } else if (fallbackNeeded) {
+            _mostraSnack(
+              'Non siamo riusciti a leggere il libretto. Prova con una foto più nitida.',
+            );
+          } else {
+            _mostraSnack('Nessun dato riconosciuto dal libretto.');
           }
         } else {
           try {
