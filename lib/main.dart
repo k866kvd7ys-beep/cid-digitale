@@ -3901,112 +3901,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         });
       }
 
-      if (kind == 'libretto') {
-        debugPrint(
-          'OCR libretto ${kIsWeb ? 'web' : 'mobile'} avviato (quale: ${quale ?? 'A'})',
-        );
-        if (kIsWeb) {
-          final webText = await performWebOcr(bytes);
-          debugPrint(
-            'OCR web text length: ${webText?.length ?? 0}',
-          );
-          String? miglioreTarga = estraiTargaDaTesto(webText ?? '');
-          Map<String, String?> extraWeb = {};
-          if (webText != null && webText.isNotEmpty) {
-            debugPrint(
-              'OCR web text preview: ${webText.length > 200 ? webText.substring(0, 200) : webText}',
-            );
-            extraWeb = estraiNomeAssicurazioneIndirizzoDaTesto(webText);
-          }
-          debugPrint('Targa OCR web (${quale ?? 'A'}): '
-              '${miglioreTarga ?? 'non trovata'}');
-
-          final fallbackNeeded = _shouldFallbackOcr(webText, miglioreTarga);
-          _CloudOcrResult? cloudResult;
-          bool snackShown = false;
-          if (fallbackNeeded) {
-            debugPrint('OCR cloud fallback start (${quale ?? 'A'})');
-            cloudResult = await _callCloudOcr(bytes);
-            debugPrint(
-              'OCR cloud success: ${cloudResult.success}, status: ${cloudResult.status}, text length: ${cloudResult.text?.length ?? 0}, error: ${cloudResult.error ?? '-'}, details: ${cloudResult.details ?? '-'}',
-            );
-            if (cloudResult.success &&
-                cloudResult.text != null &&
-                cloudResult.text!.trim().isNotEmpty) {
-              final targaCloud = estraiTargaDaTesto(cloudResult.text!);
-              debugPrint('Targa OCR cloud (${quale ?? 'A'}): '
-                  '${targaCloud ?? 'non trovata'}');
-              if (targaCloud != null) {
-                miglioreTarga = _selectBetterPlate(miglioreTarga, targaCloud);
-              }
-              extraWeb =
-                  estraiNomeAssicurazioneIndirizzoDaTesto(cloudResult.text!);
-              if (cloudResult.blocks.isNotEmpty) {
-                final plateByBlocks = _plateFromBlocks(cloudResult.blocks);
-                if (plateByBlocks != null) {
-                  debugPrint('Targa OCR cloud (blocchi): $plateByBlocks');
-                  miglioreTarga =
-                      _selectBetterPlate(miglioreTarga, plateByBlocks);
-                }
-                final anchorParsed =
-                    _extractSwissFieldsFromAnchors(cloudResult.blocks);
-                final extraByBlocks = anchorParsed.isNotEmpty
-                    ? anchorParsed
-                    : _extraFromBlocks(cloudResult.blocks);
-                if (extraByBlocks.isNotEmpty) {
-                  extraWeb = extraByBlocks;
-                  debugPrint('OCR blocchi extra: ${extraByBlocks.toString()}');
-                }
-              }
-            } else {
-              miglioreTarga = null;
-              _mostraSnack(
-                'Non siamo riusciti a leggere il libretto. Prova con una foto più nitida.',
-              );
-              snackShown = true;
-            }
-          }
-
-          final parsedByApply = _applyLibrettoParsedData(
-            quale: quale ?? 'A',
-            nome: extraWeb['nome'],
-            cognome: extraWeb['cognome'],
-            indirizzo: extraWeb['indirizzo'],
-            cap: extraWeb['cap'],
-            city: extraWeb['city'],
-            targa: miglioreTarga,
-            assicurazione: extraWeb['assicurazione'],
-          );
-
-          debugPrint(
-            'OCR final plate (${quale ?? 'A'}): ${miglioreTarga ?? 'none'}',
-          );
-          debugPrint(
-            'OCR final extra (${quale ?? 'A'}): nome=${extraWeb['nome'] ?? '-'}, cognome=${extraWeb['cognome'] ?? '-'}, indirizzo=${extraWeb['indirizzo'] ?? '-'}, cap=${extraWeb['cap'] ?? '-'}, city=${extraWeb['city'] ?? '-'}, assicurazione=${extraWeb['assicurazione'] ?? '-'}',
-          );
-
-          final parsedAny =
-              parsedByApply || _hasParsedData(extraWeb, miglioreTarga);
-
-          if (!parsedAny && !snackShown) {
-            _mostraSnack('Nessun dato riconosciuto dal libretto.');
-          }
-        } else {
-          try {
-            await _leggiDatiDaLibretto(picked.path, quale ?? 'A');
-            final targaVal = (quale == 'B'
-                    ? _targaBController.text.trim()
-                    : _targaAController.text.trim())
-                .trim();
-            debugPrint(
-              'Campo targa ${quale ?? 'A'} dopo OCR: ${targaVal.isEmpty ? 'vuoto' : targaVal}',
-            );
-          } catch (e, st) {
-            debugPrint('OCR libretto errore: $e\n$st');
-            _mostraSnack('Nessun dato riconosciuto dal libretto.');
-          }
-        }
-      }
+      // OCR disattivato: il libretto viene solo allegato e mostrato in preview.
 
       await _supabaseService.uploadClaimImageBytes(
         claimId: claimId,
@@ -4474,18 +4369,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         }
       });
 
-      _applyLibrettoParsedData(
-        quale: quale,
-        nome: result.nome,
-        cognome: result.cognome,
-        indirizzo: result.indirizzo,
-        cap: result.cap,
-        city: result.city,
-        targa: result.targa,
-        assicurazione: result.assicurazione,
-      );
-
-      _mostraSnack('Foto libretto $quale acquisita e letta con l\'AI.');
+      _mostraSnack('Foto libretto $quale caricata.');
     } catch (_) {
       _mostraSnack('Errore nello scatto della foto del libretto $quale.');
     }
@@ -4688,7 +4572,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                 OutlinedButton.icon(
                   onPressed: () => _scattaFotoLibretto('A'),
                   icon: const Icon(Icons.camera_alt_outlined),
-                  label: Text(tx(context, 'Libretto A (AI)')),
+                  label: Text(tx(context, 'Foto libretto')),
                 ),
               if (kIsWeb)
                 OutlinedButton.icon(
@@ -4804,7 +4688,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                 OutlinedButton.icon(
                   onPressed: () => _scattaFotoLibretto('B'),
                   icon: const Icon(Icons.camera_alt_outlined),
-                  label: Text(tx(context, 'Libretto B (AI)')),
+                  label: Text(tx(context, 'Foto libretto')),
                 ),
               if (kIsWeb)
                 OutlinedButton.icon(
