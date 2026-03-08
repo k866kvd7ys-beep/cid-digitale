@@ -32,9 +32,14 @@ class _ScannerLibrettoPageState extends State<ScannerLibrettoPage> {
   int _frameCount = 0;
   String? _bestTarga;
   String? _bestNome;
+  String? _bestCognome;
   String? _bestAssicurazione;
   String? _bestIndirizzo;
   String? _bestCapCitta;
+  String? _bestCap;
+  String? _bestCity;
+  String? _bestMarca;
+  String? _bestModello;
 
   @override
   void initState() {
@@ -136,11 +141,16 @@ class _ScannerLibrettoPageState extends State<ScannerLibrettoPage> {
       _frameCount++;
       if (targa != null) _registerTargaCandidate(targa);
       if (extra['nome'] != null) _bestNome = extra['nome'];
+      if (extra['cognome'] != null) _bestCognome = extra['cognome'];
       if (extra['assicurazione'] != null)
         _bestAssicurazione = extra['assicurazione'];
       if (extra['indirizzo'] != null) _bestIndirizzo = extra['indirizzo'];
       // capCitta non influisce sull'autoscatto, ma la salviamo per il riepilogo
       if (capCitta != null) _bestCapCitta = capCitta;
+      if (extra['cap'] != null) _bestCap = extra['cap'];
+      if (extra['city'] != null) _bestCity = extra['city'];
+      if (extra['brand'] != null) _bestMarca = extra['brand'];
+      if (extra['model'] != null) _bestModello = extra['model'];
 
       final complete = _bestTarga != null &&
           (_bestNome != null || _bestAssicurazione != null);
@@ -180,9 +190,14 @@ class _ScannerLibrettoPageState extends State<ScannerLibrettoPage> {
         path: path,
         targa: _bestTarga,
         nome: _bestNome,
+        cognome: _bestCognome,
         assicurazione: _bestAssicurazione,
         indirizzo: _bestIndirizzo,
         capCitta: _bestCapCitta,
+        cap: _bestCap,
+        city: _bestCity,
+        brand: _bestMarca,
+        model: _bestModello,
       ),
     );
   }

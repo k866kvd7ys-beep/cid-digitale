@@ -4,17 +4,27 @@ class OcrLibrettoResult {
   final String path;
   final String? targa;
   final String? nome;
+  final String? cognome;
   final String? assicurazione;
   final String? indirizzo;
   final String? capCitta;
+  final String? cap;
+  final String? city;
+  final String? brand;
+  final String? model;
 
   OcrLibrettoResult({
     required this.path,
     this.targa,
     this.nome,
+    this.cognome,
     this.assicurazione,
     this.indirizzo,
     this.capCitta,
+    this.cap,
+    this.city,
+    this.brand,
+    this.model,
   });
 }
 
@@ -322,6 +332,22 @@ Map<String, String?> estraiNomeAssicurazioneIndirizzoDaTesto(
     'CONTRADA',
   };
 
+  const marcheAuto = <String, String>{
+    'FIAT': 'FIAT',
+    'VW': 'VOLKSWAGEN',
+    'VOLKSWAGEN': 'VOLKSWAGEN',
+    'BMW': 'BMW',
+    'AUDI': 'AUDI',
+    'MERCEDES': 'MERCEDES',
+    'MERCEDES-BENZ': 'MERCEDES',
+    'TOYOTA': 'TOYOTA',
+    'HONDA': 'HONDA',
+    'FORD': 'FORD',
+    'OPEL': 'OPEL',
+    'PEUGEOT': 'PEUGEOT',
+    'RENAULT': 'RENAULT',
+  };
+
   String? extractTarga(String text) {
     final swiss = extractSwissPlate(text);
     if (swiss != null) return swiss;
@@ -412,6 +438,11 @@ Map<String, String?> estraiNomeAssicurazioneIndirizzoDaTesto(
   String? capCitta;
   String? assicurazione;
   String? targa;
+  String? cognome;
+  String? cap;
+  String? city;
+  String? marcaAuto;
+  String? modelloAuto;
   int? idxIndirizzo;
   int? idxCapCitta;
 
@@ -446,6 +477,22 @@ Map<String, String?> estraiNomeAssicurazioneIndirizzoDaTesto(
       indirizzo = line;
       idxIndirizzo = i;
     }
+
+    if (marcaAuto == null) {
+      for (final entry in marcheAuto.entries) {
+        if (up.contains(entry.key)) {
+          marcaAuto = entry.value;
+          final idx = up.indexOf(entry.key);
+          if (idx >= 0) {
+            final tail = line.substring(idx + entry.key.length).trim();
+            if (tail.isNotEmpty) {
+              modelloAuto = tail;
+            }
+          }
+          break;
+        }
+      }
+    }
   }
 
   // Se indirizzo trovato ma capCitta mancante, prova sulle linee vicine
@@ -458,6 +505,24 @@ Map<String, String?> estraiNomeAssicurazioneIndirizzoDaTesto(
           break;
         }
       }
+    }
+  }
+
+  // Split nome / cognome se disponibile
+  if (nome != null && nome!.trim().isNotEmpty) {
+    final parts = nome!.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2) {
+      cognome = parts.sublist(1).join(' ');
+      nome = parts.first;
+    }
+  }
+
+  // Estrai CAP e città separati da capCitta
+  if (capCitta != null) {
+    final m = RegExp(r'^([0-9]{4,5})\s+(.+)$').firstMatch(capCitta!.trim());
+    if (m != null) {
+      cap = m.group(1);
+      city = m.group(2);
     }
   }
 
@@ -503,12 +568,21 @@ Map<String, String?> estraiNomeAssicurazioneIndirizzoDaTesto(
 
   // EDGE CASE: se il libretto ha più indirizzi (es. aziendale + sede), il parser
   // prenderà solo il primo che soddisfa il pattern; valutare gestione multipla in futuro.
+  debugPrint('[OCR] Parsed libretto -> '
+      'nome: ${nome ?? '-'}, cognome: ${cognome ?? '-'}, '
+      'indirizzo: ${indirizzo ?? '-'}, cap: ${cap ?? '-'}, city: ${city ?? '-'}, '
+      'assicurazione: ${assicurazione ?? '-'}, marca: ${marcaAuto ?? '-'}, modello: ${modelloAuto ?? '-'}');
 
   return {
     'nome': nome,
+    'cognome': cognome,
     'indirizzo': indirizzo,
     'capCitta': capCitta,
+    'cap': cap,
+    'city': city,
     'assicurazione': assicurazione,
     'targa': targa,
+    'brand': marcaAuto,
+    'model': modelloAuto,
   };
 }

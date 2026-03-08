@@ -3793,8 +3793,13 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         blocchi: recognizedText.blocks.map((b) => b.text).toList(),
       );
       final nomeTrovato = extra['nome'];
+      final cognomeTrovato = extra['cognome'];
       final assicurazioneTrovata = extra['assicurazione'];
       final indirizzoTrovato = extra['indirizzo'];
+      final capTrovato = extra['cap'];
+      final cittaTrovata = extra['city'];
+      final marcaTrovata = extra['brand'];
+      final modelloTrovato = extra['model'];
 
       // Secondo pass: prova a trovare la targa nei singoli blocchi (più puliti)
       String? targaSecondoPass;
@@ -3804,6 +3809,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       }
       final targaFinale = targaTrovata ?? targaSecondoPass;
       debugPrint('Targa OCR ($quale): ${targaFinale ?? 'non trovata'}');
+      debugPrint(
+        'OCR dati libretto -> nome: ${nomeTrovato ?? '-'}, cognome: ${cognomeTrovato ?? '-'}, cap: ${capTrovato ?? '-'}, city: ${cittaTrovata ?? '-'}, assicurazione: ${assicurazioneTrovata ?? '-'}, marca: ${marcaTrovata ?? '-'}, modello: ${modelloTrovato ?? '-'}',
+      );
 
       setState(() {
         if (quale == 'A') {
@@ -3813,9 +3821,20 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           if (nomeTrovato != null && _nomeAController.text.trim().isEmpty) {
             _nomeAController.text = nomeTrovato;
           }
+          if (cognomeTrovato != null &&
+              _cognomeAController.text.trim().isEmpty) {
+            _cognomeAController.text = cognomeTrovato;
+          }
           if (assicurazioneTrovata != null &&
               _assicurazioneAController.text.trim().isEmpty) {
             _assicurazioneAController.text = assicurazioneTrovata;
+          }
+          if (capTrovato != null && _driverAZipController.text.trim().isEmpty) {
+            _driverAZipController.text = capTrovato;
+          }
+          if (cittaTrovata != null &&
+              _driverACityController.text.trim().isEmpty) {
+            _driverACityController.text = cittaTrovata;
           }
         } else {
           if (targaFinale != null && _targaBController.text.trim().isEmpty) {
@@ -3824,12 +3843,32 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           if (nomeTrovato != null && _nomeBController.text.trim().isEmpty) {
             _nomeBController.text = nomeTrovato;
           }
+          if (cognomeTrovato != null &&
+              _cognomeBController.text.trim().isEmpty) {
+            _cognomeBController.text = cognomeTrovato;
+          }
           if (assicurazioneTrovata != null &&
               _assicurazioneBController.text.trim().isEmpty) {
             _assicurazioneBController.text = assicurazioneTrovata;
           }
+          if (capTrovato != null && _driverBZipController.text.trim().isEmpty) {
+            _driverBZipController.text = capTrovato;
+          }
+          if (cittaTrovata != null &&
+              _driverBCityController.text.trim().isEmpty) {
+            _driverBCityController.text = cittaTrovata;
+          }
         }
 
+        if (indirizzoTrovato != null &&
+            _indirizzoAController.text.trim().isEmpty &&
+            quale == 'A') {
+          _indirizzoAController.text = indirizzoTrovato;
+        } else if (indirizzoTrovato != null &&
+            _indirizzoBController.text.trim().isEmpty &&
+            quale == 'B') {
+          _indirizzoBController.text = indirizzoTrovato;
+        }
         if (indirizzoTrovato != null && _luogoController.text.trim().isEmpty) {
           _luogoController.text = indirizzoTrovato;
         }
@@ -4019,6 +4058,15 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           }
         });
       }
+      if (result.cognome != null && result.cognome!.isNotEmpty) {
+        setState(() {
+          if (quale == 'A' && _cognomeAController.text.trim().isEmpty) {
+            _cognomeAController.text = result.cognome!;
+          } else if (quale == 'B' && _cognomeBController.text.trim().isEmpty) {
+            _cognomeBController.text = result.cognome!;
+          }
+        });
+      }
       if (result.assicurazione != null && result.assicurazione!.isNotEmpty) {
         setState(() {
           if (quale == 'A' && _assicurazioneAController.text.trim().isEmpty) {
@@ -4034,6 +4082,36 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           _luogoController.text.trim().isEmpty) {
         setState(() {
           _luogoController.text = result.indirizzo!;
+        });
+      }
+      if (result.indirizzo != null && result.indirizzo!.isNotEmpty) {
+        setState(() {
+          if (quale == 'A' && _indirizzoAController.text.trim().isEmpty) {
+            _indirizzoAController.text = result.indirizzo!;
+          } else if (quale == 'B' &&
+              _indirizzoBController.text.trim().isEmpty) {
+            _indirizzoBController.text = result.indirizzo!;
+          }
+        });
+      }
+      if (result.cap != null && result.cap!.isNotEmpty) {
+        setState(() {
+          if (quale == 'A' && _driverAZipController.text.trim().isEmpty) {
+            _driverAZipController.text = result.cap!;
+          } else if (quale == 'B' &&
+              _driverBZipController.text.trim().isEmpty) {
+            _driverBZipController.text = result.cap!;
+          }
+        });
+      }
+      if (result.city != null && result.city!.isNotEmpty) {
+        setState(() {
+          if (quale == 'A' && _driverACityController.text.trim().isEmpty) {
+            _driverACityController.text = result.city!;
+          } else if (quale == 'B' &&
+              _driverBCityController.text.trim().isEmpty) {
+            _driverBCityController.text = result.city!;
+          }
         });
       }
 
