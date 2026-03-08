@@ -5920,6 +5920,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
   bool? _hashValido;
   late Future<String> _qrDataFuture;
   bool _isSavingSignature = false;
+  bool _isSharingIncident = false;
 
   Future<String> _qrUnavailableFuture() =>
       Future.error('QR temporaneamente non disponibile');
@@ -6158,7 +6159,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     super.dispose();
   }
 
-  Future<File> _creaPdfFile() async {
+  Future<Uint8List> _buildIncidentPdfBytes() async {
     final l10n = AppLocalizations.of(context)!;
     final pdf = pw.Document();
     final dataOra = formatDataOraGeneric(incidente.dataOra);
@@ -6392,40 +6393,82 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       ),
     );
 
-    final bytes = await pdf.save();
-    final dir = await getTemporaryDirectory();
-    final file =
-        File('${dir.path}/cid_${DateTime.now().millisecondsSinceEpoch}.pdf');
-    await file.writeAsBytes(bytes);
-    return file;
+    return pdf.save();
   }
 
-  Future<void> _condividiPdf(String testo) async {
+  Future<void> _shareIncidentPdfAndPhotos(String testo) async {
+    if (_isSharingIncident) return;
+    setState(() => _isSharingIncident = true);
+    debugPrint('SHARE STEP 1: start');
     try {
-      final pdfFile = await _creaPdfFile();
+      debugPrint('SHARE STEP 2: build pdf');
+      final pdfBytes = await _buildIncidentPdfBytes();
+      debugPrint('SHARE STEP 2b: pdf bytes=${pdfBytes.length}');
 
-      final List<XFile> allegati = [
-        XFile(
-          pdfFile.path,
-          mimeType: 'application/pdf',
-          name: 'cid_${incidente.id}.pdf',
-        ),
-      ];
+      debugPrint('SHARE STEP 3: collect damage photos');
+      final damageUrls =
+          incidente.fotoDanni.where((e) => e.isNotEmpty).toList();
+      final List<Uint8List> damagePhotosBytes = [];
+      int skipCount = 0;
+      for (final url in damageUrls) {
+        try {
+          final resp = await http.get(Uri.parse(url));
+          if (resp.statusCode == 200 && resp.bodyBytes.isNotEmpty) {
+            damagePhotosBytes.add(resp.bodyBytes);
+          } else {
+            skipCount++;
+            debugPrint('PHOTO SKIPPED (status ${resp.statusCode}) for $url');
+          }
+        } catch (e) {
+          skipCount++;
+          debugPrint('PHOTO SKIPPED error for $url -> $e');
+        }
+      }
+      debugPrint('ATTACHMENTS INCLUDED: ${damagePhotosBytes.length}');
+      debugPrint('ATTACHMENTS SKIPPED: $skipCount');
+      debugPrint('SHARE STEP 4: attachments ready in memory');
+
+      debugPrint('SHARE STEP 5: detect platform');
+      if (kIsWeb) {
+        debugPrint('SHARE STEP 6 (web): open data url');
+        final pdfUri = Uri.dataFromBytes(pdfBytes, mimeType: 'application/pdf');
+        await launchUrl(pdfUri);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(tx(context,
+                  'PDF generato correttamente. Controlla il download del file.')),
+            ),
+          );
+        }
+        return;
+      }
+
+      debugPrint('SHARE STEP 6 (mobile): prepare attachments');
+      final tempDir = await getTemporaryDirectory();
+      final List<XFile> allegati = [];
+
+      final pdfPath =
+          '${tempDir.path}/cid_${incidente.id}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      await File(pdfPath).writeAsBytes(pdfBytes);
+      allegati.add(XFile(pdfPath,
+          mimeType: 'application/pdf', name: 'cid_${incidente.id}.pdf'));
 
       if (incidente.fotoLibrettoA.isNotEmpty &&
           File(incidente.fotoLibrettoA).existsSync()) {
         allegati.add(XFile(incidente.fotoLibrettoA));
       }
-
       if (incidente.fotoLibrettoB.isNotEmpty &&
           File(incidente.fotoLibrettoB).existsSync()) {
         allegati.add(XFile(incidente.fotoLibrettoB));
       }
 
-      for (final path in incidente.fotoDanni) {
-        if (path.isNotEmpty && File(path).existsSync()) {
-          allegati.add(XFile(path));
-        }
+      for (int i = 0; i < damagePhotosBytes.length; i++) {
+        final path = '${tempDir.path}/damage_${i + 1}.jpg';
+        await File(path).writeAsBytes(damagePhotosBytes[i]);
+        allegati.add(
+          XFile(path, mimeType: 'image/jpeg', name: 'damage_${i + 1}.jpg'),
+        );
       }
 
       if (incidente.notaAudioAPath.isNotEmpty &&
@@ -6443,7 +6486,19 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         text: testo,
         sharePositionOrigin: const ui.Rect.fromLTWH(0, 0, 1, 1),
       );
-    } catch (_) {
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                tx(context, "PDF e foto pronti. Scegli l'app per inviarli.")),
+          ),
+        );
+      }
+    } catch (e, st) {
+      debugPrint('SHARE ERROR TYPE: ${e.runtimeType}');
+      debugPrint('SHARE ERROR: $e');
+      debugPrint('$st');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -6452,22 +6507,16 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
           ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isSharingIncident = false);
     }
   }
 
   Future<void> _condividiPerAssicurazione(BuildContext context) async {
-    await _condividiPdf(
+    await _shareIncidentPdfAndPhotos(
       tx(context,
-          'Invio il CID digitale dell\'incidente per la gestione del sinistro.'),
+          'Invio il CID digitale dell incidente per la gestione del sinistro.'),
     );
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tx(context,
-              'PDF e foto generati. Scegli l\'app (Mail, WhatsApp, ecc.) per inviarli.')),
-        ),
-      );
-    }
   }
 
   Future<void> _chiamaConcessionaria(BuildContext context) async {
@@ -7119,7 +7168,9 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: () => _condividiPerAssicurazione(context),
+                        onPressed: _isSharingIncident
+                            ? null
+                            : () => _condividiPerAssicurazione(context),
                         icon: const Icon(Icons.picture_as_pdf_outlined),
                         label: Text(
                           tx(context,
