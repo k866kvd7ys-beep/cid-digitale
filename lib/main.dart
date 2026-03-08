@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import 'package:image_picker/image_picker.dart';
@@ -3903,13 +3904,21 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
       // OCR disattivato: il libretto viene solo allegato e mostrato in preview.
 
-      await _supabaseService.uploadClaimImageBytes(
+      final uploadedUrl = await _supabaseService.uploadClaimImageBytes(
         claimId: claimId,
         bytes: bytes,
         filename: name,
         contentType: 'image/jpeg',
         kind: kind,
       );
+      debugPrint('Upload $kind completato -> $uploadedUrl');
+
+      if (kind == 'damage') {
+        setState(() {
+          _fotoDanniPaths.add(uploadedUrl);
+        });
+      }
+
       _mostraSnack('Foto caricata');
       await caricaIncidenti();
       if (mounted) {
@@ -4385,9 +4394,25 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           await _picker.pickImage(source: ImageSource.camera, imageQuality: 80);
       if (foto == null) return;
 
+      final claimId = _ensureDraftId();
+      final bytes = await File(foto.path).readAsBytes();
+      final uploadedUrl = await _supabaseService.uploadClaimImageBytes(
+        claimId: claimId,
+        bytes: bytes,
+        filename: path.basename(foto.path),
+        contentType: 'image/jpeg',
+        kind: 'damage',
+      );
+      debugPrint('Upload foto danno -> $uploadedUrl');
+
       setState(() {
-        _fotoDanniPaths.add(foto.path);
+        _fotoDanniPaths.add(uploadedUrl);
       });
+
+      _mostraSnack('Foto caricata');
+      await salvaIncidenti();
+      await caricaIncidenti();
+      if (mounted) setState(() {});
 
       _mostraSnack(
         'Foto del danno aggiunta. Provo a leggere la targa con l\'AI...',
@@ -5016,12 +5041,19 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                     itemCount: _fotoDanniPaths.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (_, index) {
+                      final pathStr = _fotoDanniPaths[index];
+                      final isUrl = pathStr.startsWith('http');
                       return AspectRatio(
                         aspectRatio: 4 / 3,
-                        child: Image.file(
-                          File(_fotoDanniPaths[index]),
-                          fit: BoxFit.cover,
-                        ),
+                        child: isUrl
+                            ? Image.network(
+                                pathStr,
+                                fit: BoxFit.cover,
+                              )
+                            : Image.file(
+                                File(pathStr),
+                                fit: BoxFit.cover,
+                              ),
                       );
                     },
                   ),
