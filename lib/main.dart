@@ -61,6 +61,24 @@ class NominatimSuggestion {
   }
 }
 
+class _CloudOcrResult {
+  final bool success;
+  final String? text;
+  final String? error;
+  final String? details;
+  final int? status;
+  final dynamic raw;
+
+  _CloudOcrResult({
+    required this.success,
+    this.text,
+    this.error,
+    this.details,
+    this.status,
+    this.raw,
+  });
+}
+
 /// CONFIG OFFICINA //////////////////////////////////////////////////////
 
 class OfficinaConfig {
@@ -3443,20 +3461,36 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return candidateDigits > currentDigits ? candidate : current;
   }
 
-  Future<String?> _callCloudOcr(List<int> bytes) async {
+  Future<_CloudOcrResult> _callCloudOcr(List<int> bytes) async {
+    final b64 = base64Encode(bytes);
+    debugPrint('OCR cloud invoke start - base64 length: ${b64.length}');
     try {
       final res = await Supabase.instance.client.functions.invoke(
         'ocr-libretto-cloud',
-        body: {'imageBase64': base64Encode(bytes)},
+        body: {'imageBase64': b64},
       );
+      debugPrint('OCR cloud raw response: ${res.data}');
       final data = res.data;
-      if (data is Map && data['success'] == true) {
-        return (data['text'] as String?)?.trim();
+      if (data is Map) {
+        return _CloudOcrResult(
+          success: data['success'] == true,
+          text: (data['text'] as String?)?.trim(),
+          error: data['error']?.toString(),
+          details: data['details']?.toString(),
+          status:
+              data['googleStatus'] is int ? data['googleStatus'] as int : null,
+          raw: data,
+        );
       }
     } catch (e, st) {
       debugPrint('OCR cloud error: $e\n$st');
+      return _CloudOcrResult(
+        success: false,
+        error: 'exception',
+        details: e.toString(),
+      );
     }
-    return null;
+    return _CloudOcrResult(success: false, error: 'invalid_response');
   }
 
   Future<void> _pickAndUploadImage(
@@ -3533,18 +3567,21 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           final fallbackNeeded = _shouldFallbackOcr(webText, miglioreTarga);
           if (fallbackNeeded) {
             debugPrint('OCR cloud fallback start (${quale ?? 'A'})');
-            final cloudText = await _callCloudOcr(bytes);
+            final cloudResult = await _callCloudOcr(bytes);
             debugPrint(
-              'OCR cloud result length: ${cloudText?.length ?? 0}',
+              'OCR cloud success: ${cloudResult.success}, status: ${cloudResult.status}, text length: ${cloudResult.text?.length ?? 0}, error: ${cloudResult.error ?? '-'}, details: ${cloudResult.details ?? '-'}',
             );
-            if (cloudText != null && cloudText.trim().isNotEmpty) {
-              final targaCloud = estraiTargaDaTesto(cloudText);
+            if (cloudResult.success &&
+                cloudResult.text != null &&
+                cloudResult.text!.trim().isNotEmpty) {
+              final targaCloud = estraiTargaDaTesto(cloudResult.text!);
               debugPrint('Targa OCR cloud (${quale ?? 'A'}): '
                   '${targaCloud ?? 'non trovata'}');
               if (targaCloud != null) {
                 miglioreTarga = _selectBetterPlate(miglioreTarga, targaCloud);
               }
             } else {
+              miglioreTarga = null;
               _mostraSnack(
                 'Non siamo riusciti a leggere il libretto. Prova con una foto più nitida.',
               );
@@ -3572,6 +3609,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           } else {
             _mostraSnack('Nessun dato riconosciuto dal libretto.');
           }
+          debugPrint(
+            'OCR final plate (${quale ?? 'A'}): ${miglioreTarga ?? 'none'}',
+          );
         } else {
           try {
             await _leggiDatiDaLibretto(picked.path, quale ?? 'A');
