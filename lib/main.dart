@@ -649,6 +649,7 @@ Future<Incidente> aggiornaHashIncidente(Incidente inc) async {
 // Cache e helper per la generazione del QR CLIENTE (CID1:<token>).
 final Map<String, Future<String>> _clientQrTokenCache = {};
 final Map<String, Future<String>> _claimUuidCache = {};
+const String _workshopPurpose = 'workshop_intake';
 
 Future<String> _ensureClaimUuid(Incidente inc) {
   // Usa cache per non creare più volte la stessa pratica durante la sessione.
@@ -778,8 +779,97 @@ Future<String> _ensureClientQrToken(
   return token;
 }
 
+Future<String?> _ensureWorkshopClaimLink(
+  Incidente inc, {
+  Duration expiresIn = const Duration(days: 14),
+  int maxUses = 10,
+}) async {
+  debugPrint('QR STEP 1: lookup existing claim_link');
+  final claimUuid = await _ensureClaimUuid(inc);
+  final now = DateTime.now().toUtc();
+  final expiresAtIso = now.add(expiresIn).toIso8601String();
+
+  SupabaseClient client;
+  try {
+    client = Supabase.instance.client;
+  } catch (_) {
+    throw Exception(
+        'Supabase non inizializzato: controlla Supabase.initialize/chiavi.');
+  }
+
+  try {
+    final existing = await client
+        .from('claim_links')
+        .select('token, expires_at, used_count, max_uses')
+        .eq('claim_id', claimUuid)
+        .eq('purpose', _workshopPurpose)
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+
+    if (existing != null) {
+      debugPrint('QR STEP 2: existing link found');
+      final token = (existing['token'] as String?)?.trim() ?? '';
+      final usedCount =
+          int.tryParse('${existing['used_count'] ?? '0'}') ?? 0;
+      final maxUsesExisting =
+          int.tryParse('${existing['max_uses'] ?? maxUses}') ?? maxUses;
+      final expiresExistingStr = existing['expires_at']?.toString();
+      final expiresExisting = expiresExistingStr != null
+          ? DateTime.tryParse(expiresExistingStr)
+          : null;
+      final expired = expiresExisting != null && expiresExisting.isBefore(now);
+      final exhausted =
+          maxUsesExisting > 0 && usedCount >= maxUsesExisting;
+      if (token.isNotEmpty && !expired && !exhausted) {
+        return token;
+      }
+    }
+  } catch (e, st) {
+    debugPrint('QR ERROR TYPE: ${e.runtimeType}');
+    debugPrint('QR ERROR: $e');
+    debugPrint('$st');
+  }
+
+  debugPrint('QR STEP 3: create new claim_link');
+  Map<String, dynamic> insertRes;
+  try {
+    insertRes = await client
+        .from('claim_links')
+        .insert({
+          'claim_id': claimUuid,
+          'purpose': _workshopPurpose,
+          'expires_at': expiresAtIso,
+          'max_uses': maxUses,
+        })
+        .select('token')
+        .single();
+  } catch (e, st) {
+    debugPrint('QR ERROR TYPE: ${e.runtimeType}');
+    debugPrint('QR ERROR: $e');
+    debugPrint('$st');
+    rethrow;
+  }
+
+  final token = (insertRes['token'] as String?)?.trim() ?? '';
+  if (token.isEmpty) {
+    throw Exception('Token claim_links vuoto per officina.');
+  }
+  debugPrint('QR STEP 4: token generated');
+  return token;
+}
+
 Future<String> buildClientQrData(Incidente inc) async {
   final token = await _ensureClientQrToken(inc);
+  return QrPayload.cid1(token);
+}
+
+Future<String> buildWorkshopQrData(Incidente inc) async {
+  final token = await _ensureWorkshopClaimLink(inc);
+  if (token == null || token.isEmpty) {
+    throw Exception('Token QR officina non disponibile.');
+  }
+  debugPrint('QR STEP 5: qr url built');
   return QrPayload.cid1(token);
 }
 
@@ -5631,16 +5721,19 @@ class _QrCarrozzeriaPageState extends State<QrCarrozzeriaPage> {
       _qrError = null;
     });
     try {
-      final qrData = await buildClientQrData(incidente);
+      debugPrint('QR STEP FULLSCREEN: load workshop QR');
+      final qrData = await buildWorkshopQrData(incidente);
       if (!mounted) return;
       setState(() {
         _qrData = qrData;
         _loadingQr = false;
       });
     } catch (e) {
+      debugPrint('QR ERROR TYPE: ${e.runtimeType}');
+      debugPrint('QR ERROR: $e');
       if (!mounted) return;
       setState(() {
-        _qrError = e.toString();
+        _qrError = 'Impossibile generare QR carrozzeria';
         _loadingQr = false;
       });
     }
@@ -5922,14 +6015,13 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
   bool _isSavingSignature = false;
   bool _isSharingIncident = false;
 
-  Future<String> _qrUnavailableFuture() =>
-      Future.error('QR temporaneamente non disponibile');
+  Future<String> _qrEmptyFuture() => Future.value('');
 
   @override
   void initState() {
     super.initState();
     incidente = widget.incidente;
-    _qrDataFuture = _qrUnavailableFuture();
+    _qrDataFuture = _qrEmptyFuture();
     _detailAudioPlayer = AudioPlayer();
     _detailAudioSub = _detailAudioPlayer.onPlayerComplete.listen((event) {
       if (mounted) {
@@ -5988,7 +6080,13 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
   void _refreshQrData() {
     setState(() {
-      _qrDataFuture = _qrUnavailableFuture();
+      _qrDataFuture = _qrEmptyFuture();
+    });
+  }
+
+  void _startWorkshopQr() {
+    setState(() {
+      _qrDataFuture = buildWorkshopQrData(incidente);
     });
   }
 
@@ -6596,7 +6694,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
     setState(() {
       incidente = updatedWithHash;
-      _qrDataFuture = _qrUnavailableFuture();
+      _qrDataFuture = _qrEmptyFuture();
     });
     unawaited(_verificaHashIntegrita());
   }
@@ -6696,7 +6794,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
       setState(() {
         incidente = updatedWithHash;
-        _qrDataFuture = _qrUnavailableFuture();
+        _qrDataFuture = _qrEmptyFuture();
       });
       unawaited(_verificaHashIntegrita());
 
@@ -7227,21 +7325,42 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                               const SizedBox(height: 6),
                               Text(
                                 tx(context,
-                                    'QR temporaneamente non disponibile'),
+                                    'Impossibile generare QR carrozzeria'),
                                 style: const TextStyle(
                                     color: Colors.orangeAccent, fontSize: 12),
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 8),
                               OutlinedButton.icon(
-                                onPressed: null,
+                                onPressed: _startWorkshopQr,
                                 icon: const Icon(Icons.refresh),
-                                label: Text(tx(context, 'QR non disponibile')),
+                                label: Text(tx(context, 'Genera QR carrozzeria')),
                               ),
                             ],
                           );
                         }
                         final qrDataReady = snapshot.data ?? '';
+                        if (qrDataReady.isEmpty) {
+                          return Column(
+                            children: [
+                              const Icon(Icons.qr_code_2,
+                                  color: Colors.blueAccent),
+                              const SizedBox(height: 6),
+                              Text(
+                                tx(context,
+                                    'Genera il QR per permettere alla carrozzeria di importare i dati.'),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              OutlinedButton.icon(
+                                onPressed: _startWorkshopQr,
+                                icon: const Icon(Icons.qr_code),
+                                label: Text(
+                                    tx(context, 'Genera QR carrozzeria')),
+                              ),
+                            ],
+                          );
+                        }
                         return Column(
                           children: [
                             Center(
