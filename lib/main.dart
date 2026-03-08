@@ -2899,7 +2899,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         telefonoController: TextEditingController(),
       ),
     );
-    _loadDraftDamagePhotos();
   }
 
   bool _isAnyCampoBCompilato() {
@@ -3494,32 +3493,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return _draftClaimId!;
   }
 
-  Future<void> _persistDraftDamagePhotos() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('draft_damage_photos', _fotoDanniPaths);
-    debugPrint('[Damage] draft photos persisted: ${_fotoDanniPaths.length}');
-  }
-
-  Future<void> _loadDraftDamagePhotos() async {
-    final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getStringList('draft_damage_photos');
-    if (stored != null && stored.isNotEmpty) {
-      if (!mounted) return;
-      setState(() {
-        _fotoDanniPaths
-          ..clear()
-          ..addAll(stored);
-      });
-      debugPrint('[Damage] draft photos loaded: ${stored.length}');
-    }
-  }
-
-  Future<void> _clearDraftDamagePhotos() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('draft_damage_photos');
-    debugPrint('[Damage] draft photos cleared');
-  }
-
   bool _hasParsedData(Map<String, String?> data, String? plate) {
     if (plate != null && plate.trim().isNotEmpty) return true;
     return data.values.any((v) => v != null && v!.trim().isNotEmpty);
@@ -3916,6 +3889,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       debugPrint(
         'Foto $kind selezionata (quale: ${quale ?? '-'}) nome: $name',
       );
+      debugPrint(
+          '[Damage] bytes length=${bytes.length} platform=${kIsWeb ? 'web' : 'mobile'} kind=$kind');
 
       if (kind == 'libretto' && quale != null) {
         setState(() {
@@ -3931,6 +3906,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
       // OCR disattivato: il libretto viene solo allegato e mostrato in preview.
 
+      debugPrint(
+          '[DamageUpload] start bucket=claim_attachments path=claims/$claimId/$kind/<ts>_$name');
       final uploadedUrl = await _supabaseService.uploadClaimImageBytes(
         claimId: claimId,
         bytes: bytes,
@@ -3944,7 +3921,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         setState(() {
           _fotoDanniPaths.add(uploadedUrl);
         });
-        await _persistDraftDamagePhotos();
       }
 
       _mostraSnack('Foto caricata');
@@ -4425,6 +4401,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
       final claimId = _ensureDraftId();
       final bytes = await File(foto.path).readAsBytes();
+      debugPrint(
+          '[DamageUpload] start bucket=claim_attachments path=claims/$claimId/damage/<ts>_${path.basename(foto.path)}');
       final uploadedUrl = await _supabaseService.uploadClaimImageBytes(
         claimId: claimId,
         bytes: bytes,
@@ -4437,7 +4415,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       setState(() {
         _fotoDanniPaths.add(uploadedUrl);
       });
-      await _persistDraftDamagePhotos();
 
       _mostraSnack('Foto caricata');
       await salvaIncidenti();
@@ -4551,8 +4528,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     } catch (_) {
       // silent fail if offline
     }
-
-    await _clearDraftDamagePhotos();
 
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
@@ -5076,15 +5051,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                     itemBuilder: (_, index) {
                       final pathStr = _fotoDanniPaths[index];
                       final isUrl = pathStr.startsWith('http');
-                      debugPrint('[DamagePreview] render {isUrl ? '
-                          "'"
-                          'url'
-                          "'"
-                          ' : '
-                          "'"
-                          'file'
-                          "'"
-                          '} $pathStr');
+                      debugPrint(
+                          '[DamagePreview] render ${isUrl ? 'url' : 'file'} $pathStr');
                       return AspectRatio(
                         aspectRatio: 4 / 3,
                         child: GestureDetector(
