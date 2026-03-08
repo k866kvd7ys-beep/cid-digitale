@@ -2899,6 +2899,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         telefonoController: TextEditingController(),
       ),
     );
+    _loadDraftDamagePhotos();
   }
 
   bool _isAnyCampoBCompilato() {
@@ -3493,6 +3494,32 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return _draftClaimId!;
   }
 
+  Future<void> _persistDraftDamagePhotos() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('draft_damage_photos', _fotoDanniPaths);
+    debugPrint('[Damage] draft photos persisted: ${_fotoDanniPaths.length}');
+  }
+
+  Future<void> _loadDraftDamagePhotos() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getStringList('draft_damage_photos');
+    if (stored != null && stored.isNotEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _fotoDanniPaths
+          ..clear()
+          ..addAll(stored);
+      });
+      debugPrint('[Damage] draft photos loaded: ${stored.length}');
+    }
+  }
+
+  Future<void> _clearDraftDamagePhotos() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('draft_damage_photos');
+    debugPrint('[Damage] draft photos cleared');
+  }
+
   bool _hasParsedData(Map<String, String?> data, String? plate) {
     if (plate != null && plate.trim().isNotEmpty) return true;
     return data.values.any((v) => v != null && v!.trim().isNotEmpty);
@@ -3917,10 +3944,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         setState(() {
           _fotoDanniPaths.add(uploadedUrl);
         });
+        await _persistDraftDamagePhotos();
       }
 
       _mostraSnack('Foto caricata');
       await caricaIncidenti();
+      debugPrint('[Damage] refresh dettaglio/lista dopo upload ($kind)');
       if (mounted) {
         setState(() {});
       }
@@ -4408,10 +4437,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       setState(() {
         _fotoDanniPaths.add(uploadedUrl);
       });
+      await _persistDraftDamagePhotos();
 
       _mostraSnack('Foto caricata');
       await salvaIncidenti();
       await caricaIncidenti();
+      debugPrint('[Damage] refresh dettaglio/lista dopo upload (mobile)');
       if (mounted) setState(() {});
 
       _mostraSnack(
@@ -4520,6 +4551,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     } catch (_) {
       // silent fail if offline
     }
+
+    await _clearDraftDamagePhotos();
 
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
@@ -5043,17 +5076,47 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                     itemBuilder: (_, index) {
                       final pathStr = _fotoDanniPaths[index];
                       final isUrl = pathStr.startsWith('http');
+                      debugPrint('[DamagePreview] render {isUrl ? '
+                          "'"
+                          'url'
+                          "'"
+                          ' : '
+                          "'"
+                          'file'
+                          "'"
+                          '} $pathStr');
                       return AspectRatio(
                         aspectRatio: 4 / 3,
-                        child: isUrl
-                            ? Image.network(
-                                pathStr,
-                                fit: BoxFit.cover,
-                              )
-                            : Image.file(
-                                File(pathStr),
-                                fit: BoxFit.cover,
+                        child: GestureDetector(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (_) => Dialog(
+                                child: isUrl
+                                    ? Image.network(
+                                        pathStr,
+                                        fit: BoxFit.contain,
+                                      )
+                                    : Image.file(
+                                        File(pathStr),
+                                        fit: BoxFit.contain,
+                                      ),
                               ),
+                            );
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: isUrl
+                                ? Image.network(
+                                    pathStr,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Image.file(
+                                    File(pathStr),
+                                    fit: BoxFit.cover,
+                                  ),
+                          ),
+                        ),
                       );
                     },
                   ),
