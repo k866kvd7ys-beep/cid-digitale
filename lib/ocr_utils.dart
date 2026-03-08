@@ -57,6 +57,14 @@ const _swissCantons = <String>{
   'ZH',
 };
 
+bool _plausibleText(String s) {
+  final t = s.trim();
+  if (t.length < 2) return false;
+  if (RegExp(r'[0-9]{3,}').hasMatch(t)) return false;
+  if (!RegExp(r'[A-Za-zÀ-ÿ]').hasMatch(t)) return false;
+  return true;
+}
+
 String _normalizeOcrText(String raw) {
   var text = raw.toUpperCase();
   text = text.replaceAll(RegExp(r'[^A-Z0-9À-ÿ\s]'), ' ');
@@ -426,12 +434,20 @@ Map<String, String?> estraiNomeAssicurazioneIndirizzoDaTesto(
   }
 
   bool isAssicurazione(String up) =>
-      possibiliAssicurazioni.any((k) => up.contains(k));
+      possibiliAssicurazioni.any((k) => up.contains(k)) ||
+      up.contains('VERSICHERUNG') ||
+      up.contains('ASSURANCE') ||
+      up.contains('ASSICURAZIONE');
 
   final lines = <String>[
     ...normalizeLines(rawText),
     ...blocchi.expand((b) => normalizeLines(b)),
   ];
+  final rawLinesOriginal = rawText
+      .split('\n')
+      .map((l) => l.trim())
+      .where((l) => l.isNotEmpty)
+      .toList();
 
   String? nome;
   String? indirizzo;
@@ -449,6 +465,24 @@ Map<String, String?> estraiNomeAssicurazioneIndirizzoDaTesto(
   // Preferisce dati IT se presenti
   if (nomeIta != null && nomeIta!.isNotEmpty) {
     nome = nomeIta;
+  }
+
+  // Heuristica svizzera: prime righe plausibili come cognome/nome
+  if ((nome == null || cognome == null) && rawLinesOriginal.isNotEmpty) {
+    final candidates =
+        rawLinesOriginal.take(6).where((l) => _plausibleText(l)).toList();
+    if (candidates.length >= 2) {
+      cognome ??= candidates[0];
+      nome ??= candidates[1];
+    } else if (candidates.length == 1 &&
+        candidates[0].contains(' ') &&
+        (nome == null || cognome == null)) {
+      final parts = candidates[0].split(RegExp(r'\s+'));
+      if (parts.length >= 2) {
+        nome ??= parts.first;
+        cognome ??= parts.sublist(1).join(' ');
+      }
+    }
   }
   if (indirizzoIta != null && indirizzoIta!.isNotEmpty) {
     indirizzo = indirizzoIta;

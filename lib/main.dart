@@ -3445,6 +3445,19 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return _draftClaimId!;
   }
 
+  bool _hasParsedData(Map<String, String?> data, String? plate) {
+    if (plate != null && plate.trim().isNotEmpty) return true;
+    return data.values.any((v) => v != null && v!.trim().isNotEmpty);
+  }
+
+  bool _isPlausibleName(String? v) =>
+      v != null &&
+      v.trim().length >= 2 &&
+      RegExp(r'[A-Za-zÀ-ÿ]{2,}').hasMatch(v);
+
+  bool _isPlausibleInsurance(String? v) =>
+      v != null && v.trim().length >= 3 && RegExp(r'[A-Za-z]').hasMatch(v);
+
   bool _shouldFallbackOcr(String? text, String? plate) {
     final textLen = text?.trim().length ?? 0;
     if (textLen < 15) return true;
@@ -3626,14 +3639,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           if (extraWeb.isNotEmpty) {
             setState(() {
               if (quale == 'A') {
-                if (extraWeb['nome'] != null &&
-                    extraWeb['nome']!.trim().isNotEmpty &&
+                if (_isPlausibleName(extraWeb['nome']) &&
                     _nomeAController.text.trim().isEmpty) {
                   _nomeAController.text = extraWeb['nome']!;
                   somethingSet = true;
                 }
-                if (extraWeb['cognome'] != null &&
-                    extraWeb['cognome']!.trim().isNotEmpty &&
+                if (_isPlausibleName(extraWeb['cognome']) &&
                     _cognomeAController.text.trim().isEmpty) {
                   _cognomeAController.text = extraWeb['cognome']!;
                   somethingSet = true;
@@ -3651,26 +3662,23 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                   somethingSet = true;
                 }
                 if (extraWeb['city'] != null &&
-                    extraWeb['city']!.trim().isNotEmpty &&
+                    extraWeb['city']!.trim().length >= 2 &&
                     _driverACityController.text.trim().isEmpty) {
                   _driverACityController.text = extraWeb['city']!;
                   somethingSet = true;
                 }
-                if (extraWeb['assicurazione'] != null &&
-                    extraWeb['assicurazione']!.trim().isNotEmpty &&
+                if (_isPlausibleInsurance(extraWeb['assicurazione']) &&
                     _assicurazioneAController.text.trim().isEmpty) {
                   _assicurazioneAController.text = extraWeb['assicurazione']!;
                   somethingSet = true;
                 }
               } else {
-                if (extraWeb['nome'] != null &&
-                    extraWeb['nome']!.trim().isNotEmpty &&
+                if (_isPlausibleName(extraWeb['nome']) &&
                     _nomeBController.text.trim().isEmpty) {
                   _nomeBController.text = extraWeb['nome']!;
                   somethingSet = true;
                 }
-                if (extraWeb['cognome'] != null &&
-                    extraWeb['cognome']!.trim().isNotEmpty &&
+                if (_isPlausibleName(extraWeb['cognome']) &&
                     _cognomeBController.text.trim().isEmpty) {
                   _cognomeBController.text = extraWeb['cognome']!;
                   somethingSet = true;
@@ -3688,13 +3696,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                   somethingSet = true;
                 }
                 if (extraWeb['city'] != null &&
-                    extraWeb['city']!.trim().isNotEmpty &&
+                    extraWeb['city']!.trim().length >= 2 &&
                     _driverBCityController.text.trim().isEmpty) {
                   _driverBCityController.text = extraWeb['city']!;
                   somethingSet = true;
                 }
-                if (extraWeb['assicurazione'] != null &&
-                    extraWeb['assicurazione']!.trim().isNotEmpty &&
+                if (_isPlausibleInsurance(extraWeb['assicurazione']) &&
                     _assicurazioneBController.text.trim().isEmpty) {
                   _assicurazioneBController.text = extraWeb['assicurazione']!;
                   somethingSet = true;
@@ -3717,7 +3724,10 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             'OCR final extra (${quale ?? 'A'}): nome=${extraWeb['nome'] ?? '-'}, cognome=${extraWeb['cognome'] ?? '-'}, indirizzo=${extraWeb['indirizzo'] ?? '-'}, cap=${extraWeb['cap'] ?? '-'}, city=${extraWeb['city'] ?? '-'}, assicurazione=${extraWeb['assicurazione'] ?? '-'}',
           );
 
-          if (!somethingSet && miglioreTarga == null && !snackShown) {
+          final parsedAny =
+              somethingSet || _hasParsedData(extraWeb, miglioreTarga);
+
+          if (!parsedAny && !snackShown) {
             _mostraSnack('Nessun dato riconosciuto dal libretto.');
           }
         } else {
