@@ -558,28 +558,30 @@ Future<String> calcolaHashIntegrita(Incidente inc) async {
   // Hash dei dati strutturati
   digestInput.add(utf8.encode(jsonEncode(data)));
 
-  final allegati = <String>[
-    inc.firmaAPath,
-    inc.firmaBPath,
-    inc.fotoLibrettoA,
-    inc.fotoLibrettoB,
-    ...inc.fotoDanni,
-    inc.notaAudioAPath,
-    inc.notaAudioBPath,
-  ];
+  if (!kIsWeb) {
+    final allegati = <String>[
+      inc.firmaAPath,
+      inc.firmaBPath,
+      inc.fotoLibrettoA,
+      inc.fotoLibrettoB,
+      ...inc.fotoDanni,
+      inc.notaAudioAPath,
+      inc.notaAudioBPath,
+    ];
 
-  for (final path in allegati) {
-    if (path.isEmpty) continue;
-    final file = File(path);
-    if (!await file.exists()) continue;
-    try {
-      // Lettura chunk per evitare OOM con molti allegati
-      await for (final chunk in file.openRead()) {
-        digestInput.add(chunk);
+    for (final path in allegati) {
+      if (path.isEmpty) continue;
+      final file = File(path);
+      if (!await file.exists()) continue;
+      try {
+        // Lettura chunk per evitare OOM con molti allegati
+        await for (final chunk in file.openRead()) {
+          digestInput.add(chunk);
+        }
+      } catch (_) {
+        // Se il file non è leggibile, lo saltiamo per non bloccare il salvataggio
+        continue;
       }
-    } catch (_) {
-      // Se il file non è leggibile, lo saltiamo per non bloccare il salvataggio
-      continue;
     }
   }
 
@@ -2896,6 +2898,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   StreamSubscription<void>? _audioPlayerSub;
   bool _isRecordingAudio = false;
+  bool _isSavingIncident = false;
   String? _recordingFor;
   String? _currentRecordingPath;
   String? _playingNotaFor;
@@ -4569,8 +4572,13 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   }
 
   Future<void> _salvaIncidente() async {
+    if (_isSavingIncident) return;
     debugPrint('[Save] button tapped');
+    setState(() {
+      _isSavingIncident = true;
+    });
     try {
+      debugPrint('SAVE STEP 1: validate');
       if (_isRecordingAudio) {
         _mostraSnack(
           'Termina la registrazione della nota vocale prima di salvare.',
@@ -4611,6 +4619,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         return;
       }
 
+      debugPrint('SAVE STEP 2: build payload');
       _draftClaimId ??= DateTime.now().millisecondsSinceEpoch.toString();
       final id = _draftClaimId!;
 
@@ -4682,6 +4691,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         hashIntegrita: '',
       );
 
+      debugPrint('SAVE STEP 3: save incident db');
       final nuovo = await aggiornaHashIncidente(baseIncidente);
       debugPrint('[Save] payload fotoDanni count=${nuovo.fotoDanni.length}');
 
@@ -4692,8 +4702,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       debugPrint('[Save] list refreshed after save');
       if (mounted) setState(() {});
 
-      final sync = IncidentsSyncService();
+      debugPrint('SAVE STEP 4: sync incident (non-blocking)');
       try {
+        final sync = IncidentsSyncService();
         await sync.uploadIncident(
           payload: nuovo.toJson(),
           hashSha256: nuovo.hashIntegrita,
@@ -4702,20 +4713,29 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           deviceId: null,
         );
         debugPrint('[Save] sync upload success');
-      } catch (e) {
+      } catch (e, st) {
         debugPrint('[Save] sync upload skipped/failed: $e');
+        debugPrint('$st');
       }
 
       if (!mounted) return;
-      debugPrint('[Save] navigating to DettaglioIncidentePage');
+      debugPrint('SAVE STEP 5: refresh detail + navigate (QR skipped)');
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => DettaglioIncidentePage(incidente: nuovo),
         ),
       );
     } catch (e, st) {
-      debugPrint('[Save][error] $e\n$st');
+      debugPrint('SAVE ERROR TYPE: ${e.runtimeType}');
+      debugPrint('SAVE ERROR: $e');
+      debugPrint('$st');
       _mostraSnack('Errore durante il salvataggio: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingIncident = false;
+        });
+      }
     }
   }
 
@@ -5352,11 +5372,17 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _salvaIncidente,
+                  onPressed: _isSavingIncident ? null : _salvaIncidente,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size.fromHeight(56),
                   ),
-                  child: Text(tx(context, 'Salva incidente e genera QR')),
+                  child: _isSavingIncident
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(tx(context, 'Salva incidente')),
                 ),
               ),
             ],
@@ -5900,11 +5926,14 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
   bool? _hashValido;
   late Future<String> _qrDataFuture;
 
+  Future<String> _qrUnavailableFuture() =>
+      Future.error('QR temporaneamente non disponibile');
+
   @override
   void initState() {
     super.initState();
     incidente = widget.incidente;
-    _qrDataFuture = buildClientQrData(incidente);
+    _qrDataFuture = _qrUnavailableFuture();
     _detailAudioPlayer = AudioPlayer();
     _detailAudioSub = _detailAudioPlayer.onPlayerComplete.listen((event) {
       if (mounted) {
@@ -5956,7 +5985,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
   void _refreshQrData() {
     setState(() {
-      _qrDataFuture = buildClientQrData(incidente);
+      _qrDataFuture = _qrUnavailableFuture();
     });
   }
 
@@ -6517,7 +6546,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
     setState(() {
       incidente = updatedWithHash;
-      _qrDataFuture = buildClientQrData(updatedWithHash);
+      _qrDataFuture = _qrUnavailableFuture();
     });
     unawaited(_verificaHashIntegrita());
   }
@@ -6588,7 +6617,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
     setState(() {
       incidente = updatedWithHash;
-      _qrDataFuture = buildClientQrData(updatedWithHash);
+      _qrDataFuture = _qrUnavailableFuture();
     });
     unawaited(_verificaHashIntegrita());
   }
@@ -7101,27 +7130,21 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                         if (snapshot.hasError) {
                           return Column(
                             children: [
-                              const Icon(Icons.error_outline,
-                                  color: Colors.redAccent),
+                              const Icon(Icons.info_outline,
+                                  color: Colors.orangeAccent),
                               const SizedBox(height: 6),
                               Text(
-                                tx(context, 'Errore QR:'),
+                                tx(context,
+                                    'QR temporaneamente non disponibile'),
                                 style: const TextStyle(
-                                    color: Colors.redAccent,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${snapshot.error}',
-                                style: const TextStyle(
-                                    color: Colors.redAccent, fontSize: 12),
+                                    color: Colors.orangeAccent, fontSize: 12),
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 8),
                               OutlinedButton.icon(
-                                onPressed: _refreshQrData,
+                                onPressed: null,
                                 icon: const Icon(Icons.refresh),
-                                label: Text(tx(context, 'Rigenera QR')),
+                                label: Text(tx(context, 'QR non disponibile')),
                               ),
                             ],
                           );
