@@ -3853,6 +3853,10 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   Future<void> _pickAndUploadImage(
       {required String kind, String? quale}) async {
     final claimId = _ensureDraftId();
+    if (kind == 'damage') {
+      debugPrint(
+          '[Damage] pick/upload start platform=${kIsWeb ? 'web' : 'mobile'}');
+    }
     try {
       final picked = await _picker.pickImage(
         source: ImageSource.camera,
@@ -3936,6 +3940,19 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     } catch (e) {
       _mostraSnack('Errore upload foto: $e');
     }
+  }
+
+  void _removeDamagePhoto(int index) {
+    if (index < 0 || index >= _fotoDanniPaths.length) return;
+    final removedUrl = _fotoDanniPaths[index];
+    setState(() {
+      _fotoDanniPaths.removeAt(index);
+      if (index < _fotoDanniBytes.length) {
+        _fotoDanniBytes.removeAt(index);
+      }
+    });
+    debugPrint('[Damage] removed index=$index url=$removedUrl '
+        'remaining=${_fotoDanniPaths.length}');
   }
 
   String? _validateEmail(String? value) {
@@ -4394,6 +4411,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   }
 
   Future<void> _scattaFotoDanno() async {
+    debugPrint('[Damage] add photo tapped');
     if (kIsWeb) {
       await _pickAndUploadImage(kind: 'damage');
       return;
@@ -4420,6 +4438,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         _fotoDanniBytes.add(bytes);
         _fotoDanniPaths.add(uploadedUrl);
       });
+      debugPrint('[Damage] state updated bytes=${_fotoDanniBytes.length} '
+          'urls=${_fotoDanniPaths.length}');
 
       _mostraSnack('Foto caricata');
       await salvaIncidenti();
@@ -4437,110 +4457,122 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   }
 
   Future<void> _salvaIncidente() async {
-    if (_isRecordingAudio) {
-      _mostraSnack(
-        'Termina la registrazione della nota vocale prima di salvare.',
-      );
-      return;
-    }
-    if (!_formKey.currentState!.validate()) return;
-
-    _draftClaimId ??= DateTime.now().millisecondsSinceEpoch.toString();
-    final id = _draftClaimId!;
-
-    final codiceOfficina =
-        id.length > 6 ? id.substring(id.length - 6) : id.padLeft(6, '0');
-
-    final List<Testimone> testimoni = _testimoni
-        .map((t) {
-          final nome = t.nomeController.text.trim();
-          final tel = t.telefonoController.text.trim();
-          if (nome.isEmpty && tel.isEmpty) return null;
-          return Testimone(nome: nome, telefono: tel);
-        })
-        .whereType<Testimone>()
-        .toList();
-    final List<Ferito> feriti = _feriti
-        .map((f) {
-          final nome = f.nomeController.text.trim();
-          final indirizzo = f.indirizzoController.text.trim();
-          final tel = f.telefonoController.text.trim();
-          if (nome.isEmpty && indirizzo.isEmpty && tel.isEmpty) return null;
-          return Ferito(nome: nome, indirizzo: indirizzo, telefono: tel);
-        })
-        .whereType<Ferito>()
-        .toList();
-
-    final baseIncidente = Incidente(
-      id: id,
-      dataOra: _dataOra,
-      luogo: _luogoController.text.trim(),
-      nomeA: _nomeAController.text.trim(),
-      cognomeA: _cognomeAController.text.trim(),
-      targaA: _targaAController.text.trim(),
-      assicurazioneA: _assicurazioneAController.text.trim(),
-      telefonoA: _telefonoAController.text.trim(),
-      emailA: _emailAController.text.trim(),
-      indirizzoA: _indirizzoAController.text.trim(),
-      zipA: _driverAZipController.text.trim(),
-      cityA: _driverACityController.text.trim(),
-      nomeB: _nomeBController.text.trim(),
-      cognomeB: _cognomeBController.text.trim(),
-      targaB: _targaBController.text.trim(),
-      assicurazioneB: _assicurazioneBController.text.trim(),
-      telefonoB: _telefonoBController.text.trim(),
-      emailB: _emailBController.text.trim(),
-      indirizzoB: _indirizzoBController.text.trim(),
-      zipB: _driverBZipController.text.trim(),
-      cityB: _driverBCityController.text.trim(),
-      descrizione: _descrizioneController.text.trim(),
-      danniVeicoloA: _damageVehicleAController.text.trim(),
-      danniVeicoloB: _damageVehicleBController.text.trim(),
-      otherObjectDamage: _otherObjectDamage,
-      otherVehicleDamage: _otherVehicleDamage,
-      testimoni: testimoni,
-      feriti: feriti,
-      notaVocaleA: _notaVocaleAController.text.trim(),
-      notaVocaleB: _notaVocaleBController.text.trim(),
-      notaAudioAPath: _notaAudioAPath ?? '',
-      notaAudioBPath: _notaAudioBPath ?? '',
-      fotoLibrettoA: _fotoLibrettoAPath ?? '',
-      fotoLibrettoB: _fotoLibrettoBPath ?? '',
-      fotoDanni: List<String>.from(_fotoDanniPaths),
-      firmaAPath: '',
-      firmaBPath: '',
-      timestampFirmaA: '',
-      timestampFirmaB: '',
-      colpevole: '',
-      codiceOfficina: codiceOfficina,
-      hashIntegrita: '',
-    );
-
-    final nuovo = await aggiornaHashIncidente(baseIncidente);
-    debugPrint('[Damage] payload fotoDanni count=${nuovo.fotoDanni.length}');
-
-    incidentiSalvati.insert(0, nuovo);
-    await salvaIncidenti();
-
-    final sync = IncidentsSyncService();
+    debugPrint('[Save] button tapped');
     try {
-      await sync.uploadIncident(
-        payload: nuovo.toJson(),
-        hashSha256: nuovo.hashIntegrita,
-        timestampUtc: DateTime.now().toUtc(),
-        locale: Localizations.localeOf(context).languageCode,
-        deviceId: null,
-      );
-    } catch (_) {
-      // silent fail if offline
-    }
+      if (_isRecordingAudio) {
+        _mostraSnack(
+          'Termina la registrazione della nota vocale prima di salvare.',
+        );
+        return;
+      }
 
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => DettaglioIncidentePage(incidente: nuovo),
-      ),
-    );
+      final formOk = _formKey.currentState!.validate();
+      debugPrint('[Save] form valid=$formOk');
+      if (!formOk) return;
+
+      _draftClaimId ??= DateTime.now().millisecondsSinceEpoch.toString();
+      final id = _draftClaimId!;
+
+      final codiceOfficina =
+          id.length > 6 ? id.substring(id.length - 6) : id.padLeft(6, '0');
+
+      final List<Testimone> testimoni = _testimoni
+          .map((t) {
+            final nome = t.nomeController.text.trim();
+            final tel = t.telefonoController.text.trim();
+            if (nome.isEmpty && tel.isEmpty) return null;
+            return Testimone(nome: nome, telefono: tel);
+          })
+          .whereType<Testimone>()
+          .toList();
+      final List<Ferito> feriti = _feriti
+          .map((f) {
+            final nome = f.nomeController.text.trim();
+            final indirizzo = f.indirizzoController.text.trim();
+            final tel = f.telefonoController.text.trim();
+            if (nome.isEmpty && indirizzo.isEmpty && tel.isEmpty) return null;
+            return Ferito(nome: nome, indirizzo: indirizzo, telefono: tel);
+          })
+          .whereType<Ferito>()
+          .toList();
+
+      final baseIncidente = Incidente(
+        id: id,
+        dataOra: _dataOra,
+        luogo: _luogoController.text.trim(),
+        nomeA: _nomeAController.text.trim(),
+        cognomeA: _cognomeAController.text.trim(),
+        targaA: _targaAController.text.trim(),
+        assicurazioneA: _assicurazioneAController.text.trim(),
+        telefonoA: _telefonoAController.text.trim(),
+        emailA: _emailAController.text.trim(),
+        indirizzoA: _indirizzoAController.text.trim(),
+        zipA: _driverAZipController.text.trim(),
+        cityA: _driverACityController.text.trim(),
+        nomeB: _nomeBController.text.trim(),
+        cognomeB: _cognomeBController.text.trim(),
+        targaB: _targaBController.text.trim(),
+        assicurazioneB: _assicurazioneBController.text.trim(),
+        telefonoB: _telefonoBController.text.trim(),
+        emailB: _emailBController.text.trim(),
+        indirizzoB: _indirizzoBController.text.trim(),
+        zipB: _driverBZipController.text.trim(),
+        cityB: _driverBCityController.text.trim(),
+        descrizione: _descrizioneController.text.trim(),
+        danniVeicoloA: _damageVehicleAController.text.trim(),
+        danniVeicoloB: _damageVehicleBController.text.trim(),
+        otherObjectDamage: _otherObjectDamage,
+        otherVehicleDamage: _otherVehicleDamage,
+        testimoni: testimoni,
+        feriti: feriti,
+        notaVocaleA: _notaVocaleAController.text.trim(),
+        notaVocaleB: _notaVocaleBController.text.trim(),
+        notaAudioAPath: _notaAudioAPath ?? '',
+        notaAudioBPath: _notaAudioBPath ?? '',
+        fotoLibrettoA: _fotoLibrettoAPath ?? '',
+        fotoLibrettoB: _fotoLibrettoBPath ?? '',
+        fotoDanni: List<String>.from(_fotoDanniPaths),
+        firmaAPath: '',
+        firmaBPath: '',
+        timestampFirmaA: '',
+        timestampFirmaB: '',
+        colpevole: '',
+        codiceOfficina: codiceOfficina,
+        hashIntegrita: '',
+      );
+
+      final nuovo = await aggiornaHashIncidente(baseIncidente);
+      debugPrint('[Save] payload fotoDanni count=${nuovo.fotoDanni.length}');
+
+      incidentiSalvati.insert(0, nuovo);
+      await salvaIncidenti();
+      debugPrint('[Save] incident saved locally');
+
+      final sync = IncidentsSyncService();
+      try {
+        await sync.uploadIncident(
+          payload: nuovo.toJson(),
+          hashSha256: nuovo.hashIntegrita,
+          timestampUtc: DateTime.now().toUtc(),
+          locale: Localizations.localeOf(context).languageCode,
+          deviceId: null,
+        );
+        debugPrint('[Save] sync upload success');
+      } catch (e) {
+        debugPrint('[Save] sync upload skipped/failed: $e');
+      }
+
+      if (!mounted) return;
+      debugPrint('[Save] navigating to DettaglioIncidentePage');
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => DettaglioIncidentePage(incidente: nuovo),
+        ),
+      );
+    } catch (e, st) {
+      debugPrint('[Save][error] $e\n$st');
+      _mostraSnack('Errore durante il salvataggio: $e');
+    }
   }
 
   @override
@@ -5064,45 +5096,70 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                           '[DamagePreview] render ${previewBytes != null ? 'bytes' : isUrl ? 'url' : 'file'} $pathStr');
                       return AspectRatio(
                         aspectRatio: 4 / 3,
-                        child: GestureDetector(
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (_) => Dialog(
-                                child: previewBytes != null
-                                    ? Image.memory(
-                                        previewBytes,
-                                        fit: BoxFit.contain,
-                                      )
-                                    : isUrl
-                                        ? Image.network(
-                                            pathStr,
-                                            fit: BoxFit.contain,
-                                          )
-                                        : Image.file(
-                                            File(pathStr),
-                                            fit: BoxFit.contain,
-                                          ),
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              child: GestureDetector(
+                                onTap: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (_) => Dialog(
+                                      child: previewBytes != null
+                                          ? Image.memory(
+                                              previewBytes,
+                                              fit: BoxFit.contain,
+                                            )
+                                          : isUrl
+                                              ? Image.network(
+                                                  pathStr,
+                                                  fit: BoxFit.contain,
+                                                )
+                                              : Image.file(
+                                                  File(pathStr),
+                                                  fit: BoxFit.contain,
+                                                ),
+                                    ),
+                                  );
+                                },
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: previewBytes != null
+                                      ? Image.memory(
+                                          previewBytes,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : isUrl
+                                          ? Image.network(
+                                              pathStr,
+                                              fit: BoxFit.cover,
+                                            )
+                                          : Image.file(
+                                              File(pathStr),
+                                              fit: BoxFit.cover,
+                                            ),
+                                ),
                               ),
-                            );
-                          },
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: previewBytes != null
-                                ? Image.memory(
-                                    previewBytes,
-                                    fit: BoxFit.cover,
-                                  )
-                                : isUrl
-                                    ? Image.network(
-                                        pathStr,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : Image.file(
-                                        File(pathStr),
-                                        fit: BoxFit.cover,
-                                      ),
-                          ),
+                            ),
+                            Positioned(
+                              top: 6,
+                              right: 6,
+                              child: InkWell(
+                                onTap: () => _removeDamagePhoto(index),
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  padding: const EdgeInsets.all(4),
+                                  child: const Icon(
+                                    Icons.close,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     },
