@@ -2868,6 +2868,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   String? _fotoLibrettoBPath;
   Uint8List? _fotoLibrettoABytes;
   Uint8List? _fotoLibrettoBBytes;
+  final List<Uint8List> _fotoDanniBytes = [];
   final List<String> _fotoDanniPaths = [];
   String? _draftClaimId;
   final AudioRecorder _audioRecorder = AudioRecorder();
@@ -3919,8 +3920,11 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
       if (kind == 'damage') {
         setState(() {
+          _fotoDanniBytes.add(bytes);
           _fotoDanniPaths.add(uploadedUrl);
         });
+        debugPrint('[Damage] state updated bytes=${_fotoDanniBytes.length} '
+            'urls=${_fotoDanniPaths.length}');
       }
 
       _mostraSnack('Foto caricata');
@@ -4413,6 +4417,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       debugPrint('Upload foto danno -> $uploadedUrl');
 
       setState(() {
+        _fotoDanniBytes.add(bytes);
         _fotoDanniPaths.add(uploadedUrl);
       });
 
@@ -4512,6 +4517,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
 
     final nuovo = await aggiornaHashIncidente(baseIncidente);
+    debugPrint('[Damage] payload fotoDanni count=${nuovo.fotoDanni.length}');
 
     incidentiSalvati.insert(0, nuovo);
     await salvaIncidenti();
@@ -5051,8 +5057,11 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                     itemBuilder: (_, index) {
                       final pathStr = _fotoDanniPaths[index];
                       final isUrl = pathStr.startsWith('http');
+                      final previewBytes = index < _fotoDanniBytes.length
+                          ? _fotoDanniBytes[index]
+                          : null;
                       debugPrint(
-                          '[DamagePreview] render ${isUrl ? 'url' : 'file'} $pathStr');
+                          '[DamagePreview] render ${previewBytes != null ? 'bytes' : isUrl ? 'url' : 'file'} $pathStr');
                       return AspectRatio(
                         aspectRatio: 4 / 3,
                         child: GestureDetector(
@@ -5060,29 +5069,39 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                             showDialog(
                               context: context,
                               builder: (_) => Dialog(
-                                child: isUrl
-                                    ? Image.network(
-                                        pathStr,
+                                child: previewBytes != null
+                                    ? Image.memory(
+                                        previewBytes,
                                         fit: BoxFit.contain,
                                       )
-                                    : Image.file(
-                                        File(pathStr),
-                                        fit: BoxFit.contain,
-                                      ),
+                                    : isUrl
+                                        ? Image.network(
+                                            pathStr,
+                                            fit: BoxFit.contain,
+                                          )
+                                        : Image.file(
+                                            File(pathStr),
+                                            fit: BoxFit.contain,
+                                          ),
                               ),
                             );
                           },
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: isUrl
-                                ? Image.network(
-                                    pathStr,
+                            child: previewBytes != null
+                                ? Image.memory(
+                                    previewBytes,
                                     fit: BoxFit.cover,
                                   )
-                                : Image.file(
-                                    File(pathStr),
-                                    fit: BoxFit.cover,
-                                  ),
+                                : isUrl
+                                    ? Image.network(
+                                        pathStr,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Image.file(
+                                        File(pathStr),
+                                        fit: BoxFit.cover,
+                                      ),
                           ),
                         ),
                       );
