@@ -62,6 +62,28 @@ class NominatimSuggestion {
   }
 }
 
+enum DamagePhotoStatus { local, uploading, uploaded, failed }
+
+class DamagePhotoItem {
+  Uint8List? bytes;
+  String? localPath;
+  String? remoteUrl;
+  String? storagePath;
+  DamagePhotoStatus status;
+  String? error;
+  bool isRemoved;
+
+  DamagePhotoItem({
+    required this.status,
+    this.bytes,
+    this.localPath,
+    this.remoteUrl,
+    this.storagePath,
+    this.error,
+    this.isRemoved = false,
+  });
+}
+
 class _CloudOcrResult {
   final bool success;
   final String? text;
@@ -2868,8 +2890,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   String? _fotoLibrettoBPath;
   Uint8List? _fotoLibrettoABytes;
   Uint8List? _fotoLibrettoBBytes;
-  final List<Uint8List> _fotoDanniBytes = [];
-  final List<String> _fotoDanniPaths = [];
+  final List<DamagePhotoItem> _damagePhotos = [];
   String? _draftClaimId;
   final AudioRecorder _audioRecorder = AudioRecorder();
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -3494,6 +3515,97 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return _draftClaimId!;
   }
 
+  List<String> get _damageUploadedUrls => _damagePhotos
+      .where((e) =>
+          e.status == DamagePhotoStatus.uploaded &&
+          e.remoteUrl != null &&
+          e.remoteUrl!.isNotEmpty)
+      .map((e) => e.remoteUrl!)
+      .toList();
+
+  String _extractStoragePath(String url) {
+    const marker = 'claim_attachments/';
+    final idx = url.indexOf(marker);
+    if (idx == -1) return url;
+    return url.substring(idx + marker.length);
+  }
+
+  Future<void> _deleteDamagePhotoFromStorage(DamagePhotoItem item) async {
+    final path = item.storagePath?.trim();
+    if (path == null || path.isEmpty) {
+      debugPrint('DAMAGE PHOTO DELETE STORAGE SKIPPED: no storagePath');
+      return;
+    }
+    try {
+      debugPrint('DAMAGE PHOTO DELETE STORAGE START: $path');
+      await _supabaseService.client.storage
+          .from('claim_attachments')
+          .remove([path]);
+      debugPrint('DAMAGE PHOTO DELETE STORAGE OK: $path');
+    } catch (e, st) {
+      debugPrint('DAMAGE PHOTO DELETE STORAGE ERROR: $e');
+      debugPrint('$st');
+    }
+  }
+
+  Future<void> _uploadDamagePhoto(
+    DamagePhotoItem item, {
+    required String filename,
+    required Uint8List bytes,
+  }) async {
+    if (!mounted) return;
+    final claimId = _ensureDraftId();
+    final pathHint = 'claims/$claimId/damage/<ts>_$filename';
+    setState(() {
+      item.status = DamagePhotoStatus.uploading;
+      item.error = null;
+    });
+    debugPrint('DAMAGE PHOTO UPLOAD START pathHint=$pathHint');
+    try {
+      final uploadedUrl = await _supabaseService.uploadClaimImageBytes(
+        claimId: claimId,
+        bytes: bytes,
+        filename: filename,
+        contentType: 'image/jpeg',
+        kind: 'damage',
+      );
+      final storagePath = _extractStoragePath(uploadedUrl);
+      if (item.isRemoved) {
+        debugPrint(
+            'DAMAGE PHOTO REMOVED DURING UPLOAD: cleanup remote file ($storagePath)');
+        await _deleteDamagePhotoFromStorage(
+          item..storagePath = storagePath,
+        );
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        item.status = DamagePhotoStatus.uploaded;
+        item.remoteUrl = uploadedUrl;
+        item.storagePath = storagePath;
+      });
+      debugPrint('DAMAGE PHOTO UPLOAD OK: $uploadedUrl');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        item.status = DamagePhotoStatus.failed;
+        item.error = e.toString();
+      });
+      debugPrint('DAMAGE PHOTO UPLOAD ERROR: $e');
+    }
+  }
+
+  Future<void> _retryDamagePhotoUpload(DamagePhotoItem item) async {
+    if (item.status != DamagePhotoStatus.failed || item.bytes == null) return;
+    await _uploadDamagePhoto(
+      item,
+      filename: item.localPath != null
+          ? path.basename(item.localPath!)
+          : 'damage_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      bytes: item.bytes!,
+    );
+  }
+
   bool _hasParsedData(Map<String, String?> data, String? plate) {
     if (plate != null && plate.trim().isNotEmpty) return true;
     return data.values.any((v) => v != null && v!.trim().isNotEmpty);
@@ -3897,6 +4009,21 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       debugPrint(
           '[Damage] bytes length=${bytes.length} platform=${kIsWeb ? 'web' : 'mobile'} kind=$kind');
 
+      if (kind == 'damage') {
+        final item = DamagePhotoItem(
+          status: DamagePhotoStatus.local,
+          bytes: bytes,
+          localPath: kIsWeb ? null : picked.path,
+        );
+        setState(() {
+          _damagePhotos.add(item);
+        });
+        debugPrint('[Damage] local photo added count=${_damagePhotos.length}');
+        _uploadDamagePhoto(item, filename: name, bytes: bytes);
+        _mostraSnack('Foto caricata (upload in corso)...');
+        return;
+      }
+
       if (kind == 'libretto' && quale != null) {
         setState(() {
           if (quale == 'A') {
@@ -3911,8 +4038,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
       // OCR disattivato: il libretto viene solo allegato e mostrato in preview.
 
-      debugPrint(
-          '[DamageUpload] start bucket=claim_attachments path=claims/$claimId/$kind/<ts>_$name');
       final uploadedUrl = await _supabaseService.uploadClaimImageBytes(
         claimId: claimId,
         bytes: bytes,
@@ -3921,15 +4046,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         kind: kind,
       );
       debugPrint('Upload $kind completato -> $uploadedUrl');
-
-      if (kind == 'damage') {
-        setState(() {
-          _fotoDanniBytes.add(bytes);
-          _fotoDanniPaths.add(uploadedUrl);
-        });
-        debugPrint('[Damage] state updated bytes=${_fotoDanniBytes.length} '
-            'urls=${_fotoDanniPaths.length}');
-      }
 
       _mostraSnack('Foto caricata');
       await caricaIncidenti();
@@ -3943,16 +4059,21 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   }
 
   void _removeDamagePhoto(int index) {
-    if (index < 0 || index >= _fotoDanniPaths.length) return;
-    final removedUrl = _fotoDanniPaths[index];
+    if (index < 0 || index >= _damagePhotos.length) return;
+    debugPrint('DAMAGE PHOTO REMOVAL REQUEST: index=$index');
+    final removed = _damagePhotos[index];
+    removed.isRemoved = true;
     setState(() {
-      _fotoDanniPaths.removeAt(index);
-      if (index < _fotoDanniBytes.length) {
-        _fotoDanniBytes.removeAt(index);
-      }
+      _damagePhotos.removeAt(index);
     });
-    debugPrint('[Damage] removed index=$index url=$removedUrl '
-        'remaining=${_fotoDanniPaths.length}');
+    debugPrint('[Damage] removed index=$index url=${removed.remoteUrl ?? '-'} '
+        'remaining=${_damagePhotos.length}');
+    final shouldDeleteRemote = removed.status == DamagePhotoStatus.uploaded &&
+        removed.storagePath != null &&
+        removed.storagePath!.trim().isNotEmpty;
+    if (shouldDeleteRemote) {
+      _deleteDamagePhotoFromStorage(removed);
+    }
   }
 
   String? _validateEmail(String? value) {
@@ -4421,31 +4542,22 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           await _picker.pickImage(source: ImageSource.camera, imageQuality: 80);
       if (foto == null) return;
 
-      final claimId = _ensureDraftId();
       final bytes = await File(foto.path).readAsBytes();
-      debugPrint(
-          '[DamageUpload] start bucket=claim_attachments path=claims/$claimId/damage/<ts>_${path.basename(foto.path)}');
-      final uploadedUrl = await _supabaseService.uploadClaimImageBytes(
-        claimId: claimId,
+      final item = DamagePhotoItem(
+        status: DamagePhotoStatus.local,
         bytes: bytes,
-        filename: path.basename(foto.path),
-        contentType: 'image/jpeg',
-        kind: 'damage',
+        localPath: foto.path,
       );
-      debugPrint('Upload foto danno -> $uploadedUrl');
-
       setState(() {
-        _fotoDanniBytes.add(bytes);
-        _fotoDanniPaths.add(uploadedUrl);
+        _damagePhotos.add(item);
       });
-      debugPrint('[Damage] state updated bytes=${_fotoDanniBytes.length} '
-          'urls=${_fotoDanniPaths.length}');
-
-      _mostraSnack('Foto caricata');
-      await salvaIncidenti();
-      await caricaIncidenti();
-      debugPrint('[Damage] refresh dettaglio/lista dopo upload (mobile)');
-      if (mounted) setState(() {});
+      debugPrint('[Damage] local photo added count=${_damagePhotos.length}');
+      _uploadDamagePhoto(
+        item,
+        filename: path.basename(foto.path),
+        bytes: bytes,
+      );
+      _mostraSnack('Foto caricata (upload in corso)...');
 
       _mostraSnack(
         'Foto del danno aggiunta. Provo a leggere la targa con l\'AI...',
@@ -4469,6 +4581,35 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       final formOk = _formKey.currentState!.validate();
       debugPrint('[Save] form valid=$formOk');
       if (!formOk) return;
+
+      final uploading = _damagePhotos
+          .where((e) => e.status == DamagePhotoStatus.uploading)
+          .length;
+      final failed = _damagePhotos
+          .where((e) => e.status == DamagePhotoStatus.failed)
+          .length;
+
+      debugPrint('[Save] SUBMIT INCIDENTE START');
+      debugPrint('[Save] DAMAGE PHOTOS TOTAL: ${_damagePhotos.length}');
+      debugPrint('[Save] DAMAGE PHOTOS UPLOADING: $uploading');
+      debugPrint('[Save] DAMAGE PHOTOS FAILED: $failed');
+      debugPrint(
+          '[Save] DAMAGE PHOTOS UPLOADED: ${_damagePhotos.where((e) => e.status == DamagePhotoStatus.uploaded).length}');
+
+      if (uploading > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Attendere completamento upload foto')),
+        );
+        return;
+      }
+      if (failed > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  'Alcune foto non sono state caricate. Riprova o rimuovile.')),
+        );
+        return;
+      }
 
       _draftClaimId ??= DateTime.now().millisecondsSinceEpoch.toString();
       final id = _draftClaimId!;
@@ -4531,7 +4672,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         notaAudioBPath: _notaAudioBPath ?? '',
         fotoLibrettoA: _fotoLibrettoAPath ?? '',
         fotoLibrettoB: _fotoLibrettoBPath ?? '',
-        fotoDanni: List<String>.from(_fotoDanniPaths),
+        fotoDanni: _damageUploadedUrls,
         firmaAPath: '',
         firmaBPath: '',
         timestampFirmaA: '',
@@ -4547,6 +4688,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       incidentiSalvati.insert(0, nuovo);
       await salvaIncidenti();
       debugPrint('[Save] incident saved locally');
+      await caricaIncidenti();
+      debugPrint('[Save] list refreshed after save');
+      if (mounted) setState(() {});
 
       final sync = IncidentsSyncService();
       try {
@@ -5078,22 +5222,23 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                 icon: const Icon(Icons.camera),
                 label: Text(tx(context, 'Aggiungi foto danno')),
               ),
-              if (_fotoDanniPaths.isNotEmpty) ...[
+              if (_damagePhotos.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 SizedBox(
                   height: 120,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
-                    itemCount: _fotoDanniPaths.length,
+                    itemCount: _damagePhotos.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (_, index) {
-                      final pathStr = _fotoDanniPaths[index];
-                      final isUrl = pathStr.startsWith('http');
-                      final previewBytes = index < _fotoDanniBytes.length
-                          ? _fotoDanniBytes[index]
-                          : null;
+                      final item = _damagePhotos[index];
+                      final pathStr = item.remoteUrl ?? item.localPath ?? '';
+                      final isUrl = item.remoteUrl != null &&
+                          item.remoteUrl!.startsWith('http');
+                      final previewBytes = item.bytes;
+                      final status = item.status;
                       debugPrint(
-                          '[DamagePreview] render ${previewBytes != null ? 'bytes' : isUrl ? 'url' : 'file'} $pathStr');
+                          '[DamagePreview] render ${previewBytes != null ? 'bytes' : isUrl ? 'url' : 'file'} $pathStr status=$status');
                       return AspectRatio(
                         aspectRatio: 4 / 3,
                         child: Stack(
@@ -5159,6 +5304,43 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                                 ),
                               ),
                             ),
+                            if (status == DamagePhotoStatus.uploading)
+                              const Positioned(
+                                left: 6,
+                                top: 6,
+                                child: SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              ),
+                            if (status == DamagePhotoStatus.uploaded)
+                              const Positioned(
+                                left: 6,
+                                top: 6,
+                                child: Icon(Icons.check_circle,
+                                    size: 18, color: Colors.green),
+                              ),
+                            if (status == DamagePhotoStatus.failed)
+                              Positioned(
+                                left: 6,
+                                top: 6,
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.error,
+                                        size: 18, color: Colors.red),
+                                    TextButton(
+                                      onPressed: () =>
+                                          _retryDamagePhotoUpload(item),
+                                      child: const Text(
+                                        'Riprova',
+                                        style: TextStyle(fontSize: 10),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                           ],
                         ),
                       );
