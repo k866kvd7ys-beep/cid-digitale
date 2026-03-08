@@ -65,6 +65,33 @@ bool _plausibleText(String s) {
   return true;
 }
 
+bool _isTechNoise(String up) {
+  const noise = [
+    'PERSONENWAGEN',
+    'LIMOUSINE',
+    'VERWENDUNG',
+    'GENEHMIGUNG',
+    'VERSICHERUNG',
+    'CHASSIS',
+    'STAMMNUMMER',
+    'FARBE',
+    'CODE',
+    'PRUFUNG',
+    'PRUFUNGEN',
+    'EXPERTISE',
+    'LEERGEWICHT',
+    'GESAMTGEWICHT',
+    'LEISTUNG',
+    'KW',
+    'HUBRAUM',
+    'FAHRZEUG',
+    'AXA',
+    'ALLIANZ',
+    'ZFA'
+  ];
+  return noise.any((n) => up.contains(n));
+}
+
 String _normalizeOcrText(String raw) {
   var text = raw.toUpperCase();
   text = text.replaceAll(RegExp(r'[^A-Z0-9À-ÿ\s]'), ' ');
@@ -83,21 +110,25 @@ String? extractSwissPlate(String text) {
   debugPrint('[OCR] Swiss plate input: '
       '${cleaned.length > 200 ? cleaned.substring(0, 200) : cleaned}');
 
-  final chRegex =
-      RegExp(r'\b([A-Z]{2})\s*([0-9]{1,3}(?:\s*[0-9]{1,3}){0,2})\b');
+  final chRegex = RegExp(r'\b([A-Z]{2})\s*([0-9]{1,6})\b');
+  String? best;
+  int bestDigits = -1;
   for (final m in chRegex.allMatches(cleaned)) {
     final canton = m.group(1)!;
     final digitsRaw = m.group(2) ?? '';
     final digits = digitsRaw.replaceAll(' ', '');
     if (!_swissCantons.contains(canton)) continue;
     if (digits.isEmpty || digits.length > 6) continue;
-    final plate = '$canton $digits';
-    debugPrint(
-        '[OCR] Swiss plate candidate: $canton | raw "$digitsRaw" -> "$plate"');
-    return plate;
+    if (digits.length > bestDigits) {
+      bestDigits = digits.length;
+      best = '$canton $digits';
+    }
+  }
+  if (best != null) {
+    debugPrint('[OCR] Swiss plate candidate chosen -> $best');
   }
 
-  return null;
+  return best;
 }
 
 String? estraiTargaDaTesto(String rawText) {
@@ -469,8 +500,10 @@ Map<String, String?> estraiNomeAssicurazioneIndirizzoDaTesto(
 
   // Heuristica svizzera: prime righe plausibili come cognome/nome
   if ((nome == null || cognome == null) && rawLinesOriginal.isNotEmpty) {
-    final candidates =
-        rawLinesOriginal.take(6).where((l) => _plausibleText(l)).toList();
+    final candidates = rawLinesOriginal
+        .take(6)
+        .where((l) => _plausibleText(l) && !_isTechNoise(l.toUpperCase()))
+        .toList();
     if (candidates.length >= 2) {
       cognome ??= candidates[0];
       nome ??= candidates[1];
@@ -529,6 +562,33 @@ Map<String, String?> estraiNomeAssicurazioneIndirizzoDaTesto(
     }
   }
 
+  // Blocchi etichettati (NAME / VORNAME / NOM / PRENOM / COGNOME)
+  if ((nome == null || cognome == null) && rawLinesOriginal.isNotEmpty) {
+    const labels = ['NAME', 'NOM', 'COGNOME', 'VORNAME', 'PRENOM'];
+    for (int i = 0; i < rawLinesOriginal.length; i++) {
+      final up = rawLinesOriginal[i].toUpperCase();
+      if (labels.any((l) => up.contains(l))) {
+        final slice = rawLinesOriginal
+            .skip(i + 1)
+            .take(4)
+            .where((l) => _plausibleText(l) && !_isTechNoise(l.toUpperCase()))
+            .toList();
+        if (slice.length >= 2) {
+          cognome ??= slice[0];
+          nome ??= slice[1];
+          break;
+        } else if (slice.length == 1 && slice.first.contains(' ')) {
+          final parts = slice.first.split(RegExp(r'\s+'));
+          if (parts.length >= 2) {
+            cognome ??= parts.first;
+            nome ??= parts.sublist(1).join(' ');
+            break;
+          }
+        }
+      }
+    }
+  }
+
   // Se indirizzo trovato ma capCitta mancante, prova sulle linee vicine
   if (idxIndirizzo != null && capCitta == null) {
     for (final j in [idxIndirizzo! + 1, idxIndirizzo! - 1]) {
@@ -557,6 +617,9 @@ Map<String, String?> estraiNomeAssicurazioneIndirizzoDaTesto(
     if (m != null) {
       cap = m.group(1);
       city = m.group(2);
+      if (city != null && _isTechNoise(city!.toUpperCase())) {
+        city = null;
+      }
     }
   }
 
@@ -597,6 +660,16 @@ Map<String, String?> estraiNomeAssicurazioneIndirizzoDaTesto(
           break;
         }
       }
+    }
+  }
+
+  // Pulisci assicurazione da rumore
+  if (assicurazione != null) {
+    final cleaned = assicurazione!.split(RegExp(r'[0-9]')).first.trim();
+    if (_isTechNoise(cleaned.toUpperCase()) || cleaned.length < 3) {
+      assicurazione = null;
+    } else {
+      assicurazione = cleaned;
     }
   }
 
