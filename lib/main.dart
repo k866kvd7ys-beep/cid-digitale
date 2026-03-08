@@ -121,9 +121,10 @@ bool _isPlausibleCity(String? v) =>
         .hasMatch(v);
 
 bool _isPlausibleInsurance(String? v) =>
-    v != null &&
-    v.trim().length >= 3 &&
-    RegExp(r'[A-Za-z]').hasMatch(v);
+    v != null && v.trim().length >= 3 && RegExp(r'[A-Za-z]').hasMatch(v);
+
+bool _isPlausibleZip(String? v) =>
+    v != null && RegExp(r'^\d{4}$').hasMatch(v.trim());
 
 /// CONFIG OFFICINA //////////////////////////////////////////////////////
 
@@ -3538,7 +3539,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
   Map<String, String?> _extraFromBlocks(List<_OcrBlock> blocks) {
     final owner = _filterBlocksInRegion(blocks, xMax: 0.55, yMax: 0.45);
-    final addr = _filterBlocksInRegion(blocks, xMax: 0.6, yMin: 0.35, yMax: 0.75);
+    final addr =
+        _filterBlocksInRegion(blocks, xMax: 0.6, yMin: 0.35, yMax: 0.75);
     final ins =
         _filterBlocksInRegion(blocks, xMax: 0.8, yMin: 0.35, yMax: 0.85);
 
@@ -3670,8 +3672,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           indirizzo = l;
           continue;
         }
-        final m = RegExp(r'\b([0-9]{4})\s+([A-Za-zÀ-ÿ\-\s]{2,})\b')
-            .firstMatch(l);
+        final m =
+            RegExp(r'\b([0-9]{4})\s+([A-Za-zÀ-ÿ\-\s]{2,})\b').firstMatch(l);
         if (m != null && cap == null && city == null) {
           cap = m.group(1);
           city = m.group(2)?.trim();
@@ -3715,8 +3717,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         double maxX = 1;
         double maxY = 1;
         for (final b in rawBlocks) {
-          final right =
-              (b['x'] as num).toDouble() + (b['w'] as num).toDouble();
+          final right = (b['x'] as num).toDouble() + (b['w'] as num).toDouble();
           final bottom =
               (b['y'] as num).toDouble() + (b['h'] as num).toDouble();
           if (right > maxX) maxX = right;
@@ -3764,6 +3765,87 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       );
     }
     return _CloudOcrResult(success: false, error: 'invalid_response');
+  }
+
+  bool _applyLibrettoParsedData({
+    required String quale,
+    String? nome,
+    String? cognome,
+    String? indirizzo,
+    String? cap,
+    String? city,
+    String? targa,
+    String? assicurazione,
+  }) {
+    debugPrint('OCR apply target=$quale parsed={'
+        'nome:$nome, cognome:$cognome, indirizzo:$indirizzo, cap:$cap, city:$city, '
+        'targa:$targa, assicurazione:$assicurazione}');
+
+    final isA = quale == 'A';
+    final nomeCtrl = isA ? _nomeAController : _nomeBController;
+    final cognomeCtrl = isA ? _cognomeAController : _cognomeBController;
+    final indirizzoCtrl = isA ? _indirizzoAController : _indirizzoBController;
+    final zipCtrl = isA ? _driverAZipController : _driverBZipController;
+    final cityCtrl = isA ? _driverACityController : _driverBCityController;
+    final targaCtrl = isA ? _targaAController : _targaBController;
+    final assicurazioneCtrl =
+        isA ? _assicurazioneAController : _assicurazioneBController;
+
+    bool changed = false;
+
+    void writeIfBetter(
+      TextEditingController ctrl,
+      String? value, {
+      bool Function(String)? isBetter,
+      bool Function(String?)? validator,
+      required String label,
+    }) {
+      if (value == null) return;
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) return;
+      if (validator != null && !validator(trimmed)) return;
+      final current = ctrl.text.trim();
+      if (current.isEmpty) {
+        ctrl.text = trimmed;
+        debugPrint('write $label = $trimmed');
+        changed = true;
+        return;
+      }
+      if (isBetter != null && isBetter(trimmed)) {
+        ctrl.text = trimmed;
+        debugPrint('replace $label = $trimmed');
+        changed = true;
+      }
+    }
+
+    writeIfBetter(nomeCtrl, nome,
+        validator: _isPlausibleName, label: '${isA ? 'A' : 'B'} nome');
+    writeIfBetter(cognomeCtrl, cognome,
+        validator: _isPlausibleName, label: '${isA ? 'A' : 'B'} cognome');
+    writeIfBetter(indirizzoCtrl, indirizzo,
+        validator: _isPlausibleAddress, label: '${isA ? 'A' : 'B'} indirizzo');
+    writeIfBetter(zipCtrl, cap,
+        validator: _isPlausibleZip, label: '${isA ? 'A' : 'B'} cap');
+    writeIfBetter(cityCtrl, city,
+        validator: _isPlausibleCity, label: '${isA ? 'A' : 'B'} city');
+    writeIfBetter(
+      assicurazioneCtrl,
+      assicurazione,
+      validator: _isPlausibleInsurance,
+      isBetter: (val) => val.length > assicurazioneCtrl.text.trim().length,
+      label: '${isA ? 'A' : 'B'} assicurazione',
+    );
+    writeIfBetter(
+      targaCtrl,
+      targa,
+      validator: (val) => val != null && extractSwissPlate(val) != null,
+      isBetter: (val) =>
+          RegExp(r'\d').allMatches(val).length >
+          RegExp(r'\d').allMatches(targaCtrl.text).length,
+      label: '${isA ? 'A' : 'B'} targa',
+    );
+
+    return changed;
   }
 
   Future<void> _pickAndUploadImage(
@@ -3873,8 +3955,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                     : _extraFromBlocks(cloudResult.blocks);
                 if (extraByBlocks.isNotEmpty) {
                   extraWeb = extraByBlocks;
-                  debugPrint(
-                      'OCR blocchi extra: ${extraByBlocks.toString()}');
+                  debugPrint('OCR blocchi extra: ${extraByBlocks.toString()}');
                 }
               }
             } else {
@@ -3886,114 +3967,16 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             }
           }
 
-          bool somethingSet = false;
-
-          if (miglioreTarga != null) {
-            setState(() {
-              final controller =
-                  quale == 'B' ? _targaBController : _targaAController;
-              final current = controller.text.trim();
-              final currentDigits = RegExp(r'\d').allMatches(current).length;
-              final newDigits = RegExp(r'\d').allMatches(miglioreTarga!).length;
-              if (current.isEmpty || newDigits > currentDigits) {
-                controller.text = miglioreTarga!;
-                debugPrint(
-                  'Campo targa ${quale ?? 'A'} aggiornato (web): $miglioreTarga',
-                );
-                somethingSet = true;
-              }
-            });
-          } else if (fallbackNeeded) {
-            _mostraSnack(
-              'Non siamo riusciti a leggere il libretto. Prova con una foto più nitida.',
-            );
-            snackShown = true;
-          } else {
-            _mostraSnack('Nessun dato riconosciuto dal libretto.');
-            snackShown = true;
-          }
-
-          // Usa anche gli altri dati parsati se disponibili
-          if (extraWeb.isNotEmpty) {
-            setState(() {
-              if (quale == 'A') {
-                if (_isPlausibleName(extraWeb['nome']) &&
-                    _nomeAController.text.trim().isEmpty) {
-                  _nomeAController.text = extraWeb['nome']!;
-                  somethingSet = true;
-                }
-                if (_isPlausibleName(extraWeb['cognome']) &&
-                    _cognomeAController.text.trim().isEmpty) {
-                  _cognomeAController.text = extraWeb['cognome']!;
-                  somethingSet = true;
-                }
-                if (extraWeb['indirizzo'] != null &&
-                    extraWeb['indirizzo']!.trim().isNotEmpty &&
-                    _indirizzoAController.text.trim().isEmpty) {
-                  _indirizzoAController.text = extraWeb['indirizzo']!;
-                  somethingSet = true;
-                }
-                if (extraWeb['cap'] != null &&
-                    extraWeb['cap']!.trim().isNotEmpty &&
-                    _driverAZipController.text.trim().isEmpty) {
-                  _driverAZipController.text = extraWeb['cap']!;
-                  somethingSet = true;
-                }
-                if (extraWeb['city'] != null &&
-                    extraWeb['city']!.trim().length >= 2 &&
-                    _driverACityController.text.trim().isEmpty) {
-                  _driverACityController.text = extraWeb['city']!;
-                  somethingSet = true;
-                }
-                if (_isPlausibleInsurance(extraWeb['assicurazione']) &&
-                    _assicurazioneAController.text.trim().isEmpty) {
-                  _assicurazioneAController.text = extraWeb['assicurazione']!;
-                  somethingSet = true;
-                }
-              } else {
-                if (_isPlausibleName(extraWeb['nome']) &&
-                    _nomeBController.text.trim().isEmpty) {
-                  _nomeBController.text = extraWeb['nome']!;
-                  somethingSet = true;
-                }
-                if (_isPlausibleName(extraWeb['cognome']) &&
-                    _cognomeBController.text.trim().isEmpty) {
-                  _cognomeBController.text = extraWeb['cognome']!;
-                  somethingSet = true;
-                }
-                if (extraWeb['indirizzo'] != null &&
-                    extraWeb['indirizzo']!.trim().isNotEmpty &&
-                    _indirizzoBController.text.trim().isEmpty) {
-                  _indirizzoBController.text = extraWeb['indirizzo']!;
-                  somethingSet = true;
-                }
-                if (extraWeb['cap'] != null &&
-                    extraWeb['cap']!.trim().isNotEmpty &&
-                    _driverBZipController.text.trim().isEmpty) {
-                  _driverBZipController.text = extraWeb['cap']!;
-                  somethingSet = true;
-                }
-                if (extraWeb['city'] != null &&
-                    extraWeb['city']!.trim().length >= 2 &&
-                    _driverBCityController.text.trim().isEmpty) {
-                  _driverBCityController.text = extraWeb['city']!;
-                  somethingSet = true;
-                }
-                if (_isPlausibleInsurance(extraWeb['assicurazione']) &&
-                    _assicurazioneBController.text.trim().isEmpty) {
-                  _assicurazioneBController.text = extraWeb['assicurazione']!;
-                  somethingSet = true;
-                }
-              }
-
-              if (extraWeb['indirizzo'] != null &&
-                  extraWeb['indirizzo']!.trim().isNotEmpty &&
-                  _luogoController.text.trim().isEmpty) {
-                _luogoController.text = extraWeb['indirizzo']!;
-                somethingSet = true;
-              }
-            });
-          }
+          final parsedByApply = _applyLibrettoParsedData(
+            quale: quale ?? 'A',
+            nome: extraWeb['nome'],
+            cognome: extraWeb['cognome'],
+            indirizzo: extraWeb['indirizzo'],
+            cap: extraWeb['cap'],
+            city: extraWeb['city'],
+            targa: miglioreTarga,
+            assicurazione: extraWeb['assicurazione'],
+          );
 
           debugPrint(
             'OCR final plate (${quale ?? 'A'}): ${miglioreTarga ?? 'none'}',
@@ -4003,7 +3986,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           );
 
           final parsedAny =
-              somethingSet || _hasParsedData(extraWeb, miglioreTarga);
+              parsedByApply || _hasParsedData(extraWeb, miglioreTarga);
 
           if (!parsedAny && !snackShown) {
             _mostraSnack('Nessun dato riconosciuto dal libretto.');
@@ -4304,66 +4287,16 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         'OCR dati libretto -> nome: ${nomeTrovato ?? '-'}, cognome: ${cognomeTrovato ?? '-'}, cap: ${capTrovato ?? '-'}, city: ${cittaTrovata ?? '-'}, assicurazione: ${assicurazioneTrovata ?? '-'}, marca: ${marcaTrovata ?? '-'}, modello: ${modelloTrovato ?? '-'}',
       );
 
-      setState(() {
-        if (quale == 'A') {
-          if (targaFinale != null && _targaAController.text.trim().isEmpty) {
-            _targaAController.text = targaFinale;
-          }
-          if (nomeTrovato != null && _nomeAController.text.trim().isEmpty) {
-            _nomeAController.text = nomeTrovato;
-          }
-          if (cognomeTrovato != null &&
-              _cognomeAController.text.trim().isEmpty) {
-            _cognomeAController.text = cognomeTrovato;
-          }
-          if (assicurazioneTrovata != null &&
-              _assicurazioneAController.text.trim().isEmpty) {
-            _assicurazioneAController.text = assicurazioneTrovata;
-          }
-          if (capTrovato != null && _driverAZipController.text.trim().isEmpty) {
-            _driverAZipController.text = capTrovato;
-          }
-          if (cittaTrovata != null &&
-              _driverACityController.text.trim().isEmpty) {
-            _driverACityController.text = cittaTrovata;
-          }
-        } else {
-          if (targaFinale != null && _targaBController.text.trim().isEmpty) {
-            _targaBController.text = targaFinale;
-          }
-          if (nomeTrovato != null && _nomeBController.text.trim().isEmpty) {
-            _nomeBController.text = nomeTrovato;
-          }
-          if (cognomeTrovato != null &&
-              _cognomeBController.text.trim().isEmpty) {
-            _cognomeBController.text = cognomeTrovato;
-          }
-          if (assicurazioneTrovata != null &&
-              _assicurazioneBController.text.trim().isEmpty) {
-            _assicurazioneBController.text = assicurazioneTrovata;
-          }
-          if (capTrovato != null && _driverBZipController.text.trim().isEmpty) {
-            _driverBZipController.text = capTrovato;
-          }
-          if (cittaTrovata != null &&
-              _driverBCityController.text.trim().isEmpty) {
-            _driverBCityController.text = cittaTrovata;
-          }
-        }
-
-        if (indirizzoTrovato != null &&
-            _indirizzoAController.text.trim().isEmpty &&
-            quale == 'A') {
-          _indirizzoAController.text = indirizzoTrovato;
-        } else if (indirizzoTrovato != null &&
-            _indirizzoBController.text.trim().isEmpty &&
-            quale == 'B') {
-          _indirizzoBController.text = indirizzoTrovato;
-        }
-        if (indirizzoTrovato != null && _luogoController.text.trim().isEmpty) {
-          _luogoController.text = indirizzoTrovato;
-        }
-      });
+      final parsed = _applyLibrettoParsedData(
+        quale: quale,
+        nome: nomeTrovato,
+        cognome: cognomeTrovato,
+        indirizzo: indirizzoTrovato,
+        cap: capTrovato,
+        city: cittaTrovata,
+        targa: targaFinale,
+        assicurazione: assicurazioneTrovata,
+      );
 
       final campoTarga = quale == 'A'
           ? _targaAController.text.trim()
@@ -4371,10 +4304,20 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       debugPrint('Campo targa $quale post OCR: '
           '${campoTarga.isEmpty ? 'vuoto' : campoTarga}');
 
-      if (targaFinale == null &&
-          nomeTrovato == null &&
-          assicurazioneTrovata == null &&
-          indirizzoTrovato == null) {
+      final parsedAny = parsed ||
+          _hasParsedData(
+            {
+              'nome': nomeTrovato,
+              'cognome': cognomeTrovato,
+              'indirizzo': indirizzoTrovato,
+              'cap': capTrovato,
+              'city': cittaTrovata,
+              'assicurazione': assicurazioneTrovata,
+            },
+            targaFinale,
+          );
+
+      if (!parsedAny) {
         _mostraSnack(
           'Nessun dato riconosciuto dal libretto.',
         );
@@ -4531,80 +4474,16 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         }
       });
 
-      if (result.targa != null) {
-        setState(() {
-          if (quale == 'A' && _targaAController.text.trim().isEmpty) {
-            _targaAController.text = result.targa!;
-          } else if (quale == 'B' && _targaBController.text.trim().isEmpty) {
-            _targaBController.text = result.targa!;
-          }
-        });
-      }
-      if (result.nome != null && result.nome!.isNotEmpty) {
-        setState(() {
-          if (quale == 'A' && _nomeAController.text.trim().isEmpty) {
-            _nomeAController.text = result.nome!;
-          } else if (quale == 'B' && _nomeBController.text.trim().isEmpty) {
-            _nomeBController.text = result.nome!;
-          }
-        });
-      }
-      if (result.cognome != null && result.cognome!.isNotEmpty) {
-        setState(() {
-          if (quale == 'A' && _cognomeAController.text.trim().isEmpty) {
-            _cognomeAController.text = result.cognome!;
-          } else if (quale == 'B' && _cognomeBController.text.trim().isEmpty) {
-            _cognomeBController.text = result.cognome!;
-          }
-        });
-      }
-      if (result.assicurazione != null && result.assicurazione!.isNotEmpty) {
-        setState(() {
-          if (quale == 'A' && _assicurazioneAController.text.trim().isEmpty) {
-            _assicurazioneAController.text = result.assicurazione!;
-          } else if (quale == 'B' &&
-              _assicurazioneBController.text.trim().isEmpty) {
-            _assicurazioneBController.text = result.assicurazione!;
-          }
-        });
-      }
-      if (result.indirizzo != null &&
-          result.indirizzo!.isNotEmpty &&
-          _luogoController.text.trim().isEmpty) {
-        setState(() {
-          _luogoController.text = result.indirizzo!;
-        });
-      }
-      if (result.indirizzo != null && result.indirizzo!.isNotEmpty) {
-        setState(() {
-          if (quale == 'A' && _indirizzoAController.text.trim().isEmpty) {
-            _indirizzoAController.text = result.indirizzo!;
-          } else if (quale == 'B' &&
-              _indirizzoBController.text.trim().isEmpty) {
-            _indirizzoBController.text = result.indirizzo!;
-          }
-        });
-      }
-      if (result.cap != null && result.cap!.isNotEmpty) {
-        setState(() {
-          if (quale == 'A' && _driverAZipController.text.trim().isEmpty) {
-            _driverAZipController.text = result.cap!;
-          } else if (quale == 'B' &&
-              _driverBZipController.text.trim().isEmpty) {
-            _driverBZipController.text = result.cap!;
-          }
-        });
-      }
-      if (result.city != null && result.city!.isNotEmpty) {
-        setState(() {
-          if (quale == 'A' && _driverACityController.text.trim().isEmpty) {
-            _driverACityController.text = result.city!;
-          } else if (quale == 'B' &&
-              _driverBCityController.text.trim().isEmpty) {
-            _driverBCityController.text = result.city!;
-          }
-        });
-      }
+      _applyLibrettoParsedData(
+        quale: quale,
+        nome: result.nome,
+        cognome: result.cognome,
+        indirizzo: result.indirizzo,
+        cap: result.cap,
+        city: result.city,
+        targa: result.targa,
+        assicurazione: result.assicurazione,
+      );
 
       _mostraSnack('Foto libretto $quale acquisita e letta con l\'AI.');
     } catch (_) {
