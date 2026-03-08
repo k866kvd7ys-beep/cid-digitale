@@ -254,13 +254,10 @@ class Ferito {
 
 /// ✅ RESULT FIRMA (STEP C: timestamp firma)
 class FirmaResult {
-  final String path;
+  final String base64Data;
   final String timestampUtcIso;
 
-  FirmaResult({
-    required this.path,
-    required this.timestampUtcIso,
-  });
+  FirmaResult({required this.base64Data, required this.timestampUtcIso});
 }
 
 /// ✅ MODELLO INCIDENTE
@@ -5494,6 +5491,7 @@ class FirmaPage extends StatefulWidget {
 
 class _FirmaPageState extends State<FirmaPage> {
   late SignatureController _controller;
+  bool _isSavingSignature = false;
 
   @override
   void initState() {
@@ -5515,35 +5513,31 @@ class _FirmaPageState extends State<FirmaPage> {
   }
 
   Future<void> _salvaFirma() async {
+    if (_isSavingSignature) return;
     if (_controller.isEmpty) {
       _mostraSnack(tx(context, 'Fai prima la firma sullo schermo.'));
       return;
     }
 
+    setState(() => _isSavingSignature = true);
+
     try {
       final bytes = await _controller.toPngBytes();
-      if (bytes == null) {
-        _mostraSnack(tx(context, 'Errore nel salvataggio della firma.'));
+      if (bytes == null || bytes.isEmpty) {
+        _mostraSnack(tx(context, 'Firma vuota'));
         return;
       }
 
-      final dir = await getApplicationDocumentsDirectory();
-      final firmaDir = Directory('${dir.path}/firme');
-      if (!await firmaDir.exists()) {
-        await firmaDir.create(recursive: true);
-      }
-      final file = File(
-        '${firmaDir.path}/firma_${widget.incidente.id}_${widget.isA ? 'A' : 'B'}.png',
-      );
-      await file.writeAsBytes(bytes);
-
       final tsUtc = DateTime.now().toUtc().toIso8601String();
+      final base64Signature = base64Encode(bytes);
 
       Navigator.of(context).pop(
-        FirmaResult(path: file.path, timestampUtcIso: tsUtc),
+        FirmaResult(base64Data: base64Signature, timestampUtcIso: tsUtc),
       );
     } catch (_) {
       _mostraSnack(tx(context, 'Errore nel salvataggio della firma.'));
+    } finally {
+      if (mounted) setState(() => _isSavingSignature = false);
     }
   }
 
@@ -5925,6 +5919,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
   String? _notaInRiproduzione;
   bool? _hashValido;
   late Future<String> _qrDataFuture;
+  bool _isSavingSignature = false;
 
   Future<String> _qrUnavailableFuture() =>
       Future.error('QR temporaneamente non disponibile');
@@ -5957,11 +5952,18 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     }
   }
 
+  Uint8List? _decodeBase64Image(String data) {
+    if (data.isEmpty) return null;
+    try {
+      return base64Decode(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
   bool get _firmeComplete =>
-      incidente.firmaAPath.isNotEmpty &&
-      File(incidente.firmaAPath).existsSync() &&
-      incidente.firmaBPath.isNotEmpty &&
-      File(incidente.firmaBPath).existsSync();
+      _decodeBase64Image(incidente.firmaAPath) != null &&
+      _decodeBase64Image(incidente.firmaBPath) != null;
 
   bool get _locked => widget.readOnly || _firmeComplete;
 
@@ -6173,15 +6175,14 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     pw.ImageProvider? firmaAImage;
     pw.ImageProvider? firmaBImage;
 
-    if (incidente.firmaAPath.isNotEmpty &&
-        File(incidente.firmaAPath).existsSync()) {
-      final bytesA = await File(incidente.firmaAPath).readAsBytes();
-      firmaAImage = pw.MemoryImage(bytesA);
+    final firmaABytes = _decodeBase64Image(incidente.firmaAPath);
+    final firmaBBytes = _decodeBase64Image(incidente.firmaBPath);
+
+    if (firmaABytes != null) {
+      firmaAImage = pw.MemoryImage(firmaABytes);
     }
-    if (incidente.firmaBPath.isNotEmpty &&
-        File(incidente.firmaBPath).existsSync()) {
-      final bytesB = await File(incidente.firmaBPath).readAsBytes();
-      firmaBImage = pw.MemoryImage(bytesB);
+    if (firmaBBytes != null) {
+      firmaBImage = pw.MemoryImage(firmaBBytes);
     }
 
     String responsabilitaPdf;
@@ -6552,7 +6553,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
   }
 
   Future<void> _firmaConducente(bool isA) async {
-    if (_locked) return;
+    if (_locked || _isSavingSignature) return;
 
     final result = await Navigator.of(context).push<FirmaResult>(
       MaterialPageRoute(
@@ -6562,64 +6563,104 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
     if (result == null) return;
 
-    final updated = Incidente(
-      id: incidente.id,
-      dataOra: incidente.dataOra,
-      luogo: incidente.luogo,
-      nomeA: incidente.nomeA,
-      cognomeA: incidente.cognomeA,
-      targaA: incidente.targaA,
-      assicurazioneA: incidente.assicurazioneA,
-      telefonoA: incidente.telefonoA,
-      emailA: incidente.emailA,
-      indirizzoA: incidente.indirizzoA,
-      zipA: incidente.zipA,
-      cityA: incidente.cityA,
-      nomeB: incidente.nomeB,
-      cognomeB: incidente.cognomeB,
-      targaB: incidente.targaB,
-      assicurazioneB: incidente.assicurazioneB,
-      telefonoB: incidente.telefonoB,
-      emailB: incidente.emailB,
-      indirizzoB: incidente.indirizzoB,
-      zipB: incidente.zipB,
-      cityB: incidente.cityB,
-      descrizione: incidente.descrizione,
-      danniVeicoloA: incidente.danniVeicoloA,
-      danniVeicoloB: incidente.danniVeicoloB,
-      otherObjectDamage: incidente.otherObjectDamage,
-      otherVehicleDamage: incidente.otherVehicleDamage,
-      testimoni: incidente.testimoni,
-      feriti: incidente.feriti,
-      notaVocaleA: incidente.notaVocaleA,
-      notaVocaleB: incidente.notaVocaleB,
-      notaAudioAPath: incidente.notaAudioAPath,
-      notaAudioBPath: incidente.notaAudioBPath,
-      fotoLibrettoA: incidente.fotoLibrettoA,
-      fotoLibrettoB: incidente.fotoLibrettoB,
-      fotoDanni: incidente.fotoDanni,
-      firmaAPath: isA ? result.path : incidente.firmaAPath,
-      firmaBPath: isA ? incidente.firmaBPath : result.path,
-      timestampFirmaA: isA ? result.timestampUtcIso : incidente.timestampFirmaA,
-      timestampFirmaB: isA ? incidente.timestampFirmaB : result.timestampUtcIso,
-      colpevole: incidente.colpevole,
-      codiceOfficina: incidente.codiceOfficina,
-      hashIntegrita: incidente.hashIntegrita,
-    );
+    setState(() => _isSavingSignature = true);
 
-    final updatedWithHash = await aggiornaHashIncidente(updated);
+    try {
+      final updated = Incidente(
+        id: incidente.id,
+        dataOra: incidente.dataOra,
+        luogo: incidente.luogo,
+        nomeA: incidente.nomeA,
+        cognomeA: incidente.cognomeA,
+        targaA: incidente.targaA,
+        assicurazioneA: incidente.assicurazioneA,
+        telefonoA: incidente.telefonoA,
+        emailA: incidente.emailA,
+        indirizzoA: incidente.indirizzoA,
+        zipA: incidente.zipA,
+        cityA: incidente.cityA,
+        nomeB: incidente.nomeB,
+        cognomeB: incidente.cognomeB,
+        targaB: incidente.targaB,
+        assicurazioneB: incidente.assicurazioneB,
+        telefonoB: incidente.telefonoB,
+        emailB: incidente.emailB,
+        indirizzoB: incidente.indirizzoB,
+        zipB: incidente.zipB,
+        cityB: incidente.cityB,
+        descrizione: incidente.descrizione,
+        danniVeicoloA: incidente.danniVeicoloA,
+        danniVeicoloB: incidente.danniVeicoloB,
+        otherObjectDamage: incidente.otherObjectDamage,
+        otherVehicleDamage: incidente.otherVehicleDamage,
+        testimoni: incidente.testimoni,
+        feriti: incidente.feriti,
+        notaVocaleA: incidente.notaVocaleA,
+        notaVocaleB: incidente.notaVocaleB,
+        notaAudioAPath: incidente.notaAudioAPath,
+        notaAudioBPath: incidente.notaAudioBPath,
+        fotoLibrettoA: incidente.fotoLibrettoA,
+        fotoLibrettoB: incidente.fotoLibrettoB,
+        fotoDanni: incidente.fotoDanni,
+        firmaAPath: isA ? result.base64Data : incidente.firmaAPath,
+        firmaBPath: isA ? incidente.firmaBPath : result.base64Data,
+        timestampFirmaA:
+            isA ? result.timestampUtcIso : incidente.timestampFirmaA,
+        timestampFirmaB:
+            isA ? incidente.timestampFirmaB : result.timestampUtcIso,
+        colpevole: incidente.colpevole,
+        codiceOfficina: incidente.codiceOfficina,
+        hashIntegrita: incidente.hashIntegrita,
+      );
 
-    final index = incidentiSalvati.indexWhere((e) => e.id == incidente.id);
-    if (index != -1) {
-      incidentiSalvati[index] = updatedWithHash;
-      await salvaIncidenti();
+      final updatedWithHash = await aggiornaHashIncidente(updated);
+
+      // Salvataggio remoto base64 firma (compatibile Web, senza File).
+      try {
+        debugPrint('SIGNATURE SAVE START');
+        debugPrint('SIGNATURE SIZE: ${result.base64Data.length}');
+        debugPrint('INCIDENT ID: ${incidente.id}');
+
+        final client = Supabase.instance.client;
+        await client
+            .from('incidents')
+            .update(isA
+                ? {
+                    'firmaAPath': result.base64Data,
+                    'timestampFirmaA': result.timestampUtcIso,
+                  }
+                : {
+                    'firmaBPath': result.base64Data,
+                    'timestampFirmaB': result.timestampUtcIso,
+                  })
+            .eq('id', incidente.id);
+      } catch (e, st) {
+        debugPrint('SIGNATURE SAVE ERROR: $e');
+        debugPrint('$st');
+      }
+
+      final index = incidentiSalvati.indexWhere((e) => e.id == incidente.id);
+      if (index != -1) {
+        incidentiSalvati[index] = updatedWithHash;
+        await salvaIncidenti();
+      }
+
+      setState(() {
+        incidente = updatedWithHash;
+        _qrDataFuture = _qrUnavailableFuture();
+      });
+      unawaited(_verificaHashIntegrita());
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(tx(context, 'Firma salvata'))),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSavingSignature = false);
+      }
     }
-
-    setState(() {
-      incidente = updatedWithHash;
-      _qrDataFuture = _qrUnavailableFuture();
-    });
-    unawaited(_verificaHashIntegrita());
   }
 
   @override
@@ -6632,12 +6673,10 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         incidente.notaAudioBPath.isNotEmpty;
     final bool hasDanni = incidente.danniVeicoloA.isNotEmpty ||
         incidente.danniVeicoloB.isNotEmpty;
-    final firmaAFile =
-        incidente.firmaAPath.isNotEmpty ? File(incidente.firmaAPath) : null;
-    final firmaBFile =
-        incidente.firmaBPath.isNotEmpty ? File(incidente.firmaBPath) : null;
-    final firmaAExists = firmaAFile?.existsSync() ?? false;
-    final firmaBExists = firmaBFile?.existsSync() ?? false;
+    final firmaABytes = _decodeBase64Image(incidente.firmaAPath);
+    final firmaBBytes = _decodeBase64Image(incidente.firmaBPath);
+    final firmaAExists = firmaABytes != null;
+    final firmaBExists = firmaBBytes != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -7006,11 +7045,12 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                         if (firmaAExists)
                           SizedBox(
                             height: 60,
-                            child: Image.file(firmaAFile!, fit: BoxFit.contain),
+                            child:
+                                Image.memory(firmaABytes!, fit: BoxFit.contain),
                           )
                         else
                           const Text(
-                            'File firma A non trovato. Chiedi di firmare di nuovo.',
+                            'Firma A non trovata. Chiedi di firmare di nuovo.',
                             style: TextStyle(
                                 fontSize: 12, color: Colors.redAccent),
                           ),
@@ -7027,11 +7067,12 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                         if (firmaBExists)
                           SizedBox(
                             height: 60,
-                            child: Image.file(firmaBFile!, fit: BoxFit.contain),
+                            child:
+                                Image.memory(firmaBBytes!, fit: BoxFit.contain),
                           )
                         else
                           const Text(
-                            'File firma B non trovato. Chiedi di firmare di nuovo.',
+                            'Firma B non trovata. Chiedi di firmare di nuovo.',
                             style: TextStyle(
                                 fontSize: 12, color: Colors.redAccent),
                           ),
