@@ -4,7 +4,22 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 type VisionResponse = {
   responses?: Array<{
-    fullTextAnnotation?: { text?: string; pages?: Array<{ confidence?: number }> };
+    fullTextAnnotation?: {
+      text?: string;
+      pages?: Array<{
+        confidence?: number;
+        blocks?: Array<{
+          boundingBox?: { vertices?: Array<{ x?: number; y?: number }> };
+          paragraphs?: Array<{
+            boundingBox?: { vertices?: Array<{ x?: number; y?: number }> };
+            words?: Array<{
+              boundingBox?: { vertices?: Array<{ x?: number; y?: number }> };
+              symbols?: Array<{ text?: string }>;
+            }>;
+          }>;
+        }>;
+      }>;
+    };
     error?: { message?: string };
   }>;
 };
@@ -134,8 +149,33 @@ serve(async (req) => {
 
     console.log("ocr-libretto-cloud: text length", text.length);
 
+    // Build blocks with bounding boxes (paragraph-level)
+    const blocks: Array<{ text: string; x: number; y: number; w: number; h: number }> = [];
+    const page = visionJson.responses?.[0]?.fullTextAnnotation?.pages?.[0];
+    if (page?.blocks) {
+      for (const b of page.blocks) {
+        if (!b.paragraphs) continue;
+        for (const p of b.paragraphs) {
+          if (!p.words) continue;
+          const words = p.words
+            .map((w) => (w.symbols || []).map((s) => s.text ?? "").join(""))
+            .filter((t) => t.length > 0);
+          const pText = words.join(" ").trim();
+          const vertices = p.boundingBox?.vertices ?? [];
+          if (pText.length === 0 || vertices.length === 0) continue;
+          const xs = vertices.map((v) => v.x ?? 0);
+          const ys = vertices.map((v) => v.y ?? 0);
+          const x = Math.min(...xs);
+          const y = Math.min(...ys);
+          const w = Math.max(...xs) - x;
+          const h = Math.max(...ys) - y;
+          blocks.push({ text: pText, x, y, w, h });
+        }
+      }
+    }
+
     return new Response(
-      JSON.stringify({ success: true, text, confidence, googleStatus }),
+      JSON.stringify({ success: true, text, confidence, googleStatus, blocks }),
       { headers: { "Content-Type": "application/json" } },
     );
   } catch (e) {

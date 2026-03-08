@@ -68,6 +68,7 @@ class _CloudOcrResult {
   final String? details;
   final int? status;
   final dynamic raw;
+  final List<_OcrBlock> blocks;
 
   _CloudOcrResult({
     required this.success,
@@ -76,6 +77,27 @@ class _CloudOcrResult {
     this.details,
     this.status,
     this.raw,
+    this.blocks = const [],
+  });
+}
+
+class _OcrBlock {
+  final String text;
+  final double x;
+  final double y;
+  final double w;
+  final double h;
+  final double nx;
+  final double ny;
+
+  _OcrBlock({
+    required this.text,
+    required this.x,
+    required this.y,
+    required this.w,
+    required this.h,
+    required this.nx,
+    required this.ny,
   });
 }
 
@@ -3474,6 +3496,47 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return candidateDigits > currentDigits ? candidate : current;
   }
 
+  List<_OcrBlock> _filterBlocksInRegion(
+    List<_OcrBlock> blocks, {
+    double xMin = 0,
+    double xMax = 1,
+    double yMin = 0,
+    double yMax = 1,
+  }) {
+    return blocks
+        .where(
+          (b) => b.nx >= xMin && b.nx <= xMax && b.ny >= yMin && b.ny <= yMax,
+        )
+        .toList();
+  }
+
+  String? _plateFromBlocks(List<_OcrBlock> blocks) {
+    final region = _filterBlocksInRegion(blocks, xMin: 0.55, yMax: 0.35);
+    String? best;
+    for (final b in region) {
+      final p = extractSwissPlate(b.text);
+      best = _selectBetterPlate(best, p);
+    }
+    return best;
+  }
+
+  Map<String, String?> _extraFromBlocks(List<_OcrBlock> blocks) {
+    final owner = _filterBlocksInRegion(blocks, xMax: 0.55, yMax: 0.45);
+    final addr = _filterBlocksInRegion(blocks, xMax: 0.6, yMin: 0.35, yMax: 0.75);
+    final ins =
+        _filterBlocksInRegion(blocks, xMax: 0.8, yMin: 0.35, yMax: 0.85);
+
+    final buffer = StringBuffer();
+    if (owner.isNotEmpty) buffer.writeln(owner.map((b) => b.text).join('\n'));
+    if (addr.isNotEmpty) buffer.writeln(addr.map((b) => b.text).join('\n'));
+    if (ins.isNotEmpty) buffer.writeln(ins.map((b) => b.text).join('\n'));
+
+    final combined = buffer.toString().trim();
+    if (combined.isEmpty) return {};
+    final parsed = estraiNomeAssicurazioneIndirizzoDaTesto(combined);
+    return parsed;
+  }
+
   Future<_CloudOcrResult> _callCloudOcr(List<int> bytes) async {
     final b64 = base64Encode(bytes);
     debugPrint('OCR cloud invoke start - base64 length: ${b64.length}');
@@ -3484,6 +3547,48 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       );
       debugPrint('OCR cloud raw response: ${res.data}');
       final data = res.data;
+      List<_OcrBlock> blocks = [];
+      if (data is Map && data['blocks'] is List) {
+        final rawBlocks = (data['blocks'] as List)
+            .whereType<Map>()
+            .where((b) =>
+                b['text'] != null &&
+                b['x'] != null &&
+                b['y'] != null &&
+                b['w'] != null &&
+                b['h'] != null)
+            .toList();
+        double maxX = 1;
+        double maxY = 1;
+        for (final b in rawBlocks) {
+          final right =
+              (b['x'] as num).toDouble() + (b['w'] as num).toDouble();
+          final bottom =
+              (b['y'] as num).toDouble() + (b['h'] as num).toDouble();
+          if (right > maxX) maxX = right;
+          if (bottom > maxY) maxY = bottom;
+        }
+        blocks = rawBlocks
+            .map((b) {
+              final x = (b['x'] as num).toDouble();
+              final y = (b['y'] as num).toDouble();
+              final w = (b['w'] as num).toDouble();
+              final h = (b['h'] as num).toDouble();
+              final cx = x + w / 2;
+              final cy = y + h / 2;
+              return _OcrBlock(
+                text: (b['text'] as String).trim(),
+                x: x,
+                y: y,
+                w: w,
+                h: h,
+                nx: cx / maxX,
+                ny: cy / maxY,
+              );
+            })
+            .where((b) => b.text.isNotEmpty)
+            .toList();
+      }
       if (data is Map) {
         return _CloudOcrResult(
           success: data['success'] == true,
@@ -3493,6 +3598,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           status:
               data['googleStatus'] is int ? data['googleStatus'] as int : null,
           raw: data,
+          blocks: blocks,
         );
       }
     } catch (e, st) {
@@ -3599,6 +3705,20 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               }
               extraWeb =
                   estraiNomeAssicurazioneIndirizzoDaTesto(cloudResult.text!);
+              if (cloudResult.blocks.isNotEmpty) {
+                final plateByBlocks = _plateFromBlocks(cloudResult.blocks);
+                if (plateByBlocks != null) {
+                  debugPrint('Targa OCR cloud (blocchi): $plateByBlocks');
+                  miglioreTarga =
+                      _selectBetterPlate(miglioreTarga, plateByBlocks);
+                }
+                final extraByBlocks = _extraFromBlocks(cloudResult.blocks);
+                if (extraByBlocks.isNotEmpty) {
+                  extraWeb = extraByBlocks;
+                  debugPrint(
+                      'OCR blocchi extra: ${extraByBlocks.toString()}');
+                }
+              }
             } else {
               miglioreTarga = null;
               _mostraSnack(
