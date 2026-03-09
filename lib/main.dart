@@ -6499,20 +6499,46 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     setState(() => _isSharingIncident = true);
     debugPrint('SHARE STEP 1: start');
     try {
-      final practiceUrl = 'https://cid-client.vercel.app/claim/${incidente.id}';
-      debugPrint('PRACTICE LINK: $practiceUrl');
+      final librettoA = incidente.fotoLibrettoA.trim();
+      final librettoB = incidente.fotoLibrettoB.trim();
+      final damageLinks =
+          incidente.fotoDanni.where((e) => e.trim().isNotEmpty).toList();
+      debugPrint('EMAIL BODY LIBRETTO A: $librettoA');
+      debugPrint('EMAIL BODY LIBRETTO B: $librettoB');
+      debugPrint('EMAIL BODY DAMAGE COUNT: ${damageLinks.length}');
+      for (final url in damageLinks) {
+        debugPrint('EMAIL BODY DAMAGE URL: $url');
+      }
+
       final prefix = testo.isNotEmpty ? '$testo\n\n' : '';
       final shareText = StringBuffer()
         ..write(prefix)
-        ..writeln('CID Digitale')
+        ..writeln('Buongiorno,')
         ..writeln()
-        ..writeln("In allegato trovi il PDF dell'incidente.")
+        ..writeln('in allegato trovi il PDF del CID digitale.')
         ..writeln()
-        ..writeln(
-            'Per visualizzare foto libretto, foto danni e tutti i dettagli:')
+        ..writeln('Foto libretto:');
+      if (librettoA.isNotEmpty) {
+        shareText.writeln('- Libretto A: $librettoA');
+      }
+      if (librettoB.isNotEmpty) {
+        shareText.writeln('- Libretto B: $librettoB');
+      }
+      if (librettoA.isEmpty && librettoB.isEmpty) {
+        shareText.writeln('- Nessuna foto disponibile');
+      }
+      shareText.writeln();
+      shareText.writeln('Foto danni:');
+      if (damageLinks.isEmpty) {
+        shareText.writeln('- Nessuna foto disponibile');
+      } else {
+        for (int i = 0; i < damageLinks.length; i++) {
+          shareText.writeln('- Foto danno ${i + 1}: ${damageLinks[i]}');
+        }
+      }
+      shareText
         ..writeln()
-        ..writeln('Apri la pratica completa:')
-        ..writeln(practiceUrl);
+        ..writeln('Cordiali saluti');
 
       debugPrint('SHARE STEP 2: build pdf');
       final pdfBytes = await _buildIncidentPdfBytes();
