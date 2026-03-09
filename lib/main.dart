@@ -6501,8 +6501,17 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     try {
       final librettoA = incidente.fotoLibrettoA.trim();
       final librettoB = incidente.fotoLibrettoB.trim();
-      final damageLinks =
-          incidente.fotoDanni.where((e) => e.trim().isNotEmpty).toList();
+      final librettoEntries = <MapEntry<String, String>>[];
+      if (librettoA.toLowerCase().startsWith('http')) {
+        librettoEntries.add(MapEntry('Libretto A', librettoA));
+      }
+      if (librettoB.toLowerCase().startsWith('http')) {
+        librettoEntries.add(MapEntry('Libretto B', librettoB));
+      }
+      final damageLinks = incidente.fotoDanni
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty && e.toLowerCase().startsWith('http'))
+          .toList();
       debugPrint('EMAIL BODY LIBRETTO A: $librettoA');
       debugPrint('EMAIL BODY LIBRETTO B: $librettoB');
       debugPrint('EMAIL BODY DAMAGE COUNT: ${damageLinks.length}');
@@ -6518,14 +6527,12 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         ..writeln('in allegato trovi il PDF del CID digitale.')
         ..writeln()
         ..writeln('Foto libretto:');
-      if (librettoA.isNotEmpty) {
-        shareText.writeln('- Libretto A: $librettoA');
-      }
-      if (librettoB.isNotEmpty) {
-        shareText.writeln('- Libretto B: $librettoB');
-      }
-      if (librettoA.isEmpty && librettoB.isEmpty) {
+      if (librettoEntries.isEmpty) {
         shareText.writeln('- Nessuna foto disponibile');
+      } else {
+        for (final entry in librettoEntries) {
+          shareText.writeln('- ${entry.key}: ${entry.value}');
+        }
       }
       shareText.writeln();
       shareText.writeln('Foto danni:');
