@@ -13,8 +13,9 @@ class WebShareFile {
 }
 
 Future<bool> shareFilesWeb({
-  required WebShareFile pdf,
-  List<WebShareFile> extras = const <WebShareFile>[],
+  required List<WebShareFile> files,
+  String title = 'CID incidente',
+  String text = '',
 }) async {
   return false;
 }

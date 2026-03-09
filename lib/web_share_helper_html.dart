@@ -6,12 +6,14 @@ import 'web_share_helper_stub.dart';
 export 'web_share_helper_stub.dart';
 
 Future<bool> shareFilesWeb({
-  required WebShareFile pdf,
-  List<WebShareFile> extras = const <WebShareFile>[],
+  required List<WebShareFile> files,
+  String title = 'CID incidente',
+  String text = '',
 }) async {
   try {
-    final files = <html.File>[
-      html.File([pdf.bytes], pdf.fileName, {'type': pdf.mimeType}),
+    final shareFiles = <html.File>[
+      for (final f in files)
+        html.File([f.bytes], f.fileName, {'type': f.mimeType}),
     ];
 
     final nav = html.window.navigator;
@@ -20,9 +22,9 @@ Future<bool> shareFilesWeb({
 
     if (shareMethod != null) {
       await shareMethod({
-        'title': 'CID incidente',
-        'text': 'PDF incidente',
-        'files': files,
+        'title': title,
+        'text': text,
+        'files': shareFiles,
       });
       return true;
     }

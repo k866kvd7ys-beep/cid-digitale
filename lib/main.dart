@@ -6502,6 +6502,41 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       debugPrint('SHARE STEP 2: build pdf');
       final pdfBytes = await _buildIncidentPdfBytes();
       debugPrint('SHARE STEP 2b: pdf bytes=${pdfBytes.length}');
+      debugPrint('ATTACH STEP 1: build pdf');
+      debugPrint(
+          'ATTACH FILE: cid_${incidente.id}.pdf size=${pdfBytes.length}');
+      final pdfFileName = 'cid_${incidente.id}.pdf';
+
+      debugPrint('ATTACH STEP 2: collect libretto photos');
+      final librettoPaths = <String>[
+        incidente.fotoLibrettoA,
+        incidente.fotoLibrettoB,
+      ].where((e) => e.isNotEmpty).toList();
+      final webLibrettoFiles = <WebShareFile>[];
+      final mobileLibrettoFiles = <XFile>[];
+      if (kIsWeb) {
+        int idx = 1;
+        for (final p in librettoPaths) {
+          try {
+            if (p.startsWith('http')) {
+              final resp = await http.get(Uri.parse(p));
+              if (resp.statusCode == 200 && resp.bodyBytes.isNotEmpty) {
+                webLibrettoFiles.add(WebShareFile(
+                  bytes: resp.bodyBytes,
+                  fileName: 'libretto_$idx.jpg',
+                  mimeType: 'image/jpeg',
+                ));
+                debugPrint(
+                    'ATTACH FILE: libretto_$idx.jpg size=${resp.bodyBytes.length}');
+                idx++;
+              }
+            }
+          } catch (e) {
+            debugPrint('ATTACH ERROR TYPE: ${e.runtimeType}');
+            debugPrint('ATTACH ERROR: $e');
+          }
+        }
+      }
 
       debugPrint('SHARE STEP 3: collect damage photos');
       final damageUrls =
@@ -6525,13 +6560,26 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       debugPrint('ATTACHMENTS INCLUDED: ${damagePhotosBytes.length}');
       debugPrint('ATTACHMENTS SKIPPED: $skipCount');
       debugPrint('SHARE STEP 4: attachments ready in memory');
+      final webDamageFiles = <WebShareFile>[];
+      if (kIsWeb) {
+        for (int i = 0; i < damagePhotosBytes.length; i++) {
+          final name = 'damage_${i + 1}.jpg';
+          webDamageFiles.add(WebShareFile(
+              bytes: damagePhotosBytes[i],
+              fileName: name,
+              mimeType: 'image/jpeg'));
+          debugPrint('ATTACH FILE: $name size=${damagePhotosBytes[i].length}');
+        }
+      }
+      debugPrint(
+          'ATTACH STEP 4: total candidate attachments = ${1 + webLibrettoFiles.length + webDamageFiles.length}');
 
       debugPrint('SHARE STEP 5: detect platform');
       if (kIsWeb) {
         debugPrint('WEB SHARE STEP 1: build pdf');
         final pdfWebFile = WebShareFile(
           bytes: pdfBytes,
-          fileName: 'cid_${incidente.id}.pdf',
+          fileName: pdfFileName,
           mimeType: 'application/pdf',
         );
         bool shared = false;
@@ -6542,25 +6590,46 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         debugPrint('WEB SHARE files count: 1');
         debugPrint('WEB SHARE PDF BYTES: ${pdfBytes.length}');
         debugPrint('WEB SHARE FILE NAME: ${pdfWebFile.fileName}');
-        try {
-          debugPrint('WEB SHARE STEP 2: create web file');
-          debugPrint('WEB SHARE STEP 3: try share single PDF');
-          shared = await shareFilesWeb(pdf: pdfWebFile);
-          if (shared) {
-            debugPrint('SHARE FLOW: native share preferred');
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(tx(context, 'Menu di condivisione aperto.')),
-                ),
-              );
-            }
-            return;
+
+        final attemptSets = <List<WebShareFile>>[
+          [pdfWebFile, ...webLibrettoFiles, ...webDamageFiles],
+          [pdfWebFile, ...webLibrettoFiles],
+          [pdfWebFile],
+        ];
+        final attemptMessages = <String>[
+          tx(context, 'Menu di condivisione aperto.'),
+          tx(context, 'Condivisione aperta con gli allegati supportati.'),
+          tx(context, 'Condivisione aperta con il PDF.'),
+        ];
+
+        for (var i = 0; i < attemptSets.length; i++) {
+          final files =
+              attemptSets[i].where((e) => e.bytes.isNotEmpty).toList();
+          if (files.isEmpty) continue;
+          debugPrint(
+              'ATTACH STEP ${5 + i}: web share try set size=${files.length}');
+          for (final f in files) {
+            debugPrint('ATTACH FILE: ${f.fileName} size=${f.bytes.length}');
           }
-        } catch (e, st) {
-          debugPrint('WEB SHARE ERROR TYPE: ${e.runtimeType}');
-          debugPrint('WEB SHARE ERROR: $e');
-          debugPrint('$st');
+          try {
+            shared = await shareFilesWeb(
+              files: files,
+              title: 'CID incidente',
+              text: 'Documentazione CID',
+            );
+            if (shared) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(attemptMessages[i])),
+                );
+              }
+              return;
+            }
+          } catch (e, st) {
+            debugPrint('WEB SHARE ERROR TYPE: ${e.runtimeType}');
+            debugPrint('WEB SHARE ERROR: $e');
+            debugPrint('$st');
+          }
         }
 
         debugPrint('WEB SHARE STEP 5: fallback download');
@@ -6588,6 +6657,31 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       allegati.add(XFile(pdfPath,
           mimeType: 'application/pdf', name: 'cid_${incidente.id}.pdf'));
 
+      // Libretto (locale o scaricato se URL)
+      for (int i = 0; i < librettoPaths.length; i++) {
+        final pathLib = librettoPaths[i];
+        try {
+          if (File(pathLib).existsSync()) {
+            allegati.add(XFile(pathLib));
+            debugPrint('ATTACH FILE: libretto_${i + 1}.jpg (locale)');
+          } else if (pathLib.startsWith('http')) {
+            final resp = await http.get(Uri.parse(pathLib));
+            if (resp.statusCode == 200 && resp.bodyBytes.isNotEmpty) {
+              final lp =
+                  '${tempDir.path}/libretto_${i + 1}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+              await File(lp).writeAsBytes(resp.bodyBytes);
+              allegati.add(XFile(lp, mimeType: 'image/jpeg'));
+              debugPrint(
+                  'ATTACH FILE: libretto_${i + 1}.jpg size=${resp.bodyBytes.length}');
+            }
+          }
+        } catch (e, st) {
+          debugPrint('ATTACH ERROR TYPE: ${e.runtimeType}');
+          debugPrint('ATTACH ERROR: $e');
+          debugPrint('$st');
+        }
+      }
+
       if (incidente.fotoLibrettoA.isNotEmpty &&
           File(incidente.fotoLibrettoA).existsSync()) {
         allegati.add(XFile(incidente.fotoLibrettoA));
@@ -6603,6 +6697,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         allegati.add(
           XFile(path, mimeType: 'image/jpeg', name: 'damage_${i + 1}.jpg'),
         );
+        debugPrint(
+            'ATTACH FILE: damage_${i + 1}.jpg size=${damagePhotosBytes[i].length}');
       }
 
       if (incidente.notaAudioAPath.isNotEmpty &&
