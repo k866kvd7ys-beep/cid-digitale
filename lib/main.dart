@@ -6261,18 +6261,6 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     final l10n = AppLocalizations.of(context)!;
     final pdf = pw.Document();
     final dataOra = formatDataOraGeneric(incidente.dataOra);
-    debugPrint('PDF LINKS: librettoA=${incidente.fotoLibrettoA}');
-    debugPrint('PDF LINKS: librettoB=${incidente.fotoLibrettoB}');
-    debugPrint('PDF LINKS: damageCount=${incidente.fotoDanni.length}');
-    final librettoLinks = <String>[
-      incidente.fotoLibrettoA.trim(),
-      incidente.fotoLibrettoB.trim(),
-    ].where((e) => e.isNotEmpty).toList();
-    final damageLinks =
-        incidente.fotoDanni.where((e) => e.trim().isNotEmpty).toList();
-    for (final url in damageLinks) {
-      debugPrint('PDF LINK DAMAGE: $url');
-    }
 
     // ✅ STEP B: hash integrità
     final hash = await _calcolaHashPratica();
@@ -6497,48 +6485,6 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                     "QR code disponibile nell'app per recuperare rapidamente la pratica."),
                 style: pw.TextStyle(fontSize: 10),
               ),
-              pw.SizedBox(height: 14),
-              pw.Text(txStatic('Allegati / Foto'),
-                  style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold, fontSize: 12)),
-              pw.SizedBox(height: 6),
-              pw.Text(txStatic('Foto libretto'),
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              if (librettoLinks.isEmpty)
-                pw.Text(txStatic('Nessuna foto disponibile'),
-                    style: pw.TextStyle(fontSize: 10))
-              else ...[
-                for (int i = 0; i < librettoLinks.length; i++)
-                  pw.UrlLink(
-                    destination: librettoLinks[i],
-                    child: pw.Text(
-                      'Libretto ${i == 0 ? 'A' : 'B'}: ${librettoLinks[i]}',
-                      style: pw.TextStyle(
-                        fontSize: 10,
-                        decoration: pw.TextDecoration.underline,
-                      ),
-                    ),
-                  ),
-              ],
-              pw.SizedBox(height: 6),
-              pw.Text(txStatic('Foto danni'),
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              if (damageLinks.isEmpty)
-                pw.Text(txStatic('Nessuna foto disponibile'),
-                    style: pw.TextStyle(fontSize: 10))
-              else ...[
-                for (int i = 0; i < damageLinks.length; i++)
-                  pw.UrlLink(
-                    destination: damageLinks[i],
-                    child: pw.Text(
-                      'Foto danno ${i + 1}: ${damageLinks[i]}',
-                      style: pw.TextStyle(
-                        fontSize: 10,
-                        decoration: pw.TextDecoration.underline,
-                      ),
-                    ),
-                  ),
-              ],
             ],
           );
         },
@@ -6553,6 +6499,21 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     setState(() => _isSharingIncident = true);
     debugPrint('SHARE STEP 1: start');
     try {
+      final practiceUrl = 'https://cid-client.vercel.app/claim/${incidente.id}';
+      debugPrint('PRACTICE LINK: $practiceUrl');
+      final prefix = testo.isNotEmpty ? '$testo\n\n' : '';
+      final shareText = StringBuffer()
+        ..write(prefix)
+        ..writeln('CID Digitale')
+        ..writeln()
+        ..writeln("In allegato trovi il PDF dell'incidente.")
+        ..writeln()
+        ..writeln(
+            'Per visualizzare foto libretto, foto danni e tutti i dettagli:')
+        ..writeln()
+        ..writeln('Apri la pratica completa:')
+        ..writeln(practiceUrl);
+
       debugPrint('SHARE STEP 2: build pdf');
       final pdfBytes = await _buildIncidentPdfBytes();
       debugPrint('SHARE STEP 2b: pdf bytes=${pdfBytes.length}');
@@ -6698,7 +6659,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
             shared = await shareFilesWeb(
               files: files,
               title: 'CID incidente',
-              text: 'Documentazione CID',
+              text: shareText.toString(),
             );
             if (shared) {
               debugPrint('WEB SHARE TRY $tryLabel SUCCESS');
@@ -6805,7 +6766,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       await Share.shareXFiles(
         allegati,
         subject: tx(context, 'CID digitale incidente'),
-        text: testo,
+        text: shareText.toString(),
         sharePositionOrigin: const ui.Rect.fromLTWH(0, 0, 1, 1),
       );
 
