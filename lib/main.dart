@@ -38,6 +38,7 @@ import 'qr/qr_payload.dart';
 import 'package:cid_digitale/widgets/damage_type_picker_sheet.dart';
 import 'package:cid_digitale/widgets/quick_action_tile.dart';
 import 'widgets/auth/auth_gate.dart';
+import 'web_share_helper.dart' show WebShareFile, shareFilesWeb;
 import 'screens/my_requests_page.dart';
 import 'package:crypto/crypto.dart';
 import 'web_ocr_stub.dart' if (dart.library.html) 'web_ocr_html.dart';
@@ -810,8 +811,7 @@ Future<String?> _ensureWorkshopClaimLink(
     if (existing != null) {
       debugPrint('QR STEP 2: existing link found');
       final token = (existing['token'] as String?)?.trim() ?? '';
-      final usedCount =
-          int.tryParse('${existing['used_count'] ?? '0'}') ?? 0;
+      final usedCount = int.tryParse('${existing['used_count'] ?? '0'}') ?? 0;
       final maxUsesExisting =
           int.tryParse('${existing['max_uses'] ?? maxUses}') ?? maxUses;
       final expiresExistingStr = existing['expires_at']?.toString();
@@ -819,8 +819,7 @@ Future<String?> _ensureWorkshopClaimLink(
           ? DateTime.tryParse(expiresExistingStr)
           : null;
       final expired = expiresExisting != null && expiresExisting.isBefore(now);
-      final exhausted =
-          maxUsesExisting > 0 && usedCount >= maxUsesExisting;
+      final exhausted = maxUsesExisting > 0 && usedCount >= maxUsesExisting;
       if (token.isNotEmpty && !expired && !exhausted) {
         return token;
       }
@@ -6528,14 +6527,54 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
       debugPrint('SHARE STEP 5: detect platform');
       if (kIsWeb) {
-        debugPrint('SHARE STEP 6 (web): open data url');
+        debugPrint('WEB SHARE STEP 1: build pdf');
+        final pdfWebFile = WebShareFile(
+          bytes: pdfBytes,
+          fileName: 'cid_${incidente.id}.pdf',
+          mimeType: 'application/pdf',
+        );
+        final webExtras = damagePhotosBytes
+            .asMap()
+            .entries
+            .map((e) => WebShareFile(
+                  bytes: e.value,
+                  fileName: 'damage_${e.key + 1}.jpg',
+                  mimeType: 'image/jpeg',
+                ))
+            .toList();
+        bool shared = false;
+        try {
+          debugPrint('WEB SHARE STEP 2: create web file');
+          debugPrint('WEB SHARE STEP 3: canShare check');
+          shared = await shareFilesWeb(pdf: pdfWebFile, extras: webExtras);
+          if (!shared) {
+            debugPrint('WEB SHARE STEP 4: retry only PDF');
+            shared = await shareFilesWeb(pdf: pdfWebFile);
+          }
+          if (shared) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(tx(context, 'Menu di condivisione aperto.')),
+                ),
+              );
+            }
+            return;
+          }
+        } catch (e, st) {
+          debugPrint('WEB SHARE ERROR TYPE: ${e.runtimeType}');
+          debugPrint('WEB SHARE ERROR: $e');
+          debugPrint('$st');
+        }
+
+        debugPrint('WEB SHARE STEP 5: fallback download');
         final pdfUri = Uri.dataFromBytes(pdfBytes, mimeType: 'application/pdf');
         await launchUrl(pdfUri);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(tx(context,
-                  'PDF generato correttamente. Controlla il download del file.')),
+                  'Condivisione diretta non disponibile su questo browser. PDF scaricato.')),
             ),
           );
         }
@@ -6615,6 +6654,152 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       tx(context,
           'Invio il CID digitale dell incidente per la gestione del sinistro.'),
     );
+  }
+
+  // ====================== EMAIL PRECOMPILATA ======================
+
+  Future<void> _invioEmailPrecompilata() async {
+    debugPrint('MAIL STEP 1: collect recipients');
+    final recipients = <String>[];
+    if (incidente.emailA.isNotEmpty) recipients.add(incidente.emailA);
+    if (incidente.emailB.isNotEmpty) recipients.add(incidente.emailB);
+    // Nessuna email assicurazione strutturata nel modello; usiamo solo quelle disponibili.
+    debugPrint(
+        'MAIL RECIPIENTS insurance=null a=${incidente.emailA} b=${incidente.emailB}');
+
+    final subject =
+        Uri.encodeComponent('CID incidente - pratica ${incidente.id}');
+
+    debugPrint('MAIL STEP 2: build pdf if needed');
+    Uint8List pdfBytes;
+    try {
+      pdfBytes = await _buildIncidentPdfBytes();
+    } catch (e, st) {
+      debugPrint('MAIL ERROR TYPE: ${e.runtimeType}');
+      debugPrint('MAIL ERROR: $e');
+      debugPrint('$st');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text(tx(context, 'Impossibile aprire l’e-mail precompilata.')),
+          ),
+        );
+      }
+      return;
+    }
+
+    final damageLinks = incidente.fotoDanni.where((e) => e.isNotEmpty).toList();
+
+    final buffer = StringBuffer()
+      ..writeln('Buongiorno,')
+      ..writeln()
+      ..writeln(
+          'in allegato trovate il PDF del CID e la documentazione fotografica relativa all’incidente.')
+      ..writeln();
+
+    if (kIsWeb) {
+      buffer.writeln(
+          'Se gli allegati non compaiono automaticamente, usa il PDF appena scaricato dal browser.');
+    } else {
+      buffer.writeln(
+          'Se gli allegati non compaiono automaticamente, allega il PDF generato dall’app.');
+    }
+
+    if (damageLinks.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('Foto danni:');
+      for (var i = 0; i < damageLinks.length; i++) {
+        buffer.writeln('${i + 1}. ${damageLinks[i]}');
+      }
+    }
+
+    buffer.writeln();
+    buffer.writeln('Cordiali saluti');
+
+    final bodyEncoded = Uri.encodeComponent(buffer.toString());
+    final toParam = recipients.isEmpty ? '' : recipients.join(',');
+
+    if (kIsWeb) {
+      debugPrint('MAIL STEP 3: prepare body (web)');
+      // Rendi disponibile il PDF tramite download rapido (data url)
+      debugPrint('MAIL STEP 4: trigger PDF download for user');
+      final pdfUri = Uri.dataFromBytes(pdfBytes, mimeType: 'application/pdf');
+      await launchUrl(pdfUri);
+
+      debugPrint('MAIL STEP 5: open mailto');
+      final mailto =
+          Uri.parse('mailto:$toParam?subject=$subject&body=$bodyEncoded');
+      await launchUrl(mailto);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tx(context,
+                'Email precompilata aperta. Se necessario allega il PDF appena scaricato.')),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Mobile / desktop native: proviamo share con allegati reali
+    debugPrint('MAIL STEP 3: prepare body (mobile)');
+    final tempDir = await getTemporaryDirectory();
+    final pdfPath =
+        '${tempDir.path}/cid_${incidente.id}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+    await File(pdfPath).writeAsBytes(pdfBytes);
+    final allegati = <XFile>[
+      XFile(pdfPath,
+          mimeType: 'application/pdf', name: 'cid_${incidente.id}.pdf'),
+    ];
+
+    // Scarica foto danni per allegarle se possibile
+    for (int i = 0; i < damageLinks.length; i++) {
+      try {
+        final resp = await http.get(Uri.parse(damageLinks[i]));
+        if (resp.statusCode == 200 && resp.bodyBytes.isNotEmpty) {
+          final pathImg = '${tempDir.path}/damage_mail_${i + 1}.jpg';
+          await File(pathImg).writeAsBytes(resp.bodyBytes);
+          allegati.add(XFile(pathImg,
+              mimeType: 'image/jpeg', name: 'damage_${i + 1}.jpg'));
+        }
+      } catch (_) {
+        // ignora singoli errori foto
+      }
+    }
+
+    debugPrint('MAIL STEP 4: share with attachments (mobile)');
+    try {
+      await Share.shareXFiles(
+        allegati,
+        subject: Uri.decodeComponent(subject),
+        text:
+            'To: $toParam\n\n${Uri.decodeComponent(bodyEncoded)}\n\n(Allegati inclusi se supportato)',
+        sharePositionOrigin: const ui.Rect.fromLTWH(0, 0, 1, 1),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tx(context, 'Email precompilata aperta.')),
+          ),
+        );
+      }
+    } catch (e, st) {
+      debugPrint('MAIL ERROR TYPE: ${e.runtimeType}');
+      debugPrint('MAIL ERROR: $e');
+      debugPrint('$st');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tx(context,
+                'Impossibile aprire l’e-mail precompilata. Allegare manualmente i file.')),
+          ),
+        );
+      }
+    }
+
+    debugPrint('MAIL STEP 5: done');
   }
 
   Future<void> _chiamaConcessionaria(BuildContext context) async {
@@ -7276,6 +7461,15 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _invioEmailPrecompilata,
+                        icon: const Icon(Icons.email_outlined),
+                        label: const Text('Invia e-mail precompilata'),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -7334,7 +7528,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                               OutlinedButton.icon(
                                 onPressed: _startWorkshopQr,
                                 icon: const Icon(Icons.refresh),
-                                label: Text(tx(context, 'Genera QR carrozzeria')),
+                                label:
+                                    Text(tx(context, 'Genera QR carrozzeria')),
                               ),
                             ],
                           );
@@ -7355,8 +7550,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                               OutlinedButton.icon(
                                 onPressed: _startWorkshopQr,
                                 icon: const Icon(Icons.qr_code),
-                                label: Text(
-                                    tx(context, 'Genera QR carrozzeria')),
+                                label:
+                                    Text(tx(context, 'Genera QR carrozzeria')),
                               ),
                             ],
                           );
