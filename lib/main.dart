@@ -6261,6 +6261,18 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     final l10n = AppLocalizations.of(context)!;
     final pdf = pw.Document();
     final dataOra = formatDataOraGeneric(incidente.dataOra);
+    debugPrint('PDF LINKS: librettoA=${incidente.fotoLibrettoA}');
+    debugPrint('PDF LINKS: librettoB=${incidente.fotoLibrettoB}');
+    debugPrint('PDF LINKS: damageCount=${incidente.fotoDanni.length}');
+    final librettoLinks = <String>[
+      incidente.fotoLibrettoA.trim(),
+      incidente.fotoLibrettoB.trim(),
+    ].where((e) => e.isNotEmpty).toList();
+    final damageLinks =
+        incidente.fotoDanni.where((e) => e.trim().isNotEmpty).toList();
+    for (final url in damageLinks) {
+      debugPrint('PDF LINK DAMAGE: $url');
+    }
 
     // ✅ STEP B: hash integrità
     final hash = await _calcolaHashPratica();
@@ -6485,6 +6497,48 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                     "QR code disponibile nell'app per recuperare rapidamente la pratica."),
                 style: pw.TextStyle(fontSize: 10),
               ),
+              pw.SizedBox(height: 14),
+              pw.Text(txStatic('Allegati / Foto'),
+                  style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold, fontSize: 12)),
+              pw.SizedBox(height: 6),
+              pw.Text(txStatic('Foto libretto'),
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              if (librettoLinks.isEmpty)
+                pw.Text(txStatic('Nessuna foto disponibile'),
+                    style: pw.TextStyle(fontSize: 10))
+              else ...[
+                for (int i = 0; i < librettoLinks.length; i++)
+                  pw.UrlLink(
+                    destination: librettoLinks[i],
+                    child: pw.Text(
+                      'Libretto ${i == 0 ? 'A' : 'B'}: ${librettoLinks[i]}',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        decoration: pw.TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+              ],
+              pw.SizedBox(height: 6),
+              pw.Text(txStatic('Foto danni'),
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              if (damageLinks.isEmpty)
+                pw.Text(txStatic('Nessuna foto disponibile'),
+                    style: pw.TextStyle(fontSize: 10))
+              else ...[
+                for (int i = 0; i < damageLinks.length; i++)
+                  pw.UrlLink(
+                    destination: damageLinks[i],
+                    child: pw.Text(
+                      'Foto danno ${i + 1}: ${damageLinks[i]}',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        decoration: pw.TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+              ],
             ],
           );
         },
