@@ -38,7 +38,8 @@ import 'qr/qr_payload.dart';
 import 'package:cid_digitale/widgets/damage_type_picker_sheet.dart';
 import 'package:cid_digitale/widgets/quick_action_tile.dart';
 import 'widgets/auth/auth_gate.dart';
-import 'web_share_helper.dart' show WebShareFile, shareFilesWeb;
+import 'web_share_helper.dart'
+    show WebShareFile, shareFilesWeb, webUserAgent, webNavigatorShareAvailable;
 import 'screens/my_requests_page.dart';
 import 'package:crypto/crypto.dart';
 import 'web_ocr_stub.dart' if (dart.library.html) 'web_ocr_html.dart';
@@ -6533,34 +6534,24 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
           fileName: 'cid_${incidente.id}.pdf',
           mimeType: 'application/pdf',
         );
-        final webExtras = damagePhotosBytes
-            .asMap()
-            .entries
-            .map((e) => WebShareFile(
-                  bytes: e.value,
-                  fileName: 'damage_${e.key + 1}.jpg',
-                  mimeType: 'image/jpeg',
-                ))
-            .toList();
         bool shared = false;
-        bool usedPdfOnly = false;
+        debugPrint('WEB SHARE TAP START');
+        debugPrint('WEB SHARE USER AGENT: ${webUserAgent()}');
+        debugPrint(
+            'WEB SHARE navigator.share available: ${webNavigatorShareAvailable()}');
+        debugPrint('WEB SHARE files count: 1');
+        debugPrint('WEB SHARE PDF BYTES: ${pdfBytes.length}');
+        debugPrint('WEB SHARE FILE NAME: ${pdfWebFile.fileName}');
         try {
           debugPrint('WEB SHARE STEP 2: create web file');
-          debugPrint('WEB SHARE STEP 3: canShare check');
-          shared = await shareFilesWeb(pdf: pdfWebFile, extras: webExtras);
-          if (!shared) {
-            debugPrint('WEB SHARE STEP 4: retry only PDF');
-            shared = await shareFilesWeb(pdf: pdfWebFile);
-            usedPdfOnly = true;
-          }
+          debugPrint('WEB SHARE STEP 3: try share single PDF');
+          shared = await shareFilesWeb(pdf: pdfWebFile);
           if (shared) {
-            debugPrint('SHARE FLOW: retry pdf only if needed');
+            debugPrint('SHARE FLOW: native share preferred');
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(usedPdfOnly
-                      ? tx(context, 'Condivisione aperta con il PDF.')
-                      : tx(context, 'Menu di condivisione aperto.')),
+                  content: Text(tx(context, 'Menu di condivisione aperto.')),
                 ),
               );
             }

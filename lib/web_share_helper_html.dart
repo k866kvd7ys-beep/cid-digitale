@@ -12,24 +12,16 @@ Future<bool> shareFilesWeb({
   try {
     final files = <html.File>[
       html.File([pdf.bytes], pdf.fileName, {'type': pdf.mimeType}),
-      ...extras.map(
-        (f) => html.File([f.bytes], f.fileName, {'type': f.mimeType}),
-      ),
     ];
 
     final nav = html.window.navigator;
     final dynamic navDynamic = nav;
-    final canShareMethod = navDynamic.canShare;
     final shareMethod = navDynamic.share;
 
-    final canShare = canShareMethod != null
-        ? canShareMethod({'files': files}) == true
-        : false;
-
-    if (canShare && shareMethod != null) {
+    if (shareMethod != null) {
       await shareMethod({
         'title': 'CID incidente',
-        'text': 'PDF e allegati incidente',
+        'text': 'PDF incidente',
         'files': files,
       });
       return true;
@@ -39,3 +31,6 @@ Future<bool> shareFilesWeb({
   }
   return false;
 }
+
+String webUserAgent() => html.window.navigator.userAgent ?? '';
+bool webNavigatorShareAvailable() => html.window.navigator.share != null;

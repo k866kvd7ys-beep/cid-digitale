@@ -18,3 +18,6 @@ Future<bool> shareFilesWeb({
 }) async {
   return false;
 }
+
+String webUserAgent() => 'non-web';
+bool webNavigatorShareAvailable() => false;
