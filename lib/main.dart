@@ -6543,6 +6543,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                 ))
             .toList();
         bool shared = false;
+        bool usedPdfOnly = false;
         try {
           debugPrint('WEB SHARE STEP 2: create web file');
           debugPrint('WEB SHARE STEP 3: canShare check');
@@ -6550,12 +6551,16 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
           if (!shared) {
             debugPrint('WEB SHARE STEP 4: retry only PDF');
             shared = await shareFilesWeb(pdf: pdfWebFile);
+            usedPdfOnly = true;
           }
           if (shared) {
+            debugPrint('SHARE FLOW: retry pdf only if needed');
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(tx(context, 'Menu di condivisione aperto.')),
+                  content: Text(usedPdfOnly
+                      ? tx(context, 'Condivisione aperta con il PDF.')
+                      : tx(context, 'Menu di condivisione aperto.')),
                 ),
               );
             }
@@ -6568,6 +6573,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         }
 
         debugPrint('WEB SHARE STEP 5: fallback download');
+        debugPrint('SHARE FLOW: fallback download if share unavailable');
         final pdfUri = Uri.dataFromBytes(pdfBytes, mimeType: 'application/pdf');
         await launchUrl(pdfUri);
         if (mounted) {
@@ -6627,8 +6633,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                tx(context, "PDF e foto pronti. Scegli l'app per inviarli.")),
+            content: Text(tx(context, 'Menu di condivisione aperto.')),
           ),
         );
       }
@@ -6636,11 +6641,12 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       debugPrint('SHARE ERROR TYPE: ${e.runtimeType}');
       debugPrint('SHARE ERROR: $e');
       debugPrint('$st');
+      debugPrint('SHARE BUTTON ERROR TYPE: ${e.runtimeType}');
+      debugPrint('SHARE BUTTON ERROR: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(tx(context,
-                'Errore nella generazione o condivisione del PDF e allegati.')),
+            content: Text(tx(context, 'Impossibile aprire la condivisione.')),
           ),
         );
       }
@@ -6650,6 +6656,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
   }
 
   Future<void> _condividiPerAssicurazione(BuildContext context) async {
+    debugPrint('SHARE BUTTON TAP');
+    debugPrint('SHARE FLOW: native share preferred');
     await _shareIncidentPdfAndPhotos(
       tx(context,
           'Invio il CID digitale dell incidente per la gestione del sinistro.'),
@@ -7455,19 +7463,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                             ? null
                             : () => _condividiPerAssicurazione(context),
                         icon: const Icon(Icons.picture_as_pdf_outlined),
-                        label: Text(
-                          tx(context,
-                              'Invia PDF + foto alla assicurazione e conducente A e B'),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: _invioEmailPrecompilata,
-                        icon: const Icon(Icons.email_outlined),
-                        label: const Text('Invia e-mail precompilata'),
+                        label: const Text('Condividi PDF e foto'),
                       ),
                     ),
                   ],
