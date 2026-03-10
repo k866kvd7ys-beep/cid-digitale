@@ -6513,42 +6513,26 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     setState(() => _isSharingIncident = true);
     debugPrint('SHARE STEP 1: start');
     try {
-      bool _isValidPublicImageUrl(String? url) {
+      bool _isValidUrl(String? url) {
         if (url == null) return false;
         final u = url.trim();
-        return u.startsWith('http') &&
-            u.contains('/storage/v1/object/public/') &&
-            u.contains('/claim_attachments/');
+        return u.isNotEmpty && u.startsWith('http');
       }
 
-      final librettoUrlsRaw = [
+      final librettoUrls = [
         incidente.fotoLibrettoA,
         incidente.fotoLibrettoB,
-      ];
-      final damageUrlsRaw = incidente.fotoDanni;
+      ].where(_isValidUrl).map((e) => e.trim()).toList();
+      final damageLinks =
+          incidente.fotoDanni.where(_isValidUrl).map((e) => e.trim()).toList();
 
-      final librettoUrls = <MapEntry<String, String>>[];
-      if (_isValidPublicImageUrl(incidente.fotoLibrettoA)) {
-        librettoUrls
-            .add(MapEntry('Libretto A', incidente.fotoLibrettoA.trim()));
-      }
-      if (_isValidPublicImageUrl(incidente.fotoLibrettoB)) {
-        librettoUrls
-            .add(MapEntry('Libretto B', incidente.fotoLibrettoB.trim()));
-      }
-
-      final damageLinks = damageUrlsRaw
-          .where(_isValidPublicImageUrl)
-          .map((e) => e.trim())
-          .toList();
-
-      for (final url in librettoUrlsRaw) {
+      for (final url in librettoUrls) {
         debugPrint('EMAIL URL CHECK: $url');
-        debugPrint('EMAIL URL VALID: ${_isValidPublicImageUrl(url)}');
+        debugPrint('EMAIL URL VALID: ${_isValidUrl(url)}');
       }
-      for (final url in damageUrlsRaw) {
+      for (final url in damageLinks) {
         debugPrint('EMAIL URL CHECK: $url');
-        debugPrint('EMAIL URL VALID: ${_isValidPublicImageUrl(url)}');
+        debugPrint('EMAIL URL VALID: ${_isValidUrl(url)}');
       }
       debugPrint('EMAIL BODY DAMAGE COUNT: ${damageLinks.length}');
       for (final url in damageLinks) {
@@ -6575,8 +6559,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       if (librettoUrls.isEmpty) {
         shareText.writeln('Nessuna foto disponibile');
       } else {
-        for (final entry in librettoUrls) {
-          shareText.writeln(entry.value);
+        for (final url in librettoUrls) {
+          shareText.writeln(url);
         }
       }
       shareText

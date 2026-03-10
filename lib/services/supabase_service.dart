@@ -123,6 +123,8 @@ class SupabaseService {
     final ts = DateTime.now().millisecondsSinceEpoch;
     final safeName = filename.replaceAll(' ', '_');
     final path = 'claims/$claimId/$kind/${ts}_$safeName';
+    debugPrint('UPLOAD BUCKET: $bucket');
+    debugPrint('UPLOAD PATH: $path');
 
     await client.storage.from(bucket).uploadBinary(
           path,
@@ -134,6 +136,7 @@ class SupabaseService {
         );
 
     final publicUrl = client.storage.from(bucket).getPublicUrl(path);
+    debugPrint('PUBLIC URL GENERATED: $publicUrl');
     if (publicUrl.isEmpty) {
       throw Exception('Impossibile ottenere URL pubblico per $path');
     }
