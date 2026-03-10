@@ -6513,21 +6513,43 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     setState(() => _isSharingIncident = true);
     debugPrint('SHARE STEP 1: start');
     try {
-      final librettoA = incidente.fotoLibrettoA.trim();
-      final librettoB = incidente.fotoLibrettoB.trim();
-      final librettoEntries = <MapEntry<String, String>>[];
-      if (librettoA.toLowerCase().startsWith('http')) {
-        librettoEntries.add(MapEntry('Libretto A', librettoA));
+      bool _isValidPublicImageUrl(String? url) {
+        if (url == null) return false;
+        final u = url.trim();
+        return u.startsWith('http') &&
+            u.contains('/storage/v1/object/public/') &&
+            u.contains('/claim_attachments/');
       }
-      if (librettoB.toLowerCase().startsWith('http')) {
-        librettoEntries.add(MapEntry('Libretto B', librettoB));
+
+      final librettoUrlsRaw = [
+        incidente.fotoLibrettoA,
+        incidente.fotoLibrettoB,
+      ];
+      final damageUrlsRaw = incidente.fotoDanni;
+
+      final librettoUrls = <MapEntry<String, String>>[];
+      if (_isValidPublicImageUrl(incidente.fotoLibrettoA)) {
+        librettoUrls
+            .add(MapEntry('Libretto A', incidente.fotoLibrettoA.trim()));
       }
-      final damageLinks = incidente.fotoDanni
+      if (_isValidPublicImageUrl(incidente.fotoLibrettoB)) {
+        librettoUrls
+            .add(MapEntry('Libretto B', incidente.fotoLibrettoB.trim()));
+      }
+
+      final damageLinks = damageUrlsRaw
+          .where(_isValidPublicImageUrl)
           .map((e) => e.trim())
-          .where((e) => e.isNotEmpty && e.toLowerCase().startsWith('http'))
           .toList();
-      debugPrint('EMAIL BODY LIBRETTO A: $librettoA');
-      debugPrint('EMAIL BODY LIBRETTO B: $librettoB');
+
+      for (final url in librettoUrlsRaw) {
+        debugPrint('EMAIL URL CHECK: $url');
+        debugPrint('EMAIL URL VALID: ${_isValidPublicImageUrl(url)}');
+      }
+      for (final url in damageUrlsRaw) {
+        debugPrint('EMAIL URL CHECK: $url');
+        debugPrint('EMAIL URL VALID: ${_isValidPublicImageUrl(url)}');
+      }
       debugPrint('EMAIL BODY DAMAGE COUNT: ${damageLinks.length}');
       for (final url in damageLinks) {
         debugPrint('EMAIL BODY DAMAGE URL: $url');
@@ -6538,23 +6560,23 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         ..write(prefix)
         ..writeln('Buongiorno,')
         ..writeln()
-        ..writeln('in allegato trovi il PDF del CID digitale.')
+        ..writeln('in allegato trova il PDF del CID digitale.')
         ..writeln()
-        ..writeln('Foto libretto:');
-      if (librettoEntries.isEmpty) {
-        shareText.writeln('- Nessuna foto disponibile');
+        ..writeln('Foto danni:');
+      if (damageLinks.isEmpty) {
+        shareText.writeln('Nessuna foto disponibile');
       } else {
-        for (final entry in librettoEntries) {
-          shareText.writeln('- ${entry.key}: ${entry.value}');
+        for (final url in damageLinks) {
+          shareText.writeln(url);
         }
       }
       shareText.writeln();
-      shareText.writeln('Foto danni:');
-      if (damageLinks.isEmpty) {
-        shareText.writeln('- Nessuna foto disponibile');
+      shareText.writeln('Foto libretto:');
+      if (librettoUrls.isEmpty) {
+        shareText.writeln('Nessuna foto disponibile');
       } else {
-        for (int i = 0; i < damageLinks.length; i++) {
-          shareText.writeln('- Foto danno ${i + 1}: ${damageLinks[i]}');
+        for (final entry in librettoUrls) {
+          shareText.writeln(entry.value);
         }
       }
       shareText
