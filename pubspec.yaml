@@ -10,6 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  idb_shim: ^2.3.1
 
   # UI / Material
   cupertino_icons: ^1.0.6

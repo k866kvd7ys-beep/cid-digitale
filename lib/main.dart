@@ -32,6 +32,7 @@ import 'screens/service/raeder_wechsel_screen.dart';
 import 'screens/service/workshop_slot_picker_screen.dart';
 import 'services/supabase_service.dart';
 import 'services/incidents_sync_service.dart';
+import 'services/local_image_cache.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'qr/qr_payload.dart';
@@ -4100,6 +4101,11 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           '[Damage] bytes length=${bytes.length} platform=${kIsWeb ? 'web' : 'mobile'} kind=$kind');
 
       if (kind == 'damage') {
+        if (kIsWeb) {
+          final cacheKey =
+              '${claimId}_damage_${DateTime.now().millisecondsSinceEpoch}';
+          await LocalImageCache.saveImageLocally(cacheKey, bytes);
+        }
         final item = DamagePhotoItem(
           status: DamagePhotoStatus.local,
           bytes: bytes,
@@ -4115,6 +4121,11 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       }
 
       if (kind == 'libretto' && quale != null) {
+        if (kIsWeb) {
+          final cacheKey =
+              '${claimId}_libretto${quale.toUpperCase()}_${DateTime.now().millisecondsSinceEpoch}';
+          await LocalImageCache.saveImageLocally(cacheKey, bytes);
+        }
         setState(() {
           if (quale == 'A') {
             _fotoLibrettoABytes = bytes;
@@ -4787,6 +4798,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       debugPrint('[Save] incident saved locally');
       await caricaIncidenti();
       debugPrint('[Save] list refreshed after save');
+      if (kIsWeb) {
+        await LocalImageCache.clearIncidentImages(id);
+      }
       if (mounted) setState(() {});
 
       debugPrint('SAVE STEP 4: sync incident (non-blocking)');
