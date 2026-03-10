@@ -136,7 +136,7 @@ class SupabaseService {
         );
 
     final publicUrl = client.storage.from(bucket).getPublicUrl(path);
-    debugPrint('PUBLIC URL GENERATED: $publicUrl');
+    debugPrint('SUPABASE PUBLIC URL GENERATED: $publicUrl');
     if (publicUrl.isEmpty) {
       throw Exception('Impossibile ottenere URL pubblico per $path');
     }
