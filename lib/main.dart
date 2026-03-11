@@ -44,6 +44,7 @@ import 'web_share_helper.dart'
 import 'screens/my_requests_page.dart';
 import 'package:crypto/crypto.dart';
 import 'web_ocr_stub.dart' if (dart.library.html) 'web_ocr_html.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NominatimSuggestion {
   final String displayName;
@@ -3621,6 +3622,20 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return url.substring(idx + marker.length);
   }
 
+  Future<void> _sendCidAutomatically(String claimId) async {
+    try {
+      final result = await Supabase.instance.client.functions.invoke(
+        'send-cid-email',
+        body: {
+          'claimId': claimId,
+        },
+      );
+      debugPrint('CID EMAIL RESULT: ${result.data}');
+    } catch (e) {
+      debugPrint('CID EMAIL ERROR: $e');
+    }
+  }
+
   Future<void> _deleteDamagePhotoFromStorage(DamagePhotoItem item) async {
     final path = item.storagePath?.trim();
     if (path == null || path.isEmpty) {
@@ -4801,6 +4816,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       if (kIsWeb) {
         await LocalImageCache.clearIncidentImages(id);
       }
+      await _sendCidAutomatically(id);
       if (mounted) setState(() {});
 
       debugPrint('SAVE STEP 4: sync incident (non-blocking)');
@@ -6028,6 +6044,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
   late Future<String> _qrDataFuture;
   bool _isSavingSignature = false;
   bool _isSharingIncident = false;
+  bool _isSendingAuto = false;
 
   Future<String> _qrEmptyFuture() => Future.value('');
 
@@ -6857,6 +6874,38 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     );
   }
 
+  Future<void> _sendCidAutomatically(String claimId) async {
+    if (_isSendingAuto) return;
+    setState(() => _isSendingAuto = true);
+    try {
+      final result = await Supabase.instance.client.functions.invoke(
+        'send-cid-email',
+        body: {
+          'claimId': claimId,
+        },
+      );
+      debugPrint('CID EMAIL RESULT: ${result.data}');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(tx(context, 'Pratica inviata automaticamente.'))),
+        );
+      }
+    } catch (e, st) {
+      debugPrint('AUTO SEND ERROR: $e');
+      debugPrint('$st');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  tx(context, 'Errore nell’invio automatico della pratica.'))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSendingAuto = false);
+    }
+  }
+
   // ====================== EMAIL PRECOMPILATA ======================
 
   Future<void> _invioEmailPrecompilata() async {
@@ -7657,6 +7706,17 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                             : () => _condividiPerAssicurazione(context),
                         icon: const Icon(Icons.picture_as_pdf_outlined),
                         label: const Text('Condividi PDF e foto'),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _isSendingAuto
+                            ? null
+                            : () => _sendCidAutomatically(incidente.id),
+                        icon: const Icon(Icons.send),
+                        label: const Text('Invia automaticamente pratica'),
                       ),
                     ),
                   ],
