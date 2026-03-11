@@ -6885,6 +6885,14 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         },
       );
       debugPrint('CID EMAIL RESULT: ${result.data}');
+      debugPrint('CID EMAIL STATUS: ${result.status}');
+      if (result.status >= 400) {
+        throw Exception('Edge function status ${result.status}');
+      }
+      if (result.data is Map && (result.data as Map)['success'] == false) {
+        throw Exception((result.data as Map)['error'] ?? 'Invio non riuscito');
+      }
+      debugPrint('CID EMAIL SUCCESS');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
