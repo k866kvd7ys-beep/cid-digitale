@@ -40,20 +40,22 @@ serve(async (req) => {
     }
 
     const payload = (claim?.payload_json ?? {}) as Record<string, any>;
-    const emails = [
-      payload["emailAssicurazione"] ?? payload["assicurazioneEmail"],
-      payload["emailA"],
-      payload["emailB"],
-    ]
-      .map((e) => (typeof e === "string" ? e.trim() : ""))
-      .filter((e) => e.length > 3 && e.includes("@"));
+    const recipients = [payload["emailA"], payload["emailB"]]
+      .map((v) => (typeof v === "string" ? v.trim() : ""))
+      .filter((v, i, arr) => v.length > 3 && v.includes("@") && arr.indexOf(v) === i);
 
-    console.log("Recipients:", emails);
+    console.log("SEND CID EMAIL recipients:", recipients);
 
-    if (emails.length === 0) {
-      return Response.json(
-        { error: "No valid recipients", success: false },
-        { status: 400 },
+    if (recipients.length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Nessuna email valida per conducente A o B",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -89,22 +91,40 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: FROM_EMAIL,
-        to: emails,
+        to: recipients,
         subject: "CID digitale incidente",
         text: bodyLines.join("\n"),
       }),
     });
 
     if (!res.ok) {
-      const txt = await res.text();
-      console.error("Resend error", txt);
-      return Response.json(
-        { error: "Email provider error", details: txt, success: false },
-        { status: 500 },
+      const resendResult = await res.json().catch(() => ({} as any));
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: resendResult?.message ?? "Errore invio Resend",
+          resendStatus: res.status,
+          resendBody: resendResult,
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
       );
     }
 
-    return Response.json({ success: true });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: "Email inviata correttamente",
+        recipients,
+        claimId,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   } catch (err) {
     console.error("Function error", err);
     return Response.json(
