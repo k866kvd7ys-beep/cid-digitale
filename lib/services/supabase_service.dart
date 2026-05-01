@@ -135,6 +135,12 @@ class SupabaseService {
           ),
         );
 
+    await client.from('claim_attachments').insert({
+      'claim_id': claimId,
+      'kind': kind,
+      'file_path': path,
+    });
+
     final publicUrl = client.storage.from(bucket).getPublicUrl(path);
     debugPrint('SUPABASE PUBLIC URL GENERATED: $publicUrl');
     if (publicUrl.isEmpty) {
