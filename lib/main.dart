@@ -655,7 +655,41 @@ final Map<String, Future<String>> _clientQrTokenCache = {};
 final Map<String, Future<String>> _claimUuidCache = {};
 const String _workshopPurpose = 'workshop_intake';
 
+Future<String> _ensurePersistedClaimId(Incidente inc) async {
+  if (QrPayload.looksLikeUuid(inc.id)) {
+    return inc.id;
+  }
+
+  SupabaseClient client;
+  try {
+    client = Supabase.instance.client;
+  } catch (_) {
+    throw Exception(
+        'Supabase non inizializzato: controlla Supabase.initialize/chiavi.');
+  }
+
+  final insertResult = await client
+      .from('claims')
+      .insert({
+        'status': 'warten_auf_freigabe',
+        'payload_json': inc.toJson(),
+      })
+      .select()
+      .single();
+
+  final claimId = '${insertResult['id'] ?? ''}'.trim();
+  if (!QrPayload.looksLikeUuid(claimId)) {
+    throw Exception('Insert claims ha restituito un id non UUID: $claimId');
+  }
+
+  return claimId;
+}
+
 Future<String> _ensureClaimUuid(Incidente inc) {
+  if (QrPayload.looksLikeUuid(inc.id)) {
+    return Future.value(inc.id);
+  }
+
   // Usa cache per non creare più volte la stessa pratica durante la sessione.
   final cached = _claimUuidCache[inc.id];
   if (cached != null) return cached;
@@ -4734,10 +4768,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
       debugPrint('SAVE STEP 2: build payload');
       _draftClaimId ??= DateTime.now().millisecondsSinceEpoch.toString();
-      final id = _draftClaimId!;
+      final draftId = _draftClaimId!;
 
       final codiceOfficina =
-          id.length > 6 ? id.substring(id.length - 6) : id.padLeft(6, '0');
+          draftId.length > 6
+              ? draftId.substring(draftId.length - 6)
+              : draftId.padLeft(6, '0');
 
       final List<Testimone> testimoni = _testimoni
           .map((t) {
@@ -4760,7 +4796,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           .toList();
 
       final baseIncidente = Incidente(
-        id: id,
+        id: draftId,
         dataOra: _dataOra,
         luogo: _luogoController.text.trim(),
         nomeA: _nomeAController.text.trim(),
@@ -4806,25 +4842,47 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
       debugPrint('SAVE STEP 3: save incident db');
       final nuovo = await aggiornaHashIncidente(baseIncidente);
-      debugPrint('[Save] payload fotoDanni count=${nuovo.fotoDanni.length}');
+      final claimId = await _ensurePersistedClaimId(nuovo);
+      final incidenteSalvato = claimId == nuovo.id
+          ? nuovo
+          : Incidente.fromJson({
+              ...nuovo.toJson(),
+              'id': claimId,
+            });
 
-      incidentiSalvati.insert(0, nuovo);
+      await _supabaseService.client.from('claims').update({
+        'payload_json': incidenteSalvato.toJson(),
+        'workshop_code': incidenteSalvato.codiceOfficina,
+        'hashed_token': incidenteSalvato.hashIntegrita,
+      }).eq('id', claimId);
+
+      if (draftId != claimId) {
+        await _supabaseService.client
+            .from('claim_attachments')
+            .update({'claim_id': claimId}).eq('claim_id', draftId);
+      }
+
+      _draftClaimId = claimId;
+      debugPrint(
+          '[Save] payload fotoDanni count=${incidenteSalvato.fotoDanni.length}');
+
+      incidentiSalvati.insert(0, incidenteSalvato);
       await salvaIncidenti();
       debugPrint('[Save] incident saved locally');
       await caricaIncidenti();
       debugPrint('[Save] list refreshed after save');
       if (kIsWeb) {
-        await LocalImageCache.clearIncidentImages(id);
+        await LocalImageCache.clearIncidentImages(draftId);
       }
-      await _sendCidAutomatically(id);
+      await _sendCidAutomatically(claimId);
       if (mounted) setState(() {});
 
       debugPrint('SAVE STEP 4: sync incident (non-blocking)');
       try {
         final sync = IncidentsSyncService();
         await sync.uploadIncident(
-          payload: nuovo.toJson(),
-          hashSha256: nuovo.hashIntegrita,
+          payload: incidenteSalvato.toJson(),
+          hashSha256: incidenteSalvato.hashIntegrita,
           timestampUtc: DateTime.now().toUtc(),
           locale: Localizations.localeOf(context).languageCode,
           deviceId: null,
@@ -4839,7 +4897,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       debugPrint('SAVE STEP 5: refresh detail + navigate (QR skipped)');
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => DettaglioIncidentePage(incidente: nuovo),
+          builder: (_) => DettaglioIncidentePage(incidente: incidenteSalvato),
         ),
       );
     } catch (e, st) {
@@ -6878,10 +6936,47 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     if (_isSendingAuto) return;
     setState(() => _isSendingAuto = true);
     try {
+      String realClaimId = claimId;
+      if (!QrPayload.looksLikeUuid(realClaimId)) {
+        realClaimId = await _ensurePersistedClaimId(incidente);
+        final updatedIncident = realClaimId == incidente.id
+            ? incidente
+            : Incidente.fromJson({
+                ...incidente.toJson(),
+                'id': realClaimId,
+              });
+
+        await Supabase.instance.client.from('claims').update({
+          'payload_json': updatedIncident.toJson(),
+          'workshop_code': updatedIncident.codiceOfficina,
+          'hashed_token': updatedIncident.hashIntegrita,
+        }).eq('id', realClaimId);
+
+        await Supabase.instance.client
+            .from('claim_attachments')
+            .update({'claim_id': realClaimId}).eq('claim_id', claimId);
+
+        if (updatedIncident.id != incidente.id) {
+          final index = incidentiSalvati.indexWhere((e) => e.id == incidente.id);
+          if (index != -1) {
+            incidentiSalvati[index] = updatedIncident;
+            await salvaIncidenti();
+          }
+          if (mounted) {
+            setState(() {
+              incidente = updatedIncident;
+              _qrDataFuture = _qrEmptyFuture();
+            });
+          } else {
+            incidente = updatedIncident;
+          }
+        }
+      }
+
       final result = await Supabase.instance.client.functions.invoke(
         'send-cid-email',
         body: {
-          'claimId': claimId,
+          'claimId': realClaimId,
         },
       );
       debugPrint('CID EMAIL RESULT: ${result.data}');
