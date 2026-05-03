@@ -205,6 +205,34 @@ Future<void> salvaConfigOfficina() async {
   );
 }
 
+bool _isValidSendEmail(String? value) {
+  final trimmed = value?.trim() ?? '';
+  return trimmed.isNotEmpty &&
+      RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(trimmed);
+}
+
+List<String> _collectSendRecipients({
+  String? emailA,
+  String? emailB,
+  Iterable<String> extraEmails = const <String>[],
+}) {
+  final recipients = <String>[];
+
+  void addIfValid(String? candidate) {
+    final trimmed = candidate?.trim() ?? '';
+    if (!_isValidSendEmail(trimmed) || recipients.contains(trimmed)) return;
+    recipients.add(trimmed);
+  }
+
+  addIfValid(emailA);
+  addIfValid(emailB);
+  for (final candidate in extraEmails) {
+    addIfValid(candidate);
+  }
+
+  return recipients;
+}
+
 /// ✅ MODELLO TESTIMONE
 
 class Testimone {
@@ -3656,7 +3684,28 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return url.substring(idx + marker.length);
   }
 
-  Future<void> _sendCidAutomatically(String claimId) async {
+  Future<String> _sendCidAutomatically(
+    String claimId,
+    Incidente incidenteSalvato,
+  ) async {
+    final availableContacts = {
+      'emailA': incidenteSalvato.emailA.trim(),
+      'emailB': incidenteSalvato.emailB.trim(),
+      'officinaEmail': configOfficina.concessionariaEmail.trim(),
+      'assicurazioneA': incidenteSalvato.assicurazioneA.trim(),
+      'assicurazioneB': incidenteSalvato.assicurazioneB.trim(),
+    };
+    final recipients = _collectSendRecipients(
+      emailA: incidenteSalvato.emailA,
+      emailB: incidenteSalvato.emailB,
+    );
+    debugPrint('SEND CONTACTS AVAILABLE: ${jsonEncode(availableContacts)}');
+    debugPrint('SEND RECIPIENTS FINAL: $recipients');
+    if (recipients.isEmpty) {
+      debugPrint('SEND SKIPPED NO EMAIL: claimId=$claimId');
+      return 'Pratica salvata. Nessuna email disponibile per l’invio automatico.';
+    }
+
     try {
       final result = await Supabase.instance.client.functions.invoke(
         'send-cid-email',
@@ -3665,8 +3714,17 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         },
       );
       debugPrint('CID EMAIL RESULT: ${result.data}');
+      debugPrint('CID EMAIL STATUS: ${result.status}');
+      if (result.status >= 400) {
+        throw Exception('Edge function status ${result.status}');
+      }
+      if (result.data is Map && (result.data as Map)['success'] == false) {
+        throw Exception((result.data as Map)['error'] ?? 'Invio non riuscito');
+      }
+      return 'Pratica salvata e inviata correttamente.';
     } catch (e) {
       debugPrint('CID EMAIL ERROR: $e');
+      return 'Pratica salvata. Invio email non riuscito: riprova più tardi.';
     }
   }
 
@@ -4897,8 +4955,14 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       if (kIsWeb) {
         await LocalImageCache.clearIncidentImages(draftId);
       }
-      await _sendCidAutomatically(claimId);
-      if (mounted) setState(() {});
+      final sendMessage =
+          await _sendCidAutomatically(claimId, incidenteSalvato);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(sendMessage)),
+        );
+        setState(() {});
+      }
 
       debugPrint('SAVE STEP 4: sync incident (non-blocking)');
       try {
@@ -6957,6 +7021,33 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
   Future<void> _sendCidAutomatically(String claimId) async {
     if (_isSendingAuto) return;
+    final availableContacts = {
+      'emailA': incidente.emailA.trim(),
+      'emailB': incidente.emailB.trim(),
+      'officinaEmail': configOfficina.concessionariaEmail.trim(),
+      'assicurazioneA': incidente.assicurazioneA.trim(),
+      'assicurazioneB': incidente.assicurazioneB.trim(),
+    };
+    final recipients = _collectSendRecipients(
+      emailA: incidente.emailA,
+      emailB: incidente.emailB,
+    );
+    debugPrint('SEND CONTACTS AVAILABLE: ${jsonEncode(availableContacts)}');
+    debugPrint('SEND RECIPIENTS FINAL: $recipients');
+    if (recipients.isEmpty) {
+      debugPrint('SEND SKIPPED NO EMAIL: claimId=$claimId');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Pratica salvata. Nessuna email disponibile per l’invio automatico.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _isSendingAuto = true);
     try {
       String realClaimId = claimId;
@@ -7014,7 +7105,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(tx(context, 'Pratica inviata automaticamente.'))),
+            content: Text('Pratica salvata e inviata correttamente.'),
+          ),
         );
       }
     } catch (e, st) {
@@ -7022,9 +7114,11 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       debugPrint('$st');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  tx(context, 'Errore nell’invio automatico della pratica.'))),
+          const SnackBar(
+            content: Text(
+              'Pratica salvata. Invio email non riuscito: riprova più tardi.',
+            ),
+          ),
         );
       }
     } finally {
@@ -7036,12 +7130,27 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
   Future<void> _invioEmailPrecompilata() async {
     debugPrint('MAIL STEP 1: collect recipients');
-    final recipients = <String>[];
-    if (incidente.emailA.isNotEmpty) recipients.add(incidente.emailA);
-    if (incidente.emailB.isNotEmpty) recipients.add(incidente.emailB);
-    // Nessuna email assicurazione strutturata nel modello; usiamo solo quelle disponibili.
-    debugPrint(
-        'MAIL RECIPIENTS insurance=null a=${incidente.emailA} b=${incidente.emailB}');
+    final availableContacts = {
+      'emailA': incidente.emailA.trim(),
+      'emailB': incidente.emailB.trim(),
+      'officinaEmail': configOfficina.concessionariaEmail.trim(),
+      'assicurazioneA': incidente.assicurazioneA.trim(),
+      'assicurazioneB': incidente.assicurazioneB.trim(),
+    };
+    final recipients = _collectSendRecipients(
+      emailA: incidente.emailA,
+      emailB: incidente.emailB,
+      extraEmails: [
+        configOfficina.concessionariaEmail,
+        incidente.assicurazioneA,
+        incidente.assicurazioneB,
+      ],
+    );
+    debugPrint('SEND CONTACTS AVAILABLE: ${jsonEncode(availableContacts)}');
+    debugPrint('SEND RECIPIENTS FINAL: $recipients');
+    if (recipients.isEmpty) {
+      debugPrint('SEND SKIPPED NO EMAIL: claimId=${incidente.id}');
+    }
 
     final subject =
         Uri.encodeComponent('CID incidente - pratica ${incidente.id}');
@@ -7434,10 +7543,13 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                               '${incidente.emailB.isNotEmpty ? ' · ${incidente.emailB}' : ''}',
                               style: const TextStyle(
                                   fontSize: 12, color: Colors.black54),
-                            )
-                          else
+                            ),
+                          if (_collectSendRecipients(
+                            emailA: incidente.emailA,
+                            emailB: incidente.emailB,
+                          ).isEmpty)
                             const Text(
-                              'Contatti non inseriti (email/telefono A e B vuoti).',
+                              'Nessuna email disponibile per l’invio automatico.',
                               style: TextStyle(
                                   fontSize: 12, color: Colors.redAccent),
                             ),
