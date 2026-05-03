@@ -120,9 +120,30 @@ class SupabaseService {
     required String kind,
     String bucket = 'claim_attachments',
   }) async {
+    final rawClaimId = claimId.trim();
+    final looksLikeUuid = rawClaimId.contains('-');
+    var resolvedClaimId = rawClaimId;
+
+    if (!looksLikeUuid) {
+      try {
+        final existingClaim = await client
+            .from('claims')
+            .select('id')
+            .contains('payload_json', {'id': rawClaimId})
+            .order('created_at', ascending: false)
+            .limit(1)
+            .maybeSingle();
+
+        final dbClaimId = existingClaim?['id']?.toString().trim();
+        if (dbClaimId != null && dbClaimId.isNotEmpty) {
+          resolvedClaimId = dbClaimId;
+        }
+      } catch (_) {}
+    }
+
     final ts = DateTime.now().millisecondsSinceEpoch;
     final safeName = filename.replaceAll(' ', '_');
-    final path = 'claims/$claimId/$kind/${ts}_$safeName';
+    final path = 'claims/$resolvedClaimId/$kind/${ts}_$safeName';
     debugPrint('UPLOAD BUCKET: $bucket');
     debugPrint('UPLOAD PATH: $path');
 
@@ -135,20 +156,28 @@ class SupabaseService {
           ),
         );
 
+    final publicUrl = client.storage.from(bucket).getPublicUrl(path);
+    if (resolvedClaimId.isEmpty) {
+      debugPrint('ERRORE: claimId non risolto');
+      debugPrint('SUPABASE PUBLIC URL GENERATED: $publicUrl');
+      if (publicUrl.isEmpty) {
+        throw Exception('Impossibile ottenere URL pubblico per $path');
+      }
+      return publicUrl;
+    }
+
     try {
       final currentUserId = client.auth.currentUser?.id;
-      final normalizedClaimId = claimId.trim();
-      final isUuid = RegExp(
-        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-      ).hasMatch(normalizedClaimId);
 
       debugPrint(
-        'CLAIM_ATTACHMENT_INSERT_TRY: claim_id=$normalizedClaimId '
-        'is_uuid=$isUuid kind=$kind file_path=$path',
+        'CLAIM_ATTACHMENT_INSERT_TRY: claim_id=$resolvedClaimId '
+        'is_uuid=${resolvedClaimId.contains('-')} kind=$kind file_path=$path',
       );
+      debugPrint('INSERT ATTACHMENT claim_id=$resolvedClaimId path=$path');
+      debugPrint('FINAL INSERT claim_id=$resolvedClaimId path=$path');
 
       final insertResult = await client.from('claim_attachments').insert({
-        'claim_id': normalizedClaimId,
+        'claim_id': resolvedClaimId,
         'kind': kind,
         'file_path': path,
         'object_path': path,
@@ -161,7 +190,6 @@ class SupabaseService {
       debugPrint('CLAIM_ATTACHMENT_INSERT_STACK: $st');
     }
 
-    final publicUrl = client.storage.from(bucket).getPublicUrl(path);
     debugPrint('SUPABASE PUBLIC URL GENERATED: $publicUrl');
     if (publicUrl.isEmpty) {
       throw Exception('Impossibile ottenere URL pubblico per $path');
