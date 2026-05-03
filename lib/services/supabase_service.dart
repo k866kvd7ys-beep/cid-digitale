@@ -173,10 +173,11 @@ class SupabaseService {
         'CLAIM_ATTACHMENT_INSERT_TRY: claim_id=$resolvedClaimId '
         'is_uuid=${resolvedClaimId.contains('-')} kind=$kind file_path=$path',
       );
+      debugPrint('TRY INSERT attachment claim_id=$resolvedClaimId path=$path');
       debugPrint('INSERT ATTACHMENT claim_id=$resolvedClaimId path=$path');
       debugPrint('FINAL INSERT claim_id=$resolvedClaimId path=$path');
 
-      final insertResult = await client.from('claim_attachments').insert({
+      final dynamic insertResult = await client.from('claim_attachments').insert({
         'claim_id': resolvedClaimId,
         'kind': kind,
         'file_path': path,
@@ -184,6 +185,12 @@ class SupabaseService {
         'uploaded_by': currentUserId ?? 'public-client',
       });
 
+      debugPrint('INSERT DONE');
+      try {
+        if (insertResult.error != null) {
+          debugPrint('INSERT ERROR: ${insertResult.error}');
+        }
+      } catch (_) {}
       debugPrint('CLAIM_ATTACHMENT_INSERT_OK: $insertResult');
     } catch (e, st) {
       debugPrint('CLAIM_ATTACHMENT_INSERT_ERROR: $e');
