@@ -135,11 +135,21 @@ class SupabaseService {
           ),
         );
 
-    await client.from('claim_attachments').insert({
-      'claim_id': claimId,
-      'kind': kind,
-      'file_path': path,
-    });
+    try {
+      final currentUserId = client.auth.currentUser?.id;
+
+      final insertResult = await client.from('claim_attachments').insert({
+        'claim_id': claimId,
+        'kind': kind,
+        'file_path': path,
+        'uploaded_by': currentUserId ?? 'public-client',
+      });
+
+      debugPrint('CLAIM_ATTACHMENT_INSERT_OK: $insertResult');
+    } catch (e, st) {
+      debugPrint('CLAIM_ATTACHMENT_INSERT_ERROR: $e');
+      debugPrint('CLAIM_ATTACHMENT_INSERT_STACK: $st');
+    }
 
     final publicUrl = client.storage.from(bucket).getPublicUrl(path);
     debugPrint('SUPABASE PUBLIC URL GENERATED: $publicUrl');
