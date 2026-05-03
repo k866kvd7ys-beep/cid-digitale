@@ -35,6 +35,16 @@ const buildFileNameFromPath = (path: string, fallback: string) => {
   return last.length > 2 ? last : fallback;
 };
 
+const normalizeClaimAttachmentPath = (value: string) => {
+  const trimmed = value.trim();
+  const marker = "claim_attachments/";
+  const idx = trimmed.indexOf(marker);
+  if (idx !== -1) {
+    return trimmed.substring(idx + marker.length);
+  }
+  return trimmed;
+};
+
 const extractStorageLocation = (value: string) => {
   try {
     if (value.startsWith("http")) {
@@ -48,10 +58,9 @@ const extractStorageLocation = (value: string) => {
         }
       }
     }
-    const marker = "claim_attachments/";
-    const idx = value.indexOf(marker);
-    if (idx !== -1) {
-      return { bucket: "claim_attachments", path: value.substring(idx + marker.length) };
+    const normalizedPath = normalizeClaimAttachmentPath(value);
+    if (normalizedPath.startsWith("claims/")) {
+      return { bucket: "claim_attachments", path: normalizedPath };
     }
   } catch (_err) {
     // ignore parsing errors
@@ -67,15 +76,16 @@ async function downloadAsAttachment(
   const storage = extractStorageLocation(source);
   try {
     if (storage) {
+      const possiblePath = normalizeClaimAttachmentPath(storage.path);
       const { data, error } = await supabase.storage
-        .from(storage.bucket)
-        .download(storage.path);
+        .from("claim_attachments")
+        .download(possiblePath);
       if (!error && data) {
         const bytes = new Uint8Array(await data.arrayBuffer());
-        const filename = buildFileNameFromPath(storage.path, fallbackName);
+        const filename = buildFileNameFromPath(possiblePath, fallbackName);
         const contentType = data.type || contentTypeHint;
         console.log(
-          `SEND CID EMAIL attachment from storage: bucket=${storage.bucket} path=${storage.path} bytes=${bytes.length}`,
+          `SEND CID EMAIL attachment from storage: bucket=claim_attachments path=${possiblePath} bytes=${bytes.length}`,
         );
         return {
           filename,
@@ -128,18 +138,96 @@ const findPdfReference = (obj: Record<string, any> | null | undefined) => {
   return null;
 };
 
+const readStringField = (payload: Record<string, any>, keys: string[]) => {
+  for (const key of keys) {
+    const value = payload?.[key];
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return null;
+};
+
+const findSignatureValue = (
+  payload: Record<string, any>,
+  variant: "A" | "B",
+) => {
+  const directKeys = variant === "A"
+    ? [
+      "firmaA",
+      "firmaAPath",
+      "signatureA",
+      "signatureAPath",
+      "signA",
+      "signaturaA",
+    ]
+    : [
+      "firmaB",
+      "firmaBPath",
+      "signatureB",
+      "signatureBPath",
+      "signB",
+      "signaturaB",
+    ];
+
+  const direct = readStringField(payload, directKeys);
+  if (direct) return direct;
+
+  const variantLower = variant.toLowerCase();
+  for (const [key, value] of Object.entries(payload)) {
+    if (typeof value !== "string" || value.trim().length === 0) continue;
+    const lowerKey = key.toLowerCase();
+    const looksLikeSignature = lowerKey.includes("firma") ||
+      lowerKey.includes("signature") ||
+      lowerKey.includes("sign");
+    const matchesVariant = lowerKey.includes(variantLower) ||
+      lowerKey.includes(`driver${variantLower}`) ||
+      lowerKey.includes(`conducente${variantLower}`) ||
+      lowerKey.includes(`fahrer${variantLower}`);
+    if (looksLikeSignature && matchesVariant) {
+      return value.trim();
+    }
+  }
+
+  return null;
+};
+
+const decodeBase64Image = (value: string) => {
+  const trimmed = value.trim();
+  const match = trimmed.match(/^data:image\/[a-zA-Z0-9.+-]+;base64,(.+)$/);
+  const base64 = match ? match[1] : trimmed;
+  try {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  } catch (_err) {
+    return null;
+  }
+};
+
 async function generatePdfFromPayload(
   payload: Record<string, any>,
   claimId: string,
 ): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage();
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const { height } = page.getSize();
+  let page = pdfDoc.addPage();
+  let { height } = page.getSize();
   let y = height - 40;
 
+  const ensureSpace = (neededHeight = 20) => {
+    if (y >= neededHeight) return;
+    page = pdfDoc.addPage();
+    ({ height } = page.getSize());
+    y = height - 40;
+  };
+
   const line = (text: string, bold = false, size = 12) => {
+    ensureSpace(size + 12);
     page.drawText(text ?? "", {
       x: 40,
       y,
@@ -148,11 +236,37 @@ async function generatePdfFromPayload(
       color: rgb(0, 0, 0),
     });
     y -= size + 6;
-    if (y < 40) {
-      y = height - 40;
-      page.drawText("...", { x: 40, y, size: 10, font: fontRegular });
-      y -= 16;
+  };
+
+  const drawSignature = async (label: string, value: string | null) => {
+    if (!value) return;
+    const bytes = decodeBase64Image(value);
+    if (!bytes) return;
+
+    let image;
+    try {
+      image = await pdfDoc.embedPng(bytes);
+    } catch (_pngErr) {
+      try {
+        image = await pdfDoc.embedJpg(bytes);
+      } catch (_jpgErr) {
+        return;
+      }
     }
+
+    line(label, true, 14);
+    const dimensions = image.scale(1);
+    const scale = Math.min(180 / dimensions.width, 70 / dimensions.height, 1);
+    const width = dimensions.width * scale;
+    const imageHeight = dimensions.height * scale;
+    ensureSpace(imageHeight + 20);
+    page.drawImage(image, {
+      x: 40,
+      y: y - imageHeight,
+      width,
+      height: imageHeight,
+    });
+    y -= imageHeight + 16;
   };
 
   line("CID Digitale", true, 18);
@@ -177,6 +291,10 @@ async function generatePdfFromPayload(
   line("");
   line("Integrità dati", true, 14);
   line(`Hash: ${payload?.hashIntegrita ?? "-"}`);
+  line("");
+
+  await drawSignature("Firma A", findSignatureValue(payload, "A"));
+  await drawSignature("Firma B", findSignatureValue(payload, "B"));
 
   const pdfBytes = await pdfDoc.save();
   console.log("SEND CID EMAIL pdf generated bytes:", pdfBytes.length);
@@ -288,24 +406,27 @@ async function handleRequest(req: Request): Promise<Response> {
     let pdfAttached = false;
 
     // 1. PRENDI ALLEGATI DA claim_attachments
-    const { data: dbAttachments } = await supabase
+    const { data: dbAttachments, error: dbAttachmentsError } = await supabase
       .from("claim_attachments")
       .select("*")
       .eq("claim_id", claimId);
 
+    console.log("CLAIM_ATTACHMENTS_DB_COUNT:", dbAttachments?.length ?? 0);
+    console.log("CLAIM_ATTACHMENTS_ROWS:", JSON.stringify(dbAttachments));
+    if (dbAttachmentsError) {
+      console.error("CLAIM_ATTACHMENT_DOWNLOAD_ERROR:", dbAttachmentsError);
+    }
+
     if (dbAttachments && dbAttachments.length > 0) {
       for (const file of dbAttachments) {
-        const possiblePath =
-          file.storage_path ||
-          file.path ||
-          file.file_path ||
-          file.url ||
-          file.public_url ||
-          file.signed_url;
+        const possiblePath = typeof file.file_path === "string"
+          ? file.file_path.trim()
+          : "";
 
         if (!possiblePath) continue;
+        console.log("CLAIM_ATTACHMENT_PATH:", possiblePath);
         if (addedPaths.has(possiblePath)) continue;
-        if (attachments.length >= MAX_ATTACHMENTS) break;
+        if (attachments.length >= MAX_ATTACHMENTS - 1) break;
 
         try {
           const filename =
@@ -325,60 +446,38 @@ async function handleRequest(req: Request): Promise<Response> {
 
           if (downloaded) {
             attachments.push({
-              filename,
+              filename: downloaded.filename || filename,
               content: downloaded.content,
-              contentType,
+              contentType: downloaded.contentType || contentType,
             });
 
             addedPaths.add(possiblePath);
+            console.log("CLAIM_ATTACHMENT_DOWNLOAD_OK:", possiblePath);
+          } else {
+            console.error("CLAIM_ATTACHMENT_DOWNLOAD_ERROR:", possiblePath);
           }
         } catch (e) {
-          console.error("Errore allegato:", e);
+          console.error("CLAIM_ATTACHMENT_DOWNLOAD_ERROR:", possiblePath, e);
         }
       }
     }
 
-    // 2. AGGIUNGI SEMPRE PDF (già esistente nel codice)
-    const pdfRef =
-      findPdfReference(payload) ||
-      findPdfReference(claimRow as Record<string, any>);
-    if (pdfRef) {
-      console.log("SEND CID EMAIL pdf reference value:", pdfRef);
-      const pdfAttachment = await downloadAsAttachment(
-        pdfRef,
-        `cid-digitale-${claimId}.pdf`,
-        "application/pdf",
-      );
-      if (pdfAttachment) {
-        attachments.push(pdfAttachment);
-        pdfAttached = true;
-      } else {
-        console.error(
-          "SEND CID EMAIL pdf reference download failed, falling back to generation",
-        );
-      }
+    // 2. AGGIUNGI SEMPRE PDF generato dal payload corrente
+    try {
+      const pdfBytes = await generatePdfFromPayload(payload, claimId);
+      await savePdfToStorage(pdfBytes, claimId);
+      attachments.push({
+        filename: `cid-digitale-${claimId}.pdf`,
+        content: base64Encode(pdfBytes),
+        contentType: "application/pdf",
+      });
+      pdfAttached = true;
+      console.log("SEND CID EMAIL pdf generated and attached");
+    } catch (err) {
+      console.error("SEND CID EMAIL pdf generation failed", err);
     }
 
-    if (!pdfAttached) {
-      try {
-        const pdfBytes = await generatePdfFromPayload(payload, claimId);
-        await savePdfToStorage(pdfBytes, claimId);
-        attachments.push({
-          filename: `cid-digitale-${claimId}.pdf`,
-          content: base64Encode(pdfBytes),
-          contentType: "application/pdf",
-        });
-        pdfAttached = true;
-        console.log("SEND CID EMAIL pdf generated and attached");
-      } catch (err) {
-        console.error("SEND CID EMAIL pdf generation failed", err);
-      }
-    }
-
-    console.log("SEND CID EMAIL attachments summary", {
-      count: attachments.length,
-      filenames: attachments.map((a) => a.filename),
-    });
+    console.log("EMAIL_ATTACHMENTS_FINAL:", attachments.map((a) => a.filename));
 
     const textBody = [
       "Guten Tag,",

@@ -137,9 +137,18 @@ class SupabaseService {
 
     try {
       final currentUserId = client.auth.currentUser?.id;
+      final normalizedClaimId = claimId.trim();
+      final isUuid = RegExp(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+      ).hasMatch(normalizedClaimId);
+
+      debugPrint(
+        'CLAIM_ATTACHMENT_INSERT_TRY: claim_id=$normalizedClaimId '
+        'is_uuid=$isUuid kind=$kind file_path=$path',
+      );
 
       final insertResult = await client.from('claim_attachments').insert({
-        'claim_id': claimId,
+        'claim_id': normalizedClaimId,
         'kind': kind,
         'file_path': path,
         'uploaded_by': currentUserId ?? 'public-client',
