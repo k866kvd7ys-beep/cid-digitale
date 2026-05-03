@@ -61778,7 +61778,7 @@ f=m
 if(f==null)f="public-client"
 e=t.N
 s=8
-return A.f(g.jZ(0,A.ab(["claim_id",l,"kind",a5,"file_path",a,"uploaded_by",f],e,e)),$async$yV)
+return A.f(g.jZ(0,A.ab(["claim_id",l,"kind",a5,"file_path",a,"object_path",a,"uploaded_by",f],e,e)),$async$yV)
 case 8:j=a7
 A.ad().$1("CLAIM_ATTACHMENT_INSERT_OK: "+A.h(j))
 p=2

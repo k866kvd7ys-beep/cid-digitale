@@ -151,6 +151,7 @@ class SupabaseService {
         'claim_id': normalizedClaimId,
         'kind': kind,
         'file_path': path,
+        'object_path': path,
         'uploaded_by': currentUserId ?? 'public-client',
       });
 
