@@ -121,29 +121,34 @@ class SupabaseService {
     String bucket = 'claim_attachments',
   }) async {
     final rawClaimId = claimId.trim();
-    final looksLikeUuid = rawClaimId.contains('-');
-    var resolvedClaimId = rawClaimId;
+    Map<String, dynamic>? claimRow;
+    var resolvedClaimId = '';
 
-    if (!looksLikeUuid) {
-      try {
-        final existingClaim = await client
-            .from('claims')
-            .select('id')
-            .contains('payload_json', {'id': rawClaimId})
-            .order('created_at', ascending: false)
-            .limit(1)
-            .maybeSingle();
+    try {
+      final existingClaim =
+          await client.from('claims').select('id').eq('id', rawClaimId).maybeSingle();
 
-        final dbClaimId = existingClaim?['id']?.toString().trim();
-        if (dbClaimId != null && dbClaimId.isNotEmpty) {
+      if (existingClaim != null) {
+        claimRow = Map<String, dynamic>.from(existingClaim);
+        final dbClaimId = claimRow['id']?.toString().trim() ?? '';
+        if (dbClaimId.isNotEmpty) {
           resolvedClaimId = dbClaimId;
         }
-      } catch (_) {}
+      }
+    } catch (_) {}
+
+    debugPrint('CLAIM FROM DB: ${claimRow?['id']}');
+    debugPrint('RESOLVED CLAIM ID: $resolvedClaimId');
+    if (resolvedClaimId.isEmpty) {
+      throw Exception('Claim non trovato su database: $rawClaimId');
     }
 
     final ts = DateTime.now().millisecondsSinceEpoch;
     final safeName = filename.replaceAll(' ', '_');
     final path = 'claims/$resolvedClaimId/$kind/${ts}_$safeName';
+    debugPrint('FINAL CLAIM ID USED: $resolvedClaimId');
+    debugPrint('UPLOAD KIND: $kind');
+    debugPrint('PATH: $path');
     debugPrint('UPLOAD BUCKET: $bucket');
     debugPrint('UPLOAD PATH: $path');
 

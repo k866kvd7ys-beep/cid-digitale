@@ -22,6 +22,36 @@ type ResendAttachment = {
   contentType?: string;
 };
 
+type AttachmentCandidate = {
+  source: string;
+  origin: string;
+};
+
+const damageKeyTerms = [
+  "damage",
+  "danno",
+  "danni",
+  "libretto",
+  "fotolibretto",
+  "foto_libretto",
+  "vehicle",
+  "registration",
+  "document",
+  "fahrzeug",
+  "carte",
+  "certificat",
+];
+
+const damagePathSegments = [
+  "damage",
+  "danni",
+  "libretto",
+  "vehicle",
+  "vehicle-document",
+  "registration",
+  "document",
+];
+
 const isValidEmail = (email: string) => {
   const trimmed = email.trim();
   return trimmed.length > 3 && trimmed.includes("@");
@@ -49,9 +79,15 @@ const extractStorageLocation = (value: string) => {
   try {
     if (value.startsWith("http")) {
       const url = new URL(value);
-      const prefix = "/storage/v1/object/public/";
-      if (url.pathname.startsWith(prefix)) {
-        const remainder = url.pathname.substring(prefix.length);
+      const publicPrefix = "/storage/v1/object/public/";
+      const signPrefix = "/storage/v1/object/sign/";
+      const matchedPrefix = url.pathname.startsWith(publicPrefix)
+        ? publicPrefix
+        : url.pathname.startsWith(signPrefix)
+        ? signPrefix
+        : null;
+      if (matchedPrefix) {
+        const remainder = url.pathname.substring(matchedPrefix.length);
         const [bucket, ...rest] = remainder.split("/").filter((p) => p.length > 0);
         if (bucket && rest.length > 0) {
           return { bucket, path: decodeURIComponent(rest.join("/")) };
@@ -78,14 +114,14 @@ async function downloadAsAttachment(
     if (storage) {
       const possiblePath = normalizeClaimAttachmentPath(storage.path);
       const { data, error } = await supabase.storage
-        .from("claim_attachments")
+        .from(storage.bucket)
         .download(possiblePath);
       if (!error && data) {
         const bytes = new Uint8Array(await data.arrayBuffer());
         const filename = buildFileNameFromPath(possiblePath, fallbackName);
         const contentType = data.type || contentTypeHint;
         console.log(
-          `SEND CID EMAIL attachment from storage: bucket=claim_attachments path=${possiblePath} bytes=${bytes.length}`,
+          `SEND CID EMAIL attachment from storage: bucket=${storage.bucket} path=${possiblePath} bytes=${bytes.length}`,
         );
         return {
           filename,
@@ -125,6 +161,96 @@ async function downloadAsAttachment(
   }
 
   return null;
+}
+
+const buildAttachmentKey = (source: string) => {
+  const storage = extractStorageLocation(source);
+  if (storage) {
+    return `${storage.bucket}:${normalizeClaimAttachmentPath(storage.path)}`;
+  }
+  return source.trim();
+};
+
+const matchesKeyTerms = (keyPath: string[], terms: string[]) => {
+  const normalizedPath = keyPath.map((part) => part.toLowerCase());
+  return normalizedPath.some((part) => terms.some((term) => part.includes(term)));
+};
+
+const matchesPathSegments = (source: string, segments: string[]) => {
+  const storage = extractStorageLocation(source);
+  if (!storage) return false;
+  const normalizedPath = normalizeClaimAttachmentPath(storage.path).toLowerCase();
+  return segments.some((segment) =>
+    normalizedPath.includes(`/${segment}/`) ||
+    normalizedPath.startsWith(`${segment}/`) ||
+    normalizedPath.endsWith(`/${segment}`) ||
+    normalizedPath === segment
+  );
+};
+
+function collectCategoryPayloadAttachmentCandidates(
+  value: unknown,
+  options: {
+    keyTerms: string[];
+    pathSegments: string[];
+  },
+  keyPath: string[] = [],
+  acc: AttachmentCandidate[] = [],
+): AttachmentCandidate[] {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      collectCategoryPayloadAttachmentCandidates(
+        item,
+        options,
+        [...keyPath, `${index}`],
+        acc,
+      );
+    });
+    return acc;
+  }
+
+  if (value && typeof value === "object") {
+    for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+      collectCategoryPayloadAttachmentCandidates(
+        nested,
+        options,
+        [...keyPath, key],
+        acc,
+      );
+    }
+    return acc;
+  }
+
+  if (typeof value !== "string") {
+    return acc;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return acc;
+  }
+
+  const storage = extractStorageLocation(trimmed);
+  if (!storage) {
+    return acc;
+  }
+
+  const normalizedPath = normalizeClaimAttachmentPath(storage.path);
+  if (normalizedPath.toLowerCase().endsWith(".pdf")) {
+    return acc;
+  }
+
+  const matchesCategory = matchesPathSegments(trimmed, options.pathSegments) ||
+    matchesKeyTerms(keyPath, options.keyTerms);
+  if (!matchesCategory) {
+    return acc;
+  }
+
+  acc.push({
+    source: trimmed,
+    origin: keyPath.join(".") || "(root)",
+  });
+  return acc;
 }
 
 const findPdfReference = (obj: Record<string, any> | null | undefined) => {
@@ -399,13 +525,63 @@ async function handleRequest(req: Request): Promise<Response> {
       );
     }
 
-    // === RACCOLTA ALLEGATI DA DATABASE ===
-    const attachments: any[] = [];
+    // === RACCOLTA ALLEGATI DA DATABASE + PAYLOAD ===
+    const attachments: ResendAttachment[] = [];
     const addedPaths = new Set<string>();
     const MAX_ATTACHMENTS = 10;
     let pdfAttached = false;
 
-    // 1. PRENDI ALLEGATI DA claim_attachments
+    // 1. AGGIUNGI SEMPRE PDF generato dal payload corrente come primo allegato
+    try {
+      const pdfBytes = await generatePdfFromPayload(payload, claimId);
+      await savePdfToStorage(pdfBytes, claimId);
+      attachments.push({
+        filename: `cid-digitale-${claimId}.pdf`,
+        content: base64Encode(pdfBytes),
+        contentType: "application/pdf",
+      });
+      pdfAttached = true;
+      console.log("SEND CID EMAIL pdf generated and attached");
+    } catch (err) {
+      console.error("SEND CID EMAIL pdf generation failed", err);
+    }
+
+    const addAttachmentFromSource = async (
+      source: string,
+      fallbackName: string,
+      contentTypeHint?: string,
+    ) => {
+      const attachmentKey = buildAttachmentKey(source);
+      if (addedPaths.has(attachmentKey)) {
+        return;
+      }
+      if (attachments.length >= MAX_ATTACHMENTS) {
+        return;
+      }
+
+      try {
+        const downloaded = await downloadAsAttachment(
+          source,
+          fallbackName,
+          contentTypeHint,
+        );
+        if (downloaded) {
+          attachments.push({
+            filename: downloaded.filename || fallbackName,
+            content: downloaded.content,
+            contentType: downloaded.contentType || contentTypeHint,
+          });
+          addedPaths.add(attachmentKey);
+          console.log("CLAIM_ATTACHMENT_DOWNLOAD_OK:", attachmentKey);
+        } else {
+          console.error("CLAIM_ATTACHMENT_DOWNLOAD_ERROR:", attachmentKey);
+        }
+      } catch (err) {
+        console.error("CLAIM_ATTACHMENT_DOWNLOAD_ERROR:", attachmentKey, err);
+      }
+    };
+
+    // 2. PRENDI ALLEGATI DA claim_attachments
     const { data: dbAttachments, error: dbAttachmentsError } = await supabase
       .from("claim_attachments")
       .select("*")
@@ -419,62 +595,86 @@ async function handleRequest(req: Request): Promise<Response> {
 
     if (dbAttachments && dbAttachments.length > 0) {
       for (const file of dbAttachments) {
-        const possiblePath = typeof file.file_path === "string"
-          ? file.file_path.trim()
-          : "";
+        const possibleSource = [
+          file.file_path,
+          file.object_path,
+          file.storage_path,
+          file.path,
+          file.public_url,
+          file.url,
+          file.signed_url,
+          file.attachment_url,
+          file.file_url,
+        ].find((value) => typeof value === "string" && value.trim().length > 0);
 
-        if (!possiblePath) continue;
-        console.log("CLAIM_ATTACHMENT_PATH:", possiblePath);
-        if (addedPaths.has(possiblePath)) continue;
-        if (attachments.length >= MAX_ATTACHMENTS - 1) break;
+        if (typeof possibleSource !== "string") continue;
+        if (attachments.length >= MAX_ATTACHMENTS) break;
 
-        try {
-          const filename =
-            file.filename ||
+        await addAttachmentFromSource(
+          possibleSource.trim(),
+          file.filename ||
             file.file_name ||
             file.name ||
-            `allegato-${attachments.length + 1}.jpg`;
-          const contentType =
-            file.mime_type ||
-            file.content_type ||
-            "application/octet-stream";
-          const downloaded = await downloadAsAttachment(
-            possiblePath,
-            filename,
-            contentType,
-          );
-
-          if (downloaded) {
-            attachments.push({
-              filename: downloaded.filename || filename,
-              content: downloaded.content,
-              contentType: downloaded.contentType || contentType,
-            });
-
-            addedPaths.add(possiblePath);
-            console.log("CLAIM_ATTACHMENT_DOWNLOAD_OK:", possiblePath);
-          } else {
-            console.error("CLAIM_ATTACHMENT_DOWNLOAD_ERROR:", possiblePath);
-          }
-        } catch (e) {
-          console.error("CLAIM_ATTACHMENT_DOWNLOAD_ERROR:", possiblePath, e);
-        }
+            `allegato-${attachments.length + 1}.bin`,
+          file.mime_type || file.content_type || "application/octet-stream",
+        );
       }
     }
 
-    // 2. AGGIUNGI SEMPRE PDF generato dal payload corrente
-    try {
-      const pdfBytes = await generatePdfFromPayload(payload, claimId);
-      await savePdfToStorage(pdfBytes, claimId);
-      attachments.push({
-        filename: `cid-digitale-${claimId}.pdf`,
-        content: base64Encode(pdfBytes),
-        contentType: "application/pdf",
-      });
-      pdfAttached = true;
-      console.log("SEND CID EMAIL pdf generated and attached");
-    } catch (err) {
-      console.error("SEND CID EMAIL pdf generation failed", err);
+    // 3. FALLBACK ROBUSTO SU payload_json
+    const payloadAttachmentCandidates = collectCategoryPayloadAttachmentCandidates(
+      payload,
+      {
+        keyTerms: damageKeyTerms,
+        pathSegments: damagePathSegments,
+      },
+    );
+    console.log(
+      "DAMAGE_LOGIC_FOUND:",
+      JSON.stringify(
+        payloadAttachmentCandidates.filter((candidate) =>
+          matchesPathSegments(candidate.source, ["damage", "danni"]) ||
+          matchesKeyTerms(candidate.origin.split(".").filter(Boolean), [
+            "damage",
+            "danno",
+            "danni",
+          ])
+        ),
+      ),
+    );
+    console.log(
+      "LIBRETTO_LOGIC_FOUND:",
+      JSON.stringify(
+        payloadAttachmentCandidates.filter((candidate) =>
+          matchesPathSegments(candidate.source, [
+            "libretto",
+            "vehicle",
+            "vehicle-document",
+            "registration",
+            "document",
+          ]) ||
+          matchesKeyTerms(candidate.origin.split(".").filter(Boolean), [
+            "libretto",
+            "fotolibretto",
+            "foto_libretto",
+            "vehicle",
+            "registration",
+            "document",
+            "fahrzeug",
+            "carte",
+            "certificat",
+          ])
+        ),
+      ),
+    );
+
+    for (const candidate of payloadAttachmentCandidates) {
+      if (attachments.length >= MAX_ATTACHMENTS) break;
+      await addAttachmentFromSource(
+        candidate.source,
+        `allegato-${attachments.length + 1}.bin`,
+        "application/octet-stream",
+      );
     }
 
     console.log("EMAIL_ATTACHMENTS_FINAL:", attachments.map((a) => a.filename));

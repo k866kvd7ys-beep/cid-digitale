@@ -4105,6 +4105,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   Future<void> _pickAndUploadImage(
       {required String kind, String? quale}) async {
     final claimId = _ensureDraftId();
+    var uploadClaimId = claimId;
     if (kind == 'damage') {
       debugPrint(
           '[Damage] pick/upload start platform=${kIsWeb ? 'web' : 'mobile'}');
@@ -4188,8 +4189,30 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
       // OCR disattivato: il libretto viene solo allegato e mostrato in preview.
 
+      if (kind == 'libretto') {
+        if (!QrPayload.looksLikeUuid(uploadClaimId)) {
+          final workshopCode =
+              claimId.length > 6
+                  ? claimId.substring(claimId.length - 6)
+                  : claimId.padLeft(6, '0');
+          final realClaimId = (await _supabaseService.rpcCreateClaimDraft(
+            workshopCode: workshopCode,
+            payload: const <String, dynamic>{},
+          ))
+              .trim();
+          if (!QrPayload.looksLikeUuid(realClaimId)) {
+            throw Exception(
+              'create_claim_draft ha restituito un id non UUID: $realClaimId',
+            );
+          }
+          _draftClaimId = realClaimId;
+          uploadClaimId = realClaimId;
+        }
+        debugPrint('UPLOAD LIBRETTO USING REAL CLAIM ID: $uploadClaimId');
+      }
+
       final uploadedUrl = await _supabaseService.uploadClaimImageBytes(
-        claimId: claimId,
+        claimId: uploadClaimId,
         bytes: bytes,
         filename: name,
         contentType: 'image/jpeg',
