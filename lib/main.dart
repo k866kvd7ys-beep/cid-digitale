@@ -7419,11 +7419,319 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     return pdf.save();
   }
 
-  Future<void> _shareIncidentPdfAndPhotos(String testo) async {
+  Map<String, String> _buildLocalizedCidEmailContent() {
+    String normalizeLang(String code) {
+      if (const ['de', 'it', 'fr', 'en'].contains(code)) return code;
+      return 'de';
+    }
+
+    String valueOrDash(String? value) {
+      final trimmed = value?.trim() ?? '';
+      return trimmed.isEmpty ? '-' : trimmed;
+    }
+
+    String fullName(String nome, String cognome) {
+      final joined = [nome.trim(), cognome.trim()]
+          .where((part) => part.isNotEmpty)
+          .join(' ');
+      return joined.isEmpty ? '-' : joined;
+    }
+
+    String fullAddress(String address, String zip, String city) {
+      final joined = [
+        address.trim(),
+        [zip.trim(), city.trim()].where((part) => part.isNotEmpty).join(' '),
+      ].where((part) => part.isNotEmpty).join(', ');
+      return joined.isEmpty ? '-' : joined;
+    }
+
+    String joinLines(List<String> values) {
+      final lines = values
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty)
+          .toList();
+      return lines.isEmpty ? '-' : lines.join('\n');
+    }
+
+    final lang = normalizeLang(Localizations.localeOf(context).languageCode);
+    final hasFirmaA = _decodeBase64Image(incidente.firmaAPath) != null;
+    final hasFirmaB = _decodeBase64Image(incidente.firmaBPath) != null;
+    final dataOra = formatDataOraLocale(context, incidente.dataOra);
+    final liabilityText =
+        incidente.colpevole.trim().isEmpty ? '' : _labelResponsabilita();
+
+    late final String subject;
+    late final String title;
+    late final String greeting;
+    late final String intro;
+    late final String dateTimeLabel;
+    late final String placeLabel;
+    late final String driverALabel;
+    late final String driverBLabel;
+    late final String nameLabel;
+    late final String plateLabel;
+    late final String insuranceLabel;
+    late final String phoneLabel;
+    late final String emailLabel;
+    late final String addressLabel;
+    late final String descriptionLabel;
+    late final String witnessesLabel;
+    late final String witnessesEmpty;
+    late final String injuriesLabel;
+    late final String injuriesEmpty;
+    late final String damageLabel;
+    late final String damageVehicleALabel;
+    late final String damageVehicleBLabel;
+    late final String liabilityLabel;
+    late final String liabilityEmpty;
+    late final String signaturesLabel;
+    late final String workshopCodeLabel;
+    late final String qrNote;
+    late final String attachmentsNote;
+    late final String closing;
+    late final String presentText;
+    late final String missingText;
+
+    switch (lang) {
+      case 'it':
+        subject = 'Constatazione amichevole digitale (CID) - Pratica ${incidente.id}';
+        title = 'Constatazione amichevole digitale (CID) - Pratica';
+        greeting = 'Buongiorno,';
+        intro =
+            'in allegato trova la constatazione amichevole digitale relativa alla pratica ${incidente.id}.';
+        dateTimeLabel = 'Data e ora';
+        placeLabel = 'Luogo';
+        driverALabel = 'Conducente A';
+        driverBLabel = 'Conducente B';
+        nameLabel = 'Nome';
+        plateLabel = 'Targa';
+        insuranceLabel = 'Assicurazione';
+        phoneLabel = 'Telefono';
+        emailLabel = 'E-Mail';
+        addressLabel = 'Indirizzo';
+        descriptionLabel = 'Descrizione';
+        witnessesLabel = 'Testimoni';
+        witnessesEmpty = 'Nessun testimone indicato.';
+        injuriesLabel = 'Feriti';
+        injuriesEmpty = 'Nessun ferito indicato.';
+        damageLabel = 'Danni';
+        damageVehicleALabel = 'Veicolo A';
+        damageVehicleBLabel = 'Veicolo B';
+        liabilityLabel = 'Responsabilita (dichiarazione delle parti)';
+        liabilityEmpty = 'Nessuna indicazione.';
+        signaturesLabel = 'Firme';
+        workshopCodeLabel = 'Codice officina';
+        qrNote =
+            'QR code disponibile nell app per richiamare rapidamente la pratica.';
+        attachmentsNote =
+            'Il PDF della pratica e gli allegati caricati sono inclusi.';
+        closing = 'Cordiali saluti';
+        presentText = 'presente';
+        missingText = 'mancante';
+        break;
+      case 'fr':
+        subject = 'Constat amiable numerique (CID) - Dossier ${incidente.id}';
+        title = 'Constat amiable numerique (CID) - Dossier';
+        greeting = 'Bonjour,';
+        intro =
+            'vous trouverez en piece jointe le constat amiable numerique relatif au dossier ${incidente.id}.';
+        dateTimeLabel = 'Date et heure';
+        placeLabel = 'Lieu';
+        driverALabel = 'Conducteur A';
+        driverBLabel = 'Conducteur B';
+        nameLabel = 'Nom';
+        plateLabel = 'Plaque';
+        insuranceLabel = 'Assurance';
+        phoneLabel = 'Telephone';
+        emailLabel = 'E-Mail';
+        addressLabel = 'Adresse';
+        descriptionLabel = 'Description';
+        witnessesLabel = 'Temoins';
+        witnessesEmpty = 'Aucun temoin indique.';
+        injuriesLabel = 'Blesses';
+        injuriesEmpty = 'Aucun blesse indique.';
+        damageLabel = 'Dommages';
+        damageVehicleALabel = 'Vehicule A';
+        damageVehicleBLabel = 'Vehicule B';
+        liabilityLabel = 'Responsabilite (declaration des parties)';
+        liabilityEmpty = 'Aucune indication.';
+        signaturesLabel = 'Signatures';
+        workshopCodeLabel = 'Code atelier';
+        qrNote =
+            'Code QR disponible dans l application pour retrouver rapidement le dossier.';
+        attachmentsNote =
+            'Le rapport PDF et les pieces jointes telechargees sont inclus.';
+        closing = 'Cordialement';
+        presentText = 'presente';
+        missingText = 'absente';
+        break;
+      case 'en':
+        subject = 'Digital Accident Report (CID) - Claim ${incidente.id}';
+        title = 'Digital Accident Report (CID) - Claim';
+        greeting = 'Hello,';
+        intro =
+            'attached you will find the digital accident report for claim ${incidente.id}.';
+        dateTimeLabel = 'Date and time';
+        placeLabel = 'Location';
+        driverALabel = 'Driver A';
+        driverBLabel = 'Driver B';
+        nameLabel = 'Name';
+        plateLabel = 'License plate';
+        insuranceLabel = 'Insurance';
+        phoneLabel = 'Phone';
+        emailLabel = 'E-Mail';
+        addressLabel = 'Address';
+        descriptionLabel = 'Description';
+        witnessesLabel = 'Witnesses';
+        witnessesEmpty = 'No witnesses provided.';
+        injuriesLabel = 'Injuries';
+        injuriesEmpty = 'No injuries reported.';
+        damageLabel = 'Damage';
+        damageVehicleALabel = 'Vehicle A';
+        damageVehicleBLabel = 'Vehicle B';
+        liabilityLabel = 'Liability (party statement)';
+        liabilityEmpty = 'No information provided.';
+        signaturesLabel = 'Signatures';
+        workshopCodeLabel = 'Workshop code';
+        qrNote =
+            'QR code available in the app to quickly reopen the claim.';
+        attachmentsNote =
+            'The PDF report and the uploaded attachments are included.';
+        closing = 'Kind regards';
+        presentText = 'present';
+        missingText = 'missing';
+        break;
+      case 'de':
+      default:
+        subject = 'Digitaler Unfallbericht (CID) - Vorgang ${incidente.id}';
+        title = 'Digitaler Unfallbericht (CID) - Vorgang';
+        greeting = 'Guten Tag,';
+        intro =
+            'im Anhang finden Sie den digitalen Unfallbericht zur Vorgangsnummer ${incidente.id}.';
+        dateTimeLabel = 'Datum und Uhrzeit';
+        placeLabel = 'Ort';
+        driverALabel = 'Fahrer A';
+        driverBLabel = 'Fahrer B';
+        nameLabel = 'Name';
+        plateLabel = 'Kennzeichen';
+        insuranceLabel = 'Versicherung';
+        phoneLabel = 'Telefon';
+        emailLabel = 'E-Mail';
+        addressLabel = 'Adresse';
+        descriptionLabel = 'Beschreibung';
+        witnessesLabel = 'Zeugen';
+        witnessesEmpty = 'Keine Zeugen angegeben.';
+        injuriesLabel = 'Verletzte';
+        injuriesEmpty = 'Keine Verletzten angegeben.';
+        damageLabel = 'Beschaedigung';
+        damageVehicleALabel = 'Fahrzeug A';
+        damageVehicleBLabel = 'Fahrzeug B';
+        liabilityLabel = 'Haftung (Angabe der Parteien)';
+        liabilityEmpty = 'Keine Angabe.';
+        signaturesLabel = 'Unterschriften';
+        workshopCodeLabel = 'Werkstattcode';
+        qrNote =
+            'QR-Code in der App verfuegbar, um den Vorgang schnell abzurufen.';
+        attachmentsNote =
+            'Der PDF-Bericht und die hochgeladenen Anhaenge sind beigefuegt.';
+        closing = 'Freundliche Gruesse';
+        presentText = 'vorhanden';
+        missingText = 'nicht vorhanden';
+        break;
+    }
+
+    final witnessesText = incidente.testimoni.isEmpty
+        ? witnessesEmpty
+        : joinLines(
+            incidente.testimoni.map(
+              (testimone) => '- ${valueOrDash(testimone.nome)}'
+                  ' (${valueOrDash(testimone.telefono)})',
+            ).toList(),
+          );
+    final injuriesText = incidente.feriti.isEmpty
+        ? injuriesEmpty
+        : joinLines(
+            incidente.feriti.map(
+              (ferito) => '- ${valueOrDash(ferito.nome)}'
+                  ' | ${valueOrDash(ferito.indirizzo)}'
+                  ' | ${valueOrDash(ferito.telefono)}',
+            ).toList(),
+          );
+
+    final body = StringBuffer()
+      ..writeln(title)
+      ..writeln()
+      ..writeln(greeting)
+      ..writeln()
+      ..writeln(intro)
+      ..writeln()
+      ..writeln('$dateTimeLabel: $dataOra')
+      ..writeln('$placeLabel: ${valueOrDash(incidente.luogo)}')
+      ..writeln()
+      ..writeln('$driverALabel:')
+      ..writeln(
+          '$nameLabel: ${fullName(incidente.nomeA, incidente.cognomeA)}')
+      ..writeln('$plateLabel: ${valueOrDash(incidente.targaA)}')
+      ..writeln('$insuranceLabel: ${valueOrDash(incidente.assicurazioneA)}')
+      ..writeln('$phoneLabel: ${valueOrDash(incidente.telefonoA)}')
+      ..writeln('$emailLabel: ${valueOrDash(incidente.emailA)}')
+      ..writeln(
+          '$addressLabel: ${fullAddress(incidente.indirizzoA, incidente.zipA, incidente.cityA)}')
+      ..writeln()
+      ..writeln('$driverBLabel:')
+      ..writeln(
+          '$nameLabel: ${fullName(incidente.nomeB, incidente.cognomeB)}')
+      ..writeln('$plateLabel: ${valueOrDash(incidente.targaB)}')
+      ..writeln('$insuranceLabel: ${valueOrDash(incidente.assicurazioneB)}')
+      ..writeln('$phoneLabel: ${valueOrDash(incidente.telefonoB)}')
+      ..writeln('$emailLabel: ${valueOrDash(incidente.emailB)}')
+      ..writeln(
+          '$addressLabel: ${fullAddress(incidente.indirizzoB, incidente.zipB, incidente.cityB)}')
+      ..writeln()
+      ..writeln('$descriptionLabel:')
+      ..writeln(valueOrDash(incidente.descrizione))
+      ..writeln()
+      ..writeln('$witnessesLabel:')
+      ..writeln(witnessesText)
+      ..writeln()
+      ..writeln('$injuriesLabel:')
+      ..writeln(injuriesText)
+      ..writeln()
+      ..writeln('$damageLabel:')
+      ..writeln(
+          '$damageVehicleALabel: ${valueOrDash(incidente.danniVeicoloA)}')
+      ..writeln(
+          '$damageVehicleBLabel: ${valueOrDash(incidente.danniVeicoloB)}')
+      ..writeln()
+      ..writeln('$liabilityLabel:')
+      ..writeln(liabilityText.isEmpty ? liabilityEmpty : liabilityText)
+      ..writeln()
+      ..writeln('$signaturesLabel:')
+      ..writeln(
+          '$driverALabel: ${hasFirmaA ? presentText : missingText}')
+      ..writeln(
+          '$driverBLabel: ${hasFirmaB ? presentText : missingText}')
+      ..writeln()
+      ..writeln('$workshopCodeLabel: ${valueOrDash(incidente.codiceOfficina)}')
+      ..writeln(qrNote)
+      ..writeln()
+      ..writeln(attachmentsNote)
+      ..writeln()
+      ..writeln(closing);
+
+    return {
+      'subject': subject,
+      'body': body.toString(),
+    };
+  }
+
+  Future<void> _shareIncidentPdfAndPhotos() async {
     if (_isSharingIncident) return;
     setState(() => _isSharingIncident = true);
     debugPrint('SHARE STEP 1: start');
     try {
+      final emailContent = _buildLocalizedCidEmailContent();
+
       bool _isValidUrl(String? url) {
         if (url == null) return false;
         final u = url.trim();
@@ -7449,34 +7757,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       for (final url in damageLinks) {
         debugPrint('EMAIL BODY DAMAGE URL: $url');
       }
-
-      final prefix = testo.isNotEmpty ? '$testo\n\n' : '';
-      final shareText = StringBuffer()
-        ..write(prefix)
-        ..writeln('Buongiorno,')
-        ..writeln()
-        ..writeln('in allegato trova il PDF del CID digitale.')
-        ..writeln()
-        ..writeln('Foto danni:');
-      if (damageLinks.isEmpty) {
-        shareText.writeln('Nessuna foto disponibile');
-      } else {
-        for (final url in damageLinks) {
-          shareText.writeln(url);
-        }
-      }
-      shareText.writeln();
-      shareText.writeln('Foto libretto:');
-      if (librettoUrls.isEmpty) {
-        shareText.writeln('Nessuna foto disponibile');
-      } else {
-        for (final url in librettoUrls) {
-          shareText.writeln(url);
-        }
-      }
-      shareText
-        ..writeln()
-        ..writeln('Cordiali saluti');
+      final shareText = emailContent['body']!;
+      final shareSubject = emailContent['subject']!;
 
       debugPrint('SHARE STEP 2: build pdf');
       final pdfBytes = await _buildIncidentPdfBytes();
@@ -7622,8 +7904,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
           try {
             shared = await shareFilesWeb(
               files: files,
-              title: 'CID incidente',
-              text: shareText.toString(),
+              title: shareSubject,
+              text: shareText,
             );
             if (shared) {
               debugPrint('WEB SHARE TRY $tryLabel SUCCESS');
@@ -7729,8 +8011,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
       await Share.shareXFiles(
         allegati,
-        subject: tx(context, 'CID digitale incidente'),
-        text: shareText.toString(),
+        subject: shareSubject,
+        text: shareText,
         sharePositionOrigin: const ui.Rect.fromLTWH(0, 0, 1, 1),
       );
 
@@ -7762,10 +8044,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
   Future<void> _condividiPerAssicurazione(BuildContext context) async {
     debugPrint('SHARE BUTTON TAP');
     debugPrint('SHARE FLOW: native share preferred');
-    await _shareIncidentPdfAndPhotos(
-      tx(context,
-          'Invio il CID digitale dell incidente per la gestione del sinistro.'),
-    );
+    await _shareIncidentPdfAndPhotos();
   }
 
   Future<void> _sendCidAutomatically(String claimId) async {
@@ -7936,6 +8215,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
   Future<void> _invioEmailPrecompilata() async {
     debugPrint('MAIL STEP 1: collect recipients');
+    final emailContent = _buildLocalizedCidEmailContent();
     final availableContacts = {
       'emailA': incidente.emailA.trim(),
       'emailB': incidente.emailB.trim(),
@@ -7958,8 +8238,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       debugPrint('SEND SKIPPED NO EMAIL: claimId=${incidente.id}');
     }
 
-    final subject =
-        Uri.encodeComponent('CID incidente - pratica ${incidente.id}');
+    final subject = Uri.encodeComponent(emailContent['subject']!);
 
     debugPrint('MAIL STEP 2: build pdf if needed');
     Uint8List pdfBytes;
@@ -7981,34 +8260,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     }
 
     final damageLinks = incidente.fotoDanni.where((e) => e.isNotEmpty).toList();
-
-    final buffer = StringBuffer()
-      ..writeln('Buongiorno,')
-      ..writeln()
-      ..writeln(
-          'in allegato trovate il PDF del CID e la documentazione fotografica relativa all’incidente.')
-      ..writeln();
-
-    if (kIsWeb) {
-      buffer.writeln(
-          'Se gli allegati non compaiono automaticamente, usa il PDF appena scaricato dal browser.');
-    } else {
-      buffer.writeln(
-          'Se gli allegati non compaiono automaticamente, allega il PDF generato dall’app.');
-    }
-
-    if (damageLinks.isNotEmpty) {
-      buffer.writeln();
-      buffer.writeln('Foto danni:');
-      for (var i = 0; i < damageLinks.length; i++) {
-        buffer.writeln('${i + 1}. ${damageLinks[i]}');
-      }
-    }
-
-    buffer.writeln();
-    buffer.writeln('Cordiali saluti');
-
-    final bodyEncoded = Uri.encodeComponent(buffer.toString());
+    final bodyEncoded = Uri.encodeComponent(emailContent['body']!);
     final toParam = recipients.isEmpty ? '' : recipients.join(',');
 
     if (kIsWeb) {
