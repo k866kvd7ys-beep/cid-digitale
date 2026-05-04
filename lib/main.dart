@@ -73,6 +73,7 @@ class DamagePhotoItem {
   String? localPath;
   String? remoteUrl;
   String? storagePath;
+  String? cacheKey;
   DamagePhotoStatus status;
   String? error;
   bool isRemoved;
@@ -83,6 +84,7 @@ class DamagePhotoItem {
     this.localPath,
     this.remoteUrl,
     this.storagePath,
+    this.cacheKey,
     this.error,
     this.isRemoved = false,
   });
@@ -542,12 +544,16 @@ class Incidente {
 /// STORAGE /////////////////////////////////////////////////////////////
 
 List<Incidente> incidentiSalvati = [];
+final ValueNotifier<int> incidentiRevision = ValueNotifier<int>(0);
+const String _pendingSyncQueueKey = 'pendingSyncQueue';
+const int _maxPendingSyncAttempts = 3;
 
 Future<void> caricaIncidenti() async {
   final prefs = await SharedPreferences.getInstance();
   final stored = prefs.getString('incidenti');
   if (stored == null) {
     incidentiSalvati = [];
+    incidentiRevision.value++;
     return;
   }
 
@@ -572,12 +578,16 @@ Future<void> caricaIncidenti() async {
       incidentiSalvati = parsed;
       if (changed) {
         await salvaIncidenti();
+      } else {
+        incidentiRevision.value++;
       }
     } else {
       incidentiSalvati = [];
+      incidentiRevision.value++;
     }
   } catch (_) {
     incidentiSalvati = [];
+    incidentiRevision.value++;
   }
 }
 
@@ -587,6 +597,337 @@ Future<void> salvaIncidenti() async {
     'incidenti',
     jsonEncode(incidentiSalvati.map((e) => e.toJson()).toList()),
   );
+  incidentiRevision.value++;
+}
+
+Future<List<Map<String, dynamic>>> _loadPendingSyncQueue() async {
+  final prefs = await SharedPreferences.getInstance();
+  final stored = prefs.getString(_pendingSyncQueueKey);
+  if (stored == null || stored.trim().isEmpty) {
+    return <Map<String, dynamic>>[];
+  }
+
+  try {
+    final decoded = jsonDecode(stored);
+    if (decoded is! List) return <Map<String, dynamic>>[];
+    return decoded
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  } catch (_) {
+    return <Map<String, dynamic>>[];
+  }
+}
+
+Future<void> _savePendingSyncQueue(List<Map<String, dynamic>> queue) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString(_pendingSyncQueueKey, jsonEncode(queue));
+}
+
+String _pendingSyncEntryLocalId(Map<String, dynamic> entry) {
+  final localId = entry['localId']?.toString().trim() ?? '';
+  if (localId.isNotEmpty) return localId;
+  final incident = entry['incident'];
+  if (incident is Map) {
+    return incident['id']?.toString().trim() ?? '';
+  }
+  return '';
+}
+
+Future<void> _upsertPendingSyncEntry(Map<String, dynamic> entry) async {
+  final queue = await _loadPendingSyncQueue();
+  final localId = _pendingSyncEntryLocalId(entry);
+  final index = queue.indexWhere((item) => _pendingSyncEntryLocalId(item) == localId);
+  if (index != -1) {
+    queue[index] = entry;
+  } else {
+    queue.add(entry);
+  }
+  await _savePendingSyncQueue(queue);
+}
+
+Future<void> _removePendingSyncEntry(String localId) async {
+  final queue = await _loadPendingSyncQueue();
+  queue.removeWhere((entry) => _pendingSyncEntryLocalId(entry) == localId);
+  await _savePendingSyncQueue(queue);
+}
+
+Future<Map<String, dynamic>?> _findPendingSyncEntry(String incidentId) async {
+  final queue = await _loadPendingSyncQueue();
+  for (final entry in queue) {
+    final localId = _pendingSyncEntryLocalId(entry);
+    if (localId == incidentId) return entry;
+    final incident = entry['incident'];
+    if (incident is Map && incident['id']?.toString().trim() == incidentId) {
+      return entry;
+    }
+  }
+  return null;
+}
+
+bool _isStorageBackedAttachment(String? value) {
+  final trimmed = value?.trim() ?? '';
+  return trimmed.startsWith('http') || trimmed.startsWith('claims/');
+}
+
+Future<bool> _hasInternetConnection() async {
+  try {
+    final uri = Uri.parse('$supabaseUrl/auth/v1/health');
+    final response = await http.get(uri).timeout(const Duration(seconds: 5));
+    return response.statusCode >= 200 && response.statusCode < 500;
+  } catch (_) {
+    return false;
+  }
+}
+
+Future<Uint8List?> _readQueuedAttachmentBytes(
+  Map<String, dynamic> descriptor,
+) async {
+  final localPath = descriptor['localPath']?.toString().trim() ?? '';
+  if (!kIsWeb && localPath.isNotEmpty) {
+    final file = File(localPath);
+    if (await file.exists()) {
+      return file.readAsBytes();
+    }
+  }
+
+  final cacheKey = descriptor['cacheKey']?.toString().trim() ?? '';
+  if (cacheKey.isNotEmpty) {
+    final cached = await LocalImageCache.getImage(cacheKey);
+    if (cached != null) return cached;
+  }
+
+  final bytesBase64 = descriptor['bytesBase64']?.toString().trim() ?? '';
+  if (bytesBase64.isNotEmpty) {
+    return base64Decode(bytesBase64);
+  }
+
+  return null;
+}
+
+Future<Incidente> _syncPendingQueueEntry(Map<String, dynamic> entry) async {
+  final localId = _pendingSyncEntryLocalId(entry);
+  var attempts = (entry['attempts'] as num?)?.toInt() ?? 0;
+  var incident = Incidente.fromJson(
+    Map<String, dynamic>.from(entry['incident'] as Map),
+  );
+
+  debugPrint('SYNC CLAIM START: localId=$localId incidentId=${incident.id}');
+
+  final queueSnapshot = Map<String, dynamic>.from(entry)
+    ..['attempts'] = attempts + 1
+    ..['lastAttemptAt'] = DateTime.now().toUtc().toIso8601String();
+  await _upsertPendingSyncEntry(queueSnapshot);
+
+  incident = await _persistIncidentEmailSendState(
+    incident,
+    status: 'syncing',
+    message: 'Sincronizzazione in corso…',
+    previousId: localId == incident.id ? null : localId,
+  );
+
+  final supabaseService = SupabaseService();
+  final realClaimId = await _ensurePersistedClaimId(incident);
+  if (realClaimId != incident.id) {
+    incident = Incidente.fromJson({
+      ...incident.toJson(),
+      'id': realClaimId,
+    });
+  }
+
+  final damageUrls = incident.fotoDanni
+      .where((value) => _isStorageBackedAttachment(value))
+      .toList();
+  var fotoLibrettoA = incident.fotoLibrettoA;
+  var fotoLibrettoB = incident.fotoLibrettoB;
+
+  debugPrint('SYNC ATTACHMENTS START: claimId=$realClaimId');
+
+  Future<String?> uploadQueuedAttachment(
+    Map<String, dynamic>? descriptor, {
+    required String kind,
+  }) async {
+    if (descriptor == null) return null;
+    final bytes = await _readQueuedAttachmentBytes(descriptor);
+    if (bytes == null || bytes.isEmpty) return null;
+    final filename = descriptor['filename']?.toString().trim().isNotEmpty == true
+        ? descriptor['filename'].toString().trim()
+        : '${kind}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final contentType =
+        descriptor['contentType']?.toString().trim().isNotEmpty == true
+            ? descriptor['contentType'].toString().trim()
+            : 'image/jpeg';
+    return supabaseService.uploadClaimImageBytes(
+      claimId: realClaimId,
+      bytes: bytes,
+      filename: filename,
+      contentType: contentType,
+      kind: kind,
+    );
+  }
+
+  final librettoA = entry['librettoA'];
+  if (!_isStorageBackedAttachment(fotoLibrettoA)) {
+    final uploaded = await uploadQueuedAttachment(
+      librettoA is Map ? Map<String, dynamic>.from(librettoA) : null,
+      kind: 'libretto',
+    );
+    if (uploaded != null && uploaded.isNotEmpty) {
+      fotoLibrettoA = uploaded;
+    }
+  }
+
+  final librettoB = entry['librettoB'];
+  if (!_isStorageBackedAttachment(fotoLibrettoB)) {
+    final uploaded = await uploadQueuedAttachment(
+      librettoB is Map ? Map<String, dynamic>.from(librettoB) : null,
+      kind: 'libretto',
+    );
+    if (uploaded != null && uploaded.isNotEmpty) {
+      fotoLibrettoB = uploaded;
+    }
+  }
+
+  final damageAttachments = entry['damageAttachments'];
+  if (damageAttachments is List) {
+    for (final rawAttachment in damageAttachments.whereType<Map>()) {
+      final attachment = Map<String, dynamic>.from(rawAttachment);
+      final uploaded = await uploadQueuedAttachment(attachment, kind: 'damage');
+      if (uploaded != null &&
+          uploaded.isNotEmpty &&
+          !damageUrls.contains(uploaded)) {
+        damageUrls.add(uploaded);
+      }
+    }
+  }
+
+  incident = Incidente.fromJson({
+    ...incident.toJson(),
+    'id': realClaimId,
+    'fotoLibrettoA': fotoLibrettoA,
+    'fotoLibrettoB': fotoLibrettoB,
+    'fotoDanni': damageUrls,
+  });
+
+  await Supabase.instance.client.from('claims').update({
+    'payload_json': incident.toJson(),
+    'workshop_code': incident.codiceOfficina,
+    'hashed_token': incident.hashIntegrita,
+  }).eq('id', realClaimId);
+
+  try {
+    final sync = IncidentsSyncService();
+    await sync.uploadIncident(
+      payload: incident.toJson(),
+      hashSha256: incident.hashIntegrita,
+      timestampUtc: DateTime.now().toUtc(),
+      locale: linguaSelezionata.value.languageCode,
+      deviceId: null,
+    );
+  } catch (e, st) {
+    debugPrint('SYNC ERROR: uploadIncident $e');
+    debugPrint('$st');
+  }
+
+  debugPrint('SYNC EMAIL START: claimId=$realClaimId');
+  final result = await Supabase.instance.client.functions.invoke(
+    'send-cid-email',
+    body: {'claimId': realClaimId},
+  );
+  if (result.status >= 400 ||
+      (result.data is Map && (result.data as Map)['success'] == false)) {
+    throw Exception('send-cid-email failed: ${result.data}');
+  }
+
+  incident = await _persistIncidentEmailSendState(
+    incident,
+    status: 'sent',
+    message: 'Pratica sincronizzata e inviata.',
+    previousId: localId == incident.id ? null : localId,
+  );
+  await _removePendingSyncEntry(localId);
+  if (kIsWeb) {
+    await LocalImageCache.clearIncidentImages(localId);
+  }
+  debugPrint('SYNC DONE: claimId=${incident.id}');
+  return incident;
+}
+
+Future<void> _syncPendingQueue() async {
+  final hasInternet = await _hasInternetConnection();
+  if (!hasInternet) return;
+
+  final queue = await _loadPendingSyncQueue();
+  if (queue.isEmpty) return;
+
+  debugPrint('SYNC QUEUE START: count=${queue.length}');
+
+  for (final rawEntry in queue) {
+    final entry = Map<String, dynamic>.from(rawEntry);
+    final attempts = (entry['attempts'] as num?)?.toInt() ?? 0;
+    if (attempts >= _maxPendingSyncAttempts) continue;
+
+    try {
+      await _syncPendingQueueEntry(entry);
+    } catch (e, st) {
+      debugPrint('SYNC ERROR: $e');
+      debugPrint('$st');
+      final incident = Incidente.fromJson(
+        Map<String, dynamic>.from(entry['incident'] as Map),
+      );
+      final stillOnline = await _hasInternetConnection();
+      final nextStatus = stillOnline && attempts + 1 >= _maxPendingSyncAttempts
+          ? 'failed'
+          : 'pending_sync';
+      final nextMessage = stillOnline && attempts + 1 >= _maxPendingSyncAttempts
+          ? 'Sincronizzazione fallita — Riprova'
+          : 'Pratica salvata offline. Verrà inviata automaticamente quando torna internet.';
+      final updated = await _persistIncidentEmailSendState(
+        incident,
+        status: nextStatus,
+        message: nextMessage,
+        previousId: _pendingSyncEntryLocalId(entry) == incident.id
+            ? null
+            : _pendingSyncEntryLocalId(entry),
+      );
+      await _upsertPendingSyncEntry({
+        ...entry,
+        'incident': updated.toJson(),
+        'attempts': attempts + 1,
+        'status': nextStatus,
+        'lastAttemptAt': DateTime.now().toUtc().toIso8601String(),
+      });
+    }
+  }
+}
+
+class PendingSyncManager {
+  static Timer? _timer;
+  static bool _syncing = false;
+
+  static void start() {
+    _timer?.cancel();
+    _timer = Timer.periodic(
+      const Duration(seconds: 20),
+      (_) => unawaited(trigger()),
+    );
+    unawaited(trigger());
+  }
+
+  static void stop() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  static Future<void> trigger() async {
+    if (_syncing) return;
+    _syncing = true;
+    try {
+      await _syncPendingQueue();
+    } finally {
+      _syncing = false;
+    }
+  }
 }
 
 Future<String> calcolaHashIntegrita(Incidente inc) async {
@@ -1125,8 +1466,35 @@ Future<void> main() async {
   runApp(const CidDigitaleApp());
 }
 
-class CidDigitaleApp extends StatelessWidget {
+class CidDigitaleApp extends StatefulWidget {
   const CidDigitaleApp({super.key});
+
+  @override
+  State<CidDigitaleApp> createState() => _CidDigitaleAppState();
+}
+
+class _CidDigitaleAppState extends State<CidDigitaleApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    PendingSyncManager.start();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    PendingSyncManager.stop();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(PendingSyncManager.trigger());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2295,6 +2663,24 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    incidentiRevision.addListener(_onIncidentiRevision);
+    unawaited(PendingSyncManager.trigger());
+  }
+
+  @override
+  void dispose() {
+    incidentiRevision.removeListener(_onIncidentiRevision);
+    super.dispose();
+  }
+
+  void _onIncidentiRevision() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
   void _vaiANuovoIncidente() async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const NuovaPraticaIncidentePage()),
@@ -3143,6 +3529,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   String? _fotoLibrettoBPath;
   Uint8List? _fotoLibrettoABytes;
   Uint8List? _fotoLibrettoBBytes;
+  String? _fotoLibrettoACacheKey;
+  String? _fotoLibrettoBCacheKey;
   final List<DamagePhotoItem> _damagePhotos = [];
   String? _draftClaimId;
   final AudioRecorder _audioRecorder = AudioRecorder();
@@ -3784,6 +4172,111 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return url.substring(idx + marker.length);
   }
 
+  Map<String, dynamic>? _buildQueuedAttachmentDescriptor({
+    required String kind,
+    String? localPath,
+    Uint8List? bytes,
+    String? filename,
+    String? cacheKey,
+  }) {
+    final cleanPath = localPath?.trim() ?? '';
+    final cleanCacheKey = cacheKey?.trim() ?? '';
+    final resolvedFilename = (filename?.trim().isNotEmpty == true)
+        ? filename!.trim()
+        : cleanPath.isNotEmpty
+            ? path.basename(cleanPath)
+            : '${kind}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+    if (cleanPath.isEmpty && bytes == null && cleanCacheKey.isEmpty) {
+      return null;
+    }
+
+    return {
+      'kind': kind,
+      'filename': resolvedFilename,
+      'localPath': cleanPath,
+      'cacheKey': cleanCacheKey,
+      'bytesBase64':
+          bytes != null && !kIsWeb ? base64Encode(bytes) : '',
+      'contentType': 'image/jpeg',
+    };
+  }
+
+  Map<String, dynamic> _buildPendingSyncEntry(
+    Incidente incident, {
+    required String localId,
+    int attempts = 0,
+  }) {
+    final damageAttachments = _damagePhotos
+        .where((item) => (item.remoteUrl?.trim().isEmpty ?? true))
+        .map(
+          (item) => _buildQueuedAttachmentDescriptor(
+            kind: 'damage',
+            localPath: item.localPath,
+            bytes: item.bytes,
+            filename: item.localPath != null && item.localPath!.isNotEmpty
+                ? path.basename(item.localPath!)
+                : null,
+            cacheKey: item.cacheKey,
+          ),
+        )
+        .whereType<Map<String, dynamic>>()
+        .toList();
+
+    final librettoA = _buildQueuedAttachmentDescriptor(
+      kind: 'libretto',
+      localPath: _isStorageBackedAttachment(_fotoLibrettoAPath)
+          ? null
+          : _fotoLibrettoAPath,
+      bytes: _fotoLibrettoABytes,
+      filename: _fotoLibrettoAPath != null && _fotoLibrettoAPath!.isNotEmpty
+          ? path.basename(_fotoLibrettoAPath!)
+          : 'libretto_A.jpg',
+      cacheKey: _fotoLibrettoACacheKey,
+    );
+    final librettoB = _buildQueuedAttachmentDescriptor(
+      kind: 'libretto',
+      localPath: _isStorageBackedAttachment(_fotoLibrettoBPath)
+          ? null
+          : _fotoLibrettoBPath,
+      bytes: _fotoLibrettoBBytes,
+      filename: _fotoLibrettoBPath != null && _fotoLibrettoBPath!.isNotEmpty
+          ? path.basename(_fotoLibrettoBPath!)
+          : 'libretto_B.jpg',
+      cacheKey: _fotoLibrettoBCacheKey,
+    );
+
+    return {
+      'localId': localId,
+      'incident': incident.toJson(),
+      'attempts': attempts,
+      'status': incident.emailSendStatus,
+      'lastAttemptAt': incident.emailSendLastAttemptAt,
+      'damageAttachments': damageAttachments,
+      'librettoA': librettoA,
+      'librettoB': librettoB,
+    };
+  }
+
+  Future<Incidente> _saveIncidentOffline(
+    Incidente incident, {
+    required String localId,
+  }) async {
+    debugPrint('OFFLINE SAVE START: localId=$localId');
+    final offlineIncident = await _persistIncidentEmailSendState(
+      incident,
+      status: 'pending_sync',
+      message:
+          'Pratica salvata offline. Verrà inviata automaticamente quando torna internet.',
+      previousId: localId == incident.id ? null : localId,
+    );
+    await _upsertPendingSyncEntry(
+      _buildPendingSyncEntry(offlineIncident, localId: localId),
+    );
+    debugPrint('OFFLINE SAVE DONE: localId=$localId incidentId=${offlineIncident.id}');
+    return offlineIncident;
+  }
+
   Future<Incidente> _sendCidAutomatically(
     String claimId,
     Incidente incidenteSalvato,
@@ -4331,8 +4824,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           '[Damage] bytes length=${bytes.length} platform=${kIsWeb ? 'web' : 'mobile'} kind=$kind');
 
       if (kind == 'damage') {
+        String? cacheKey;
         if (kIsWeb) {
-          final cacheKey =
+          cacheKey =
               '${claimId}_damage_${DateTime.now().millisecondsSinceEpoch}';
           await LocalImageCache.saveImageLocally(cacheKey, bytes);
         }
@@ -4340,6 +4834,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           status: DamagePhotoStatus.local,
           bytes: bytes,
           localPath: kIsWeb ? null : picked.path,
+          cacheKey: cacheKey,
         );
         setState(() {
           _damagePhotos.add(item);
@@ -4351,8 +4846,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       }
 
       if (kind == 'libretto' && quale != null) {
+        String? cacheKey;
         if (kIsWeb) {
-          final cacheKey =
+          cacheKey =
               '${claimId}_libretto${quale.toUpperCase()}_${DateTime.now().millisecondsSinceEpoch}';
           await LocalImageCache.saveImageLocally(cacheKey, bytes);
         }
@@ -4360,9 +4856,11 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           if (quale == 'A') {
             _fotoLibrettoABytes = bytes;
             _fotoLibrettoAPath = null;
+            _fotoLibrettoACacheKey = cacheKey;
           } else {
             _fotoLibrettoBBytes = bytes;
             _fotoLibrettoBPath = null;
+            _fotoLibrettoBCacheKey = cacheKey;
           }
         });
       }
@@ -4856,9 +5354,11 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             if (quale == 'A') {
               _fotoLibrettoABytes = bytes;
               _fotoLibrettoAPath = filename;
+              _fotoLibrettoACacheKey = null;
             } else {
               _fotoLibrettoBBytes = bytes;
               _fotoLibrettoBPath = filename;
+              _fotoLibrettoBCacheKey = null;
             }
           });
           _mostraSnack('Foto libretto caricata.');
@@ -4872,9 +5372,11 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         if (quale == 'A') {
           _fotoLibrettoAPath = result.path;
           _fotoLibrettoABytes = null;
+          _fotoLibrettoACacheKey = null;
         } else {
           _fotoLibrettoBPath = result.path;
           _fotoLibrettoBBytes = null;
+          _fotoLibrettoBCacheKey = null;
         }
       });
 
@@ -4927,6 +5429,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     setState(() {
       _isSavingIncident = true;
     });
+    String? draftId;
+    Incidente? nuovo;
     try {
       debugPrint('SAVE STEP 1: validate');
       if (_isRecordingAudio) {
@@ -4960,7 +5464,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         );
         return;
       }
-      if (failed > 0) {
+      final isOnlineAtSaveStart = await _hasInternetConnection();
+      if (failed > 0 && isOnlineAtSaveStart) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text(
@@ -4971,7 +5476,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
       debugPrint('SAVE STEP 2: build payload');
       _draftClaimId ??= DateTime.now().millisecondsSinceEpoch.toString();
-      final draftId = _draftClaimId!;
+      draftId = _draftClaimId!;
 
       final codiceOfficina =
           draftId.length > 6
@@ -5044,7 +5549,25 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       );
 
       debugPrint('SAVE STEP 3: save incident db');
-      final nuovo = await aggiornaHashIncidente(baseIncidente);
+      nuovo = await aggiornaHashIncidente(baseIncidente);
+      if (!isOnlineAtSaveStart) {
+        final offlineIncident = await _saveIncidentOffline(
+          nuovo,
+          localId: draftId,
+        );
+        _draftClaimId = offlineIncident.id;
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(offlineIncident.emailSendMessage)),
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => DettaglioIncidentePage(incidente: offlineIncident),
+          ),
+        );
+        return;
+      }
+
       final claimId = await _ensurePersistedClaimId(nuovo);
       final incidenteSalvato = claimId == nuovo.id
           ? nuovo
@@ -5077,9 +5600,21 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       if (kIsWeb) {
         await LocalImageCache.clearIncidentImages(draftId);
       }
-      final incidentWithEmailStatus =
+      var incidentWithEmailStatus =
           await _sendCidAutomatically(claimId, incidenteSalvato);
-      if (mounted) {
+      if (incidentWithEmailStatus.emailSendStatus == 'failed' &&
+          !await _hasInternetConnection()) {
+        incidentWithEmailStatus = await _saveIncidentOffline(
+          incidentWithEmailStatus,
+          localId: draftId,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(incidentWithEmailStatus.emailSendMessage)),
+          );
+          setState(() {});
+        }
+      } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(incidentWithEmailStatus.emailSendMessage)),
         );
@@ -5114,6 +5649,22 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       debugPrint('SAVE ERROR TYPE: ${e.runtimeType}');
       debugPrint('SAVE ERROR: $e');
       debugPrint('$st');
+      if (nuovo != null && !(await _hasInternetConnection())) {
+        final offlineIncident = await _saveIncidentOffline(
+          nuovo,
+          localId: draftId ?? nuovo.id,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(offlineIncident.emailSendMessage)),
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => DettaglioIncidentePage(incidente: offlineIncident),
+          ),
+        );
+        return;
+      }
       _mostraSnack('Errore durante il salvataggio: $e');
     } finally {
       if (mounted) {
@@ -6320,6 +6871,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
   void initState() {
     super.initState();
     incidente = widget.incidente;
+    incidentiRevision.addListener(_onIncidentiRevision);
     _qrDataFuture = _qrEmptyFuture();
     _detailAudioPlayer = AudioPlayer();
     _detailAudioSub = _detailAudioPlayer.onPlayerComplete.listen((event) {
@@ -6330,6 +6882,30 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       }
     });
     unawaited(_verificaHashIntegrita());
+  }
+
+  @override
+  void dispose() {
+    incidentiRevision.removeListener(_onIncidentiRevision);
+    _detailAudioSub?.cancel();
+    unawaited(_detailAudioPlayer.stop());
+    _detailAudioPlayer.dispose();
+    super.dispose();
+  }
+
+  void _onIncidentiRevision() {
+    if (!mounted) return;
+    final updated = incidentiSalvati.cast<Incidente?>().firstWhere(
+          (item) =>
+              item?.id == incidente.id ||
+              (item?.hashIntegrita.isNotEmpty == true &&
+                  item?.hashIntegrita == incidente.hashIntegrita),
+          orElse: () => null,
+        );
+    if (updated == null) return;
+    setState(() {
+      incidente = updated;
+    });
   }
 
   String _labelResponsabilita() {
@@ -6347,13 +6923,17 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
   String _emailStatusLabel() {
     switch (incidente.emailSendStatus) {
       case 'sent':
-        return '🟢 Email inviata';
+        return '🟢 Pratica sincronizzata e inviata';
+      case 'pending_sync':
+        return '🟠 Salvata offline, in attesa di connessione';
+      case 'syncing':
+        return '🔄 Sincronizzazione in corso…';
       case 'skipped':
         return '🟡 Email non inviata: nessuna email disponibile';
       case 'failed':
-        return '🔴 Invio email fallito';
+        return '🔴 Sincronizzazione fallita — Riprova';
       case 'pending':
-        return '⏳ Invio email in corso';
+        return '🔄 Sincronizzazione in corso…';
       default:
         return '';
     }
@@ -6364,6 +6944,38 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     final parsed = DateTime.tryParse(incidente.emailSendLastAttemptAt);
     if (parsed == null) return incidente.emailSendLastAttemptAt;
     return formatDataOraLocale(context, parsed.toLocal());
+  }
+
+  Future<void> _retryPendingSync() async {
+    debugPrint('EMAIL RETRY START: claimId=${incidente.id}');
+    final existingEntry = await _findPendingSyncEntry(incidente.id);
+    if (existingEntry != null) {
+      await _upsertPendingSyncEntry({
+        ...existingEntry,
+        'attempts': 0,
+        'status': 'pending_sync',
+        'incident': Incidente.fromJson({
+          ...incidente.toJson(),
+          'emailSendStatus': 'pending_sync',
+          'emailSendMessage':
+              'Pratica salvata offline. Verrà inviata automaticamente quando torna internet.',
+        }).toJson(),
+      });
+      await _persistIncidentEmailSendState(
+        incidente,
+        status: 'pending_sync',
+        message:
+            'Pratica salvata offline. Verrà inviata automaticamente quando torna internet.',
+      );
+      await PendingSyncManager.trigger();
+    } else {
+      await _sendCidAutomatically(incidente.id);
+    }
+    debugPrint(
+      'EMAIL RETRY RESULT: '
+      'status=${incidente.emailSendStatus} '
+      'message=${incidente.emailSendMessage}',
+    );
   }
 
   Uint8List? _decodeBase64Image(String data) {
@@ -6568,14 +7180,6 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     setState(() {
       _notaInRiproduzione = null;
     });
-  }
-
-  @override
-  void dispose() {
-    unawaited(_detailAudioSub?.cancel());
-    unawaited(_detailAudioPlayer.stop());
-    _detailAudioPlayer.dispose();
-    super.dispose();
   }
 
   Future<Uint8List> _buildIncidentPdfBytes() async {
@@ -7255,6 +7859,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         return;
       }
 
+      debugPrint('SYNC EMAIL START: claimId=$realClaimId');
       final result = await Supabase.instance.client.functions.invoke(
         'send-cid-email',
         body: {
@@ -7290,12 +7895,26 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     } catch (e, st) {
       debugPrint('AUTO SEND ERROR: $e');
       debugPrint('$st');
+      final offline = !await _hasInternetConnection();
       final updatedIncident = await _persistIncidentEmailSendState(
         incidente,
-        status: 'failed',
-        message:
-            'Pratica salvata. Invio email non riuscito: riprova più tardi.',
+        status: offline ? 'pending_sync' : 'failed',
+        message: offline
+            ? 'Pratica salvata offline. Verrà inviata automaticamente quando torna internet.'
+            : 'Pratica salvata. Invio email non riuscito: riprova più tardi.',
       );
+      if (offline) {
+        await _upsertPendingSyncEntry({
+          'localId': QrPayload.looksLikeUuid(claimId) ? claimId : incidente.id,
+          'incident': updatedIncident.toJson(),
+          'attempts': 0,
+          'status': 'pending_sync',
+          'lastAttemptAt': updatedIncident.emailSendLastAttemptAt,
+          'damageAttachments': const <Map<String, dynamic>>[],
+          'librettoA': null,
+          'librettoB': null,
+        });
+      }
       if (mounted) {
         setState(() {
           incidente = updatedIncident;
@@ -8189,17 +8808,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                         child: OutlinedButton.icon(
                           onPressed: _isSendingAuto
                               ? null
-                              : () async {
-                                  debugPrint(
-                                    'EMAIL RETRY START: claimId=${incidente.id}',
-                                  );
-                                  await _sendCidAutomatically(incidente.id);
-                                  debugPrint(
-                                    'EMAIL RETRY RESULT: '
-                                    'status=${incidente.emailSendStatus} '
-                                    'message=${incidente.emailSendMessage}',
-                                  );
-                                },
+                              : _retryPendingSync,
                           icon: const Icon(Icons.refresh),
                           label: const Text('Riprova invio'),
                         ),
