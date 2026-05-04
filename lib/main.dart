@@ -352,6 +352,9 @@ class Incidente {
 
   /// Impronta di integrità (SHA-256) dei dati e allegati
   final String hashIntegrita;
+  final String emailSendStatus;
+  final String emailSendMessage;
+  final String emailSendLastAttemptAt;
 
   Incidente({
     required this.id,
@@ -396,6 +399,9 @@ class Incidente {
     required this.colpevole,
     required this.codiceOfficina,
     required this.hashIntegrita,
+    this.emailSendStatus = '',
+    this.emailSendMessage = '',
+    this.emailSendLastAttemptAt = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -441,6 +447,9 @@ class Incidente {
         'colpevole': colpevole,
         'codiceOfficina': codiceOfficina,
         'hashIntegrita': hashIntegrita,
+        'emailSendStatus': emailSendStatus,
+        'emailSendMessage': emailSendMessage,
+        'emailSendLastAttemptAt': emailSendLastAttemptAt,
       };
 
   factory Incidente.fromJson(Map<String, dynamic> json) {
@@ -523,6 +532,9 @@ class Incidente {
       colpevole: json['colpevole'] ?? '',
       codiceOfficina: json['codiceOfficina'] ?? '',
       hashIntegrita: json['hashIntegrita'] ?? '',
+      emailSendStatus: json['emailSendStatus'] ?? '',
+      emailSendMessage: json['emailSendMessage'] ?? '',
+      emailSendLastAttemptAt: json['emailSendLastAttemptAt'] ?? '',
     );
   }
 }
@@ -675,7 +687,95 @@ Future<Incidente> aggiornaHashIncidente(Incidente inc) async {
     colpevole: inc.colpevole,
     codiceOfficina: inc.codiceOfficina,
     hashIntegrita: hash,
+    emailSendStatus: inc.emailSendStatus,
+    emailSendMessage: inc.emailSendMessage,
+    emailSendLastAttemptAt: inc.emailSendLastAttemptAt,
   );
+}
+
+Incidente _copyIncidenteWithEmailSendState(
+  Incidente inc, {
+  required String status,
+  required String message,
+  String? lastAttemptAt,
+}) {
+  return Incidente(
+    id: inc.id,
+    dataOra: inc.dataOra,
+    luogo: inc.luogo,
+    nomeA: inc.nomeA,
+    cognomeA: inc.cognomeA,
+    targaA: inc.targaA,
+    assicurazioneA: inc.assicurazioneA,
+    telefonoA: inc.telefonoA,
+    emailA: inc.emailA,
+    indirizzoA: inc.indirizzoA,
+    zipA: inc.zipA,
+    cityA: inc.cityA,
+    nomeB: inc.nomeB,
+    cognomeB: inc.cognomeB,
+    targaB: inc.targaB,
+    assicurazioneB: inc.assicurazioneB,
+    telefonoB: inc.telefonoB,
+    emailB: inc.emailB,
+    indirizzoB: inc.indirizzoB,
+    zipB: inc.zipB,
+    cityB: inc.cityB,
+    descrizione: inc.descrizione,
+    danniVeicoloA: inc.danniVeicoloA,
+    danniVeicoloB: inc.danniVeicoloB,
+    otherObjectDamage: inc.otherObjectDamage,
+    otherVehicleDamage: inc.otherVehicleDamage,
+    testimoni: inc.testimoni,
+    feriti: inc.feriti,
+    notaVocaleA: inc.notaVocaleA,
+    notaVocaleB: inc.notaVocaleB,
+    notaAudioAPath: inc.notaAudioAPath,
+    notaAudioBPath: inc.notaAudioBPath,
+    fotoLibrettoA: inc.fotoLibrettoA,
+    fotoLibrettoB: inc.fotoLibrettoB,
+    fotoDanni: inc.fotoDanni,
+    firmaAPath: inc.firmaAPath,
+    firmaBPath: inc.firmaBPath,
+    timestampFirmaA: inc.timestampFirmaA,
+    timestampFirmaB: inc.timestampFirmaB,
+    colpevole: inc.colpevole,
+    codiceOfficina: inc.codiceOfficina,
+    hashIntegrita: inc.hashIntegrita,
+    emailSendStatus: status,
+    emailSendMessage: message,
+    emailSendLastAttemptAt:
+        lastAttemptAt ?? DateTime.now().toUtc().toIso8601String(),
+  );
+}
+
+Future<Incidente> _persistIncidentEmailSendState(
+  Incidente inc, {
+  required String status,
+  required String message,
+  String? previousId,
+}) async {
+  final updated = _copyIncidenteWithEmailSendState(
+    inc,
+    status: status,
+    message: message,
+  );
+  debugPrint(
+    'EMAIL STATUS SET: '
+    'status=$status claimId=${updated.id} '
+    'message=$message at=${updated.emailSendLastAttemptAt}',
+  );
+
+  final index = incidentiSalvati.indexWhere(
+    (e) => e.id == updated.id || (previousId != null && e.id == previousId),
+  );
+  if (index != -1) {
+    incidentiSalvati[index] = updated;
+  } else {
+    incidentiSalvati.insert(0, updated);
+  }
+  await salvaIncidenti();
+  return updated;
 }
 
 // Cache e helper per la generazione del QR CLIENTE (CID1:<token>).
@@ -3684,26 +3784,37 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return url.substring(idx + marker.length);
   }
 
-  Future<String> _sendCidAutomatically(
+  Future<Incidente> _sendCidAutomatically(
     String claimId,
     Incidente incidenteSalvato,
   ) async {
+    var currentIncident = await _persistIncidentEmailSendState(
+      incidenteSalvato,
+      status: 'pending',
+      message: 'Invio email in corso...',
+    );
     final availableContacts = {
-      'emailA': incidenteSalvato.emailA.trim(),
-      'emailB': incidenteSalvato.emailB.trim(),
+      'emailA': currentIncident.emailA.trim(),
+      'emailB': currentIncident.emailB.trim(),
       'officinaEmail': configOfficina.concessionariaEmail.trim(),
-      'assicurazioneA': incidenteSalvato.assicurazioneA.trim(),
-      'assicurazioneB': incidenteSalvato.assicurazioneB.trim(),
+      'assicurazioneA': currentIncident.assicurazioneA.trim(),
+      'assicurazioneB': currentIncident.assicurazioneB.trim(),
     };
     final recipients = _collectSendRecipients(
-      emailA: incidenteSalvato.emailA,
-      emailB: incidenteSalvato.emailB,
+      emailA: currentIncident.emailA,
+      emailB: currentIncident.emailB,
     );
     debugPrint('SEND CONTACTS AVAILABLE: ${jsonEncode(availableContacts)}');
     debugPrint('SEND RECIPIENTS FINAL: $recipients');
     if (recipients.isEmpty) {
       debugPrint('SEND SKIPPED NO EMAIL: claimId=$claimId');
-      return 'Pratica salvata. Nessuna email disponibile per l’invio automatico.';
+      currentIncident = await _persistIncidentEmailSendState(
+        currentIncident,
+        status: 'skipped',
+        message:
+            'Pratica salvata. Nessuna email disponibile per l’invio automatico.',
+      );
+      return currentIncident;
     }
 
     try {
@@ -3721,10 +3832,21 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       if (result.data is Map && (result.data as Map)['success'] == false) {
         throw Exception((result.data as Map)['error'] ?? 'Invio non riuscito');
       }
-      return 'Pratica salvata e inviata correttamente.';
+      currentIncident = await _persistIncidentEmailSendState(
+        currentIncident,
+        status: 'sent',
+        message: 'Pratica salvata e inviata correttamente.',
+      );
+      return currentIncident;
     } catch (e) {
       debugPrint('CID EMAIL ERROR: $e');
-      return 'Pratica salvata. Invio email non riuscito: riprova più tardi.';
+      currentIncident = await _persistIncidentEmailSendState(
+        currentIncident,
+        status: 'failed',
+        message:
+            'Pratica salvata. Invio email non riuscito: riprova più tardi.',
+      );
+      return currentIncident;
     }
   }
 
@@ -4955,11 +5077,11 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       if (kIsWeb) {
         await LocalImageCache.clearIncidentImages(draftId);
       }
-      final sendMessage =
+      final incidentWithEmailStatus =
           await _sendCidAutomatically(claimId, incidenteSalvato);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(sendMessage)),
+          SnackBar(content: Text(incidentWithEmailStatus.emailSendMessage)),
         );
         setState(() {});
       }
@@ -4968,8 +5090,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       try {
         final sync = IncidentsSyncService();
         await sync.uploadIncident(
-          payload: incidenteSalvato.toJson(),
-          hashSha256: incidenteSalvato.hashIntegrita,
+          payload: incidentWithEmailStatus.toJson(),
+          hashSha256: incidentWithEmailStatus.hashIntegrita,
           timestampUtc: DateTime.now().toUtc(),
           locale: Localizations.localeOf(context).languageCode,
           deviceId: null,
@@ -4984,7 +5106,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       debugPrint('SAVE STEP 5: refresh detail + navigate (QR skipped)');
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => DettaglioIncidentePage(incidente: incidenteSalvato),
+          builder: (_) =>
+              DettaglioIncidentePage(incidente: incidentWithEmailStatus),
         ),
       );
     } catch (e, st) {
@@ -6221,6 +6344,28 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     }
   }
 
+  String _emailStatusLabel() {
+    switch (incidente.emailSendStatus) {
+      case 'sent':
+        return '🟢 Email inviata';
+      case 'skipped':
+        return '🟡 Email non inviata: nessuna email disponibile';
+      case 'failed':
+        return '🔴 Invio email fallito';
+      case 'pending':
+        return '⏳ Invio email in corso';
+      default:
+        return '';
+    }
+  }
+
+  String _emailLastAttemptLabel() {
+    if (incidente.emailSendLastAttemptAt.isEmpty) return '';
+    final parsed = DateTime.tryParse(incidente.emailSendLastAttemptAt);
+    if (parsed == null) return incidente.emailSendLastAttemptAt;
+    return formatDataOraLocale(context, parsed.toLocal());
+  }
+
   Uint8List? _decodeBase64Image(String data) {
     if (data.isEmpty) return null;
     try {
@@ -7021,36 +7166,10 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
   Future<void> _sendCidAutomatically(String claimId) async {
     if (_isSendingAuto) return;
-    final availableContacts = {
-      'emailA': incidente.emailA.trim(),
-      'emailB': incidente.emailB.trim(),
-      'officinaEmail': configOfficina.concessionariaEmail.trim(),
-      'assicurazioneA': incidente.assicurazioneA.trim(),
-      'assicurazioneB': incidente.assicurazioneB.trim(),
-    };
-    final recipients = _collectSendRecipients(
-      emailA: incidente.emailA,
-      emailB: incidente.emailB,
-    );
-    debugPrint('SEND CONTACTS AVAILABLE: ${jsonEncode(availableContacts)}');
-    debugPrint('SEND RECIPIENTS FINAL: $recipients');
-    if (recipients.isEmpty) {
-      debugPrint('SEND SKIPPED NO EMAIL: claimId=$claimId');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Pratica salvata. Nessuna email disponibile per l’invio automatico.',
-            ),
-          ),
-        );
-      }
-      return;
-    }
-
     setState(() => _isSendingAuto = true);
     try {
       String realClaimId = claimId;
+      var workingIncident = incidente;
       if (!QrPayload.looksLikeUuid(realClaimId)) {
         realClaimId = await _ensurePersistedClaimId(incidente);
         final updatedIncident = realClaimId == incidente.id
@@ -7085,6 +7204,55 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
             incidente = updatedIncident;
           }
         }
+        workingIncident = updatedIncident;
+      }
+
+      workingIncident = await _persistIncidentEmailSendState(
+        workingIncident,
+        status: 'pending',
+        message: 'Invio email in corso...',
+        previousId: claimId == realClaimId ? null : claimId,
+      );
+      if (mounted) {
+        setState(() {
+          incidente = workingIncident;
+        });
+      } else {
+        incidente = workingIncident;
+      }
+
+      final availableContacts = {
+        'emailA': workingIncident.emailA.trim(),
+        'emailB': workingIncident.emailB.trim(),
+        'officinaEmail': configOfficina.concessionariaEmail.trim(),
+        'assicurazioneA': workingIncident.assicurazioneA.trim(),
+        'assicurazioneB': workingIncident.assicurazioneB.trim(),
+      };
+      final recipients = _collectSendRecipients(
+        emailA: workingIncident.emailA,
+        emailB: workingIncident.emailB,
+      );
+      debugPrint('SEND CONTACTS AVAILABLE: ${jsonEncode(availableContacts)}');
+      debugPrint('SEND RECIPIENTS FINAL: $recipients');
+      if (recipients.isEmpty) {
+        debugPrint('SEND SKIPPED NO EMAIL: claimId=$realClaimId');
+        workingIncident = await _persistIncidentEmailSendState(
+          workingIncident,
+          status: 'skipped',
+          message:
+              'Pratica salvata. Nessuna email disponibile per l’invio automatico.',
+        );
+        if (mounted) {
+          setState(() {
+            incidente = workingIncident;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(workingIncident.emailSendMessage)),
+          );
+        } else {
+          incidente = workingIncident;
+        }
+        return;
       }
 
       final result = await Supabase.instance.client.functions.invoke(
@@ -7102,24 +7270,43 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         throw Exception((result.data as Map)['error'] ?? 'Invio non riuscito');
       }
       debugPrint('CID EMAIL SUCCESS');
+      workingIncident = await _persistIncidentEmailSendState(
+        workingIncident,
+        status: 'sent',
+        message: 'Pratica salvata e inviata correttamente.',
+      );
       if (mounted) {
+        setState(() {
+          incidente = workingIncident;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Pratica salvata e inviata correttamente.'),
+            content: Text(workingIncident.emailSendMessage),
           ),
         );
+      } else {
+        incidente = workingIncident;
       }
     } catch (e, st) {
       debugPrint('AUTO SEND ERROR: $e');
       debugPrint('$st');
+      final updatedIncident = await _persistIncidentEmailSendState(
+        incidente,
+        status: 'failed',
+        message:
+            'Pratica salvata. Invio email non riuscito: riprova più tardi.',
+      );
       if (mounted) {
+        setState(() {
+          incidente = updatedIncident;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Pratica salvata. Invio email non riuscito: riprova più tardi.',
-            ),
+          SnackBar(
+            content: Text(updatedIncident.emailSendMessage),
           ),
         );
+      } else {
+        incidente = updatedIncident;
       }
     } finally {
       if (mounted) setState(() => _isSendingAuto = false);
@@ -7352,6 +7539,9 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       colpevole: value,
       codiceOfficina: incidente.codiceOfficina,
       hashIntegrita: incidente.hashIntegrita,
+      emailSendStatus: incidente.emailSendStatus,
+      emailSendMessage: incidente.emailSendMessage,
+      emailSendLastAttemptAt: incidente.emailSendLastAttemptAt,
     );
 
     final updatedWithHash = await aggiornaHashIncidente(updated);
@@ -7428,6 +7618,9 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         colpevole: incidente.colpevole,
         codiceOfficina: incidente.codiceOfficina,
         hashIntegrita: incidente.hashIntegrita,
+        emailSendStatus: incidente.emailSendStatus,
+        emailSendMessage: incidente.emailSendMessage,
+        emailSendLastAttemptAt: incidente.emailSendLastAttemptAt,
       );
 
       final updatedWithHash = await aggiornaHashIncidente(updated);
@@ -7484,6 +7677,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final dataOra = formatDataOraLocale(context, incidente.dataOra);
+    final emailStatusLabel = _emailStatusLabel();
+    final emailLastAttempt = _emailLastAttemptLabel();
     final bool hasNoteVocali = incidente.notaVocaleA.isNotEmpty ||
         incidente.notaVocaleB.isNotEmpty ||
         incidente.notaAudioAPath.isNotEmpty ||
@@ -7553,6 +7748,36 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                               style: TextStyle(
                                   fontSize: 12, color: Colors.redAccent),
                             ),
+                          if (emailStatusLabel.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              emailStatusLabel,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                          if (incidente.emailSendMessage.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              incidente.emailSendMessage,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                          if (emailLastAttempt.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              'Ultimo tentativo: $emailLastAttempt',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 4),
                           Text(
                             _labelResponsabilita(),
@@ -7957,6 +8182,29 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                         label: const Text('Invia automaticamente pratica'),
                       ),
                     ),
+                    if (incidente.emailSendStatus == 'failed') ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _isSendingAuto
+                              ? null
+                              : () async {
+                                  debugPrint(
+                                    'EMAIL RETRY START: claimId=${incidente.id}',
+                                  );
+                                  await _sendCidAutomatically(incidente.id);
+                                  debugPrint(
+                                    'EMAIL RETRY RESULT: '
+                                    'status=${incidente.emailSendStatus} '
+                                    'message=${incidente.emailSendMessage}',
+                                  );
+                                },
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Riprova invio'),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
