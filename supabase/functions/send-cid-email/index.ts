@@ -27,6 +27,8 @@ type AttachmentCandidate = {
   origin: string;
 };
 
+type SupportedLang = "de" | "it" | "fr" | "en";
+
 const damageKeyTerms = [
   "damage",
   "danno",
@@ -274,48 +276,464 @@ const readStringField = (payload: Record<string, any>, keys: string[]) => {
   return null;
 };
 
-const findSignatureValue = (
+const normalizeEmailLanguage = (
+  value: string | null | undefined,
+): SupportedLang | null => {
+  const normalized = (value ?? "").trim().toLowerCase();
+  if (!normalized) return null;
+  if (normalized.startsWith("de")) return "de";
+  if (normalized.startsWith("it")) return "it";
+  if (normalized.startsWith("fr")) return "fr";
+  if (normalized.startsWith("en")) return "en";
+  return null;
+};
+
+const detectPayloadLanguage = (
   payload: Record<string, any>,
-  variant: "A" | "B",
+): SupportedLang => {
+  const detected = normalizeEmailLanguage(
+    readStringField(payload, [
+      "locale",
+      "language",
+      "lang",
+      "languageCode",
+      "lingua",
+      "appLanguage",
+      "preferredLanguage",
+    ]),
+  );
+  return detected ?? "de";
+};
+
+const getLocalizedCopy = (lang: SupportedLang, claimId: string) => ({
+  de: {
+    emailTitle: "Digitaler Unfallbericht (CID) – Vorgang",
+    pdfTitle: "Digitaler Unfallbericht",
+    greeting: "Guten Tag,",
+    intro:
+      `im Anhang finden Sie den digitalen Unfallbericht zur Vorgangsnummer ${claimId}.`,
+    dateTime: "Datum und Uhrzeit",
+    place: "Ort",
+    driverA: "Fahrer A",
+    driverB: "Fahrer B",
+    name: "Name",
+    plate: "Kennzeichen",
+    insurance: "Versicherung",
+    phone: "Telefon",
+    email: "E-Mail",
+    address: "Adresse",
+    description: "Beschreibung",
+    witnesses: "Zeugen",
+    injuries: "Verletzte",
+    damage: "Beschädigung",
+    vehicleA: "Fahrzeug A",
+    vehicleB: "Fahrzeug B",
+    liability: "Haftung (Angabe der Parteien)",
+    signatures: "Unterschriften",
+    workshopCode: "Werkstattcode",
+    integrity: "Datenintegrität",
+    hash: "Hash",
+    pdfNote: "Der PDF-Bericht und die hochgeladenen Anhänge sind beigefügt.",
+    closing: "Freundliche Grüße",
+    signaturePresent: "vorhanden",
+    signatureMissing: "nicht vorhanden",
+  },
+  it: {
+    emailTitle: "Constatazione amichevole digitale (CID) – Pratica",
+    pdfTitle: "Constatazione amichevole digitale",
+    greeting: "Buongiorno,",
+    intro:
+      `in allegato trova la constatazione amichevole digitale relativa alla pratica ${claimId}.`,
+    dateTime: "Data e ora",
+    place: "Luogo",
+    driverA: "Conducente A",
+    driverB: "Conducente B",
+    name: "Nome",
+    plate: "Targa",
+    insurance: "Assicurazione",
+    phone: "Telefono",
+    email: "E-Mail",
+    address: "Indirizzo",
+    description: "Descrizione",
+    witnesses: "Testimoni",
+    injuries: "Feriti",
+    damage: "Danni",
+    vehicleA: "Veicolo A",
+    vehicleB: "Veicolo B",
+    liability: "Responsabilità (dichiarazione delle parti)",
+    signatures: "Firme",
+    workshopCode: "Codice officina",
+    integrity: "Integrità dati",
+    hash: "Hash",
+    pdfNote: "Il PDF della pratica e gli allegati caricati sono inclusi.",
+    closing: "Cordiali saluti",
+    signaturePresent: "presente",
+    signatureMissing: "mancante",
+  },
+  fr: {
+    emailTitle: "Constat amiable numérique (CID) – Dossier",
+    pdfTitle: "Constat amiable numérique",
+    greeting: "Bonjour,",
+    intro:
+      `vous trouverez en pièce jointe le constat amiable numérique relatif au dossier ${claimId}.`,
+    dateTime: "Date et heure",
+    place: "Lieu",
+    driverA: "Conducteur A",
+    driverB: "Conducteur B",
+    name: "Nom",
+    plate: "Plaque",
+    insurance: "Assurance",
+    phone: "Téléphone",
+    email: "E-Mail",
+    address: "Adresse",
+    description: "Description",
+    witnesses: "Témoins",
+    injuries: "Blessés",
+    damage: "Dommages",
+    vehicleA: "Véhicule A",
+    vehicleB: "Véhicule B",
+    liability: "Responsabilité (déclaration des parties)",
+    signatures: "Signatures",
+    workshopCode: "Code atelier",
+    integrity: "Intégrité des données",
+    hash: "Hash",
+    pdfNote: "Le rapport PDF et les pièces jointes téléchargées sont inclus.",
+    closing: "Cordialement",
+    signaturePresent: "présente",
+    signatureMissing: "absente",
+  },
+  en: {
+    emailTitle: "Digital Accident Report (CID) – Claim",
+    pdfTitle: "Digital Accident Report",
+    greeting: "Hello,",
+    intro:
+      `attached you will find the digital accident report for claim ${claimId}.`,
+    dateTime: "Date and time",
+    place: "Location",
+    driverA: "Driver A",
+    driverB: "Driver B",
+    name: "Name",
+    plate: "License plate",
+    insurance: "Insurance",
+    phone: "Phone",
+    email: "E-Mail",
+    address: "Address",
+    description: "Description",
+    witnesses: "Witnesses",
+    injuries: "Injuries",
+    damage: "Damage",
+    vehicleA: "Vehicle A",
+    vehicleB: "Vehicle B",
+    liability: "Liability (party statement)",
+    signatures: "Signatures",
+    workshopCode: "Workshop code",
+    integrity: "Data integrity",
+    hash: "Hash",
+    pdfNote: "The PDF report and the uploaded attachments are included.",
+    closing: "Kind regards",
+    signaturePresent: "present",
+    signatureMissing: "missing",
+  },
+})[lang];
+
+const escapeHtml = (value: string) =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
+const stringOrDash = (value: unknown) => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : "-";
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return "-";
+};
+
+const joinNonEmpty = (parts: Array<string | null | undefined>, separator = " ") => {
+  const cleaned = parts
+    .map((part) => (typeof part === "string" ? part.trim() : ""))
+    .filter((part) => part.length > 0);
+  return cleaned.length > 0 ? cleaned.join(separator) : "-";
+};
+
+const getFullName = (payload: Record<string, any>, variant: "A" | "B") =>
+  joinNonEmpty([payload?.[`nome${variant}`], payload?.[`cognome${variant}`]]);
+
+const getFullAddress = (payload: Record<string, any>, variant: "A" | "B") => {
+  const street = typeof payload?.[`indirizzo${variant}`] === "string"
+    ? payload[`indirizzo${variant}`].trim()
+    : "";
+  const zipCity = joinNonEmpty(
+    [payload?.[`zip${variant}`], payload?.[`city${variant}`]],
+  );
+  if (!street && zipCity === "-") return "-";
+  if (!street) return zipCity;
+  if (zipCity === "-") return street;
+  return `${street}, ${zipCity}`;
+};
+
+const getLocalizedLiability = (
+  payload: Record<string, any>,
+  lang: "de" | "it" | "fr" | "en",
 ) => {
-  const directKeys = variant === "A"
-    ? [
-      "firmaA",
-      "firmaAPath",
-      "signatureA",
-      "signatureAPath",
-      "signA",
-      "signaturaA",
-    ]
-    : [
-      "firmaB",
-      "firmaBPath",
-      "signatureB",
-      "signatureBPath",
-      "signB",
-      "signaturaB",
-    ];
+  const value = typeof payload?.colpevole === "string"
+    ? payload.colpevole.trim()
+    : "";
+  const emptyMap = {
+    de: "Keine Angabe.",
+    it: "Nessuna indicazione.",
+    fr: "Aucune indication.",
+    en: "No information provided.",
+  } as const;
+  if (!value) return emptyMap[lang];
+  if (value === "A") {
+    return ({
+      de: "Nach Angaben der Parteien ist Fahrer A haftbar.",
+      it: "Secondo le parti il conducente ritenuto responsabile è A.",
+      fr: "Selon les parties, le conducteur responsable est A.",
+      en: "According to the parties, driver A is liable.",
+    } as const)[lang];
+  }
+  if (value === "B") {
+    return ({
+      de: "Nach Angaben der Parteien ist Fahrer B haftbar.",
+      it: "Secondo le parti il conducente ritenuto responsabile è B.",
+      fr: "Selon les parties, le conducteur responsable est B.",
+      en: "According to the parties, driver B is liable.",
+    } as const)[lang];
+  }
+  return value;
+};
 
-  const direct = readStringField(payload, directKeys);
-  if (direct) return direct;
+const formatWitnesses = (
+  payload: Record<string, any>,
+  lang: "de" | "it" | "fr" | "en",
+) => {
+  const items = Array.isArray(payload?.testimoni) ? payload.testimoni : [];
+  if (items.length === 0) {
+    return ({
+      de: "Keine Zeugen angegeben.",
+      it: "Nessun testimone indicato.",
+      fr: "Aucun témoin indiqué.",
+      en: "No witnesses provided.",
+    } as const)[lang];
+  }
 
-  const variantLower = variant.toLowerCase();
-  for (const [key, value] of Object.entries(payload)) {
-    if (typeof value !== "string" || value.trim().length === 0) continue;
-    const lowerKey = key.toLowerCase();
-    const looksLikeSignature = lowerKey.includes("firma") ||
-      lowerKey.includes("signature") ||
-      lowerKey.includes("sign");
-    const matchesVariant = lowerKey.includes(variantLower) ||
-      lowerKey.includes(`driver${variantLower}`) ||
-      lowerKey.includes(`conducente${variantLower}`) ||
-      lowerKey.includes(`fahrer${variantLower}`);
-    if (looksLikeSignature && matchesVariant) {
-      return value.trim();
+  const lines = items
+    .map((item) => {
+      if (!item || typeof item !== "object") return "";
+      const nome = stringOrDash((item as Record<string, unknown>).nome);
+      const telefono = stringOrDash((item as Record<string, unknown>).telefono);
+      return `- ${nome} (${telefono})`;
+    })
+    .filter((line) => line.trim().length > 0);
+
+  return lines.length > 0
+    ? lines.join("\n")
+    : ({
+      de: "Keine Zeugen angegeben.",
+      it: "Nessun testimone indicato.",
+      fr: "Aucun témoin indiqué.",
+      en: "No witnesses provided.",
+    } as const)[lang];
+};
+
+const formatInjuries = (
+  payload: Record<string, any>,
+  lang: SupportedLang,
+) => {
+  const items = Array.isArray(payload?.feriti) ? payload.feriti : [];
+  if (items.length === 0) {
+    return ({
+      de: "Keine Verletzten angegeben.",
+      it: "Nessun ferito indicato.",
+      fr: "Aucun blessé indiqué.",
+      en: "No injuries reported.",
+    } as const)[lang];
+  }
+
+  const lines = items
+    .map((item) => {
+      if (!item || typeof item !== "object") return "";
+      const record = item as Record<string, unknown>;
+      return `- ${stringOrDash(record.nome)} | ${stringOrDash(record.indirizzo)} | ${stringOrDash(record.telefono)}`;
+    })
+    .filter((line) => line.trim().length > 0);
+
+  return lines.length > 0
+    ? lines.join("\n")
+    : ({
+      de: "Keine Verletzten angegeben.",
+      it: "Nessun ferito indicato.",
+      fr: "Aucun blessé indiqué.",
+      en: "No injuries reported.",
+    } as const)[lang];
+};
+
+const normalizeKeyName = (value: string) =>
+  value.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+const extractSignatureSource = (value: unknown): string | null => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const nested = extractSignatureSource(item);
+      if (nested) return nested;
+    }
+    return null;
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    for (const key of ["base64", "value", "data", "url", "path", "src"]) {
+      const nested = extractSignatureSource(record[key]);
+      if (nested) return nested;
+    }
+    for (const nested of Object.values(record)) {
+      const result = extractSignatureSource(nested);
+      if (result) return result;
     }
   }
 
   return null;
+};
+
+const isSignatureLikeValue = (value: unknown): boolean => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return false;
+    if (trimmed.startsWith("data:image/")) return true;
+    if (trimmed.length > 50) return true;
+    if (trimmed.startsWith("http")) return true;
+    return trimmed.startsWith("claims/");
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0 && value.some((item) => isSignatureLikeValue(item));
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return ["url", "path", "base64", "value", "data", "src"].some((key) =>
+      isSignatureLikeValue(record[key])
+    );
+  }
+
+  return false;
+};
+
+const findSignatureValue = (
+  payload: Record<string, any>,
+  variant: "A" | "B",
+) => {
+  const directKeys = (variant === "A"
+    ? [
+      "firmaA",
+      "firma_a",
+      "firmaConducenteA",
+      "firmaAPath",
+      "signatureA",
+      "signature_a",
+      "signatureAPath",
+      "driverASignature",
+      "conducenteAFirma",
+      "signA",
+      "sign_a",
+      "signaturaA",
+    ]
+    : [
+      "firmaB",
+      "firma_b",
+      "firmaConducenteB",
+      "firmaBPath",
+      "signatureB",
+      "signature_b",
+      "signatureBPath",
+      "driverBSignature",
+      "conducenteBFirma",
+      "signB",
+      "sign_b",
+      "signaturaB",
+    ]) as string[];
+
+  const normalizedDirectKeys = new Set(directKeys.map(normalizeKeyName));
+  const variantTokens = variant === "A"
+    ? [
+      "firmaa",
+      "signaturea",
+      "signa",
+      "drivera",
+      "conducentea",
+      "fahrera",
+    ]
+    : [
+      "firmab",
+      "signatureb",
+      "signb",
+      "driverb",
+      "conducenteb",
+      "fahrerb",
+    ];
+  const visited = new Set<unknown>();
+
+  const search = (node: unknown): string | null => {
+    if (!node || typeof node !== "object") {
+      return null;
+    }
+    if (visited.has(node)) return null;
+    visited.add(node);
+
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        const nested = search(item);
+        if (nested) return nested;
+      }
+      return null;
+    }
+
+    for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+      if (
+        normalizedDirectKeys.has(normalizeKeyName(key)) &&
+        isSignatureLikeValue(value)
+      ) {
+        const source = extractSignatureSource(value);
+        if (source) return source;
+      }
+    }
+
+    for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+      const normalizedKey = normalizeKeyName(key);
+      const looksLikeSignature = normalizedKey.includes("firma") ||
+        normalizedKey.includes("signature") ||
+        normalizedKey.includes("sign");
+      const matchesVariant = variantTokens.some((token) =>
+        normalizedKey.includes(token)
+      );
+      if (looksLikeSignature && matchesVariant && isSignatureLikeValue(value)) {
+        const source = extractSignatureSource(value);
+        if (source) return source;
+      }
+    }
+
+    for (const value of Object.values(node as Record<string, unknown>)) {
+      const nested = search(value);
+      if (nested) return nested;
+    }
+
+    return null;
+  };
+
+  return search(payload);
 };
 
 const decodeBase64Image = (value: string) => {
@@ -334,10 +752,48 @@ const decodeBase64Image = (value: string) => {
   }
 };
 
+const resolveSignatureImageBytes = async (value: string) => {
+  const fromBase64 = decodeBase64Image(value);
+  if (fromBase64) return fromBase64;
+
+  try {
+    const storage = extractStorageLocation(value);
+    if (storage) {
+      const { data, error } = await supabase.storage
+        .from(storage.bucket)
+        .download(normalizeClaimAttachmentPath(storage.path));
+      if (!error && data) {
+        return new Uint8Array(await data.arrayBuffer());
+      }
+    }
+
+    if (value.startsWith("http")) {
+      const response = await fetch(value);
+      if (response.ok) {
+        return new Uint8Array(await response.arrayBuffer());
+      }
+    }
+  } catch (err) {
+    console.error("SEND CID EMAIL signature download error", err);
+  }
+
+  return null;
+};
+
 async function generatePdfFromPayload(
   payload: Record<string, any>,
   claimId: string,
 ): Promise<Uint8Array> {
+  const lang = detectPayloadLanguage(payload);
+  const copy = getLocalizedCopy(lang, claimId);
+  const driverAName = getFullName(payload, "A");
+  const driverBName = getFullName(payload, "B");
+  const driverAAddress = getFullAddress(payload, "A");
+  const driverBAddress = getFullAddress(payload, "B");
+  const witnessesText = formatWitnesses(payload, lang);
+  const injuriesText = formatInjuries(payload, lang);
+  const liabilityText = getLocalizedLiability(payload, lang);
+
   const pdfDoc = await PDFDocument.create();
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -366,7 +822,7 @@ async function generatePdfFromPayload(
 
   const drawSignature = async (label: string, value: string | null) => {
     if (!value) return;
-    const bytes = decodeBase64Image(value);
+    const bytes = await resolveSignatureImageBytes(value);
     if (!bytes) return;
 
     let image;
@@ -395,32 +851,59 @@ async function generatePdfFromPayload(
     y -= imageHeight + 16;
   };
 
-  line("CID Digitale", true, 18);
+  console.log("SEND CID EMAIL PDF VERSION: detailed-v2");
+
+  line(copy.pdfTitle, true, 18);
   line(`Claim ID: ${claimId}`, false, 12);
-  line(`Data/Ora: ${payload?.dataOra ?? "-"}`);
-  line(`Luogo: ${payload?.luogo ?? "-"}`);
+  line(`${copy.dateTime}: ${stringOrDash(payload?.dataOra)}`);
+  line(`${copy.place}: ${stringOrDash(payload?.luogo)}`);
   line("");
-  line("Conducente A", true, 14);
-  line(`${payload?.nomeA ?? ""} ${payload?.cognomeA ?? ""}`.trim() || "-", false);
-  line(`Targa: ${payload?.targaA ?? "-"}`);
-  line(`Telefono: ${payload?.telefonoA ?? "-"}`);
-  line(`Email: ${payload?.emailA ?? "-"}`);
+  line(copy.driverA, true, 14);
+  line(`${copy.name}: ${driverAName}`);
+  line(`${copy.plate}: ${stringOrDash(payload?.targaA)}`);
+  line(`${copy.insurance}: ${stringOrDash(payload?.assicurazioneA)}`);
+  line(`${copy.phone}: ${stringOrDash(payload?.telefonoA)}`);
+  line(`${copy.email}: ${stringOrDash(payload?.emailA)}`);
+  line(`${copy.address}: ${driverAAddress}`);
   line("");
-  line("Conducente B", true, 14);
-  line(`${payload?.nomeB ?? ""} ${payload?.cognomeB ?? ""}`.trim() || "-", false);
-  line(`Targa: ${payload?.targaB ?? "-"}`);
-  line(`Telefono: ${payload?.telefonoB ?? "-"}`);
-  line(`Email: ${payload?.emailB ?? "-"}`);
+  line(copy.driverB, true, 14);
+  line(`${copy.name}: ${driverBName}`);
+  line(`${copy.plate}: ${stringOrDash(payload?.targaB)}`);
+  line(`${copy.insurance}: ${stringOrDash(payload?.assicurazioneB)}`);
+  line(`${copy.phone}: ${stringOrDash(payload?.telefonoB)}`);
+  line(`${copy.email}: ${stringOrDash(payload?.emailB)}`);
+  line(`${copy.address}: ${driverBAddress}`);
   line("");
-  line("Descrizione", true, 14);
-  line(`${payload?.descrizione ?? "-"}`);
+  line(copy.description, true, 14);
+  line(stringOrDash(payload?.descrizione));
   line("");
-  line("Integrità dati", true, 14);
-  line(`Hash: ${payload?.hashIntegrita ?? "-"}`);
+  line(copy.witnesses, true, 14);
+  for (const witnessLine of witnessesText.split("\n")) {
+    line(witnessLine);
+  }
+  line("");
+  line(copy.injuries, true, 14);
+  for (const injuryLine of injuriesText.split("\n")) {
+    line(injuryLine);
+  }
+  line("");
+  line(copy.damage, true, 14);
+  line(`${copy.vehicleA}: ${stringOrDash(payload?.danniVeicoloA)}`);
+  line(`${copy.vehicleB}: ${stringOrDash(payload?.danniVeicoloB)}`);
+  line("");
+  line(copy.liability, true, 14);
+  line(liabilityText);
+  line("");
+  line(copy.workshopCode, true, 14);
+  line(stringOrDash(payload?.codiceOfficina));
+  line("");
+  line(copy.integrity, true, 14);
+  line(`${copy.hash}: ${stringOrDash(payload?.hashIntegrita)}`);
   line("");
 
-  await drawSignature("Firma A", findSignatureValue(payload, "A"));
-  await drawSignature("Firma B", findSignatureValue(payload, "B"));
+  line(copy.signatures, true, 14);
+  await drawSignature(copy.driverA, findSignatureValue(payload, "A"));
+  await drawSignature(copy.driverB, findSignatureValue(payload, "B"));
 
   const pdfBytes = await pdfDoc.save();
   console.log("SEND CID EMAIL pdf generated bytes:", pdfBytes.length);
@@ -679,43 +1162,114 @@ async function handleRequest(req: Request): Promise<Response> {
 
     console.log("EMAIL_ATTACHMENTS_FINAL:", attachments.map((a) => a.filename));
 
+    const lang = detectPayloadLanguage(payload);
+    const copy = getLocalizedCopy(lang, claimId);
+
+    const driverAName = getFullName(payload, "A");
+    const driverBName = getFullName(payload, "B");
+    const driverAAddress = getFullAddress(payload, "A");
+    const driverBAddress = getFullAddress(payload, "B");
+    const witnessesText = formatWitnesses(payload, lang);
+    const injuriesText = formatInjuries(payload, lang);
+    const liabilityText = getLocalizedLiability(payload, lang);
+    const signatureAText = findSignatureValue(payload, "A")
+      ? copy.signaturePresent
+      : copy.signatureMissing;
+    const signatureBText = findSignatureValue(payload, "B")
+      ? copy.signaturePresent
+      : copy.signatureMissing;
+
+    console.log("SEND CID EMAIL BODY VERSION: detailed-v2");
+
     const textBody = [
-      "Guten Tag,",
+      copy.emailTitle,
       "",
-      `Im Anhang finden Sie den digitalen Unfallbericht zur Vorgangsnummer ${claimId}.`,
-      "Der PDF-Bericht und die hochgeladenen Anhänge sind beigefügt.",
+      copy.greeting,
       "",
-      `Fahrer A: ${
-        [payload?.nomeA, payload?.cognomeA].filter(Boolean).join(" ")
-      } (${payload?.targaA ?? "-"})`,
-      `Fahrer B: ${
-        [payload?.nomeB, payload?.cognomeB].filter(Boolean).join(" ")
-      } (${payload?.targaB ?? "-"})`,
+      copy.intro,
       "",
-      "Falls ein Anhang fehlt, wurde dieser möglicherweise noch nicht hochgeladen.",
+      `${copy.dateTime}: ${stringOrDash(payload?.dataOra)}`,
+      `${copy.place}: ${stringOrDash(payload?.luogo)}`,
       "",
-      "Freundliche Grüße",
+      `${copy.driverA}:`,
+      `${copy.name}: ${driverAName}`,
+      `${copy.plate}: ${stringOrDash(payload?.targaA)}`,
+      `${copy.insurance}: ${stringOrDash(payload?.assicurazioneA)}`,
+      `${copy.phone}: ${stringOrDash(payload?.telefonoA)}`,
+      `${copy.email}: ${stringOrDash(payload?.emailA)}`,
+      `${copy.address}: ${driverAAddress}`,
+      "",
+      `${copy.driverB}:`,
+      `${copy.name}: ${driverBName}`,
+      `${copy.plate}: ${stringOrDash(payload?.targaB)}`,
+      `${copy.insurance}: ${stringOrDash(payload?.assicurazioneB)}`,
+      `${copy.phone}: ${stringOrDash(payload?.telefonoB)}`,
+      `${copy.email}: ${stringOrDash(payload?.emailB)}`,
+      `${copy.address}: ${driverBAddress}`,
+      "",
+      `${copy.description}:`,
+      stringOrDash(payload?.descrizione),
+      "",
+      `${copy.witnesses}:`,
+      witnessesText,
+      "",
+      `${copy.injuries}:`,
+      injuriesText,
+      "",
+      `${copy.damage}:`,
+      `${copy.vehicleA}: ${stringOrDash(payload?.danniVeicoloA)}`,
+      `${copy.vehicleB}: ${stringOrDash(payload?.danniVeicoloB)}`,
+      "",
+      `${copy.liability}:`,
+      liabilityText,
+      "",
+      `${copy.signatures}:`,
+      `${copy.driverA}: ${signatureAText}`,
+      `${copy.driverB}: ${signatureBText}`,
+      "",
+      `${copy.workshopCode}: ${stringOrDash(payload?.codiceOfficina)}`,
+      "",
+      copy.pdfNote,
+      "",
+      copy.closing,
     ].join("\n");
 
     const htmlBody = `
-      <p>Guten Tag,</p>
-      <p>Im Anhang finden Sie den digitalen Unfallbericht zur Vorgangsnummer <strong>${claimId}</strong>.</p>
+      <p><strong>${escapeHtml(copy.emailTitle)}</strong></p>
+      <p>${escapeHtml(copy.greeting)}</p>
+      <p>${escapeHtml(copy.intro)}</p>
+      <p><strong>${escapeHtml(copy.dateTime)}:</strong> ${escapeHtml(stringOrDash(payload?.dataOra))}<br/>
+      <strong>${escapeHtml(copy.place)}:</strong> ${escapeHtml(stringOrDash(payload?.luogo))}</p>
 
-      <p><strong>Fahrer A:</strong> ${
-        [payload?.nomeA, payload?.cognomeA].filter(Boolean).join(" ")
-      } (${payload?.targaA ?? "-"})<br/>
-      <strong>E-Mail:</strong> ${payload?.emailA ?? "-"}<br/>
-      <strong>Telefon:</strong> ${payload?.telefonoA ?? "-"}</p>
+      <p><strong>${escapeHtml(copy.driverA)}:</strong><br/>
+      <strong>${escapeHtml(copy.name)}:</strong> ${escapeHtml(driverAName)}<br/>
+      <strong>${escapeHtml(copy.plate)}:</strong> ${escapeHtml(stringOrDash(payload?.targaA))}<br/>
+      <strong>${escapeHtml(copy.insurance)}:</strong> ${escapeHtml(stringOrDash(payload?.assicurazioneA))}<br/>
+      <strong>${escapeHtml(copy.phone)}:</strong> ${escapeHtml(stringOrDash(payload?.telefonoA))}<br/>
+      <strong>${escapeHtml(copy.email)}:</strong> ${escapeHtml(stringOrDash(payload?.emailA))}<br/>
+      <strong>${escapeHtml(copy.address)}:</strong> ${escapeHtml(driverAAddress)}</p>
 
-      <p><strong>Fahrer B:</strong> ${
-        [payload?.nomeB, payload?.cognomeB].filter(Boolean).join(" ")
-      } (${payload?.targaB ?? "-"})<br/>
-      <strong>E-Mail:</strong> ${payload?.emailB ?? "-"}<br/>
-      <strong>Telefon:</strong> ${payload?.telefonoB ?? "-"}</p>
+      <p><strong>${escapeHtml(copy.driverB)}:</strong><br/>
+      <strong>${escapeHtml(copy.name)}:</strong> ${escapeHtml(driverBName)}<br/>
+      <strong>${escapeHtml(copy.plate)}:</strong> ${escapeHtml(stringOrDash(payload?.targaB))}<br/>
+      <strong>${escapeHtml(copy.insurance)}:</strong> ${escapeHtml(stringOrDash(payload?.assicurazioneB))}<br/>
+      <strong>${escapeHtml(copy.phone)}:</strong> ${escapeHtml(stringOrDash(payload?.telefonoB))}<br/>
+      <strong>${escapeHtml(copy.email)}:</strong> ${escapeHtml(stringOrDash(payload?.emailB))}<br/>
+      <strong>${escapeHtml(copy.address)}:</strong> ${escapeHtml(driverBAddress)}</p>
 
-      <p>Der PDF-Bericht und die hochgeladenen Anhänge sind beigefügt. Falls ein Anhang fehlt, wurde dieser möglicherweise noch nicht hochgeladen.</p>
-
-      <p>Freundliche Grüße</p>
+      <p><strong>${escapeHtml(copy.description)}:</strong><br/>${escapeHtml(stringOrDash(payload?.descrizione))}</p>
+      <p><strong>${escapeHtml(copy.witnesses)}:</strong><br/>${escapeHtml(witnessesText).replaceAll("\n", "<br/>")}</p>
+      <p><strong>${escapeHtml(copy.injuries)}:</strong><br/>${escapeHtml(injuriesText).replaceAll("\n", "<br/>")}</p>
+      <p><strong>${escapeHtml(copy.damage)}:</strong><br/>
+      ${escapeHtml(copy.vehicleA)}: ${escapeHtml(stringOrDash(payload?.danniVeicoloA))}<br/>
+      ${escapeHtml(copy.vehicleB)}: ${escapeHtml(stringOrDash(payload?.danniVeicoloB))}</p>
+      <p><strong>${escapeHtml(copy.liability)}:</strong><br/>${escapeHtml(liabilityText)}</p>
+      <p><strong>${escapeHtml(copy.signatures)}:</strong><br/>
+      ${escapeHtml(copy.driverA)}: ${escapeHtml(signatureAText)}<br/>
+      ${escapeHtml(copy.driverB)}: ${escapeHtml(signatureBText)}</p>
+      <p><strong>${escapeHtml(copy.workshopCode)}:</strong> ${escapeHtml(stringOrDash(payload?.codiceOfficina))}</p>
+      <p>${escapeHtml(copy.pdfNote)}</p>
+      <p>${escapeHtml(copy.closing)}</p>
     `;
 
     const res = await fetch("https://api.resend.com/emails", {
@@ -727,7 +1281,7 @@ async function handleRequest(req: Request): Promise<Response> {
       body: JSON.stringify({
         from: FROM_EMAIL,
         to: ["antonio.privitera1984@gmail.com"],
-        subject: "Digitaler Unfallbericht (CID) – Vorgang",
+        subject: copy.emailTitle,
         text: textBody,
         html: htmlBody,
         attachments,
