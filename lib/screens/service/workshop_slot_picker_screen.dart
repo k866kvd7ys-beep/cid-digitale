@@ -13,6 +13,7 @@ import 'package:table_calendar/table_calendar.dart';
 
 class _GlassDamageImageDraft {
   const _GlassDamageImageDraft({
+    required this.category,
     required this.fileName,
     required this.mimeType,
     required this.previewReference,
@@ -21,6 +22,7 @@ class _GlassDamageImageDraft {
     this.bytes,
   });
 
+  final String category;
   final String fileName;
   final String mimeType;
   final String previewReference;
@@ -30,6 +32,7 @@ class _GlassDamageImageDraft {
 
   AppointmentRequestImageInput toInput() {
     return AppointmentRequestImageInput(
+      category: category,
       fileName: fileName,
       mimeType: mimeType,
       previewReference: previewReference,
@@ -74,7 +77,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   final _glassTownCtrl = TextEditingController();
   final _appointmentService = AppointmentRequestsService();
   final _picker = ImagePicker();
-  final List<_GlassDamageImageDraft> _glassImages = [];
+  final List<_GlassDamageImageDraft> _glassVehicleDocumentImages = [];
+  final List<_GlassDamageImageDraft> _glassCloseGlassImages = [];
+  final List<_GlassDamageImageDraft> _glassFrontVehicleImages = [];
 
   bool get _isGlassDamage => widget.serviceType == 'damage_glass';
 
@@ -220,13 +225,35 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         fr: 'Aucun horaire disponible',
       );
 
-  String _photosTitle(BuildContext context) => _copy(
-        context: context,
-        de: 'Fotos hinzufügen',
-        it: 'Aggiungi foto',
-        en: 'Add photos',
-        fr: 'Ajouter des photos',
-      );
+  String _glassSectionTitle(BuildContext context, String category) {
+    switch (category) {
+      case AppointmentRequestImageCategory.vehicleDocument:
+        return _copy(
+          context: context,
+          de: 'Foto Fahrzeugausweis',
+          it: 'Foto libretto',
+          en: 'Vehicle document photo',
+          fr: 'Photo carte grise',
+        );
+      case AppointmentRequestImageCategory.frontVehicle:
+        return _copy(
+          context: context,
+          de: 'Frontfoto des Fahrzeugs',
+          it: 'Foto frontale della macchina',
+          en: 'Front vehicle photo',
+          fr: 'Photo frontale du vehicule',
+        );
+      case AppointmentRequestImageCategory.closeGlass:
+      default:
+        return _copy(
+          context: context,
+          de: 'Nahaufnahme Glas',
+          it: 'Foto vetro vicino',
+          en: 'Close-up glass photo',
+          fr: 'Photo rapprochee du verre',
+        );
+    }
+  }
 
   String _takePhotoLabel(BuildContext context) => _copy(
         context: context,
@@ -238,10 +265,10 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   String _selectPhotosLabel(BuildContext context) => _copy(
         context: context,
-        de: 'Fotos auswählen',
+        de: 'Foto auswählen',
         it: 'Seleziona foto',
-        en: 'Select photos',
-        fr: 'Sélectionner des photos',
+        en: 'Select photo',
+        fr: 'Selectionner une photo',
       );
 
   String _townLabel(BuildContext context) => _copy(
@@ -419,6 +446,30 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         lower.endsWith('.gif');
   }
 
+  List<_GlassDamageImageDraft> _imagesForCategory(String category) {
+    switch (category) {
+      case AppointmentRequestImageCategory.vehicleDocument:
+        return _glassVehicleDocumentImages;
+      case AppointmentRequestImageCategory.frontVehicle:
+        return _glassFrontVehicleImages;
+      case AppointmentRequestImageCategory.closeGlass:
+      default:
+        return _glassCloseGlassImages;
+    }
+  }
+
+  IconData _iconForCategory(String category) {
+    switch (category) {
+      case AppointmentRequestImageCategory.vehicleDocument:
+        return Icons.description_outlined;
+      case AppointmentRequestImageCategory.frontVehicle:
+        return Icons.directions_car_outlined;
+      case AppointmentRequestImageCategory.closeGlass:
+      default:
+        return Icons.broken_image_outlined;
+    }
+  }
+
   String _mimeTypeForName(String value) {
     final lower = value.toLowerCase();
     if (lower.endsWith('.png')) return 'image/png';
@@ -442,7 +493,10 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     return targetPath;
   }
 
-  Future<void> _handlePickedFiles(List<XFile> files) async {
+  Future<void> _handlePickedFiles(
+    List<XFile> files,
+    String category,
+  ) async {
     if (files.isEmpty) return;
 
     final newItems = <_GlassDamageImageDraft>[];
@@ -466,6 +520,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         await LocalImageCache.saveImageLocally(cacheKey, bytes);
         newItems.add(
           _GlassDamageImageDraft(
+            category: category,
             fileName: originalName,
             mimeType: mimeType,
             previewReference: 'cache:$cacheKey',
@@ -477,6 +532,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         final persistedPath = await _persistPickedFile(file);
         newItems.add(
           _GlassDamageImageDraft(
+            category: category,
             fileName: originalName,
             mimeType: mimeType,
             previewReference: persistedPath,
@@ -487,28 +543,30 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     }
 
     if (!mounted || newItems.isEmpty) return;
+    final target = _imagesForCategory(category);
     setState(() {
-      _glassImages.addAll(newItems);
+      target.addAll(newItems);
     });
   }
 
-  Future<void> _pickGlassDamageCamera() async {
+  Future<void> _pickGlassDamageCamera(String category) async {
     final file = await _picker.pickImage(
       source: ImageSource.camera,
       imageQuality: 92,
     );
     if (file == null) return;
-    await _handlePickedFiles([file]);
+    await _handlePickedFiles([file], category);
   }
 
-  Future<void> _pickGlassDamageGallery() async {
+  Future<void> _pickGlassDamageGallery(String category) async {
     final files = await _picker.pickMultiImage(imageQuality: 92);
     if (files.isEmpty) return;
-    await _handlePickedFiles(files);
+    await _handlePickedFiles(files, category);
   }
 
-  Future<void> _removeGlassImage(int index) async {
-    final item = _glassImages[index];
+  Future<void> _removeGlassImage(String category, int index) async {
+    final items = _imagesForCategory(category);
+    final item = items[index];
     if (item.cacheKey != null && item.cacheKey!.isNotEmpty) {
       await LocalImageCache.deleteImage(item.cacheKey!);
     }
@@ -522,7 +580,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     }
     if (!mounted) return;
     setState(() {
-      _glassImages.removeAt(index);
+      items.removeAt(index);
     });
   }
 
@@ -538,6 +596,116 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     setState(() {
       _glassDamageDate = DateTime(picked.year, picked.month, picked.day);
     });
+  }
+
+  Widget _buildGlassImageSection(
+    BuildContext context, {
+    required String category,
+  }) {
+    final theme = Theme.of(context);
+    final images = _imagesForCategory(category);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withOpacity(0.18),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.dividerColor.withOpacity(0.28),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  _iconForCategory(category),
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _glassSectionTitle(context, category),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _pickGlassDamageCamera(category),
+                  icon: const Icon(Icons.photo_camera_outlined),
+                  label: Text(_takePhotoLabel(context)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _pickGlassDamageGallery(category),
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: Text(_selectPhotosLabel(context)),
+                ),
+              ),
+            ],
+          ),
+          if (images.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: List.generate(images.length, (index) {
+                final image = images[index];
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        width: 94,
+                        height: 94,
+                        color: Colors.black12,
+                        child: image.bytes != null
+                            ? Image.memory(image.bytes!, fit: BoxFit.cover)
+                            : Image.file(
+                                File(image.localPath!),
+                                fit: BoxFit.cover,
+                              ),
+                      ),
+                    ),
+                    Positioned(
+                      top: -8,
+                      right: -8,
+                      child: IconButton.filled(
+                        onPressed: () => _removeGlassImage(category, index),
+                        padding: EdgeInsets.zero,
+                        constraints:
+                            const BoxConstraints.tightFor(width: 28, height: 28),
+                        icon: const Icon(Icons.close, size: 14),
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _buildGlassDamageSection(BuildContext context) {
@@ -561,72 +729,20 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            _photosTitle(context),
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+          _buildGlassImageSection(
+            context,
+            category: AppointmentRequestImageCategory.vehicleDocument,
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _pickGlassDamageCamera,
-                  icon: const Icon(Icons.photo_camera_outlined),
-                  label: Text(_takePhotoLabel(context)),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _pickGlassDamageGallery,
-                  icon: const Icon(Icons.photo_library_outlined),
-                  label: Text(_selectPhotosLabel(context)),
-                ),
-              ),
-            ],
+          _buildGlassImageSection(
+            context,
+            category: AppointmentRequestImageCategory.closeGlass,
           ),
-          if (_glassImages.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: List.generate(_glassImages.length, (index) {
-                final image = _glassImages[index];
-                return Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        width: 94,
-                        height: 94,
-                        color: Colors.black12,
-                        child: image.bytes != null
-                            ? Image.memory(image.bytes!, fit: BoxFit.cover)
-                            : Image.file(
-                                File(image.localPath!),
-                                fit: BoxFit.cover,
-                              ),
-                      ),
-                    ),
-                    Positioned(
-                      top: -8,
-                      right: -8,
-                      child: IconButton.filled(
-                        onPressed: () => _removeGlassImage(index),
-                        padding: EdgeInsets.zero,
-                        constraints:
-                            const BoxConstraints.tightFor(width: 28, height: 28),
-                        icon: const Icon(Icons.close, size: 14),
-                      ),
-                    ),
-                  ],
-                );
-              }),
-            ),
-          ],
+          const SizedBox(height: 12),
+          _buildGlassImageSection(
+            context,
+            category: AppointmentRequestImageCategory.frontVehicle,
+          ),
           const SizedBox(height: 16),
           TextField(
             controller: _glassTownCtrl,
@@ -727,8 +843,15 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         glassDamageDate: _isGlassDamage && _glassDamageDate != null
             ? _glassDamageDate!.toUtc().toIso8601String()
             : null,
-        glassDamageImages:
-            _isGlassDamage ? _glassImages.map((e) => e.toInput()).toList() : const [],
+        glassDamageVehicleDocumentImages: _isGlassDamage
+            ? _glassVehicleDocumentImages.map((e) => e.toInput()).toList()
+            : const [],
+        glassDamageCloseGlassImages: _isGlassDamage
+            ? _glassCloseGlassImages.map((e) => e.toInput()).toList()
+            : const [],
+        glassDamageFrontVehicleImages: _isGlassDamage
+            ? _glassFrontVehicleImages.map((e) => e.toInput()).toList()
+            : const [],
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

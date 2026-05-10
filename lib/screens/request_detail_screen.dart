@@ -51,6 +51,27 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         fr: 'Photos',
       );
 
+  String get _vehicleDocumentPhotosTitle => _copy(
+        de: 'Foto Fahrzeugausweis',
+        it: 'Foto libretto',
+        en: 'Vehicle document photo',
+        fr: 'Photo carte grise',
+      );
+
+  String get _closeGlassPhotosTitle => _copy(
+        de: 'Nahaufnahme Glas',
+        it: 'Foto vetro vicino',
+        en: 'Close-up glass photo',
+        fr: 'Photo rapprochee du verre',
+      );
+
+  String get _frontVehiclePhotosTitle => _copy(
+        de: 'Frontfoto des Fahrzeugs',
+        it: 'Foto frontale della macchina',
+        en: 'Front vehicle photo',
+        fr: 'Photo frontale du vehicule',
+      );
+
   String get _noPhotosText => _copy(
         de: 'Keine Fotos vorhanden.',
         it: 'Nessuna foto disponibile.',
@@ -88,6 +109,48 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     return '${url.substring(0, 87)}...';
   }
 
+  List<String> _readImageListFromNotes(String key) {
+    final notes = request.notes?.trim() ?? '';
+    if (notes.isEmpty || !notes.startsWith('{')) return const [];
+    try {
+      final decoded = jsonDecode(notes);
+      if (decoded is Map && decoded[key] is List) {
+        return (decoded[key] as List)
+            .map((image) => image?.toString().trim() ?? '')
+            .where((image) => image.isNotEmpty)
+            .toList();
+      }
+    } catch (_) {}
+    return const [];
+  }
+
+  List<String> _vehicleDocumentImageSources() {
+    final direct = request.glassDamageVehicleDocumentImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('glassDamageVehicleDocumentImages');
+  }
+
+  List<String> _closeGlassImageSources() {
+    final direct = request.glassDamageCloseGlassImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('glassDamageCloseGlassImages');
+  }
+
+  List<String> _frontVehicleImageSources() {
+    final direct = request.glassDamageFrontVehicleImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('glassDamageFrontVehicleImages');
+  }
+
   List<String> _glassImageSources() {
     final direct = request.glassDamageImages
         .map((image) => image.trim())
@@ -109,6 +172,62 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     } catch (_) {}
 
     return const [];
+  }
+
+  Widget _photoGrid(List<String> images) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final crossAxisCount = width < 700 ? 2 : 3;
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: images.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 1,
+          ),
+          itemBuilder: (context, index) {
+            final image = images[index];
+            return InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => _openPhotoViewer(image),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: _GlassDamageImage(
+                  source: image,
+                  fit: BoxFit.cover,
+                  borderRadius: BorderRadius.circular(12),
+                  showLoadingIndicator: true,
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _photoSection({
+    required String title,
+    required List<String> images,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
+              ?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        _photoGrid(images),
+      ],
+    );
   }
 
   Future<void> _openPhotoViewer(String source) async {
@@ -202,58 +321,63 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   }
 
   Widget _photosSection() {
-    final images = _glassImageSources();
+    final vehicleDocumentImages = _vehicleDocumentImageSources();
+    final closeGlassImages = _closeGlassImageSources();
+    final frontVehicleImages = _frontVehicleImageSources();
+    final fallbackImages = _glassImageSources();
+    final categorizedImages = <String>{
+      ...vehicleDocumentImages.map((image) => image.trim()),
+      ...closeGlassImages.map((image) => image.trim()),
+      ...frontVehicleImages.map((image) => image.trim()),
+    };
+    final fallbackOnlyImages = fallbackImages
+        .where((image) => !categorizedImages.contains(image.trim()))
+        .toList();
+    final hasSpecificSections = vehicleDocumentImages.isNotEmpty ||
+        closeGlassImages.isNotEmpty ||
+        frontVehicleImages.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 12),
-        Text(
-          _photosTitle,
-          style: Theme.of(context)
-              .textTheme
-              .titleSmall
-              ?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 8),
-        if (images.isEmpty)
+        if (hasSpecificSections) ...[
+          if (vehicleDocumentImages.isNotEmpty)
+            _photoSection(
+              title: _vehicleDocumentPhotosTitle,
+              images: vehicleDocumentImages,
+            ),
+          if (vehicleDocumentImages.isNotEmpty &&
+              (closeGlassImages.isNotEmpty || frontVehicleImages.isNotEmpty))
+            const SizedBox(height: 12),
+          if (closeGlassImages.isNotEmpty)
+            _photoSection(
+              title: _closeGlassPhotosTitle,
+              images: closeGlassImages,
+            ),
+          if (closeGlassImages.isNotEmpty && frontVehicleImages.isNotEmpty)
+            const SizedBox(height: 12),
+          if (frontVehicleImages.isNotEmpty)
+            _photoSection(
+              title: _frontVehiclePhotosTitle,
+              images: frontVehicleImages,
+            ),
+          if (fallbackOnlyImages.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _photoSection(
+              title: _photosTitle,
+              images: fallbackOnlyImages,
+            ),
+          ],
+        ] else if (fallbackImages.isEmpty)
           Text(
             _noPhotosText,
             style: Theme.of(context).textTheme.bodyMedium,
           )
         else
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final width = constraints.maxWidth;
-              final crossAxisCount = width < 700 ? 2 : 3;
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: images.length,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 1,
-                ),
-                itemBuilder: (context, index) {
-                  final image = images[index];
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => _openPhotoViewer(image),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: _GlassDamageImage(
-                        source: image,
-                        fit: BoxFit.cover,
-                        borderRadius: BorderRadius.circular(12),
-                        showLoadingIndicator: true,
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
+          _photoSection(
+            title: _photosTitle,
+            images: fallbackImages,
           ),
       ],
     );

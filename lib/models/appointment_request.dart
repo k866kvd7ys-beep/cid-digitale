@@ -19,6 +19,9 @@ class AppointmentRequest {
     this.locale,
     this.glassDamageTown,
     this.glassDamageDate,
+    this.glassDamageVehicleDocumentImages = const [],
+    this.glassDamageCloseGlassImages = const [],
+    this.glassDamageFrontVehicleImages = const [],
     this.glassDamageImages = const [],
   });
 
@@ -39,7 +42,30 @@ class AppointmentRequest {
   final String? locale;
   final String? glassDamageTown;
   final String? glassDamageDate;
+  final List<String> glassDamageVehicleDocumentImages;
+  final List<String> glassDamageCloseGlassImages;
+  final List<String> glassDamageFrontVehicleImages;
   final List<String> glassDamageImages;
+
+  static List<String> _readStringList(dynamic value) {
+    if (value is! List) return const <String>[];
+    return value
+        .map((e) => e?.toString().trim() ?? '')
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
+  static List<String> _mergeImageLists(Iterable<List<String>> lists) {
+    final merged = <String>[];
+    for (final list in lists) {
+      for (final item in list) {
+        final normalized = item.trim();
+        if (normalized.isEmpty || merged.contains(normalized)) continue;
+        merged.add(normalized);
+      }
+    }
+    return merged;
+  }
 
   static Map<String, dynamic> _decodeStructuredNotes(dynamic rawNotes) {
     final notesText = rawNotes?.toString() ?? '';
@@ -57,15 +83,33 @@ class AppointmentRequest {
     final updatedStr = map['updated_at']?.toString();
     final dateStr = map['appointment_date']?.toString();
     final structuredNotes = _decodeStructuredNotes(map['notes']);
-    final dynamic rawImages = map['glassDamageImages'] ??
-        map['glass_damage_images'] ??
-        structuredNotes['glassDamageImages'];
-    final glassDamageImages = rawImages is List
-        ? rawImages
-            .map((e) => e?.toString() ?? '')
-            .where((e) => e.trim().isNotEmpty)
-            .toList()
-        : <String>[];
+    final glassDamageVehicleDocumentImages = _readStringList(
+      map['glassDamageVehicleDocumentImages'] ??
+          map['glass_damage_vehicle_document_images'] ??
+          structuredNotes['glassDamageVehicleDocumentImages'],
+    );
+    final glassDamageCloseGlassImages = _readStringList(
+      map['glassDamageCloseGlassImages'] ??
+          map['glass_damage_close_glass_images'] ??
+          structuredNotes['glassDamageCloseGlassImages'],
+    );
+    final glassDamageFrontVehicleImages = _readStringList(
+      map['glassDamageFrontVehicleImages'] ??
+          map['glass_damage_front_vehicle_images'] ??
+          structuredNotes['glassDamageFrontVehicleImages'],
+    );
+    final glassDamageImages = _readStringList(
+      map['glassDamageImages'] ??
+          map['glass_damage_images'] ??
+          structuredNotes['glassDamageImages'],
+    );
+    final mergedGlassDamageImages = glassDamageImages.isNotEmpty
+        ? glassDamageImages
+        : _mergeImageLists([
+            glassDamageVehicleDocumentImages,
+            glassDamageCloseGlassImages,
+            glassDamageFrontVehicleImages,
+          ]);
     final extractedNotes = structuredNotes['text']?.toString();
 
     return AppointmentRequest(
@@ -99,7 +143,10 @@ class AppointmentRequest {
               map['glass_damage_date'] ??
               structuredNotes['glassDamageDate'])
           ?.toString(),
-      glassDamageImages: glassDamageImages,
+      glassDamageVehicleDocumentImages: glassDamageVehicleDocumentImages,
+      glassDamageCloseGlassImages: glassDamageCloseGlassImages,
+      glassDamageFrontVehicleImages: glassDamageFrontVehicleImages,
+      glassDamageImages: mergedGlassDamageImages,
     );
   }
 
@@ -122,6 +169,9 @@ class AppointmentRequest {
       'locale': locale,
       'glassDamageTown': glassDamageTown,
       'glassDamageDate': glassDamageDate,
+      'glassDamageVehicleDocumentImages': glassDamageVehicleDocumentImages,
+      'glassDamageCloseGlassImages': glassDamageCloseGlassImages,
+      'glassDamageFrontVehicleImages': glassDamageFrontVehicleImages,
       'glassDamageImages': glassDamageImages,
     };
   }
