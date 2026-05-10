@@ -65,6 +65,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   DateTime _selectedDay = DateTime.now();
   DateTime? _selectedSlot;
   DateTime? _glassDamageDate;
+  bool _showValidationErrors = false;
   bool _loading = false;
   bool _submitting = false;
   bool _loadingSlots = false;
@@ -105,44 +106,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     }
   }
 
-  String _snackMissingName(BuildContext context) => _copy(
-        context: context,
-        de: 'Bitte Name eingeben',
-        it: 'Inserisci nome e cognome',
-        en: 'Please enter name and surname',
-        fr: 'Veuillez saisir le nom et le prénom',
-      );
-
-  String _snackMissingSlot(BuildContext context) => _copy(
-        context: context,
-        de: 'Bitte Uhrzeit auswählen',
-        it: 'Seleziona un orario',
-        en: 'Please select a time slot',
-        fr: 'Veuillez sélectionner un horaire',
-      );
-
   String _snackTakenSlot(BuildContext context) => _copy(
         context: context,
         de: 'Dieser Termin ist bereits belegt.',
         it: 'Questo appuntamento è già occupato.',
         en: 'This appointment is already booked.',
         fr: 'Ce rendez-vous est déjà réservé.',
-      );
-
-  String _snackMissingTown(BuildContext context) => _copy(
-        context: context,
-        de: 'Bitte Ortschaft eingeben',
-        it: 'Inserisci la località',
-        en: 'Please enter the town',
-        fr: 'Veuillez saisir la localité',
-      );
-
-  String _snackMissingDamageDate(BuildContext context) => _copy(
-        context: context,
-        de: 'Bitte Schadentag auswählen',
-        it: 'Seleziona la data del danno',
-        en: 'Please select the damage date',
-        fr: 'Veuillez sélectionner la date du dommage',
       );
 
   String _snackUnsupportedImage(BuildContext context) => _copy(
@@ -389,6 +358,70 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         fr: 'Vous pouvez voir ici tous les rendez-vous disponibles près de chez vous.',
       );
 
+  String _validationSnackBarText(BuildContext context) => _copy(
+        context: context,
+        de: 'Bitte füllen Sie die markierten Pflichtfelder aus.',
+        it: 'Compila i campi obbligatori evidenziati.',
+        en: 'Please fill in the highlighted required fields.',
+        fr: 'Veuillez remplir les champs obligatoires indiqués.',
+      );
+
+  String _requiredPhotoText(BuildContext context) => _copy(
+        context: context,
+        de: 'Foto erforderlich',
+        it: 'Foto obbligatoria',
+        en: 'Photo required',
+        fr: 'Photo obligatoire',
+      );
+
+  String _calendarRequiredText(BuildContext context) => _copy(
+        context: context,
+        de: 'Wählen Sie Tag und Uhrzeit aus',
+        it: 'Seleziona giorno e orario',
+        en: 'Select day and time',
+        fr: 'Sélectionnez le jour et l’heure',
+      );
+
+  String _requiredLicensePlateText(BuildContext context) => _copy(
+        context: context,
+        de: 'Kennzeichen erforderlich',
+        it: 'Targa obbligatoria',
+        en: 'License plate required',
+        fr: 'Plaque obligatoire',
+      );
+
+  String _requiredNameText(BuildContext context) => _copy(
+        context: context,
+        de: 'Name und Nachname erforderlich',
+        it: 'Nome e cognome obbligatori',
+        en: 'Name and surname required',
+        fr: 'Nom et prénom obligatoires',
+      );
+
+  String _requiredContactText(BuildContext context) => _copy(
+        context: context,
+        de: 'Telefon oder E-Mail erforderlich',
+        it: 'Telefono o e-mail obbligatori',
+        en: 'Phone or email required',
+        fr: 'Téléphone ou e-mail obligatoires',
+      );
+
+  String _requiredTownText(BuildContext context) => _copy(
+        context: context,
+        de: 'Ortschaft erforderlich',
+        it: 'Località obbligatoria',
+        en: 'Town required',
+        fr: 'Localité obligatoire',
+      );
+
+  String _requiredDamageDateText(BuildContext context) => _copy(
+        context: context,
+        de: 'Schadentag erforderlich',
+        it: 'Data danno obbligatoria',
+        en: 'Damage date required',
+        fr: 'Date du dommage obligatoire',
+      );
+
   String _calendarLocaleTag(BuildContext context) {
     switch (Localizations.localeOf(context).languageCode) {
       case 'it':
@@ -535,6 +568,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   Widget _licensePlateCard(BuildContext context) {
     final theme = Theme.of(context);
+    final showError = _showValidationErrors && _isGlassDamage && _isLicensePlateMissing;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -542,7 +576,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         color: theme.colorScheme.surface.withOpacity(0.30),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.dividerColor.withOpacity(0.35),
+          color: showError
+              ? theme.colorScheme.error
+              : theme.dividerColor.withOpacity(0.35),
           width: 1,
         ),
       ),
@@ -553,10 +589,15 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             height: 42,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              color: theme.colorScheme.primary.withOpacity(0.12),
+              color: (showError
+                      ? theme.colorScheme.error
+                      : theme.colorScheme.primary)
+                  .withOpacity(0.12),
             ),
             child: Icon(Icons.confirmation_number_outlined,
-                color: theme.colorScheme.primary),
+                color: showError
+                    ? theme.colorScheme.error
+                    : theme.colorScheme.primary),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -566,7 +607,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 Text(
                   AppLocalizations.of(context)!.license_plate_label,
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.70),
+                    color: showError
+                        ? theme.colorScheme.error
+                        : theme.colorScheme.onSurface.withOpacity(0.70),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -582,6 +625,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                   style: theme.textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
+                if (showError) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    _requiredLicensePlateText(context),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -590,37 +643,59 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     );
   }
 
-  InputDecoration _premiumFieldDec(BuildContext context, String hint) {
+  InputDecoration _premiumFieldDec(
+    BuildContext context,
+    String hint, {
+    bool isError = false,
+    String? errorText,
+  }) {
     final theme = Theme.of(context);
+    final borderColor = isError
+        ? theme.colorScheme.error
+        : theme.dividerColor.withOpacity(0.35);
+    final focusColor =
+        isError ? theme.colorScheme.error : theme.colorScheme.primary.withOpacity(0.6);
     return InputDecoration(
       hintText: hint,
       filled: true,
       fillColor: theme.colorScheme.surface.withOpacity(0.22),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      errorText: errorText,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.35)),
+        borderSide: BorderSide(color: borderColor),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.35)),
+        borderSide: BorderSide(color: borderColor),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-            color: theme.colorScheme.primary.withOpacity(0.6), width: 1.2),
+        borderSide: BorderSide(color: focusColor, width: 1.2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: theme.colorScheme.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: theme.colorScheme.error, width: 1.2),
       ),
     );
   }
 
-  void _onGlassFormChanged() {
-    if (!mounted || !_isGlassDamage) return;
+  void _onValidationFieldChanged() {
+    if (!mounted || !_showValidationErrors) return;
     setState(() {});
   }
 
   @override
   void dispose() {
-    _glassTownCtrl.removeListener(_onGlassFormChanged);
+    _nameCtrl.removeListener(_onValidationFieldChanged);
+    _phoneCtrl.removeListener(_onValidationFieldChanged);
+    _emailCtrl.removeListener(_onValidationFieldChanged);
+    _plateCtrl.removeListener(_onValidationFieldChanged);
+    _glassTownCtrl.removeListener(_onValidationFieldChanged);
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
@@ -632,7 +707,11 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   @override
   void initState() {
     super.initState();
-    _glassTownCtrl.addListener(_onGlassFormChanged);
+    _nameCtrl.addListener(_onValidationFieldChanged);
+    _phoneCtrl.addListener(_onValidationFieldChanged);
+    _emailCtrl.addListener(_onValidationFieldChanged);
+    _plateCtrl.addListener(_onValidationFieldChanged);
+    _glassTownCtrl.addListener(_onValidationFieldChanged);
     _loadAvailableSlots(_selectedDay);
     unawaited(AppointmentRequestsSyncManager.trigger());
   }
@@ -721,17 +800,41 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     return items.last;
   }
 
-  bool get _hasRequiredGlassPhotos =>
-      _glassVehicleDocumentImages.isNotEmpty &&
-      _glassCloseGlassImages.isNotEmpty &&
-      _glassFrontVehicleImages.isNotEmpty;
+  bool get _isLicensePlateMissing => _plateCtrl.text.trim().isEmpty;
+
+  bool get _isNameMissing => _nameCtrl.text.trim().isEmpty;
+
+  bool get _isContactMissing =>
+      _phoneCtrl.text.trim().isEmpty && _emailCtrl.text.trim().isEmpty;
+
+  bool get _isVehicleDocumentPhotoMissing =>
+      _glassVehicleDocumentImages.isEmpty;
+
+  bool get _isCloseGlassPhotoMissing => _glassCloseGlassImages.isEmpty;
+
+  bool get _isFrontVehiclePhotoMissing => _glassFrontVehicleImages.isEmpty;
+
+  bool get _isTownMissing => _glassTownCtrl.text.trim().isEmpty;
+
+  bool get _isDamageDateMissing => _glassDamageDate == null;
+
+  bool get _isAppointmentSelectionMissing => _selectedSlot == null;
+
+  bool get _hasGlassValidationErrors =>
+      _isLicensePlateMissing ||
+      _isNameMissing ||
+      _isContactMissing ||
+      _isVehicleDocumentPhotoMissing ||
+      _isCloseGlassPhotoMissing ||
+      _isFrontVehiclePhotoMissing ||
+      _isTownMissing ||
+      _isDamageDateMissing ||
+      _isAppointmentSelectionMissing;
 
   bool get _canSubmitRequest {
     if (_selectedSlot == null) return false;
-    if (!_isGlassDamage) return true;
-    return _glassTownCtrl.text.trim().isNotEmpty &&
-        _glassDamageDate != null &&
-        _hasRequiredGlassPhotos;
+    if (!_isGlassDamage) return _nameCtrl.text.trim().isNotEmpty;
+    return !_hasGlassValidationErrors;
   }
 
   String _mimeTypeForName(String value) {
@@ -978,96 +1081,133 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final theme = Theme.of(context);
     final image = _primaryImageForCategory(category);
     final hasImage = image != null;
+    final hasError = _showValidationErrors &&
+        _isGlassDamage &&
+        ((category == AppointmentRequestImageCategory.vehicleDocument &&
+                _isVehicleDocumentPhotoMissing) ||
+            (category == AppointmentRequestImageCategory.closeGlass &&
+                _isCloseGlassPhotoMissing) ||
+            (category == AppointmentRequestImageCategory.frontVehicle &&
+                _isFrontVehiclePhotoMissing));
 
     return Column(
       children: [
-        InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () => _showGlassImageActionSheet(category),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: hasError
+                  ? theme.colorScheme.error.withOpacity(0.45)
+                  : Colors.transparent,
+            ),
+            color: hasError
+                ? theme.colorScheme.error.withOpacity(0.04)
+                : Colors.transparent,
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => _showGlassImageActionSheet(category),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: (hasError
+                              ? theme.colorScheme.error
+                              : theme.colorScheme.primary)
+                          .withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      _iconForCategory(category),
+                      color: hasError
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.primary,
+                    ),
                   ),
-                  child: Icon(
-                    _iconForCategory(category),
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _glassSectionTitle(context, category),
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _glassSectionTitle(context, category),
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _glassSectionSubtitle(context, category),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.68),
+                        const SizedBox(height: 2),
+                        Text(
+                          _glassSectionSubtitle(context, category),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color:
+                                theme.colorScheme.onSurface.withOpacity(0.68),
+                          ),
                         ),
-                      ),
-                    ],
+                        if (hasError) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            _requiredPhotoText(context),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.error,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: hasImage
-                        ? theme.colorScheme.primary.withOpacity(0.12)
-                        : theme.colorScheme.surface.withOpacity(0.24),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    hasImage
-                        ? _statusDoneLabel(context)
-                        : _statusAddLabel(context),
-                    style: theme.textTheme.labelMedium?.copyWith(
+                  const SizedBox(width: 12),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
                       color: hasImage
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurface.withOpacity(0.75),
-                      fontWeight: FontWeight.w700,
+                          ? theme.colorScheme.primary.withOpacity(0.12)
+                          : theme.colorScheme.surface.withOpacity(0.24),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      hasImage
+                          ? _statusDoneLabel(context)
+                          : _statusAddLabel(context),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: hasImage
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurface.withOpacity(0.75),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
-                if (hasImage) ...[
-                  const SizedBox(width: 10),
-                  InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => _openGlassImagePreview(image),
-                    child: Tooltip(
-                      message: _previewPhotoTooltip(context),
-                      child: _buildGlassImageThumbnail(context, image: image),
+                  if (hasImage) ...[
+                    const SizedBox(width: 10),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => _openGlassImagePreview(image),
+                      child: Tooltip(
+                        message: _previewPhotoTooltip(context),
+                        child: _buildGlassImageThumbnail(context, image: image),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  IconButton(
-                    onPressed: () => _removeGlassImage(category, 0),
-                    tooltip: _removePhotoTooltip(context),
-                    icon: const Icon(Icons.close_rounded, size: 18),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ] else ...[
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: theme.colorScheme.onSurface.withOpacity(0.45),
-                  ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      onPressed: () => _removeGlassImage(category, 0),
+                      tooltip: _removePhotoTooltip(context),
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ] else ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: theme.colorScheme.onSurface.withOpacity(0.45),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -1086,6 +1226,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final dateLabel = _glassDamageDate == null
         ? _pickDateButton(context)
         : DateFormat.yMMMMd(localeTag).format(_glassDamageDate!);
+    final showTownError = _showValidationErrors && _isTownMissing;
+    final showDamageDateError = _showValidationErrors && _isDamageDateMissing;
 
     return Container(
       width: double.infinity,
@@ -1150,13 +1292,20 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
           TextField(
             controller: _glassTownCtrl,
             textInputAction: TextInputAction.next,
-            decoration: _premiumFieldDec(context, _townLabel(context)),
+            decoration: _premiumFieldDec(
+              context,
+              _townLabel(context),
+              isError: showTownError,
+              errorText: showTownError ? _requiredTownText(context) : null,
+            ),
           ),
           const SizedBox(height: 12),
           Text(
             _dateLabel(context),
             style: theme.textTheme.labelLarge?.copyWith(
               fontWeight: FontWeight.w700,
+              color:
+                  showDamageDateError ? theme.colorScheme.error : null,
             ),
           ),
           const SizedBox(height: 8),
@@ -1170,18 +1319,35 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 color: theme.colorScheme.surface.withOpacity(0.22),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: theme.dividerColor.withOpacity(0.35),
+                  color: showDamageDateError
+                      ? theme.colorScheme.error
+                      : theme.dividerColor.withOpacity(0.35),
                 ),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.event_outlined, color: theme.colorScheme.primary),
+                  Icon(
+                    Icons.event_outlined,
+                    color: showDamageDateError
+                        ? theme.colorScheme.error
+                        : theme.colorScheme.primary,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(child: Text(dateLabel)),
                 ],
               ),
             ),
           ),
+          if (showDamageDateError) ...[
+            const SizedBox(height: 6),
+            Text(
+              _requiredDamageDateText(context),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1189,14 +1355,20 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   Widget _buildCalendarGuideCard(BuildContext context) {
     final theme = Theme.of(context);
+    final hasError =
+        _showValidationErrors && _isGlassDamage && _isAppointmentSelectionMissing;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withOpacity(0.24),
+        color: hasError
+            ? theme.colorScheme.error.withOpacity(0.05)
+            : theme.colorScheme.surface.withOpacity(0.24),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.dividerColor.withOpacity(0.30),
+          color: hasError
+              ? theme.colorScheme.error.withOpacity(0.40)
+              : theme.dividerColor.withOpacity(0.30),
         ),
       ),
       child: Row(
@@ -1206,12 +1378,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.12),
+              color: (hasError
+                      ? theme.colorScheme.error
+                      : theme.colorScheme.primary)
+                  .withOpacity(0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               Icons.calendar_month_outlined,
-              color: theme.colorScheme.primary,
+              color:
+                  hasError ? theme.colorScheme.error : theme.colorScheme.primary,
             ),
           ),
           const SizedBox(width: 14),
@@ -1233,6 +1409,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                     height: 1.35,
                   ),
                 ),
+                if (hasError) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    _calendarRequiredText(context),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1243,33 +1429,25 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   Future<void> _onBookPressed() async {
     final name = _nameCtrl.text.trim();
-    if (name.isEmpty) {
+    final hasValidationErrors = _isGlassDamage
+        ? _hasGlassValidationErrors
+        : name.isEmpty || _selectedSlot == null;
+
+    if (hasValidationErrors) {
+      setState(() {
+        _showValidationErrors = true;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_snackMissingName(context))),
+        SnackBar(content: Text(_validationSnackBarText(context))),
       );
       return;
     }
-    if (_selectedSlot == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_snackMissingSlot(context))),
-      );
-      return;
-    }
+    setState(() {
+      _showValidationErrors = false;
+    });
     if (_isTaken(_selectedSlot!)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_snackTakenSlot(context))),
-      );
-      return;
-    }
-    if (_isGlassDamage && _glassTownCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_snackMissingTown(context))),
-      );
-      return;
-    }
-    if (_isGlassDamage && _glassDamageDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_snackMissingDamageDate(context))),
       );
       return;
     }
@@ -1343,7 +1521,13 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final tf = DateFormat('HH:mm');
     final slots =
         _buildSlots(_selectedDay).where((slot) => !_isBooked(slot)).toList();
-    final submitEnabled = !_loading && !_submitting && _canSubmitRequest;
+    final showNameError = _showValidationErrors && _isGlassDamage && _isNameMissing;
+    final showContactError =
+        _showValidationErrors && _isGlassDamage && _isContactMissing;
+    final showAppointmentError =
+        _showValidationErrors && _isGlassDamage && _isAppointmentSelectionMissing;
+    final canTapSubmit = !_loading && !_submitting;
+    final submitReady = _canSubmitRequest;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -1365,28 +1549,57 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             TextField(
               controller: _nameCtrl,
               textInputAction: TextInputAction.next,
-              decoration: _premiumFieldDec(context, _nameHint(context)),
+              decoration: _premiumFieldDec(
+                context,
+                _nameHint(context),
+                isError: showNameError,
+                errorText:
+                    showNameError ? _requiredNameText(context) : null,
+              ),
             ),
             const SizedBox(height: 10),
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _phoneCtrl,
-                    textInputAction: TextInputAction.next,
-                    keyboardType: TextInputType.phone,
-                    decoration: _premiumFieldDec(context, _phoneHint(context)),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _phoneCtrl,
+                        textInputAction: TextInputAction.next,
+                        keyboardType: TextInputType.phone,
+                        decoration: _premiumFieldDec(
+                          context,
+                          _phoneHint(context),
+                          isError: showContactError,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _emailCtrl,
+                        textInputAction: TextInputAction.done,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: _premiumFieldDec(
+                          context,
+                          _emailHint(context),
+                          isError: showContactError,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _emailCtrl,
-                    textInputAction: TextInputAction.done,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: _premiumFieldDec(context, _emailHint(context)),
+                if (showContactError) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    _requiredContactText(context),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
             if (_isGlassDamage) ...[
@@ -1396,105 +1609,138 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             const SizedBox(height: 16),
             _buildCalendarGuideCard(context),
             const SizedBox(height: 16),
-            TableCalendar(
-              firstDay: DateTime.now(),
-              lastDay: DateTime.now().add(const Duration(days: 120)),
-              focusedDay: _focusedDay,
-              locale: _calendarLocaleTag(context),
-              startingDayOfWeek: StartingDayOfWeek.monday,
-              availableCalendarFormats: _calendarFormatLabels(context),
-              headerStyle: HeaderStyle(
-                titleCentered: true,
-                titleTextFormatter: (date, _) =>
-                    '${_calendarMonthLabel(context, date.month)} ${date.year}',
-              ),
-              daysOfWeekStyle: DaysOfWeekStyle(
-                dowTextFormatter: (date, _) =>
-                    _calendarWeekdayLabel(context, date.weekday),
-              ),
-              selectedDayPredicate: (d) => isSameDay(d, _selectedDay),
-              onDaySelected: (selectedDay, focusedDay) {
-                setState(() {
-                  _selectedDay = selectedDay;
-                  _focusedDay = focusedDay;
-                  _selectedSlot = null;
-                });
-                _loadAvailableSlots(selectedDay);
-              },
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _timeTitle(context),
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            if (_loadingSlots)
-              const Center(child: CircularProgressIndicator())
-            else if (slots.isEmpty)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                color: Colors.red.withOpacity(0.12),
-                child: Text(_noSlotsText(context)),
-              )
-            else
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 2.8,
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: showAppointmentError
+                    ? theme.colorScheme.error.withOpacity(0.04)
+                    : theme.colorScheme.surface.withOpacity(0.18),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: showAppointmentError
+                      ? theme.colorScheme.error.withOpacity(0.40)
+                      : theme.dividerColor.withOpacity(0.28),
                 ),
-                itemCount: slots.length,
-                itemBuilder: (context, index) {
-                  final slot = slots[index];
-                  final selected = _selectedSlot != null &&
-                      _selectedSlot!.year == slot.year &&
-                      _selectedSlot!.month == slot.month &&
-                      _selectedSlot!.day == slot.day &&
-                      _selectedSlot!.hour == slot.hour &&
-                      _selectedSlot!.minute == slot.minute;
-
-                  final primary = theme.colorScheme.primary;
-                  final borderColor = selected
-                      ? primary
-                      : theme.dividerColor.withOpacity(0.6);
-
-                  return OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: selected ? primary : Colors.transparent,
-                      foregroundColor: selected ? Colors.white : primary,
-                      side: BorderSide(color: borderColor),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TableCalendar(
+                    firstDay: DateTime.now(),
+                    lastDay: DateTime.now().add(const Duration(days: 120)),
+                    focusedDay: _focusedDay,
+                    locale: _calendarLocaleTag(context),
+                    startingDayOfWeek: StartingDayOfWeek.monday,
+                    availableCalendarFormats: _calendarFormatLabels(context),
+                    headerStyle: HeaderStyle(
+                      titleCentered: true,
+                      titleTextFormatter: (date, _) =>
+                          '${_calendarMonthLabel(context, date.month)} ${date.year}',
                     ),
-                    onPressed: () {
+                    daysOfWeekStyle: DaysOfWeekStyle(
+                      dowTextFormatter: (date, _) =>
+                          _calendarWeekdayLabel(context, date.weekday),
+                    ),
+                    selectedDayPredicate: (d) => isSameDay(d, _selectedDay),
+                    onDaySelected: (selectedDay, focusedDay) {
                       setState(() {
-                        _selectedSlot = slot;
+                        _selectedDay = selectedDay;
+                        _focusedDay = focusedDay;
+                        _selectedSlot = null;
                       });
+                      _loadAvailableSlots(selectedDay);
                     },
-                    child: Text(
-                      tf.format(slot),
-                      style: const TextStyle(
-                        fontSize: 15,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _timeTitle(context),
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  if (showAppointmentError) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      _calendarRequiredText(context),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                  );
-                },
+                  ],
+                  const SizedBox(height: 8),
+                  if (_loadingSlots)
+                    const Center(child: CircularProgressIndicator())
+                  else if (slots.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      color: Colors.red.withOpacity(0.12),
+                      child: Text(_noSlotsText(context)),
+                    )
+                  else
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 2.8,
+                      ),
+                      itemCount: slots.length,
+                      itemBuilder: (context, index) {
+                        final slot = slots[index];
+                        final selected = _selectedSlot != null &&
+                            _selectedSlot!.year == slot.year &&
+                            _selectedSlot!.month == slot.month &&
+                            _selectedSlot!.day == slot.day &&
+                            _selectedSlot!.hour == slot.hour &&
+                            _selectedSlot!.minute == slot.minute;
+
+                        final primary = theme.colorScheme.primary;
+                        final borderColor = selected
+                            ? primary
+                            : theme.dividerColor.withOpacity(0.6);
+
+                        return OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor:
+                                selected ? primary : Colors.transparent,
+                            foregroundColor:
+                                selected ? Colors.white : primary,
+                            side: BorderSide(color: borderColor),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _selectedSlot = slot;
+                            });
+                          },
+                          child: Text(
+                            tf.format(slot),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                ],
               ),
+            ),
             const SizedBox(height: 28),
             AnimatedContainer(
               duration: const Duration(milliseconds: 180),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
-                boxShadow: submitEnabled
+                boxShadow: submitReady
                     ? [
                         BoxShadow(
                           color: theme.colorScheme.primary.withOpacity(0.22),
@@ -1508,9 +1754,11 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: submitEnabled ? _onBookPressed : null,
+                  onPressed: canTapSubmit ? _onBookPressed : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
+                    backgroundColor: submitReady
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.primary.withOpacity(0.36),
                     foregroundColor: Colors.white,
                     disabledBackgroundColor:
                         theme.colorScheme.primary.withOpacity(0.24),
@@ -1525,7 +1773,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                     _loading || _submitting ? '...' : l10n.termin_buchen,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
-                      color: submitEnabled
+                      color: submitReady
                           ? Colors.white
                           : theme.colorScheme.onSurface.withOpacity(0.55),
                     ),
