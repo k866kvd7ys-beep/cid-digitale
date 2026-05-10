@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cid_digitale/l10n/app_localizations.dart';
@@ -21,6 +22,48 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   bool _busy = false;
 
   AppointmentRequest get request => widget.request;
+  bool get _isGlassDamageRequest =>
+      request.serviceType == 'damage_glass' || request.damageType == 'damage_glass';
+
+  String _copy({
+    required String de,
+    required String it,
+    required String en,
+    required String fr,
+  }) {
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'it':
+        return it;
+      case 'en':
+        return en;
+      case 'fr':
+        return fr;
+      case 'de':
+      default:
+        return de;
+    }
+  }
+
+  String get _photosTitle => _copy(
+        de: 'Fotos',
+        it: 'Foto',
+        en: 'Photos',
+        fr: 'Photos',
+      );
+
+  String get _noPhotosText => _copy(
+        de: 'Keine Fotos vorhanden.',
+        it: 'Nessuna foto disponibile.',
+        en: 'No photos available.',
+        fr: 'Aucune photo disponible.',
+      );
+
+  String get _closePhotoText => _copy(
+        de: 'Foto schließen',
+        it: 'Chiudi foto',
+        en: 'Close photo',
+        fr: 'Fermer la photo',
+      );
 
   String _glassDamageDateLabel() {
     final raw = request.glassDamageDate?.trim() ?? '';
@@ -28,6 +71,127 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     final parsed = DateTime.tryParse(raw);
     if (parsed == null) return raw;
     return parsed.toLocal().toIso8601String().substring(0, 10);
+  }
+
+  List<String> _glassImageSources() {
+    final direct = request.glassDamageImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+
+    final notes = request.notes?.trim() ?? '';
+    if (notes.isEmpty || !notes.startsWith('{')) return const [];
+
+    try {
+      final decoded = jsonDecode(notes);
+      if (decoded is Map && decoded['glassDamageImages'] is List) {
+        return (decoded['glassDamageImages'] as List)
+            .map((image) => image?.toString().trim() ?? '')
+            .where((image) => image.isNotEmpty)
+            .toList();
+      }
+    } catch (_) {}
+
+    return const [];
+  }
+
+  Future<void> _openPhotoViewer(String source) async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (dialogContext) {
+        return Dialog.fullscreen(
+          backgroundColor: Colors.black87,
+          child: SafeArea(
+            child: Stack(
+              children: [
+                Center(
+                  child: InteractiveViewer(
+                    minScale: 0.8,
+                    maxScale: 4,
+                    child: _GlassDamageImage(
+                      source: source,
+                      fit: BoxFit.contain,
+                      borderRadius: BorderRadius.zero,
+                      showLoadingIndicator: true,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: IconButton.filledTonal(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    tooltip: _closePhotoText,
+                    icon: const Icon(Icons.close),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _photosSection() {
+    final images = _glassImageSources();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Text(
+          _photosTitle,
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
+              ?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        if (images.isEmpty)
+          Text(
+            _noPhotosText,
+            style: Theme.of(context).textTheme.bodyMedium,
+          )
+        else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final crossAxisCount = width < 700 ? 2 : 3;
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: images.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 1,
+                ),
+                itemBuilder: (context, index) {
+                  final image = images[index];
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _openPhotoViewer(image),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: _GlassDamageImage(
+                        source: image,
+                        fit: BoxFit.cover,
+                        borderRadius: BorderRadius.circular(12),
+                        showLoadingIndicator: true,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+      ],
+    );
   }
 
   @override
@@ -116,24 +280,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                         const SizedBox(height: 4),
                         Text(request.notes ?? ''),
                       ],
-                      if (request.glassDamageImages.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          'Fotos',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: request.glassDamageImages
-                              .map((image) => _GlassDamagePreview(source: image))
-                              .toList(),
-                        ),
-                      ],
+                      if (_isGlassDamageRequest) _photosSection(),
                     ],
                   ),
                 ),
@@ -226,38 +373,53 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   }
 }
 
-class _GlassDamagePreview extends StatelessWidget {
-  const _GlassDamagePreview({required this.source});
+class _GlassDamageImage extends StatelessWidget {
+  const _GlassDamageImage({
+    required this.source,
+    required this.fit,
+    required this.borderRadius,
+    this.showLoadingIndicator = false,
+  });
 
   final String source;
+  final BoxFit fit;
+  final BorderRadius borderRadius;
+  final bool showLoadingIndicator;
 
   @override
   Widget build(BuildContext context) {
     final normalized = source.trim();
-    const width = 96.0;
-    const height = 96.0;
-    final borderRadius = BorderRadius.circular(12);
 
     Widget placeholder() => Container(
-          width: width,
-          height: height,
           decoration: BoxDecoration(
             borderRadius: borderRadius,
             color: Colors.black12,
           ),
-          child: const Icon(Icons.image_outlined),
+          alignment: Alignment.center,
+          child: const Icon(Icons.broken_image_outlined),
         );
 
     if (normalized.startsWith('http')) {
-      return ClipRRect(
-        borderRadius: borderRadius,
-        child: Image.network(
-          normalized,
-          width: width,
-          height: height,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => placeholder(),
-        ),
+      return Image.network(
+        normalized,
+        fit: fit,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          if (!showLoadingIndicator) return placeholder();
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: borderRadius,
+              color: Colors.black12,
+            ),
+            alignment: Alignment.center,
+            child: const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
+        },
+        errorBuilder: (_, __, ___) => placeholder(),
       );
     }
 
@@ -268,29 +430,19 @@ class _GlassDamagePreview extends StatelessWidget {
         builder: (context, snapshot) {
           final bytes = snapshot.data;
           if (bytes == null || bytes.isEmpty) return placeholder();
-          return ClipRRect(
-            borderRadius: borderRadius,
-            child: Image.memory(
-              bytes,
-              width: width,
-              height: height,
-              fit: BoxFit.cover,
-            ),
+          return Image.memory(
+            bytes,
+            fit: fit,
           );
         },
       );
     }
 
     if (!kIsWeb && normalized.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: borderRadius,
-        child: Image.file(
-          File(normalized),
-          width: width,
-          height: height,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => placeholder(),
-        ),
+      return Image.file(
+        File(normalized),
+        fit: fit,
+        errorBuilder: (_, __, ___) => placeholder(),
       );
     }
 
