@@ -309,6 +309,7 @@ const getLocalizedCopy = (lang: SupportedLang, claimId: string) => ({
   de: {
     emailTitle: "Digitaler Unfallbericht (CID) – Vorgang",
     pdfTitle: "Digitaler Unfallbericht",
+    claimNumber: "Vorgangsnummer",
     greeting: "Guten Tag,",
     intro:
       `im Anhang finden Sie den digitalen Unfallbericht zur Vorgangsnummer ${claimId}.`,
@@ -341,6 +342,7 @@ const getLocalizedCopy = (lang: SupportedLang, claimId: string) => ({
   it: {
     emailTitle: "Constatazione amichevole digitale (CID) – Pratica",
     pdfTitle: "Constatazione amichevole digitale",
+    claimNumber: "Numero pratica",
     greeting: "Buongiorno,",
     intro:
       `in allegato trova la constatazione amichevole digitale relativa alla pratica ${claimId}.`,
@@ -373,6 +375,7 @@ const getLocalizedCopy = (lang: SupportedLang, claimId: string) => ({
   fr: {
     emailTitle: "Constat amiable numérique (CID) – Dossier",
     pdfTitle: "Constat amiable numérique",
+    claimNumber: "Numéro de dossier",
     greeting: "Bonjour,",
     intro:
       `vous trouverez en pièce jointe le constat amiable numérique relatif au dossier ${claimId}.`,
@@ -405,6 +408,7 @@ const getLocalizedCopy = (lang: SupportedLang, claimId: string) => ({
   en: {
     emailTitle: "Digital Accident Report (CID) – Claim",
     pdfTitle: "Digital Accident Report",
+    claimNumber: "Claim number",
     greeting: "Hello,",
     intro:
       `attached you will find the digital accident report for claim ${claimId}.`,
@@ -478,37 +482,191 @@ const getFullAddress = (payload: Record<string, any>, variant: "A" | "B") => {
   return `${street}, ${zipCity}`;
 };
 
+const excludedUiKeyFragments = [
+  "syncstatus",
+  "sendstatus",
+  "statustext",
+  "locktext",
+  "lockedmessage",
+  "completionmessage",
+  "uimessage",
+  "snackbar",
+  "localstatus",
+];
+
+const excludedUiTextFragments = [
+  "pratica salvata",
+  "pratica sincronizzata e inviata",
+  "firme completate",
+  "pratica bloccata",
+  "vorgang synchronisiert und gesendet",
+  "unterschriften vollstandig",
+  "vorgang gesperrt",
+];
+
+const isExcludedUiPath = (path: string) => {
+  const normalizedPath = normalizeKeyName(path);
+  return excludedUiKeyFragments.some((fragment) =>
+    normalizedPath.includes(fragment)
+  );
+};
+
+const isExcludedUiText = (value: string) => {
+  const normalized = normalizeKeyName(value);
+  return excludedUiTextFragments.some((fragment) =>
+    normalized.includes(normalizeKeyName(fragment))
+  );
+};
+
+const findByKeyFragments = (
+  payload: unknown,
+  fragments: string[],
+): Array<{ path: string; key: string; value: unknown }> => {
+  const results: Array<{ path: string; key: string; value: unknown }> = [];
+  const normalizedFragments = fragments.map(normalizeKeyName);
+  const visited = new Set<unknown>();
+
+  const walk = (node: unknown, path: string[] = []) => {
+    if (!node || typeof node !== "object") return;
+    if (visited.has(node)) return;
+    visited.add(node);
+
+    if (Array.isArray(node)) {
+      node.forEach((item, index) => walk(item, [...path, `${index}`]));
+      return;
+    }
+
+    for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+      const nextPath = [...path, key];
+      const pathText = nextPath.join(".");
+      const normalizedKey = normalizeKeyName(key);
+      const normalizedPath = normalizeKeyName(pathText);
+      const matches = normalizedFragments.some((fragment) =>
+        normalizedKey.includes(fragment) || normalizedPath.includes(fragment)
+      );
+      if (matches && !isExcludedUiPath(pathText)) {
+        results.push({ path: pathText, key, value });
+      }
+      walk(value, nextPath);
+    }
+  };
+
+  walk(payload);
+  return results;
+};
+
+const extractTextCandidate = (value: unknown): string | null => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed || isExcludedUiText(trimmed)) return null;
+    return trimmed;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const nested = extractTextCandidate(item);
+      if (nested) return nested;
+    }
+    return null;
+  }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    for (
+      const key of ["value", "text", "label", "selected", "code", "id", "name"]
+    ) {
+      const nested = extractTextCandidate(record[key]);
+      if (nested) return nested;
+    }
+    for (const nestedValue of Object.values(record)) {
+      const nested = extractTextCandidate(nestedValue);
+      if (nested) return nested;
+    }
+  }
+  return null;
+};
+
+const detectLiabilityParty = (value: string): "A" | "B" | null => {
+  const compact = normalizeKeyName(value);
+  if (compact === "a") return "A";
+  if (compact === "b") return "B";
+
+  const ascii = value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const patternsA = [
+    /\bfahrer\s*a\b/,
+    /\bconducente\s*a\b/,
+    /\bconducteur\s*a\b/,
+    /\bdriver\s*a\b/,
+    /\b(colpevole|responsabile|responsible|schuld|fault|liability|liable)\b.*\ba\b/,
+    /\ba\b.*\b(colpevole|responsabile|responsible|schuld|fault|liability|liable)\b/,
+  ];
+  const patternsB = [
+    /\bfahrer\s*b\b/,
+    /\bconducente\s*b\b/,
+    /\bconducteur\s*b\b/,
+    /\bdriver\s*b\b/,
+    /\b(colpevole|responsabile|responsible|schuld|fault|liability|liable)\b.*\bb\b/,
+    /\bb\b.*\b(colpevole|responsabile|responsible|schuld|fault|liability|liable)\b/,
+  ];
+
+  if (patternsA.some((pattern) => pattern.test(ascii))) return "A";
+  if (patternsB.some((pattern) => pattern.test(ascii))) return "B";
+  return null;
+};
+
 const getLocalizedLiability = (
   payload: Record<string, any>,
-  lang: "de" | "it" | "fr" | "en",
+  lang: SupportedLang,
 ) => {
-  const value = typeof payload?.colpevole === "string"
-    ? payload.colpevole.trim()
-    : "";
   const emptyMap = {
     de: "Keine Angabe.",
     it: "Nessuna indicazione.",
     fr: "Aucune indication.",
     en: "No information provided.",
   } as const;
-  if (!value) return emptyMap[lang];
-  if (value === "A") {
-    return ({
-      de: "Nach Angaben der Parteien ist Fahrer A haftbar.",
-      it: "Secondo le parti il conducente ritenuto responsabile è A.",
+  const localizedByParty = {
+    A: {
+      de: "Laut den Parteien ist Fahrer A der schuldige Fahrer.",
+      it: "Secondo le parti il conducente responsabile è A.",
       fr: "Selon les parties, le conducteur responsable est A.",
-      en: "According to the parties, driver A is liable.",
-    } as const)[lang];
-  }
-  if (value === "B") {
-    return ({
-      de: "Nach Angaben der Parteien ist Fahrer B haftbar.",
-      it: "Secondo le parti il conducente ritenuto responsabile è B.",
+      en: "According to the parties, driver A is the liable driver.",
+    },
+    B: {
+      de: "Laut den Parteien ist Fahrer B der schuldige Fahrer.",
+      it: "Secondo le parti il conducente responsabile è B.",
       fr: "Selon les parties, le conducteur responsable est B.",
-      en: "According to the parties, driver B is liable.",
-    } as const)[lang];
+      en: "According to the parties, driver B is the liable driver.",
+    },
+  } as const;
+
+  const candidates = findByKeyFragments(payload, [
+    "haftung",
+    "responsabilita",
+    "responsabilità",
+    "colpa",
+    "schuld",
+    "liability",
+    "fault",
+    "responsible",
+    "responsabile",
+    "colpevole",
+  ]);
+
+  for (const candidate of candidates) {
+    if (isExcludedUiPath(candidate.path)) continue;
+    const text = extractTextCandidate(candidate.value);
+    if (!text) continue;
+
+    const party = detectLiabilityParty(text);
+    if (party) {
+      return localizedByParty[party][lang];
+    }
+
+    return text;
   }
-  return value;
+
+  return emptyMap[lang];
 };
 
 const formatWitnesses = (
@@ -613,7 +771,7 @@ const isSignatureLikeValue = (value: unknown): boolean => {
     const trimmed = value.trim();
     if (!trimmed) return false;
     if (trimmed.startsWith("data:image/")) return true;
-    if (trimmed.length > 50) return true;
+    if (trimmed.length > 80) return true;
     if (trimmed.startsWith("http")) return true;
     return trimmed.startsWith("claims/");
   }
@@ -624,9 +782,14 @@ const isSignatureLikeValue = (value: unknown): boolean => {
 
   if (value && typeof value === "object") {
     const record = value as Record<string, unknown>;
-    return ["url", "path", "base64", "value", "data", "src"].some((key) =>
-      isSignatureLikeValue(record[key])
-    );
+    if (
+      ["url", "path", "base64", "value", "data", "src"].some((key) =>
+        isSignatureLikeValue(record[key])
+      )
+    ) {
+      return true;
+    }
+    return Object.values(record).some((nested) => isSignatureLikeValue(nested));
   }
 
   return false;
@@ -666,74 +829,14 @@ const findSignatureValue = (
       "signaturaB",
     ]) as string[];
 
-  const normalizedDirectKeys = new Set(directKeys.map(normalizeKeyName));
-  const variantTokens = variant === "A"
-    ? [
-      "firmaa",
-      "signaturea",
-      "signa",
-      "drivera",
-      "conducentea",
-      "fahrera",
-    ]
-    : [
-      "firmab",
-      "signatureb",
-      "signb",
-      "driverb",
-      "conducenteb",
-      "fahrerb",
-    ];
-  const visited = new Set<unknown>();
+  const candidates = findByKeyFragments(payload, directKeys);
+  for (const candidate of candidates) {
+    if (!isSignatureLikeValue(candidate.value)) continue;
+    const source = extractSignatureSource(candidate.value);
+    if (source) return source;
+  }
 
-  const search = (node: unknown): string | null => {
-    if (!node || typeof node !== "object") {
-      return null;
-    }
-    if (visited.has(node)) return null;
-    visited.add(node);
-
-    if (Array.isArray(node)) {
-      for (const item of node) {
-        const nested = search(item);
-        if (nested) return nested;
-      }
-      return null;
-    }
-
-    for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
-      if (
-        normalizedDirectKeys.has(normalizeKeyName(key)) &&
-        isSignatureLikeValue(value)
-      ) {
-        const source = extractSignatureSource(value);
-        if (source) return source;
-      }
-    }
-
-    for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
-      const normalizedKey = normalizeKeyName(key);
-      const looksLikeSignature = normalizedKey.includes("firma") ||
-        normalizedKey.includes("signature") ||
-        normalizedKey.includes("sign");
-      const matchesVariant = variantTokens.some((token) =>
-        normalizedKey.includes(token)
-      );
-      if (looksLikeSignature && matchesVariant && isSignatureLikeValue(value)) {
-        const source = extractSignatureSource(value);
-        if (source) return source;
-      }
-    }
-
-    for (const value of Object.values(node as Record<string, unknown>)) {
-      const nested = search(value);
-      if (nested) return nested;
-    }
-
-    return null;
-  };
-
-  return search(payload);
+  return null;
 };
 
 const decodeBase64Image = (value: string) => {
@@ -851,10 +954,13 @@ async function generatePdfFromPayload(
     y -= imageHeight + 16;
   };
 
-  console.log("SEND CID EMAIL PDF VERSION: detailed-v2");
+  const signatureAValue = findSignatureValue(payload, "A");
+  const signatureBValue = findSignatureValue(payload, "B");
+
+  console.log("SEND CID EMAIL PDF VERSION: detailed-v3");
 
   line(copy.pdfTitle, true, 18);
-  line(`Claim ID: ${claimId}`, false, 12);
+  line(`${copy.claimNumber}: ${claimId}`, false, 12);
   line(`${copy.dateTime}: ${stringOrDash(payload?.dataOra)}`);
   line(`${copy.place}: ${stringOrDash(payload?.luogo)}`);
   line("");
@@ -902,8 +1008,14 @@ async function generatePdfFromPayload(
   line("");
 
   line(copy.signatures, true, 14);
-  await drawSignature(copy.driverA, findSignatureValue(payload, "A"));
-  await drawSignature(copy.driverB, findSignatureValue(payload, "B"));
+  line(
+    `${copy.driverA}: ${signatureAValue ? copy.signaturePresent : copy.signatureMissing}`,
+  );
+  await drawSignature(copy.driverA, signatureAValue);
+  line(
+    `${copy.driverB}: ${signatureBValue ? copy.signaturePresent : copy.signatureMissing}`,
+  );
+  await drawSignature(copy.driverB, signatureBValue);
 
   const pdfBytes = await pdfDoc.save();
   console.log("SEND CID EMAIL pdf generated bytes:", pdfBytes.length);
@@ -985,6 +1097,36 @@ async function handleRequest(req: Request): Promise<Response> {
 
     const payload = (claimRow?.payload_json ?? {}) as Record<string, any>;
     console.log("SEND CID EMAIL payload keys:", Object.keys(payload));
+    const lang = detectPayloadLanguage(payload);
+    console.log("LANG_USED", lang);
+    console.log(
+      "SIGNATURE_KEYS_SCAN",
+      JSON.stringify(
+        [...new Set(
+          findByKeyFragments(payload, [
+            "firma",
+            "sign",
+            "signature",
+            "unterschrift",
+          ]).map((match) => match.path),
+        )],
+      ),
+    );
+    console.log(
+      "LIABILITY_KEYS_SCAN",
+      JSON.stringify(
+        [...new Set(
+          findByKeyFragments(payload, [
+            "haftung",
+            "responsabil",
+            "colpa",
+            "schuld",
+            "liability",
+            "fault",
+          ]).map((match) => match.path),
+        )],
+      ),
+    );
 
     const recipients = [payload["emailA"], payload["emailB"]]
       .map((v) => (typeof v === "string" ? v.trim() : ""))
@@ -1162,7 +1304,6 @@ async function handleRequest(req: Request): Promise<Response> {
 
     console.log("EMAIL_ATTACHMENTS_FINAL:", attachments.map((a) => a.filename));
 
-    const lang = detectPayloadLanguage(payload);
     const copy = getLocalizedCopy(lang, claimId);
 
     const driverAName = getFullName(payload, "A");
@@ -1179,7 +1320,7 @@ async function handleRequest(req: Request): Promise<Response> {
       ? copy.signaturePresent
       : copy.signatureMissing;
 
-    console.log("SEND CID EMAIL BODY VERSION: detailed-v2");
+    console.log("SEND CID EMAIL BODY VERSION: detailed-v3");
 
     const textBody = [
       copy.emailTitle,

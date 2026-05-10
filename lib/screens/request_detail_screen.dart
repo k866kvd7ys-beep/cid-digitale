@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:cid_digitale/models/appointment_request.dart';
 import 'package:cid_digitale/services/appointment_requests_service.dart';
+import 'package:cid_digitale/services/local_image_cache.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class RequestDetailScreen extends StatefulWidget {
@@ -17,6 +21,14 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   bool _busy = false;
 
   AppointmentRequest get request => widget.request;
+
+  String _glassDamageDateLabel() {
+    final raw = request.glassDamageDate?.trim() ?? '';
+    if (raw.isEmpty) return '-';
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+    return parsed.toLocal().toIso8601String().substring(0, 10);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +99,10 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                       _row('Name', request.customerName ?? ''),
                       _row('Telefon', request.customerPhone ?? ''),
                       _row('E-Mail', request.customerEmail ?? ''),
+                      if ((request.glassDamageTown ?? '').isNotEmpty)
+                        _row('Ort', request.glassDamageTown ?? ''),
+                      if ((request.glassDamageDate ?? '').isNotEmpty)
+                        _row('Schadentag', _glassDamageDateLabel()),
                       _row('Status', request.status),
                       if ((request.notes ?? '').isNotEmpty) ...[
                         const SizedBox(height: 8),
@@ -99,6 +115,24 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(request.notes ?? ''),
+                      ],
+                      if (request.glassDamageImages.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          'Fotos',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: request.glassDamageImages
+                              .map((image) => _GlassDamagePreview(source: image))
+                              .toList(),
+                        ),
                       ],
                     ],
                   ),
@@ -149,10 +183,10 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                 try {
                   await _service.cancelRequest(request.id);
                   if (!mounted) return;
-                  Navigator.of(context).pop('cancelled');
+                  Navigator.of(this.context).pop('cancelled');
                 } catch (e) {
                   if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(this.context).showSnackBar(
                     SnackBar(content: Text('❌ Fehler: $e')),
                   );
                 } finally {
@@ -189,5 +223,77 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         ],
       ),
     );
+  }
+}
+
+class _GlassDamagePreview extends StatelessWidget {
+  const _GlassDamagePreview({required this.source});
+
+  final String source;
+
+  @override
+  Widget build(BuildContext context) {
+    final normalized = source.trim();
+    const width = 96.0;
+    const height = 96.0;
+    final borderRadius = BorderRadius.circular(12);
+
+    Widget placeholder() => Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            borderRadius: borderRadius,
+            color: Colors.black12,
+          ),
+          child: const Icon(Icons.image_outlined),
+        );
+
+    if (normalized.startsWith('http')) {
+      return ClipRRect(
+        borderRadius: borderRadius,
+        child: Image.network(
+          normalized,
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => placeholder(),
+        ),
+      );
+    }
+
+    if (normalized.startsWith('cache:')) {
+      final cacheKey = normalized.substring('cache:'.length);
+      return FutureBuilder<Uint8List?>(
+        future: LocalImageCache.getImage(cacheKey),
+        builder: (context, snapshot) {
+          final bytes = snapshot.data;
+          if (bytes == null || bytes.isEmpty) return placeholder();
+          return ClipRRect(
+            borderRadius: borderRadius,
+            child: Image.memory(
+              bytes,
+              width: width,
+              height: height,
+              fit: BoxFit.cover,
+            ),
+          );
+        },
+      );
+    }
+
+    if (!kIsWeb && normalized.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: borderRadius,
+        child: Image.file(
+          File(normalized),
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => placeholder(),
+        ),
+      );
+    }
+
+    return placeholder();
   }
 }

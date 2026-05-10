@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class AppointmentRequest {
   AppointmentRequest({
     required this.id,
@@ -13,6 +15,11 @@ class AppointmentRequest {
     this.licensePlate,
     required this.status,
     this.notes,
+    this.damageType,
+    this.locale,
+    this.glassDamageTown,
+    this.glassDamageDate,
+    this.glassDamageImages = const [],
   });
 
   final String id;
@@ -28,11 +35,38 @@ class AppointmentRequest {
   final String? licensePlate;
   final String status;
   final String? notes;
+  final String? damageType;
+  final String? locale;
+  final String? glassDamageTown;
+  final String? glassDamageDate;
+  final List<String> glassDamageImages;
+
+  static Map<String, dynamic> _decodeStructuredNotes(dynamic rawNotes) {
+    final notesText = rawNotes?.toString() ?? '';
+    if (notesText.trim().isEmpty) return const {};
+    try {
+      final decoded = jsonDecode(notesText);
+      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+    } catch (_) {}
+    return const {};
+  }
 
   factory AppointmentRequest.fromMap(Map<String, dynamic> map) {
     final createdStr = map['created_at']?.toString();
     final updatedStr = map['updated_at']?.toString();
     final dateStr = map['appointment_date']?.toString();
+    final structuredNotes = _decodeStructuredNotes(map['notes']);
+    final dynamic rawImages = map['glassDamageImages'] ??
+        map['glass_damage_images'] ??
+        structuredNotes['glassDamageImages'];
+    final glassDamageImages = rawImages is List
+        ? rawImages
+            .map((e) => e?.toString() ?? '')
+            .where((e) => e.trim().isNotEmpty)
+            .toList()
+        : <String>[];
+    final extractedNotes = structuredNotes['text']?.toString();
 
     return AppointmentRequest(
       id: (map['id'] ?? '').toString(),
@@ -54,7 +88,18 @@ class AppointmentRequest {
           map['customerEmail']) as String?,
       licensePlate: (map['license_plate'] ?? map['licensePlate']) as String?,
       status: (map['status'] ?? 'pending').toString(),
-      notes: map['notes'] as String?,
+      notes: extractedNotes ?? (structuredNotes.isEmpty ? map['notes'] as String? : null),
+      damageType: (map['damage_type'] ?? map['damageType'])?.toString(),
+      locale: (map['locale'] ?? map['languageCode'])?.toString(),
+      glassDamageTown: (map['glassDamageTown'] ??
+              map['glass_damage_town'] ??
+              structuredNotes['glassDamageTown'])
+          ?.toString(),
+      glassDamageDate: (map['glassDamageDate'] ??
+              map['glass_damage_date'] ??
+              structuredNotes['glassDamageDate'])
+          ?.toString(),
+      glassDamageImages: glassDamageImages,
     );
   }
 
@@ -73,6 +118,11 @@ class AppointmentRequest {
       'license_plate': licensePlate,
       'status': status,
       'notes': notes,
+      'damage_type': damageType,
+      'locale': locale,
+      'glassDamageTown': glassDamageTown,
+      'glassDamageDate': glassDamageDate,
+      'glassDamageImages': glassDamageImages,
     };
   }
 }

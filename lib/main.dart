@@ -31,6 +31,7 @@ import 'screens/officina/appointments_screen.dart';
 import 'screens/service/raeder_wechsel_screen.dart';
 import 'screens/service/workshop_slot_picker_screen.dart';
 import 'services/supabase_service.dart';
+import 'services/appointment_requests_service.dart';
 import 'services/incidents_sync_service.dart';
 import 'services/local_image_cache.dart';
 import 'package:intl/intl.dart';
@@ -1480,12 +1481,14 @@ class _CidDigitaleAppState extends State<CidDigitaleApp>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     PendingSyncManager.start();
+    AppointmentRequestsSyncManager.start();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     PendingSyncManager.stop();
+    AppointmentRequestsSyncManager.stop();
     super.dispose();
   }
 
@@ -1493,6 +1496,7 @@ class _CidDigitaleAppState extends State<CidDigitaleApp>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(PendingSyncManager.trigger());
+      unawaited(AppointmentRequestsSyncManager.trigger());
     }
   }
 
