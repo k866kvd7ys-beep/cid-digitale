@@ -373,6 +373,22 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         fr: 'Sélectionner la date',
       );
 
+  String _calendarGuideTitle(BuildContext context) => _copy(
+        context: context,
+        de: 'Wählen Sie einen verfügbaren Tag und eine Uhrzeit aus',
+        it: 'Seleziona un giorno e un orario disponibili',
+        en: 'Select an available day and time',
+        fr: 'Sélectionnez un jour et une heure disponibles',
+      );
+
+  String _calendarGuideSubtitle(BuildContext context) => _copy(
+        context: context,
+        de: 'Hier sehen Sie alle verfügbaren Termine in Ihrer Nähe.',
+        it: 'Qui puoi vedere tutti gli appuntamenti disponibili vicino a te.',
+        en: 'Here you can see all available appointments near you.',
+        fr: 'Vous pouvez voir ici tous les rendez-vous disponibles près de chez vous.',
+      );
+
   Widget _licensePlateCard(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
@@ -453,8 +469,14 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     );
   }
 
+  void _onGlassFormChanged() {
+    if (!mounted || !_isGlassDamage) return;
+    setState(() {});
+  }
+
   @override
   void dispose() {
+    _glassTownCtrl.removeListener(_onGlassFormChanged);
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
@@ -466,6 +488,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   @override
   void initState() {
     super.initState();
+    _glassTownCtrl.addListener(_onGlassFormChanged);
     _loadAvailableSlots(_selectedDay);
     unawaited(AppointmentRequestsSyncManager.trigger());
   }
@@ -552,6 +575,19 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final items = _imagesForCategory(category);
     if (items.isEmpty) return null;
     return items.last;
+  }
+
+  bool get _hasRequiredGlassPhotos =>
+      _glassVehicleDocumentImages.isNotEmpty &&
+      _glassCloseGlassImages.isNotEmpty &&
+      _glassFrontVehicleImages.isNotEmpty;
+
+  bool get _canSubmitRequest {
+    if (_selectedSlot == null) return false;
+    if (!_isGlassDamage) return true;
+    return _glassTownCtrl.text.trim().isNotEmpty &&
+        _glassDamageDate != null &&
+        _hasRequiredGlassPhotos;
   }
 
   String _mimeTypeForName(String value) {
@@ -1007,6 +1043,60 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     );
   }
 
+  Widget _buildCalendarGuideCard(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withOpacity(0.24),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.dividerColor.withOpacity(0.30),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.calendar_month_outlined,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _calendarGuideTitle(context),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _calendarGuideSubtitle(context),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.70),
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _onBookPressed() async {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) {
@@ -1105,9 +1195,11 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     final tf = DateFormat('HH:mm');
     final slots =
         _buildSlots(_selectedDay).where((slot) => !_isBooked(slot)).toList();
+    final submitEnabled = !_loading && !_submitting && _canSubmitRequest;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -1157,6 +1249,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
               const SizedBox(height: 16),
               _buildGlassDamageSection(context),
             ],
+            const SizedBox(height: 16),
+            _buildCalendarGuideCard(context),
             const SizedBox(height: 16),
             TableCalendar(
               firstDay: DateTime.now(),
@@ -1210,10 +1304,10 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                       _selectedSlot!.hour == slot.hour &&
                       _selectedSlot!.minute == slot.minute;
 
-                  final primary = Theme.of(context).colorScheme.primary;
+                  final primary = theme.colorScheme.primary;
                   final borderColor = selected
                       ? primary
-                      : Theme.of(context).dividerColor.withOpacity(0.6);
+                      : theme.dividerColor.withOpacity(0.6);
 
                   return OutlinedButton(
                     style: OutlinedButton.styleFrom(
@@ -1239,26 +1333,54 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                   );
                 },
               ),
-            const SizedBox(height: 140),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _loading || _submitting ? null : _onBookPressed,
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
+            const SizedBox(height: 28),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: submitEnabled
+                    ? [
+                        BoxShadow(
+                          color: theme.colorScheme.primary.withOpacity(0.22),
+                          blurRadius: 18,
+                          offset: const Offset(0, 10),
+                        ),
+                      ]
+                    : const [],
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: submitEnabled ? _onBookPressed : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor:
+                        theme.colorScheme.primary.withOpacity(0.24),
+                    disabledForegroundColor:
+                        theme.colorScheme.onSurface.withOpacity(0.48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    elevation: 0,
                   ),
-                  elevation: 0,
-                ),
-                child: Text(
-                  _loading || _submitting ? '...' : l10n.termin_buchen,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w800),
+                  child: Text(
+                    _loading || _submitting ? '...' : l10n.termin_buchen,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: submitEnabled
+                          ? Colors.white
+                          : theme.colorScheme.onSurface.withOpacity(0.55),
+                    ),
+                  ),
                 ),
               ),
+            ),
+            const SizedBox(height: 20),
+            SafeArea(
+              top: false,
+              child: const SizedBox(height: 8),
             ),
           ],
         ),
