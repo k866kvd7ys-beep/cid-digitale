@@ -389,6 +389,150 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         fr: 'Vous pouvez voir ici tous les rendez-vous disponibles près de chez vous.',
       );
 
+  String _calendarLocaleTag(BuildContext context) {
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'it':
+        return 'it_IT';
+      case 'fr':
+        return 'fr_FR';
+      case 'en':
+        return 'en_US';
+      case 'de':
+      default:
+        return 'de_DE';
+    }
+  }
+
+  String _calendarMonthLabel(BuildContext context, int month) {
+    const it = <String>[
+      'Gennaio',
+      'Febbraio',
+      'Marzo',
+      'Aprile',
+      'Maggio',
+      'Giugno',
+      'Luglio',
+      'Agosto',
+      'Settembre',
+      'Ottobre',
+      'Novembre',
+      'Dicembre',
+    ];
+    const de = <String>[
+      'Januar',
+      'Februar',
+      'Maerz',
+      'April',
+      'Mai',
+      'Juni',
+      'Juli',
+      'August',
+      'September',
+      'Oktober',
+      'November',
+      'Dezember',
+    ];
+    const en = <String>[
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    const fr = <String>[
+      'Janvier',
+      'Fevrier',
+      'Mars',
+      'Avril',
+      'Mai',
+      'Juin',
+      'Juillet',
+      'Aout',
+      'Septembre',
+      'Octobre',
+      'Novembre',
+      'Decembre',
+    ];
+
+    final safeIndex = month < 1
+        ? 0
+        : month > 12
+            ? 11
+            : month - 1;
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'it':
+        return it[safeIndex];
+      case 'fr':
+        return fr[safeIndex];
+      case 'en':
+        return en[safeIndex];
+      case 'de':
+      default:
+        return de[safeIndex];
+    }
+  }
+
+  String _calendarWeekdayLabel(BuildContext context, int weekday) {
+    const it = <String>['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+    const de = <String>['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+    const en = <String>['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const fr = <String>['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
+    final safeIndex = weekday < 1
+        ? 0
+        : weekday > 7
+            ? 6
+            : weekday - 1;
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'it':
+        return it[safeIndex];
+      case 'fr':
+        return fr[safeIndex];
+      case 'en':
+        return en[safeIndex];
+      case 'de':
+      default:
+        return de[safeIndex];
+    }
+  }
+
+  Map<CalendarFormat, String> _calendarFormatLabels(BuildContext context) {
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'it':
+        return const {
+          CalendarFormat.month: 'Mese',
+          CalendarFormat.twoWeeks: '2 settimane',
+          CalendarFormat.week: 'Settimana',
+        };
+      case 'fr':
+        return const {
+          CalendarFormat.month: 'Mois',
+          CalendarFormat.twoWeeks: '2 semaines',
+          CalendarFormat.week: 'Semaine',
+        };
+      case 'en':
+        return const {
+          CalendarFormat.month: 'Month',
+          CalendarFormat.twoWeeks: '2 weeks',
+          CalendarFormat.week: 'Week',
+        };
+      case 'de':
+      default:
+        return const {
+          CalendarFormat.month: 'Monat',
+          CalendarFormat.twoWeeks: '2 Wochen',
+          CalendarFormat.week: 'Woche',
+        };
+    }
+  }
+
   Widget _licensePlateCard(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
@@ -1256,6 +1400,18 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
               firstDay: DateTime.now(),
               lastDay: DateTime.now().add(const Duration(days: 120)),
               focusedDay: _focusedDay,
+              locale: _calendarLocaleTag(context),
+              startingDayOfWeek: StartingDayOfWeek.monday,
+              availableCalendarFormats: _calendarFormatLabels(context),
+              headerStyle: HeaderStyle(
+                titleCentered: true,
+                titleTextFormatter: (date, _) =>
+                    '${_calendarMonthLabel(context, date.month)} ${date.year}',
+              ),
+              daysOfWeekStyle: DaysOfWeekStyle(
+                dowTextFormatter: (date, _) =>
+                    _calendarWeekdayLabel(context, date.weekday),
+              ),
               selectedDayPredicate: (d) => isSameDay(d, _selectedDay),
               onDaySelected: (selectedDay, focusedDay) {
                 setState(() {
