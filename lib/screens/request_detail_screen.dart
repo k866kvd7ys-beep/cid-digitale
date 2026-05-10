@@ -73,6 +73,21 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     return parsed.toLocal().toIso8601String().substring(0, 10);
   }
 
+  String _resolvedPhotoUrl(String source) {
+    final trimmed = source.trim();
+    if (!trimmed.startsWith('http')) return trimmed;
+    try {
+      return Uri.parse(trimmed).toString();
+    } catch (_) {
+      return trimmed;
+    }
+  }
+
+  String _shortUrl(String url) {
+    if (url.length <= 90) return url;
+    return '${url.substring(0, 87)}...';
+  }
+
   List<String> _glassImageSources() {
     final direct = request.glassDamageImages
         .map((image) => image.trim())
@@ -97,25 +112,75 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   }
 
   Future<void> _openPhotoViewer(String source) async {
+    final url = _resolvedPhotoUrl(source);
+    debugPrint('OPEN GLASS PHOTO URL: $url');
     if (!mounted) return;
     await showDialog<void>(
       context: context,
-      barrierColor: Colors.black87,
       builder: (dialogContext) {
         return Dialog.fullscreen(
-          backgroundColor: Colors.black87,
+          backgroundColor: Colors.transparent,
           child: SafeArea(
             child: Stack(
               children: [
-                Center(
-                  child: InteractiveViewer(
-                    minScale: 0.8,
-                    maxScale: 4,
-                    child: _GlassDamageImage(
-                      source: source,
-                      fit: BoxFit.contain,
-                      borderRadius: BorderRadius.zero,
-                      showLoadingIndicator: true,
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black87,
+                    child: Center(
+                      child: InteractiveViewer(
+                        minScale: 0.8,
+                        maxScale: 4,
+                        child: url.startsWith('http')
+                            ? Image.network(
+                                url,
+                                fit: BoxFit.contain,
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return const Center(
+                                    child: CircularProgressIndicator(),
+                                  );
+                                },
+                                errorBuilder: (_, __, ___) => Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.broken_image_outlined,
+                                        color: Colors.white,
+                                        size: 42,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      const Text(
+                                        'Foto non caricata',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        _shortUrl(url),
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            : _GlassDamageImage(
+                                source: url,
+                                fit: BoxFit.contain,
+                                borderRadius: BorderRadius.zero,
+                                showLoadingIndicator: true,
+                              ),
+                      ),
                     ),
                   ),
                 ),
@@ -389,6 +454,13 @@ class _GlassDamageImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final normalized = source.trim();
+    String resolvedNetworkUrl(String value) {
+      try {
+        return Uri.parse(value).toString();
+      } catch (_) {
+        return value;
+      }
+    }
 
     Widget placeholder() => Container(
           decoration: BoxDecoration(
@@ -400,8 +472,9 @@ class _GlassDamageImage extends StatelessWidget {
         );
 
     if (normalized.startsWith('http')) {
+      final url = resolvedNetworkUrl(normalized);
       return Image.network(
-        normalized,
+        url,
         fit: fit,
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
