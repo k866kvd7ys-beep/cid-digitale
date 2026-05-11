@@ -133,7 +133,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get damage_parking => 'Parkschaden';
 
   @override
-  String get damage_comprehensive => 'Vollkasko';
+  String get damage_comprehensive => 'Kollision';
 
   @override
   String get license_plate_label => 'Kennzeichen';

@@ -2667,6 +2667,34 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  String _damageOtherLabel(BuildContext context) {
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'it':
+        return 'Altro';
+      case 'en':
+        return 'Other';
+      case 'fr':
+        return 'Autre';
+      case 'de':
+      default:
+        return 'Sonstiges';
+    }
+  }
+
+  String _damageComingSoonMessage(BuildContext context) {
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'it':
+        return 'Funzione in preparazione';
+      case 'en':
+        return 'Feature in preparation';
+      case 'fr':
+        return 'Fonction en préparation';
+      case 'de':
+      default:
+        return 'Funktion in Vorbereitung';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -2720,6 +2748,7 @@ class _HomePageState extends State<HomePage> {
               DamageType.marten,
               DamageType.parking,
               DamageType.comprehensive,
+              DamageType.other,
             ],
             selectedDamageType: null,
             iconFor: (t) {
@@ -2733,7 +2762,9 @@ class _HomePageState extends State<HomePage> {
                 case DamageType.parking:
                   return Icons.local_parking_rounded;
                 case DamageType.comprehensive:
-                  return Icons.description_rounded;
+                  return Icons.car_crash_rounded;
+                case DamageType.other:
+                  return Icons.more_horiz_rounded;
               }
             },
             labelFor: (t) {
@@ -2748,6 +2779,8 @@ class _HomePageState extends State<HomePage> {
                   return l10n.damage_parking;
                 case DamageType.comprehensive:
                   return l10n.damage_comprehensive;
+                case DamageType.other:
+                  return _damageOtherLabel(context);
               }
             },
             onSelected: (t) => Navigator.of(ctx).pop(t),
@@ -2757,6 +2790,13 @@ class _HomePageState extends State<HomePage> {
     );
 
     if (selected == null) return;
+
+    if (selected == DamageType.other) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_damageComingSoonMessage(context))),
+      );
+      return;
+    }
 
     _openCalendarSameLogic(selected, l10n);
   }
@@ -2840,6 +2880,8 @@ class _HomePageState extends State<HomePage> {
         return l10n.damage_parking;
       case DamageType.comprehensive:
         return l10n.damage_comprehensive;
+      case DamageType.other:
+        return _damageOtherLabel(context);
     }
   }
 
@@ -2855,6 +2897,8 @@ class _HomePageState extends State<HomePage> {
         return 'damage_parking';
       case DamageType.comprehensive:
         return 'damage_comprehensive';
+      case DamageType.other:
+        return 'damage_other';
     }
   }
 

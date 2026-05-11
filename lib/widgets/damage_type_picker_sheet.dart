@@ -6,6 +6,7 @@ enum DamageType {
   marten,
   parking,
   comprehensive,
+  other,
 }
 
 typedef DamageTypeLabel = String Function(DamageType type);
