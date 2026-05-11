@@ -2695,6 +2695,22 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  String? _damageCardSubtitle(BuildContext context, DamageType type) {
+    if (type != DamageType.comprehensive) return null;
+
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'it':
+        return 'Danno causato autonomamente al veicolo.';
+      case 'en':
+        return 'Self-caused vehicle damage.';
+      case 'fr':
+        return 'Dommage causé par le conducteur lui-même.';
+      case 'de':
+      default:
+        return 'Selbst verursachter Schaden am Fahrzeug.';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -2762,7 +2778,7 @@ class _HomePageState extends State<HomePage> {
                 case DamageType.parking:
                   return Icons.local_parking_rounded;
                 case DamageType.comprehensive:
-                  return Icons.car_crash_rounded;
+                  return Icons.description_rounded;
                 case DamageType.other:
                   return Icons.more_horiz_rounded;
               }
@@ -2783,6 +2799,7 @@ class _HomePageState extends State<HomePage> {
                   return _damageOtherLabel(context);
               }
             },
+            subtitleFor: (t) => _damageCardSubtitle(context, t),
             onSelected: (t) => Navigator.of(ctx).pop(t),
           ),
         );

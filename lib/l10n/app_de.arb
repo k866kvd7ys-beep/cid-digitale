@@ -41,7 +41,7 @@
   "damage_hail": "Hagelschaden",
   "damage_marten": "Marderschaden",
   "damage_parking": "Parkschaden",
-  "damage_comprehensive": "Kollision",
+  "damage_comprehensive": "Vollkasko",
   "license_plate_label": "Kennzeichen",
   "license_plate_hint": "z.B. ZH 123456",
   "other_object_damage_q": "Gibt es Sachschäden an anderen Gegenständen?",

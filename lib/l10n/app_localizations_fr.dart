@@ -135,7 +135,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get damage_parking => 'Dommage de stationnement';
 
   @override
-  String get damage_comprehensive => 'Collision';
+  String get damage_comprehensive => 'Vollkasko';
 
   @override
   String get license_plate_label => 'Plaque';

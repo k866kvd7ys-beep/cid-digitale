@@ -351,7 +351,7 @@ abstract class AppLocalizations {
   /// No description provided for @damage_comprehensive.
   ///
   /// In de, this message translates to:
-  /// **'Kollision'**
+  /// **'Vollkasko'**
   String get damage_comprehensive;
 
   /// No description provided for @license_plate_label.

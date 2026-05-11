@@ -10,6 +10,7 @@ enum DamageType {
 }
 
 typedef DamageTypeLabel = String Function(DamageType type);
+typedef DamageTypeSubtitle = String? Function(DamageType type);
 
 class DamageTypePickerSheet extends StatelessWidget {
   const DamageTypePickerSheet({
@@ -20,6 +21,7 @@ class DamageTypePickerSheet extends StatelessWidget {
     required this.types,
     required this.iconFor,
     required this.labelFor,
+    this.subtitleFor,
     required this.onSelected,
     this.selectedDamageType,
   });
@@ -30,6 +32,7 @@ class DamageTypePickerSheet extends StatelessWidget {
   final List<DamageType> types;
   final IconData Function(DamageType type) iconFor;
   final DamageTypeLabel labelFor;
+  final DamageTypeSubtitle? subtitleFor;
   final ValueChanged<DamageType> onSelected;
   final DamageType? selectedDamageType;
 
@@ -102,6 +105,7 @@ class DamageTypePickerSheet extends StatelessWidget {
                   runSpacing: spacing,
                   children: types.map((t) {
                     final selected = t == selectedDamageType;
+                    final cardSubtitle = subtitleFor?.call(t)?.trim();
                     return SizedBox(
                       width: itemWidth,
                       height: itemHeight,
@@ -148,6 +152,20 @@ class DamageTypePickerSheet extends StatelessWidget {
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
+                                if (cardSubtitle != null &&
+                                    cardSubtitle.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    cardSubtitle,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      height: 1.25,
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),

@@ -41,7 +41,7 @@
   "damage_hail": "Hail damage",
   "damage_marten": "Marten damage",
   "damage_parking": "Parking damage",
-  "damage_comprehensive": "Collision",
+  "damage_comprehensive": "Vollkasko",
   "license_plate_label": "License plate",
   "license_plate_hint": "e.g. ZH 123456",
   "other_object_damage_q": "Is there property damage to other objects?",
