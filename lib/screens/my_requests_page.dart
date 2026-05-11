@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:cid_digitale/models/appointment_request.dart';
 import 'package:cid_digitale/screens/request_detail_screen.dart';
@@ -56,6 +58,7 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
   final _service = AppointmentRequestsService();
   final _df = DateFormat('dd.MM.yyyy');
   final _tf = DateFormat('HH:mm');
+  Timer? _refreshTimer;
 
   _RequestsFilter _filter = _RequestsFilter.all;
   bool _loading = false;
@@ -65,21 +68,33 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
   void initState() {
     super.initState();
     _load();
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _load(silent: true),
+    );
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() => _loading = true);
+    }
     try {
       final list = await _service.fetchMyRequests(serviceFilter: _filter.name);
       if (!mounted) return;
       setState(() => _items = list);
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || silent) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Errore caricamento: $e')),
       );
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && !silent) setState(() => _loading = false);
     }
   }
 
@@ -141,9 +156,11 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
       );
     }
 
-    final active = _items.where((r) => (r.status) != 'cancelled').toList()
+    final active =
+        _items.where((r) => r.requestStatus != 'cancelled').toList()
       ..sort((a, b) => _sortDate(a).compareTo(_sortDate(b)));
-    final cancelled = _items.where((r) => (r.status) == 'cancelled').toList()
+    final cancelled =
+        _items.where((r) => r.requestStatus == 'cancelled').toList()
       ..sort((a, b) => _sortDate(b).compareTo(_sortDate(a)));
 
     return ListView(
@@ -156,6 +173,8 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
                 typeLabel: _typeLabel(l10n, r),
                 subtitle: _subtitle(l10n, r),
                 icon: _iconFor(r),
+                statusLabel: _statusLabel(context, r.requestStatus),
+                statusColor: _statusColor(context, r.requestStatus),
                 onTap: () async {
                   final res = await Navigator.of(context).push(
                     MaterialPageRoute(
@@ -171,7 +190,7 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
         if (cancelled.isNotEmpty) ...[
           const SizedBox(height: 12),
           Text(
-            'Storniert',
+            _statusLabel(context, 'cancelled'),
             style: Theme.of(context)
                 .textTheme
                 .titleMedium
@@ -186,7 +205,8 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
                   subtitle: _subtitle(l10n, r),
                   icon: _iconFor(r),
                   muted: true,
-                  badge: 'Storniert',
+                  statusLabel: _statusLabel(context, r.requestStatus),
+                  statusColor: _statusColor(context, r.requestStatus),
                   onTap: () async {
                     final res = await Navigator.of(context).push(
                       MaterialPageRoute(
@@ -267,19 +287,15 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
     final dateStr = r.appointmentDate.toIso8601String().substring(0, 10);
     final timeStr = r.appointmentTime;
     String dateTimeLabel = '';
-    if (dateStr != null) {
-      try {
-        final d = DateTime.parse(dateStr);
-        dateTimeLabel = _df.format(d.toLocal());
-      } catch (_) {}
-    }
-    if (timeStr != null) {
-      try {
-        final t = DateTime.parse('1970-01-01T$timeStr');
-        dateTimeLabel =
-            '${dateTimeLabel.isNotEmpty ? '$dateTimeLabel · ' : ''}${_tf.format(t)}';
-      } catch (_) {}
-    }
+    try {
+      final d = DateTime.parse(dateStr);
+      dateTimeLabel = _df.format(d.toLocal());
+    } catch (_) {}
+    try {
+      final t = DateTime.parse('1970-01-01T$timeStr');
+      dateTimeLabel =
+          '${dateTimeLabel.isNotEmpty ? '$dateTimeLabel · ' : ''}${_tf.format(t)}';
+    } catch (_) {}
     final parts = [
       if (dateTimeLabel.isNotEmpty) dateTimeLabel,
       if (name.isNotEmpty) name,
@@ -288,6 +304,88 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
       if ((r.customerEmail ?? '').isNotEmpty) r.customerEmail!,
     ];
     return parts.join(' • ');
+  }
+
+  String _statusLabel(BuildContext context, String status) {
+    switch (status) {
+      case 'confirmed':
+        return _copy(
+          context,
+          de: 'Termin bestaetigt',
+          it: 'Appuntamento confermato',
+          en: 'Appointment confirmed',
+          fr: 'Rendez-vous confirme',
+        );
+      case 'in_progress':
+        return _copy(
+          context,
+          de: 'Fahrzeug in Bearbeitung',
+          it: 'Veicolo in lavorazione',
+          en: 'Vehicle in progress',
+          fr: 'Vehicule en reparation',
+        );
+      case 'completed':
+        return _copy(
+          context,
+          de: 'Reparatur abgeschlossen',
+          it: 'Riparazione completata',
+          en: 'Repair completed',
+          fr: 'Reparation terminee',
+        );
+      case 'cancelled':
+        return _copy(
+          context,
+          de: 'Termin storniert',
+          it: 'Appuntamento annullato',
+          en: 'Appointment cancelled',
+          fr: 'Rendez-vous annule',
+        );
+      case 'pending':
+      default:
+        return _copy(
+          context,
+          de: 'Anfrage gesendet',
+          it: 'Richiesta inviata',
+          en: 'Request sent',
+          fr: 'Demande envoyee',
+        );
+    }
+  }
+
+  String _copy(
+    BuildContext context, {
+    required String de,
+    required String it,
+    required String en,
+    required String fr,
+  }) {
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'it':
+        return it;
+      case 'en':
+        return en;
+      case 'fr':
+        return fr;
+      case 'de':
+      default:
+        return de;
+    }
+  }
+
+  Color _statusColor(BuildContext context, String status) {
+    switch (status) {
+      case 'confirmed':
+        return const Color(0xFF2563EB);
+      case 'in_progress':
+        return const Color(0xFF7C3AED);
+      case 'completed':
+        return const Color(0xFF16A34A);
+      case 'cancelled':
+        return const Color(0xFFDC2626);
+      case 'pending':
+      default:
+        return const Color(0xFFEA580C);
+    }
   }
 
   IconData _iconFor(AppointmentRequest r) {
@@ -306,18 +404,20 @@ class _AppointmentCard extends StatelessWidget {
     required this.typeLabel,
     required this.subtitle,
     required this.icon,
+    required this.statusLabel,
+    required this.statusColor,
     required this.onTap,
     this.muted = false,
-    this.badge,
   });
 
   final AppointmentRequest record;
   final String typeLabel;
   final String subtitle;
   final IconData icon;
+  final String statusLabel;
+  final Color statusColor;
   final VoidCallback onTap;
   final bool muted;
-  final String? badge;
 
   @override
   Widget build(BuildContext context) {
@@ -378,24 +478,24 @@ class _AppointmentCard extends StatelessWidget {
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (badge != null) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          badge!,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: Colors.grey.shade800,
-                          ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        statusLabel,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: statusColor,
                         ),
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),

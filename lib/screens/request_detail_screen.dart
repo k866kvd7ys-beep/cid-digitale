@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -20,8 +21,10 @@ class RequestDetailScreen extends StatefulWidget {
 class _RequestDetailScreenState extends State<RequestDetailScreen> {
   final _service = AppointmentRequestsService();
   bool _busy = false;
+  Timer? _refreshTimer;
+  late AppointmentRequest _request;
 
-  AppointmentRequest get request => widget.request;
+  AppointmentRequest get request => _request;
   bool get _isGlassDamageRequest =>
       request.serviceType == 'damage_glass' || request.damageType == 'damage_glass';
   bool get _isHailDamageRequest =>
@@ -117,12 +120,120 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         fr: 'Fermer la photo',
       );
 
+  String _requestStatusLabel(String status) => _copy(
+        de: switch (status) {
+          'confirmed' => 'Termin bestaetigt',
+          'in_progress' => 'Fahrzeug in Bearbeitung',
+          'completed' => 'Reparatur abgeschlossen',
+          'cancelled' => 'Termin storniert',
+          _ => 'Anfrage gesendet',
+        },
+        it: switch (status) {
+          'confirmed' => 'Appuntamento confermato',
+          'in_progress' => 'Veicolo in lavorazione',
+          'completed' => 'Riparazione completata',
+          'cancelled' => 'Appuntamento annullato',
+          _ => 'Richiesta inviata',
+        },
+        en: switch (status) {
+          'confirmed' => 'Appointment confirmed',
+          'in_progress' => 'Vehicle in progress',
+          'completed' => 'Repair completed',
+          'cancelled' => 'Appointment cancelled',
+          _ => 'Request sent',
+        },
+        fr: switch (status) {
+          'confirmed' => 'Rendez-vous confirme',
+          'in_progress' => 'Vehicule en reparation',
+          'completed' => 'Reparation terminee',
+          'cancelled' => 'Rendez-vous annule',
+          _ => 'Demande envoyee',
+        },
+      );
+
+  String _statusUpdatedSnackBarText() => _copy(
+        de: 'Anfragestatus aktualisiert',
+        it: 'Stato richiesta aggiornato',
+        en: 'Request status updated',
+        fr: 'Statut de la demande mis a jour',
+      );
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'confirmed':
+        return const Color(0xFF2563EB);
+      case 'in_progress':
+        return const Color(0xFF7C3AED);
+      case 'completed':
+        return const Color(0xFF16A34A);
+      case 'cancelled':
+        return const Color(0xFFDC2626);
+      case 'pending':
+      default:
+        return const Color(0xFFEA580C);
+    }
+  }
+
+  IconData _statusIcon(String status) {
+    switch (status) {
+      case 'confirmed':
+        return Icons.event_available_outlined;
+      case 'in_progress':
+        return Icons.autorenew_rounded;
+      case 'completed':
+        return Icons.check_circle_outline_rounded;
+      case 'cancelled':
+        return Icons.cancel_outlined;
+      case 'pending':
+      default:
+        return Icons.schedule_send_outlined;
+    }
+  }
+
+  String _lastUpdatedLabel() => _copy(
+        de: 'Letzte Aktualisierung',
+        it: 'Ultimo aggiornamento',
+        en: 'Last update',
+        fr: 'Derniere mise a jour',
+      );
+
+  String _appointmentDateLabel() => _copy(
+        de: 'Termindatum',
+        it: 'Data appuntamento',
+        en: 'Appointment date',
+        fr: 'Date du rendez-vous',
+      );
+
   String _glassDamageDateLabel() {
     final raw = request.glassDamageDate?.trim() ?? '';
     if (raw.isEmpty) return '-';
     final parsed = DateTime.tryParse(raw);
     if (parsed == null) return raw;
     return parsed.toLocal().toIso8601String().substring(0, 10);
+  }
+
+  String _statusUpdatedAtLabel() {
+    final raw = request.statusUpdatedAt?.trim() ?? '';
+    if (raw.isEmpty) return '-';
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+    return parsed.toLocal().toIso8601String().replaceFirst('T', ' ').substring(0, 16);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _request = widget.request;
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _refreshRequest(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   String _hailDamageDateLabel() {
@@ -418,6 +529,134 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     );
   }
 
+  Future<void> _refreshRequest({bool showSnackBar = false}) async {
+    final updated = await _service.fetchRequestById(request.id);
+    if (!mounted || updated == null) return;
+    setState(() {
+      _request = updated;
+    });
+    if (showSnackBar) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_statusUpdatedSnackBarText())),
+      );
+    }
+  }
+
+  Widget _statusCard(BuildContext context) {
+    final theme = Theme.of(context);
+    final status = request.requestStatus;
+    final statusColor = _statusColor(status);
+    const progressSteps = ['pending', 'confirmed', 'in_progress', 'completed'];
+    final currentIndex = progressSteps.indexOf(status);
+    final isCancelled = status == 'cancelled';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: statusColor.withOpacity(0.08),
+        border: Border.all(color: statusColor.withOpacity(0.22)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(_statusIcon(status), color: statusColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _requestStatusLabel(status),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: statusColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_lastUpdatedLabel()}: ${_statusUpdatedAtLabel()}',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${_appointmentDateLabel()}: ${request.appointmentDate.toLocal().toIso8601String().substring(0, 10)}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (isCancelled)
+            Text(
+              _requestStatusLabel(status),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: statusColor,
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          else
+            Row(
+              children: List.generate(progressSteps.length, (index) {
+                final active = currentIndex >= index;
+                return Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: active
+                              ? _statusColor(progressSteps[index])
+                              : theme.dividerColor.withOpacity(0.35),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      if (index != progressSteps.length - 1)
+                        Expanded(
+                          child: Container(
+                            height: 3,
+                            margin: const EdgeInsets.symmetric(horizontal: 6),
+                            decoration: BoxDecoration(
+                              color: currentIndex > index
+                                  ? _statusColor(progressSteps[index + 1])
+                                      .withOpacity(0.55)
+                                  : theme.dividerColor.withOpacity(0.20),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _photosSection() {
     if (_isHailDamageRequest) {
       final hailVehicleDocumentImages = _hailVehicleDocumentImageSources();
@@ -577,7 +816,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       return serviceType.isEmpty ? l10n.my_requests_title : serviceType;
     }
 
-    final canCancel = request.id.isNotEmpty && request.status != 'cancelled';
+    final canCancel = request.id.isNotEmpty && request.requestStatus != 'cancelled';
 
     return Scaffold(
       appBar: AppBar(
@@ -596,6 +835,8 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _statusCard(context),
+                      const SizedBox(height: 16),
                       _row(l10n.service_type_service, serviceLabel()),
                       _row('Datum', dateLabel()),
                       _row('Uhrzeit', timeLabel()),
@@ -612,7 +853,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                       if (_isHailDamageRequest &&
                           (request.hailDamageTime ?? '').trim().isNotEmpty)
                         _row('Schadenzeit', _hailDamageTimeLabel()),
-                      _row('Status', request.status),
+                      _row('Status', _requestStatusLabel(request.requestStatus)),
                       if ((request.notes ?? '').isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Text(

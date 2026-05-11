@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:cid_digitale/models/appointment_request.dart';
+import 'package:cid_digitale/services/appointment_requests_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -12,128 +16,310 @@ class AppointmentsScreen extends StatefulWidget {
 
 class _AppointmentsScreenState extends State<AppointmentsScreen> {
   final _sb = Supabase.instance.client;
+  final _requestService = AppointmentRequestsService();
   final _df = DateFormat('dd.MM.yyyy');
   final _tf = DateFormat('HH:mm');
+  Timer? _refreshTimer;
 
-  Future<List<Map<String, dynamic>>> _load() async {
+  String _copy({
+    required String de,
+    required String it,
+    required String en,
+    required String fr,
+  }) {
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'it':
+        return it;
+      case 'en':
+        return en;
+      case 'fr':
+        return fr;
+      case 'de':
+      default:
+        return de;
+    }
+  }
+
+  String _statusLabel(String status) => _copy(
+        de: switch (status) {
+          'confirmed' => 'Termin bestaetigt',
+          'in_progress' => 'Fahrzeug in Bearbeitung',
+          'completed' => 'Reparatur abgeschlossen',
+          'cancelled' => 'Termin storniert',
+          _ => 'Anfrage gesendet',
+        },
+        it: switch (status) {
+          'confirmed' => 'Appuntamento confermato',
+          'in_progress' => 'Veicolo in lavorazione',
+          'completed' => 'Riparazione completata',
+          'cancelled' => 'Appuntamento annullato',
+          _ => 'Richiesta inviata',
+        },
+        en: switch (status) {
+          'confirmed' => 'Appointment confirmed',
+          'in_progress' => 'Vehicle in progress',
+          'completed' => 'Repair completed',
+          'cancelled' => 'Appointment cancelled',
+          _ => 'Request sent',
+        },
+        fr: switch (status) {
+          'confirmed' => 'Rendez-vous confirme',
+          'in_progress' => 'Vehicule en reparation',
+          'completed' => 'Reparation terminee',
+          'cancelled' => 'Rendez-vous annule',
+          _ => 'Demande envoyee',
+        },
+      );
+
+  String _updatedSnackBar() => _copy(
+        de: 'Anfragestatus aktualisiert',
+        it: 'Stato richiesta aggiornato',
+        en: 'Request status updated',
+        fr: 'Statut de la demande mis a jour',
+      );
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'confirmed':
+        return const Color(0xFF2563EB);
+      case 'in_progress':
+        return const Color(0xFF7C3AED);
+      case 'completed':
+        return const Color(0xFF16A34A);
+      case 'cancelled':
+        return const Color(0xFFDC2626);
+      case 'pending':
+      default:
+        return const Color(0xFFEA580C);
+    }
+  }
+
+  Future<List<AppointmentRequest>> _load() async {
     final res = await _sb
         .from('appointment_requests')
         .select('*')
-        .filter('status', 'in', '(pending,confirmed)')
         .order('appointment_date', ascending: true)
         .order('appointment_time', ascending: true)
         .limit(500);
-    return (res as List).cast<Map<String, dynamic>>();
+    return (res as List)
+        .cast<Map<String, dynamic>>()
+        .map(AppointmentRequest.fromMap)
+        .toList();
+  }
+
+  Future<void> _updateStatus(
+    AppointmentRequest request,
+    String newStatus,
+  ) async {
+    final updated = await _requestService.updateRequestStatus(
+      requestId: request.id,
+      requestStatus: newStatus,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(_updatedSnackBar())),
+    );
+    setState(() {
+      _future = Future.value(
+        _currentItems.map((item) => item.id == updated.id ? updated : item).toList(),
+      );
+    });
+  }
+
+  late Future<List<AppointmentRequest>> _future;
+  List<AppointmentRequest> _currentItems = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _load();
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) {
+        if (!mounted) return;
+        setState(() {
+          _future = _load();
+        });
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    const statusOptions = [
+      'pending',
+      'confirmed',
+      'in_progress',
+      'completed',
+      'cancelled',
+    ];
+
     return Scaffold(
       appBar: AppBar(title: const Text('Kalender')),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _load(),
+      body: FutureBuilder<List<AppointmentRequest>>(
+        future: _future,
         builder: (context, snap) {
-          if (!snap.hasData)
+          if (!snap.hasData) {
             return const Center(child: CircularProgressIndicator());
+          }
           final items = snap.data!;
-          if (items.isEmpty) return const Center(child: Text('Keine Termine'));
-
-          DateTime? _parseStart(Map<String, dynamic> r) {
-            final dateStr = r['appointment_date']?.toString() ?? '';
-            final timeRaw = r['appointment_time']?.toString() ?? '00:00:00';
-            final timeStr = timeRaw.length == 5 ? '$timeRaw:00' : timeRaw;
-            return DateTime.tryParse('${dateStr}T$timeStr');
+          _currentItems = items;
+          if (items.isEmpty) {
+            return const Center(child: Text('Keine Termine'));
           }
 
-          DateTime? _parseEnd(Map<String, dynamic> r, DateTime? start) {
-            if (start == null) return null;
-            final durationMinutes =
-                (r['duration_minutes'] as num?)?.toInt() ?? 60;
-            return start.add(Duration(minutes: durationMinutes));
-          }
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, i) {
+              final request = items[i];
+              final start = request.appointmentDate.toLocal();
+              final end = DateTime(
+                start.year,
+                start.month,
+                start.day,
+                _parseHour(request.appointmentTime),
+                _parseMinute(request.appointmentTime),
+              ).add(Duration(minutes: request.durationMinutes));
+              final status = request.requestStatus;
+              final statusColor = _statusColor(status);
 
-          final statuses = items
-              .map((r) => (r['status'] ?? '').toString())
-              .where((s) => s.isNotEmpty)
-              .toSet()
-              .toList()
-            ..sort();
-
-          final firstStart = _parseStart(items.first);
-          final lastStart = _parseStart(items.last);
-          final firstLabel = firstStart != null
-              ? '${_df.format(firstStart.toLocal())} ${_tf.format(firstStart.toLocal())}'
-              : 'n/d';
-          final lastLabel = lastStart != null
-              ? '${_df.format(lastStart.toLocal())} ${_tf.format(lastStart.toLocal())}'
-              : 'n/d';
-
-          return Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              return Container(
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.shade100),
+                  borderRadius: BorderRadius.circular(16),
+                  color: Theme.of(context).colorScheme.surface.withOpacity(0.32),
+                  border: Border.all(
+                    color: Theme.of(context).dividerColor.withOpacity(0.28),
+                  ),
                 ),
-                child: Text(
-                  'DEBUG WORKSHOP CALENDAR\n'
-                  'recordsCount: ${items.length}\n'
-                  'statuses: ${statuses.join(', ')}\n'
-                  'firstAppointment: $firstLabel\n'
-                  'lastAppointment: $lastLabel\n'
-                  'source: appointment_requests',
-                  style: const TextStyle(fontSize: 13),
-                ),
-              ),
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, i) {
-                    final r = items[i];
-
-                    final start = _parseStart(r)?.toLocal();
-                    final end = _parseEnd(r, start);
-                    final type = (r['service_type'] ?? '').toString();
-
-                    if (start == null) {
-                      return const SizedBox.shrink();
-                    }
-
-                    final startLabel =
-                        '${_df.format(start)}  ${_tf.format(start)}';
-                    final endLabel = end != null ? _tf.format(end) : '';
-
-                    return Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.black26),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '$startLabel - $endLabel   •   $type',
-                              style: const TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.w600),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${_df.format(start)} • ${_tf.format(start)} - ${_tf.format(end)}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusColor.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            _statusLabel(status),
+                            style: TextStyle(
+                              color: statusColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      request.customerName?.trim().isNotEmpty == true
+                          ? request.customerName!.trim()
+                          : '-',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      [
+                        if ((request.licensePlate ?? '').isNotEmpty)
+                          request.licensePlate!,
+                        if ((request.customerPhone ?? '').isNotEmpty)
+                          request.customerPhone!,
+                        if ((request.customerEmail ?? '').isNotEmpty)
+                          request.customerEmail!,
+                      ].join(' • '),
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      request.damageType?.isNotEmpty == true
+                          ? request.damageType!
+                          : request.serviceType,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.70),
+                          ),
+                    ),
+                    const SizedBox(height: 14),
+                    DropdownButtonFormField<String>(
+                      value: statusOptions.contains(status) ? status : 'pending',
+                      decoration: InputDecoration(
+                        labelText: _copy(
+                          de: 'Status',
+                          it: 'Stato',
+                          en: 'Status',
+                          fr: 'Statut',
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).dividerColor.withOpacity(0.35),
+                          ),
+                        ),
                       ),
-                    );
-                  },
+                      items: statusOptions
+                          .map(
+                            (item) => DropdownMenuItem<String>(
+                              value: item,
+                              child: Text(_statusLabel(item)),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) async {
+                        if (value == null || value == request.requestStatus) {
+                          return;
+                        }
+                        await _updateStatus(request, value);
+                      },
+                    ),
+                  ],
                 ),
-              ),
-            ],
+              );
+            },
           );
         },
       ),
     );
+  }
+
+  int _parseHour(String raw) {
+    final normalized = raw.length == 5 ? '$raw:00' : raw;
+    final parts = normalized.split(':');
+    return parts.isNotEmpty ? int.tryParse(parts[0]) ?? 0 : 0;
+  }
+
+  int _parseMinute(String raw) {
+    final normalized = raw.length == 5 ? '$raw:00' : raw;
+    final parts = normalized.split(':');
+    return parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
   }
 }

@@ -228,6 +228,8 @@ class AppointmentRequestsService {
   }) async {
     final normalizedDate = appointmentDate ?? DateTime.now();
     final normalizedTime = appointmentTime ?? '08:00:00';
+    const normalizedRequestStatus = 'pending';
+    final normalizedStatusUpdatedAt = DateTime.now().toUtc().toIso8601String();
 
     if (!await _hasInternetConnection()) {
       return _queueOfflineRequest(
@@ -242,6 +244,8 @@ class AppointmentRequestsService {
         notes: notes,
         locale: locale,
         damageType: damageType,
+        requestStatus: normalizedRequestStatus,
+        statusUpdatedAt: normalizedStatusUpdatedAt,
         glassDamageTown: glassDamageTown,
         glassDamageDate: glassDamageDate,
         hailDamageTown: hailDamageTown,
@@ -271,6 +275,8 @@ class AppointmentRequestsService {
         notes: notes,
         locale: locale,
         damageType: damageType,
+        requestStatus: normalizedRequestStatus,
+        statusUpdatedAt: normalizedStatusUpdatedAt,
         glassDamageTown: glassDamageTown,
         glassDamageDate: glassDamageDate,
         hailDamageTown: hailDamageTown,
@@ -298,6 +304,8 @@ class AppointmentRequestsService {
           notes: notes,
           locale: locale,
           damageType: damageType,
+          requestStatus: normalizedRequestStatus,
+          statusUpdatedAt: normalizedStatusUpdatedAt,
           glassDamageTown: glassDamageTown,
           glassDamageDate: glassDamageDate,
           hailDamageTown: hailDamageTown,
@@ -400,16 +408,110 @@ class AppointmentRequestsService {
     return parsed;
   }
 
+  Future<AppointmentRequest?> fetchRequestById(String id) async {
+    if (_isLocalRequestId(id)) {
+      final queue = await _loadQueue();
+      for (final entry in queue) {
+        if (entry['id'] != id) continue;
+        final raw = entry['request'];
+        if (raw is! Map) return null;
+        return AppointmentRequest.fromMap(Map<String, dynamic>.from(raw));
+      }
+      return null;
+    }
+
+    try {
+      final res = await _client
+          .from('appointment_requests')
+          .select()
+          .eq('id', id)
+          .single();
+      return AppointmentRequest.fromMap(Map<String, dynamic>.from(res));
+    } catch (e) {
+      debugPrint('fetchRequestById failed for $id: $e');
+      return null;
+    }
+  }
+
+  Future<AppointmentRequest> updateRequestStatus({
+    required String requestId,
+    required String requestStatus,
+  }) async {
+    final normalizedStatus = requestStatus.trim().isEmpty
+        ? 'pending'
+        : requestStatus.trim();
+    final updatedAt = DateTime.now().toUtc().toIso8601String();
+
+    if (_isLocalRequestId(requestId)) {
+      final queue = await _loadQueue();
+      for (final entry in queue) {
+        if (entry['id'] != requestId) continue;
+        final raw = entry['request'];
+        if (raw is! Map) break;
+        final map = Map<String, dynamic>.from(raw)
+          ..['requestStatus'] = normalizedStatus
+          ..['statusUpdatedAt'] = updatedAt;
+        if (normalizedStatus == 'cancelled') {
+          map['status'] = 'cancelled';
+          map['cancelled_at'] = updatedAt;
+        }
+        entry['request'] = map;
+        await _saveQueue(queue);
+        return AppointmentRequest.fromMap(map);
+      }
+      throw StateError('Local request not found: $requestId');
+    }
+
+    final existing = await fetchRequestById(requestId);
+    if (existing == null) {
+      throw StateError('Request not found: $requestId');
+    }
+
+    final updatePayload = <String, dynamic>{
+      'status': normalizedStatus,
+      'notes': _buildStructuredNotes(
+        notes: existing.notes,
+        requestStatus: normalizedStatus,
+        statusUpdatedAt: updatedAt,
+        glassDamageTown: existing.glassDamageTown,
+        glassDamageDate: existing.glassDamageDate,
+        hailDamageTown: existing.hailDamageTown,
+        hailDamageDate: existing.hailDamageDate,
+        hailDamageTime: existing.hailDamageTime,
+        glassDamageVehicleDocumentImages:
+            existing.glassDamageVehicleDocumentImages,
+        glassDamageCloseGlassImages: existing.glassDamageCloseGlassImages,
+        glassDamageFrontVehicleImages: existing.glassDamageFrontVehicleImages,
+        hailDamageVehicleDocumentImages:
+            existing.hailDamageVehicleDocumentImages,
+        hailDamageDamageImages: existing.hailDamageDamageImages,
+        hailDamageOverviewImages: existing.hailDamageOverviewImages,
+        hailDamageExtraImages: existing.hailDamageExtraImages,
+      ),
+    };
+    if (normalizedStatus == 'cancelled') {
+      updatePayload['cancelled_at'] = updatedAt;
+    }
+
+    final res = await _client
+        .from('appointment_requests')
+        .update(updatePayload)
+        .eq('id', requestId)
+        .select()
+        .single();
+    return AppointmentRequest.fromMap(Map<String, dynamic>.from(res));
+  }
+
   Future<void> cancelRequest(String id) async {
     if (_isLocalRequestId(id)) {
       await _removeQueueEntry(id);
       return;
     }
 
-    await _client.from('appointment_requests').update({
-      'status': 'cancelled',
-      'cancelled_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', id);
+    await updateRequestStatus(
+      requestId: id,
+      requestStatus: 'cancelled',
+    );
   }
 
   Future<void> syncPendingRequests() async {
@@ -441,6 +543,9 @@ class AppointmentRequestsService {
           notes: localRequest.notes,
           locale: localRequest.locale,
           damageType: localRequest.damageType,
+          requestStatus: localRequest.requestStatus,
+          statusUpdatedAt:
+              localRequest.statusUpdatedAt ?? DateTime.now().toUtc().toIso8601String(),
           glassDamageTown: localRequest.glassDamageTown,
           glassDamageDate: localRequest.glassDamageDate,
           hailDamageTown: localRequest.hailDamageTown,
@@ -505,6 +610,8 @@ class AppointmentRequestsService {
     String? notes,
     String? locale,
     String? damageType,
+    required String requestStatus,
+    required String statusUpdatedAt,
     String? glassDamageTown,
     String? glassDamageDate,
     String? hailDamageTown,
@@ -527,8 +634,11 @@ class AppointmentRequestsService {
       'phone': phone,
       'email': email,
       'license_plate': licensePlate,
+      'status': requestStatus,
       'notes': _buildStructuredNotes(
         notes: notes,
+        requestStatus: requestStatus,
+        statusUpdatedAt: statusUpdatedAt,
         glassDamageTown: glassDamageTown,
         glassDamageDate: glassDamageDate,
         hailDamageTown: hailDamageTown,
@@ -571,6 +681,8 @@ class AppointmentRequestsService {
         .update({
           'notes': _buildStructuredNotes(
             notes: existing.notes,
+            requestStatus: existing.requestStatus,
+            statusUpdatedAt: existing.statusUpdatedAt,
             glassDamageTown: existing.glassDamageTown,
             glassDamageDate: existing.glassDamageDate,
             hailDamageTown: existing.hailDamageTown,
@@ -596,6 +708,8 @@ class AppointmentRequestsService {
 
   String? _buildStructuredNotes({
     String? notes,
+    String? requestStatus,
+    String? statusUpdatedAt,
     String? glassDamageTown,
     String? glassDamageDate,
     String? hailDamageTown,
@@ -610,6 +724,8 @@ class AppointmentRequestsService {
     List<String> hailDamageExtraImages = const [],
   }) {
     final trimmedNotes = notes?.trim();
+    final trimmedRequestStatus = requestStatus?.trim();
+    final trimmedStatusUpdatedAt = statusUpdatedAt?.trim();
     final trimmedGlassTown = glassDamageTown?.trim();
     final trimmedGlassDate = glassDamageDate?.trim();
     final trimmedHailTown = hailDamageTown?.trim();
@@ -658,6 +774,8 @@ class AppointmentRequestsService {
 
     final hasStructuredData = (trimmedGlassTown?.isNotEmpty ?? false) ||
         (trimmedGlassDate?.isNotEmpty ?? false) ||
+        (trimmedRequestStatus?.isNotEmpty ?? false) ||
+        (trimmedStatusUpdatedAt?.isNotEmpty ?? false) ||
         (trimmedHailTown?.isNotEmpty ?? false) ||
         (trimmedHailDate?.isNotEmpty ?? false) ||
         (trimmedHailTime?.isNotEmpty ?? false) ||
@@ -677,6 +795,10 @@ class AppointmentRequestsService {
 
     return jsonEncode({
       if (trimmedNotes?.isNotEmpty ?? false) 'text': trimmedNotes,
+      if (trimmedRequestStatus?.isNotEmpty ?? false)
+        'requestStatus': trimmedRequestStatus,
+      if (trimmedStatusUpdatedAt?.isNotEmpty ?? false)
+        'statusUpdatedAt': trimmedStatusUpdatedAt,
       if (trimmedGlassTown?.isNotEmpty ?? false)
         'glassDamageTown': trimmedGlassTown,
       if (trimmedGlassDate?.isNotEmpty ?? false)
@@ -861,6 +983,8 @@ class AppointmentRequestsService {
     String? notes,
     String? locale,
     String? damageType,
+    required String requestStatus,
+    required String statusUpdatedAt,
     String? glassDamageTown,
     String? glassDamageDate,
     String? hailDamageTown,
@@ -909,6 +1033,8 @@ class AppointmentRequestsService {
       customerEmail: email,
       licensePlate: licensePlate,
       status: 'pending_sync',
+      requestStatus: requestStatus,
+      statusUpdatedAt: statusUpdatedAt,
       notes: notes,
       damageType: damageType,
       locale: locale,

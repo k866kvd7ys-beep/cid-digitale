@@ -14,6 +14,8 @@ class AppointmentRequest {
     this.customerEmail,
     this.licensePlate,
     required this.status,
+    this.requestStatus = 'pending',
+    this.statusUpdatedAt,
     this.notes,
     this.damageType,
     this.locale,
@@ -45,6 +47,8 @@ class AppointmentRequest {
   final String? customerEmail;
   final String? licensePlate;
   final String status;
+  final String requestStatus;
+  final String? statusUpdatedAt;
   final String? notes;
   final String? damageType;
   final String? locale;
@@ -161,6 +165,19 @@ class AppointmentRequest {
             hailDamageExtraImages,
           ]);
     final extractedNotes = structuredNotes['text']?.toString();
+    final resolvedRequestStatus =
+        (map['request_status'] ??
+                    map['requestStatus'] ??
+                    structuredNotes['requestStatus'] ??
+                    map['status'])
+                ?.toString()
+                .trim() ??
+            'pending';
+    final resolvedStatusUpdatedAt =
+        (map['status_updated_at'] ??
+                map['statusUpdatedAt'] ??
+                structuredNotes['statusUpdatedAt'])
+            ?.toString();
 
     return AppointmentRequest(
       id: (map['id'] ?? '').toString(),
@@ -182,6 +199,12 @@ class AppointmentRequest {
           map['customerEmail']) as String?,
       licensePlate: (map['license_plate'] ?? map['licensePlate']) as String?,
       status: (map['status'] ?? 'pending').toString(),
+      requestStatus:
+          resolvedRequestStatus.isEmpty ? 'pending' : resolvedRequestStatus,
+      statusUpdatedAt:
+          (resolvedStatusUpdatedAt?.trim().isEmpty ?? true)
+              ? null
+              : resolvedStatusUpdatedAt!.trim(),
       notes: extractedNotes ?? (structuredNotes.isEmpty ? map['notes'] as String? : null),
       damageType: (map['damage_type'] ?? map['damageType'])?.toString(),
       locale: (map['locale'] ?? map['languageCode'])?.toString(),
@@ -231,6 +254,8 @@ class AppointmentRequest {
       'email': customerEmail,
       'license_plate': licensePlate,
       'status': status,
+      'requestStatus': requestStatus,
+      'statusUpdatedAt': statusUpdatedAt,
       'notes': notes,
       'damage_type': damageType,
       'locale': locale,
