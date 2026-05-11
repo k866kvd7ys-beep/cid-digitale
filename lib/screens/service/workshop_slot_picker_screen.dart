@@ -81,8 +81,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   final List<_GlassDamageImageDraft> _glassVehicleDocumentImages = [];
   final List<_GlassDamageImageDraft> _glassCloseGlassImages = [];
   final List<_GlassDamageImageDraft> _glassFrontVehicleImages = [];
+  final List<_GlassDamageImageDraft> _hailDamageImages = [];
+  final List<_GlassDamageImageDraft> _hailOverviewImages = [];
 
   bool get _isGlassDamage => widget.serviceType == 'damage_glass';
+  bool get _isHailDamage => widget.serviceType == 'damage_hail';
+  bool get _usesDamageDetailsForm => _isGlassDamage || _isHailDamage;
 
   bool _isTaken(DateTime slot) => false;
 
@@ -213,7 +217,6 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
           fr: 'Photo frontale du vehicule',
         );
       case AppointmentRequestImageCategory.closeGlass:
-      default:
         return _copy(
           context: context,
           de: 'Nahaufnahme Glas',
@@ -221,6 +224,24 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
           en: 'Close-up glass photo',
           fr: 'Photo rapprochee du verre',
         );
+      case AppointmentRequestImageCategory.hailDamage:
+        return _copy(
+          context: context,
+          de: 'Foto der Hagelschaeden',
+          it: 'Foto dei danni da grandine',
+          en: 'Photo of hail damage',
+          fr: 'Photo des degats de grele',
+        );
+      case AppointmentRequestImageCategory.hailOverview:
+        return _copy(
+          context: context,
+          de: 'Uebersichtsfoto des Fahrzeugs',
+          it: 'Foto panoramica del veicolo',
+          en: 'Overview photo of the vehicle',
+          fr: 'Photo generale du vehicule',
+        );
+      default:
+        return '';
     }
   }
 
@@ -243,7 +264,6 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
           fr: 'Vue complete du vehicule',
         );
       case AppointmentRequestImageCategory.closeGlass:
-      default:
         return _copy(
           context: context,
           de: 'Detail des Schadens',
@@ -251,15 +271,20 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
           en: 'Damage detail',
           fr: 'Detail du dommage',
         );
+      case AppointmentRequestImageCategory.hailDamage:
+      case AppointmentRequestImageCategory.hailOverview:
+        return '';
+      default:
+        return '';
     }
   }
 
   String _requiredPhotosTitle(BuildContext context) => _copy(
         context: context,
-        de: 'Benötigte Fotos',
-        it: 'Foto richieste',
-        en: 'Required photos',
-        fr: 'Photos requises',
+        de: _isHailDamage ? 'Fotos Hagelschaden' : 'Benötigte Fotos',
+        it: _isHailDamage ? 'Foto danno grandine' : 'Foto richieste',
+        en: _isHailDamage ? 'Hail damage photos' : 'Required photos',
+        fr: _isHailDamage ? 'Photos degats de grele' : 'Photos requises',
       );
 
   String _requiredPhotosSubtitle(BuildContext context) => _copy(
@@ -568,7 +593,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   Widget _licensePlateCard(BuildContext context) {
     final theme = Theme.of(context);
-    final showError = _showValidationErrors && _isGlassDamage && _isLicensePlateMissing;
+    final showError =
+        _showValidationErrors && _usesDamageDetailsForm && _isLicensePlateMissing;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -776,6 +802,10 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         return _glassVehicleDocumentImages;
       case AppointmentRequestImageCategory.frontVehicle:
         return _glassFrontVehicleImages;
+      case AppointmentRequestImageCategory.hailDamage:
+        return _hailDamageImages;
+      case AppointmentRequestImageCategory.hailOverview:
+        return _hailOverviewImages;
       case AppointmentRequestImageCategory.closeGlass:
       default:
         return _glassCloseGlassImages;
@@ -788,6 +818,10 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         return Icons.description_outlined;
       case AppointmentRequestImageCategory.frontVehicle:
         return Icons.directions_car_outlined;
+      case AppointmentRequestImageCategory.hailDamage:
+        return Icons.broken_image_outlined;
+      case AppointmentRequestImageCategory.hailOverview:
+        return Icons.directions_car_filled_outlined;
       case AppointmentRequestImageCategory.closeGlass:
       default:
         return Icons.broken_image_outlined;
@@ -814,6 +848,10 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   bool get _isFrontVehiclePhotoMissing => _glassFrontVehicleImages.isEmpty;
 
+  bool get _isHailDamagePhotoMissing => _hailDamageImages.isEmpty;
+
+  bool get _isHailOverviewPhotoMissing => _hailOverviewImages.isEmpty;
+
   bool get _isTownMissing => _glassTownCtrl.text.trim().isEmpty;
 
   bool get _isDamageDateMissing => _glassDamageDate == null;
@@ -831,10 +869,21 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       _isDamageDateMissing ||
       _isAppointmentSelectionMissing;
 
+  bool get _hasHailValidationErrors =>
+      _isLicensePlateMissing ||
+      _isNameMissing ||
+      _isContactMissing ||
+      _isHailDamagePhotoMissing ||
+      _isHailOverviewPhotoMissing ||
+      _isTownMissing ||
+      _isDamageDateMissing ||
+      _isAppointmentSelectionMissing;
+
   bool get _canSubmitRequest {
     if (_selectedSlot == null) return false;
-    if (!_isGlassDamage) return _nameCtrl.text.trim().isNotEmpty;
-    return !_hasGlassValidationErrors;
+    if (_isGlassDamage) return !_hasGlassValidationErrors;
+    if (_isHailDamage) return !_hasHailValidationErrors;
+    return _nameCtrl.text.trim().isNotEmpty;
   }
 
   String _mimeTypeForName(String value) {
@@ -847,7 +896,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   Future<String> _persistPickedFile(XFile file) async {
     final dir = await getApplicationDocumentsDirectory();
-    final targetDir = Directory('${dir.path}/glass_damage_uploads');
+    final folderName = _isHailDamage ? 'hail_damage_uploads' : 'glass_damage_uploads';
+    final targetDir = Directory('${dir.path}/$folderName');
     if (!await targetDir.exists()) {
       await targetDir.create(recursive: true);
     }
@@ -895,7 +945,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     late final _GlassDamageImageDraft newItem;
     if (kIsWeb) {
       final bytes = await file.readAsBytes();
-      final cacheKey = 'glass_${DateTime.now().millisecondsSinceEpoch}_$category';
+      final prefix = _isHailDamage ? 'hail' : 'glass';
+      final cacheKey = '${prefix}_${DateTime.now().millisecondsSinceEpoch}_$category';
       await LocalImageCache.saveImageLocally(cacheKey, bytes);
       newItem = _GlassDamageImageDraft(
         category: category,
@@ -1052,6 +1103,23 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     );
   }
 
+  List<String> _activePhotoCategories() {
+    if (_isGlassDamage) {
+      return const [
+        AppointmentRequestImageCategory.vehicleDocument,
+        AppointmentRequestImageCategory.closeGlass,
+        AppointmentRequestImageCategory.frontVehicle,
+      ];
+    }
+    if (_isHailDamage) {
+      return const [
+        AppointmentRequestImageCategory.hailDamage,
+        AppointmentRequestImageCategory.hailOverview,
+      ];
+    }
+    return const [];
+  }
+
   Widget _buildGlassImageThumbnail(
     BuildContext context, {
     required _GlassDamageImageDraft image,
@@ -1081,14 +1149,19 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final theme = Theme.of(context);
     final image = _primaryImageForCategory(category);
     final hasImage = image != null;
+    final subtitle = _glassSectionSubtitle(context, category);
     final hasError = _showValidationErrors &&
-        _isGlassDamage &&
+        _usesDamageDetailsForm &&
         ((category == AppointmentRequestImageCategory.vehicleDocument &&
                 _isVehicleDocumentPhotoMissing) ||
             (category == AppointmentRequestImageCategory.closeGlass &&
                 _isCloseGlassPhotoMissing) ||
             (category == AppointmentRequestImageCategory.frontVehicle &&
-                _isFrontVehiclePhotoMissing));
+                _isFrontVehiclePhotoMissing) ||
+            (category == AppointmentRequestImageCategory.hailDamage &&
+                _isHailDamagePhotoMissing) ||
+            (category == AppointmentRequestImageCategory.hailOverview &&
+                _isHailOverviewPhotoMissing));
 
     return Column(
       children: [
@@ -1139,14 +1212,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _glassSectionSubtitle(context, category),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color:
-                                theme.colorScheme.onSurface.withOpacity(0.68),
+                        if (subtitle.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color:
+                                  theme.colorScheme.onSurface.withOpacity(0.68),
+                            ),
                           ),
-                        ),
+                        ],
                         if (hasError) ...[
                           const SizedBox(height: 4),
                           Text(
@@ -1223,6 +1298,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   Widget _buildGlassDamageSection(BuildContext context) {
     final theme = Theme.of(context);
     final localeTag = Localizations.localeOf(context).toLanguageTag();
+    final categories = _activePhotoCategories();
     final dateLabel = _glassDamageDate == null
         ? _pickDateButton(context)
         : DateFormat.yMMMMd(localeTag).format(_glassDamageDate!);
@@ -1270,21 +1346,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                _buildGlassPhotoRow(
-                  context,
-                  category: AppointmentRequestImageCategory.vehicleDocument,
-                  showDivider: true,
-                ),
-                _buildGlassPhotoRow(
-                  context,
-                  category: AppointmentRequestImageCategory.closeGlass,
-                  showDivider: true,
-                ),
-                _buildGlassPhotoRow(
-                  context,
-                  category: AppointmentRequestImageCategory.frontVehicle,
-                  showDivider: false,
-                ),
+                for (var i = 0; i < categories.length; i++)
+                  _buildGlassPhotoRow(
+                    context,
+                    category: categories[i],
+                    showDivider: i != categories.length - 1,
+                  ),
               ],
             ),
           ),
@@ -1356,7 +1423,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   Widget _buildCalendarGuideCard(BuildContext context) {
     final theme = Theme.of(context);
     final hasError =
-        _showValidationErrors && _isGlassDamage && _isAppointmentSelectionMissing;
+        _showValidationErrors &&
+        _usesDamageDetailsForm &&
+        _isAppointmentSelectionMissing;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -1431,7 +1500,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final name = _nameCtrl.text.trim();
     final hasValidationErrors = _isGlassDamage
         ? _hasGlassValidationErrors
-        : name.isEmpty || _selectedSlot == null;
+        : _isHailDamage
+            ? _hasHailValidationErrors
+            : name.isEmpty || _selectedSlot == null;
 
     if (hasValidationErrors) {
       setState(() {
@@ -1478,6 +1549,10 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         glassDamageDate: _isGlassDamage && _glassDamageDate != null
             ? _glassDamageDate!.toUtc().toIso8601String()
             : null,
+        hailDamageTown: _isHailDamage ? _glassTownCtrl.text.trim() : null,
+        hailDamageDate: _isHailDamage && _glassDamageDate != null
+            ? _glassDamageDate!.toUtc().toIso8601String()
+            : null,
         glassDamageVehicleDocumentImages: _isGlassDamage
             ? _glassVehicleDocumentImages.map((e) => e.toInput()).toList()
             : const [],
@@ -1486,6 +1561,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             : const [],
         glassDamageFrontVehicleImages: _isGlassDamage
             ? _glassFrontVehicleImages.map((e) => e.toInput()).toList()
+            : const [],
+        hailDamageImages: _isHailDamage
+            ? _hailDamageImages.map((e) => e.toInput()).toList()
+            : const [],
+        hailDamageOverviewImages: _isHailDamage
+            ? _hailOverviewImages.map((e) => e.toInput()).toList()
             : const [],
       );
       if (!mounted) return;
@@ -1521,11 +1602,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final tf = DateFormat('HH:mm');
     final slots =
         _buildSlots(_selectedDay).where((slot) => !_isBooked(slot)).toList();
-    final showNameError = _showValidationErrors && _isGlassDamage && _isNameMissing;
+    final usesDamageValidation = _usesDamageDetailsForm;
+    final showNameError = _showValidationErrors && usesDamageValidation && _isNameMissing;
     final showContactError =
-        _showValidationErrors && _isGlassDamage && _isContactMissing;
+        _showValidationErrors && usesDamageValidation && _isContactMissing;
     final showAppointmentError =
-        _showValidationErrors && _isGlassDamage && _isAppointmentSelectionMissing;
+        _showValidationErrors && usesDamageValidation && _isAppointmentSelectionMissing;
     final canTapSubmit = !_loading && !_submitting;
     final submitReady = _canSubmitRequest;
 
@@ -1602,7 +1684,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 ],
               ],
             ),
-            if (_isGlassDamage) ...[
+            if (_usesDamageDetailsForm) ...[
               const SizedBox(height: 16),
               _buildGlassDamageSection(context),
             ],

@@ -17,6 +17,8 @@ class AppointmentRequestImageCategory {
   static const vehicleDocument = 'document';
   static const closeGlass = 'close_glass';
   static const frontVehicle = 'front_vehicle';
+  static const hailDamage = 'hail_damage';
+  static const hailOverview = 'hail_overview';
 }
 
 class AppointmentRequestImageInput {
@@ -51,21 +53,27 @@ class AppointmentRequestImageInput {
   }
 }
 
-class _GlassDamageImageGroups {
-  const _GlassDamageImageGroups({
+class _DamageRequestImageGroups {
+  const _DamageRequestImageGroups({
     this.vehicleDocumentImages = const [],
     this.closeGlassImages = const [],
     this.frontVehicleImages = const [],
+    this.hailDamageImages = const [],
+    this.hailOverviewImages = const [],
   });
 
   final List<String> vehicleDocumentImages;
   final List<String> closeGlassImages;
   final List<String> frontVehicleImages;
+  final List<String> hailDamageImages;
+  final List<String> hailOverviewImages;
 
   List<String> get allImages => _mergeUniqueUrls([
         vehicleDocumentImages,
         closeGlassImages,
         frontVehicleImages,
+        hailDamageImages,
+        hailOverviewImages,
       ]);
 }
 
@@ -196,10 +204,14 @@ class AppointmentRequestsService {
     String? damageType,
     String? glassDamageTown,
     String? glassDamageDate,
+    String? hailDamageTown,
+    String? hailDamageDate,
     List<AppointmentRequestImageInput> glassDamageVehicleDocumentImages =
         const [],
     List<AppointmentRequestImageInput> glassDamageCloseGlassImages = const [],
     List<AppointmentRequestImageInput> glassDamageFrontVehicleImages = const [],
+    List<AppointmentRequestImageInput> hailDamageImages = const [],
+    List<AppointmentRequestImageInput> hailDamageOverviewImages = const [],
   }) async {
     final normalizedDate = appointmentDate ?? DateTime.now();
     final normalizedTime = appointmentTime ?? '08:00:00';
@@ -219,9 +231,13 @@ class AppointmentRequestsService {
         damageType: damageType,
         glassDamageTown: glassDamageTown,
         glassDamageDate: glassDamageDate,
+        hailDamageTown: hailDamageTown,
+        hailDamageDate: hailDamageDate,
         glassDamageVehicleDocumentImages: glassDamageVehicleDocumentImages,
         glassDamageCloseGlassImages: glassDamageCloseGlassImages,
         glassDamageFrontVehicleImages: glassDamageFrontVehicleImages,
+        hailDamageImages: hailDamageImages,
+        hailDamageOverviewImages: hailDamageOverviewImages,
       );
     }
 
@@ -241,9 +257,13 @@ class AppointmentRequestsService {
         damageType: damageType,
         glassDamageTown: glassDamageTown,
         glassDamageDate: glassDamageDate,
+        hailDamageTown: hailDamageTown,
+        hailDamageDate: hailDamageDate,
         glassDamageVehicleDocumentImages: const [],
         glassDamageCloseGlassImages: const [],
         glassDamageFrontVehicleImages: const [],
+        hailDamageImages: const [],
+        hailDamageOverviewImages: const [],
       );
     } catch (e) {
       if (await _shouldQueueOffline(e)) {
@@ -261,9 +281,13 @@ class AppointmentRequestsService {
           damageType: damageType,
           glassDamageTown: glassDamageTown,
           glassDamageDate: glassDamageDate,
+          hailDamageTown: hailDamageTown,
+          hailDamageDate: hailDamageDate,
           glassDamageVehicleDocumentImages: glassDamageVehicleDocumentImages,
           glassDamageCloseGlassImages: glassDamageCloseGlassImages,
           glassDamageFrontVehicleImages: glassDamageFrontVehicleImages,
+          hailDamageImages: hailDamageImages,
+          hailDamageOverviewImages: hailDamageOverviewImages,
         );
       }
       rethrow;
@@ -271,14 +295,18 @@ class AppointmentRequestsService {
 
     if (glassDamageVehicleDocumentImages.isNotEmpty ||
         glassDamageCloseGlassImages.isNotEmpty ||
-        glassDamageFrontVehicleImages.isNotEmpty) {
+        glassDamageFrontVehicleImages.isNotEmpty ||
+        hailDamageImages.isNotEmpty ||
+        hailDamageOverviewImages.isNotEmpty) {
       try {
-        final uploadedImages = await _uploadGlassDamageImages(
+        final uploadedImages = await _uploadDamageImages(
           record.id,
           [
             ...glassDamageVehicleDocumentImages,
             ...glassDamageCloseGlassImages,
             ...glassDamageFrontVehicleImages,
+            ...hailDamageImages,
+            ...hailDamageOverviewImages,
           ],
         );
         record = await _updateRequestMetadata(
@@ -288,9 +316,11 @@ class AppointmentRequestsService {
               uploadedImages.vehicleDocumentImages,
           glassDamageCloseGlassImages: uploadedImages.closeGlassImages,
           glassDamageFrontVehicleImages: uploadedImages.frontVehicleImages,
+          hailDamageImages: uploadedImages.hailDamageImages,
+          hailDamageOverviewImages: uploadedImages.hailOverviewImages,
         );
       } catch (e) {
-        debugPrint('Glass damage image upload failed: $e');
+        debugPrint('Damage image upload failed: $e');
       }
     }
 
@@ -384,14 +414,18 @@ class AppointmentRequestsService {
           damageType: localRequest.damageType,
           glassDamageTown: localRequest.glassDamageTown,
           glassDamageDate: localRequest.glassDamageDate,
+          hailDamageTown: localRequest.hailDamageTown,
+          hailDamageDate: localRequest.hailDamageDate,
           glassDamageVehicleDocumentImages: const [],
           glassDamageCloseGlassImages: const [],
           glassDamageFrontVehicleImages: const [],
+          hailDamageImages: const [],
+          hailDamageOverviewImages: const [],
         );
 
         if (imageDescriptors.isNotEmpty) {
           try {
-            final uploadedImages = await _uploadGlassDamageImagesFromQueue(
+            final uploadedImages = await _uploadDamageImagesFromQueue(
               record.id,
               imageDescriptors,
             );
@@ -402,6 +436,8 @@ class AppointmentRequestsService {
                   uploadedImages.vehicleDocumentImages,
               glassDamageCloseGlassImages: uploadedImages.closeGlassImages,
               glassDamageFrontVehicleImages: uploadedImages.frontVehicleImages,
+              hailDamageImages: uploadedImages.hailDamageImages,
+              hailDamageOverviewImages: uploadedImages.hailOverviewImages,
             );
           } catch (e) {
             debugPrint('syncPendingRequests image upload failed: $e');
@@ -436,9 +472,13 @@ class AppointmentRequestsService {
     String? damageType,
     String? glassDamageTown,
     String? glassDamageDate,
+    String? hailDamageTown,
+    String? hailDamageDate,
     required List<String> glassDamageVehicleDocumentImages,
     required List<String> glassDamageCloseGlassImages,
     required List<String> glassDamageFrontVehicleImages,
+    required List<String> hailDamageImages,
+    required List<String> hailDamageOverviewImages,
   }) async {
     final payload = <String, dynamic>{
       'service_type': serviceType,
@@ -453,9 +493,13 @@ class AppointmentRequestsService {
         notes: notes,
         glassDamageTown: glassDamageTown,
         glassDamageDate: glassDamageDate,
+        hailDamageTown: hailDamageTown,
+        hailDamageDate: hailDamageDate,
         glassDamageVehicleDocumentImages: glassDamageVehicleDocumentImages,
         glassDamageCloseGlassImages: glassDamageCloseGlassImages,
         glassDamageFrontVehicleImages: glassDamageFrontVehicleImages,
+        hailDamageImages: hailDamageImages,
+        hailDamageOverviewImages: hailDamageOverviewImages,
       ),
       'locale': locale,
       'damage_type': damageType,
@@ -476,6 +520,8 @@ class AppointmentRequestsService {
     required List<String> glassDamageVehicleDocumentImages,
     required List<String> glassDamageCloseGlassImages,
     required List<String> glassDamageFrontVehicleImages,
+    required List<String> hailDamageImages,
+    required List<String> hailDamageOverviewImages,
   }) async {
     final res = await _client
         .from('appointment_requests')
@@ -484,10 +530,14 @@ class AppointmentRequestsService {
             notes: existing.notes,
             glassDamageTown: existing.glassDamageTown,
             glassDamageDate: existing.glassDamageDate,
+            hailDamageTown: existing.hailDamageTown,
+            hailDamageDate: existing.hailDamageDate,
             glassDamageVehicleDocumentImages:
                 glassDamageVehicleDocumentImages,
             glassDamageCloseGlassImages: glassDamageCloseGlassImages,
             glassDamageFrontVehicleImages: glassDamageFrontVehicleImages,
+            hailDamageImages: hailDamageImages,
+            hailDamageOverviewImages: hailDamageOverviewImages,
           ),
         })
         .eq('id', requestId)
@@ -501,13 +551,19 @@ class AppointmentRequestsService {
     String? notes,
     String? glassDamageTown,
     String? glassDamageDate,
+    String? hailDamageTown,
+    String? hailDamageDate,
     List<String> glassDamageVehicleDocumentImages = const [],
     List<String> glassDamageCloseGlassImages = const [],
     List<String> glassDamageFrontVehicleImages = const [],
+    List<String> hailDamageImages = const [],
+    List<String> hailDamageOverviewImages = const [],
   }) {
     final trimmedNotes = notes?.trim();
-    final trimmedTown = glassDamageTown?.trim();
-    final trimmedDate = glassDamageDate?.trim();
+    final trimmedGlassTown = glassDamageTown?.trim();
+    final trimmedGlassDate = glassDamageDate?.trim();
+    final trimmedHailTown = hailDamageTown?.trim();
+    final trimmedHailDate = hailDamageDate?.trim();
     final cleanedDocumentImages = glassDamageVehicleDocumentImages
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
@@ -520,18 +576,30 @@ class AppointmentRequestsService {
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
-    final cleanedImages = _mergeUniqueUrls([
+    final cleanedHailDamageImages = hailDamageImages
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final cleanedHailOverviewImages = hailDamageOverviewImages
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final cleanedGlassImages = _mergeUniqueUrls([
       cleanedDocumentImages,
       cleanedCloseGlassImages,
       cleanedFrontVehicleImages,
     ]);
 
-    final hasStructuredData = (trimmedTown?.isNotEmpty ?? false) ||
-        (trimmedDate?.isNotEmpty ?? false) ||
+    final hasStructuredData = (trimmedGlassTown?.isNotEmpty ?? false) ||
+        (trimmedGlassDate?.isNotEmpty ?? false) ||
+        (trimmedHailTown?.isNotEmpty ?? false) ||
+        (trimmedHailDate?.isNotEmpty ?? false) ||
         cleanedDocumentImages.isNotEmpty ||
         cleanedCloseGlassImages.isNotEmpty ||
         cleanedFrontVehicleImages.isNotEmpty ||
-        cleanedImages.isNotEmpty;
+        cleanedHailDamageImages.isNotEmpty ||
+        cleanedHailOverviewImages.isNotEmpty ||
+        cleanedGlassImages.isNotEmpty;
 
     if (!hasStructuredData) {
       return trimmedNotes?.isEmpty ?? true ? null : trimmedNotes;
@@ -539,19 +607,37 @@ class AppointmentRequestsService {
 
     return jsonEncode({
       if (trimmedNotes?.isNotEmpty ?? false) 'text': trimmedNotes,
-      if (trimmedTown?.isNotEmpty ?? false) 'glassDamageTown': trimmedTown,
-      if (trimmedDate?.isNotEmpty ?? false) 'glassDamageDate': trimmedDate,
+      if (trimmedGlassTown?.isNotEmpty ?? false)
+        'glassDamageTown': trimmedGlassTown,
+      if (trimmedGlassDate?.isNotEmpty ?? false)
+        'glassDamageDate': trimmedGlassDate,
       if (cleanedDocumentImages.isNotEmpty)
         'glassDamageVehicleDocumentImages': cleanedDocumentImages,
       if (cleanedCloseGlassImages.isNotEmpty)
         'glassDamageCloseGlassImages': cleanedCloseGlassImages,
       if (cleanedFrontVehicleImages.isNotEmpty)
         'glassDamageFrontVehicleImages': cleanedFrontVehicleImages,
-      if (cleanedImages.isNotEmpty) 'glassDamageImages': cleanedImages,
+      if (trimmedHailTown?.isNotEmpty ?? false) 'hailDamageTown': trimmedHailTown,
+      if (trimmedHailDate?.isNotEmpty ?? false) 'hailDamageDate': trimmedHailDate,
+      if (cleanedHailDamageImages.isNotEmpty)
+        'hailDamageImages': cleanedHailDamageImages,
+      if (cleanedHailOverviewImages.isNotEmpty)
+        'hailDamageOverviewImages': cleanedHailOverviewImages,
+      if (cleanedGlassImages.isNotEmpty) 'glassDamageImages': cleanedGlassImages,
     });
   }
 
-  String _storagePathForGlassImageCategory(String category) {
+  String _storageRootForDamageImageCategory(String category) {
+    switch (category) {
+      case AppointmentRequestImageCategory.hailDamage:
+      case AppointmentRequestImageCategory.hailOverview:
+        return 'hail_damage';
+      default:
+        return 'glass_damage';
+    }
+  }
+
+  String _storagePathForDamageImageCategory(String category) {
     switch (category) {
       case AppointmentRequestImageCategory.vehicleDocument:
         return 'document';
@@ -559,25 +645,32 @@ class AppointmentRequestsService {
         return 'close_glass';
       case AppointmentRequestImageCategory.frontVehicle:
         return 'front_vehicle';
+      case AppointmentRequestImageCategory.hailDamage:
+        return 'damage';
+      case AppointmentRequestImageCategory.hailOverview:
+        return 'overview';
       default:
         return '';
     }
   }
 
-  Future<_GlassDamageImageGroups> _uploadGlassDamageImages(
+  Future<_DamageRequestImageGroups> _uploadDamageImages(
     String requestId,
     List<AppointmentRequestImageInput> images,
   ) async {
     final vehicleDocumentImages = <String>[];
     final closeGlassImages = <String>[];
     final frontVehicleImages = <String>[];
+    final hailDamageImages = <String>[];
+    final hailOverviewImages = <String>[];
     for (final image in images) {
       final bytes = await _resolveInputBytes(image);
       if (bytes == null || bytes.isEmpty) continue;
       final safeName = image.fileName.replaceAll(' ', '_');
-      final categoryPath = _storagePathForGlassImageCategory(image.category);
+      final rootPath = _storageRootForDamageImageCategory(image.category);
+      final categoryPath = _storagePathForDamageImageCategory(image.category);
       final separator = categoryPath.isEmpty ? '' : '$categoryPath/';
-      final path = 'appointment_requests/$requestId/glass_damage/'
+      final path = 'appointment_requests/$requestId/$rootPath/'
           '$separator${DateTime.now().millisecondsSinceEpoch}_$safeName';
       await _client.storage.from(_storageBucket).uploadBinary(
             path,
@@ -598,19 +691,27 @@ class AppointmentRequestsService {
         case AppointmentRequestImageCategory.frontVehicle:
           frontVehicleImages.add(publicUrl);
           break;
+        case AppointmentRequestImageCategory.hailDamage:
+          hailDamageImages.add(publicUrl);
+          break;
+        case AppointmentRequestImageCategory.hailOverview:
+          hailOverviewImages.add(publicUrl);
+          break;
         default:
           closeGlassImages.add(publicUrl);
           break;
       }
     }
-    return _GlassDamageImageGroups(
+    return _DamageRequestImageGroups(
       vehicleDocumentImages: vehicleDocumentImages,
       closeGlassImages: closeGlassImages,
       frontVehicleImages: frontVehicleImages,
+      hailDamageImages: hailDamageImages,
+      hailOverviewImages: hailOverviewImages,
     );
   }
 
-  Future<_GlassDamageImageGroups> _uploadGlassDamageImagesFromQueue(
+  Future<_DamageRequestImageGroups> _uploadDamageImagesFromQueue(
     String requestId,
     List<Map<String, dynamic>> descriptors,
   ) async {
@@ -629,7 +730,7 @@ class AppointmentRequestsService {
             : null,
       );
     }).toList();
-    return _uploadGlassDamageImages(requestId, images);
+    return _uploadDamageImages(requestId, images);
   }
 
   Future<Uint8List?> _resolveInputBytes(AppointmentRequestImageInput image) async {
@@ -667,13 +768,24 @@ class AppointmentRequestsService {
     String? damageType,
     String? glassDamageTown,
     String? glassDamageDate,
+    String? hailDamageTown,
+    String? hailDamageDate,
     required List<AppointmentRequestImageInput> glassDamageVehicleDocumentImages,
     required List<AppointmentRequestImageInput> glassDamageCloseGlassImages,
     required List<AppointmentRequestImageInput> glassDamageFrontVehicleImages,
+    required List<AppointmentRequestImageInput> hailDamageImages,
+    required List<AppointmentRequestImageInput> hailDamageOverviewImages,
   }) async {
     final localId = 'local_req_${DateTime.now().millisecondsSinceEpoch}';
     final now = DateTime.now().toUtc();
     final allImages = [
+      ...glassDamageVehicleDocumentImages,
+      ...glassDamageCloseGlassImages,
+      ...glassDamageFrontVehicleImages,
+      ...hailDamageImages,
+      ...hailDamageOverviewImages,
+    ];
+    final allGlassImages = [
       ...glassDamageVehicleDocumentImages,
       ...glassDamageCloseGlassImages,
       ...glassDamageFrontVehicleImages,
@@ -696,6 +808,8 @@ class AppointmentRequestsService {
       locale: locale,
       glassDamageTown: glassDamageTown,
       glassDamageDate: glassDamageDate,
+      hailDamageTown: hailDamageTown,
+      hailDamageDate: hailDamageDate,
       glassDamageVehicleDocumentImages: glassDamageVehicleDocumentImages
           .map((image) => image.previewReference)
           .toList(),
@@ -704,7 +818,12 @@ class AppointmentRequestsService {
       glassDamageFrontVehicleImages: glassDamageFrontVehicleImages
           .map((image) => image.previewReference)
           .toList(),
-      glassDamageImages: allImages.map((image) => image.previewReference).toList(),
+      hailDamageImages:
+          hailDamageImages.map((image) => image.previewReference).toList(),
+      hailDamageOverviewImages:
+          hailDamageOverviewImages.map((image) => image.previewReference).toList(),
+      glassDamageImages:
+          allGlassImages.map((image) => image.previewReference).toList(),
     );
 
     final queue = await _loadQueue();

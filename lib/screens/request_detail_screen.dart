@@ -24,6 +24,9 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   AppointmentRequest get request => widget.request;
   bool get _isGlassDamageRequest =>
       request.serviceType == 'damage_glass' || request.damageType == 'damage_glass';
+  bool get _isHailDamageRequest =>
+      request.serviceType == 'damage_hail' || request.damageType == 'damage_hail';
+  bool get _hasDamagePhotoSections => _isGlassDamageRequest || _isHailDamageRequest;
 
   String _copy({
     required String de,
@@ -72,6 +75,20 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         fr: 'Photo frontale du vehicule',
       );
 
+  String get _hailDamagePhotosTitle => _copy(
+        de: 'Foto der Hagelschaeden',
+        it: 'Foto dei danni da grandine',
+        en: 'Photo of hail damage',
+        fr: 'Photo des degats de grele',
+      );
+
+  String get _hailOverviewPhotosTitle => _copy(
+        de: 'Uebersichtsfoto des Fahrzeugs',
+        it: 'Foto panoramica del veicolo',
+        en: 'Overview photo of the vehicle',
+        fr: 'Photo generale du vehicule',
+      );
+
   String get _noPhotosText => _copy(
         de: 'Keine Fotos vorhanden.',
         it: 'Nessuna foto disponibile.',
@@ -92,6 +109,29 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     final parsed = DateTime.tryParse(raw);
     if (parsed == null) return raw;
     return parsed.toLocal().toIso8601String().substring(0, 10);
+  }
+
+  String _hailDamageDateLabel() {
+    final raw = request.hailDamageDate?.trim() ?? '';
+    if (raw.isEmpty) return '-';
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+    return parsed.toLocal().toIso8601String().substring(0, 10);
+  }
+
+  String _damageTownValue() {
+    if (_isHailDamageRequest) return request.hailDamageTown?.trim() ?? '';
+    return request.glassDamageTown?.trim() ?? '';
+  }
+
+  String _damageDateValue() {
+    if (_isHailDamageRequest) return request.hailDamageDate?.trim() ?? '';
+    return request.glassDamageDate?.trim() ?? '';
+  }
+
+  String _damageDateLabel() {
+    if (_isHailDamageRequest) return _hailDamageDateLabel();
+    return _glassDamageDateLabel();
   }
 
   String _resolvedPhotoUrl(String source) {
@@ -172,6 +212,24 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     } catch (_) {}
 
     return const [];
+  }
+
+  List<String> _hailDamageImageSources() {
+    final direct = request.hailDamageImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('hailDamageImages');
+  }
+
+  List<String> _hailOverviewImageSources() {
+    final direct = request.hailDamageOverviewImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('hailDamageOverviewImages');
   }
 
   Widget _photoGrid(List<String> images) {
@@ -321,6 +379,38 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   }
 
   Widget _photosSection() {
+    if (_isHailDamageRequest) {
+      final hailDamageImages = _hailDamageImageSources();
+      final hailOverviewImages = _hailOverviewImageSources();
+      final hasSpecificSections =
+          hailDamageImages.isNotEmpty || hailOverviewImages.isNotEmpty;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 12),
+          if (hasSpecificSections) ...[
+            if (hailDamageImages.isNotEmpty)
+              _photoSection(
+                title: _hailDamagePhotosTitle,
+                images: hailDamageImages,
+              ),
+            if (hailDamageImages.isNotEmpty && hailOverviewImages.isNotEmpty)
+              const SizedBox(height: 12),
+            if (hailOverviewImages.isNotEmpty)
+              _photoSection(
+                title: _hailOverviewPhotosTitle,
+                images: hailOverviewImages,
+              ),
+          ] else
+            Text(
+              _noPhotosText,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+        ],
+      );
+    }
+
     final vehicleDocumentImages = _vehicleDocumentImageSources();
     final closeGlassImages = _closeGlassImageSources();
     final frontVehicleImages = _frontVehicleImageSources();
@@ -452,10 +542,10 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                       _row('Name', request.customerName ?? ''),
                       _row('Telefon', request.customerPhone ?? ''),
                       _row('E-Mail', request.customerEmail ?? ''),
-                      if ((request.glassDamageTown ?? '').isNotEmpty)
-                        _row('Ort', request.glassDamageTown ?? ''),
-                      if ((request.glassDamageDate ?? '').isNotEmpty)
-                        _row('Schadentag', _glassDamageDateLabel()),
+                      if (_damageTownValue().isNotEmpty)
+                        _row('Ort', _damageTownValue()),
+                      if (_damageDateValue().isNotEmpty)
+                        _row('Schadentag', _damageDateLabel()),
                       _row('Status', request.status),
                       if ((request.notes ?? '').isNotEmpty) ...[
                         const SizedBox(height: 8),
@@ -469,7 +559,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                         const SizedBox(height: 4),
                         Text(request.notes ?? ''),
                       ],
-                      if (_isGlassDamageRequest) _photosSection(),
+                      if (_hasDamagePhotoSections) _photosSection(),
                     ],
                   ),
                 ),

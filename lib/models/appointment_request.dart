@@ -23,6 +23,10 @@ class AppointmentRequest {
     this.glassDamageCloseGlassImages = const [],
     this.glassDamageFrontVehicleImages = const [],
     this.glassDamageImages = const [],
+    this.hailDamageTown,
+    this.hailDamageDate,
+    this.hailDamageImages = const [],
+    this.hailDamageOverviewImages = const [],
   });
 
   final String id;
@@ -46,6 +50,10 @@ class AppointmentRequest {
   final List<String> glassDamageCloseGlassImages;
   final List<String> glassDamageFrontVehicleImages;
   final List<String> glassDamageImages;
+  final String? hailDamageTown;
+  final String? hailDamageDate;
+  final List<String> hailDamageImages;
+  final List<String> hailDamageOverviewImages;
 
   static List<String> _readStringList(dynamic value) {
     if (value is! List) return const <String>[];
@@ -103,6 +111,16 @@ class AppointmentRequest {
           map['glass_damage_images'] ??
           structuredNotes['glassDamageImages'],
     );
+    final hailDamageImages = _readStringList(
+      map['hailDamageImages'] ??
+          map['hail_damage_images'] ??
+          structuredNotes['hailDamageImages'],
+    );
+    final hailDamageOverviewImages = _readStringList(
+      map['hailDamageOverviewImages'] ??
+          map['hail_damage_overview_images'] ??
+          structuredNotes['hailDamageOverviewImages'],
+    );
     final mergedGlassDamageImages = glassDamageImages.isNotEmpty
         ? glassDamageImages
         : _mergeImageLists([
@@ -147,6 +165,16 @@ class AppointmentRequest {
       glassDamageCloseGlassImages: glassDamageCloseGlassImages,
       glassDamageFrontVehicleImages: glassDamageFrontVehicleImages,
       glassDamageImages: mergedGlassDamageImages,
+      hailDamageTown: (map['hailDamageTown'] ??
+              map['hail_damage_town'] ??
+              structuredNotes['hailDamageTown'])
+          ?.toString(),
+      hailDamageDate: (map['hailDamageDate'] ??
+              map['hail_damage_date'] ??
+              structuredNotes['hailDamageDate'])
+          ?.toString(),
+      hailDamageImages: hailDamageImages,
+      hailDamageOverviewImages: hailDamageOverviewImages,
     );
   }
 
@@ -173,6 +201,10 @@ class AppointmentRequest {
       'glassDamageCloseGlassImages': glassDamageCloseGlassImages,
       'glassDamageFrontVehicleImages': glassDamageFrontVehicleImages,
       'glassDamageImages': glassDamageImages,
+      'hailDamageTown': hailDamageTown,
+      'hailDamageDate': hailDamageDate,
+      'hailDamageImages': hailDamageImages,
+      'hailDamageOverviewImages': hailDamageOverviewImages,
     };
   }
 }
