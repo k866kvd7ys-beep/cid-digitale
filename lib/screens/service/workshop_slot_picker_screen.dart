@@ -65,6 +65,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   DateTime _selectedDay = DateTime.now();
   DateTime? _selectedSlot;
   DateTime? _glassDamageDate;
+  TimeOfDay? _hailDamageTime;
   bool _showValidationErrors = false;
   bool _loading = false;
   bool _submitting = false;
@@ -81,8 +82,11 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   final List<_GlassDamageImageDraft> _glassVehicleDocumentImages = [];
   final List<_GlassDamageImageDraft> _glassCloseGlassImages = [];
   final List<_GlassDamageImageDraft> _glassFrontVehicleImages = [];
+  final List<_GlassDamageImageDraft> _hailVehicleDocumentImages = [];
   final List<_GlassDamageImageDraft> _hailDamageImages = [];
   final List<_GlassDamageImageDraft> _hailOverviewImages = [];
+  final List<_GlassDamageImageDraft> _hailExtraImage1 = [];
+  final List<_GlassDamageImageDraft> _hailExtraImage2 = [];
 
   bool get _isGlassDamage => widget.serviceType == 'damage_glass';
   bool get _isHailDamage => widget.serviceType == 'damage_hail';
@@ -227,18 +231,35 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       case AppointmentRequestImageCategory.hailDamage:
         return _copy(
           context: context,
-          de: 'Foto der Hagelschaeden',
+          de: 'Foto Hagelschaden',
           it: 'Foto dei danni da grandine',
-          en: 'Photo of hail damage',
-          fr: 'Photo des degats de grele',
+          en: 'Hail damage photo',
+          fr: 'Photo degats grele',
         );
       case AppointmentRequestImageCategory.hailOverview:
         return _copy(
           context: context,
-          de: 'Uebersichtsfoto des Fahrzeugs',
-          it: 'Foto panoramica del veicolo',
-          en: 'Overview photo of the vehicle',
+          de: 'Uebersichtsfoto Fahrzeug',
+          it: 'Foto panoramica veicolo',
+          en: 'Vehicle overview photo',
           fr: 'Photo generale du vehicule',
+        );
+      case AppointmentRequestImageCategory.hailVehicleDocument:
+        return _copy(
+          context: context,
+          de: 'Foto Fahrzeugausweis',
+          it: 'Foto libretto',
+          en: 'Vehicle document photo',
+          fr: 'Photo carte grise',
+        );
+      case AppointmentRequestImageCategory.hailExtra1:
+      case AppointmentRequestImageCategory.hailExtra2:
+        return _copy(
+          context: context,
+          de: 'Zusaetzliches Foto',
+          it: 'Foto aggiuntiva',
+          en: 'Additional photo',
+          fr: 'Photo supplementaire',
         );
       default:
         return '';
@@ -273,6 +294,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         );
       case AppointmentRequestImageCategory.hailDamage:
       case AppointmentRequestImageCategory.hailOverview:
+      case AppointmentRequestImageCategory.hailVehicleDocument:
+      case AppointmentRequestImageCategory.hailExtra1:
+      case AppointmentRequestImageCategory.hailExtra2:
         return '';
       default:
         return '';
@@ -281,10 +305,10 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   String _requiredPhotosTitle(BuildContext context) => _copy(
         context: context,
-        de: _isHailDamage ? 'Fotos Hagelschaden' : 'Benötigte Fotos',
+        de: _isHailDamage ? 'Fotos Hagelschaden' : 'Benoetigte Fotos',
         it: _isHailDamage ? 'Foto danno grandine' : 'Foto richieste',
         en: _isHailDamage ? 'Hail damage photos' : 'Required photos',
-        fr: _isHailDamage ? 'Photos degats de grele' : 'Photos requises',
+        fr: _isHailDamage ? 'Photos degats grele' : 'Photos requises',
       );
 
   String _requiredPhotosSubtitle(BuildContext context) => _copy(
@@ -359,12 +383,28 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         fr: 'À quelle date le dommage est-il survenu ?',
       );
 
+  String _hailTimeLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Zu welcher Uhrzeit ist der Schaden passiert?',
+        it: 'A che ora è avvenuto il danno?',
+        en: 'At what time did the damage occur?',
+        fr: 'À quelle heure le dommage est-il survenu ?',
+      );
+
   String _pickDateButton(BuildContext context) => _copy(
         context: context,
         de: 'Datum auswählen',
         it: 'Seleziona data',
         en: 'Select date',
         fr: 'Sélectionner la date',
+      );
+
+  String _pickTimeButton(BuildContext context) => _copy(
+        context: context,
+        de: 'Uhrzeit auswählen',
+        it: 'Seleziona orario',
+        en: 'Select time',
+        fr: 'Selectionner l heure',
       );
 
   String _calendarGuideTitle(BuildContext context) => _copy(
@@ -445,6 +485,14 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         it: 'Data danno obbligatoria',
         en: 'Damage date required',
         fr: 'Date du dommage obligatoire',
+      );
+
+  String _requiredDamageTimeText(BuildContext context) => _copy(
+        context: context,
+        de: 'Schadenzeit erforderlich',
+        it: 'Ora danno obbligatoria',
+        en: 'Damage time required',
+        fr: 'Heure du dommage obligatoire',
       );
 
   String _calendarLocaleTag(BuildContext context) {
@@ -802,10 +850,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         return _glassVehicleDocumentImages;
       case AppointmentRequestImageCategory.frontVehicle:
         return _glassFrontVehicleImages;
+      case AppointmentRequestImageCategory.hailVehicleDocument:
+        return _hailVehicleDocumentImages;
       case AppointmentRequestImageCategory.hailDamage:
         return _hailDamageImages;
       case AppointmentRequestImageCategory.hailOverview:
         return _hailOverviewImages;
+      case AppointmentRequestImageCategory.hailExtra1:
+        return _hailExtraImage1;
+      case AppointmentRequestImageCategory.hailExtra2:
+        return _hailExtraImage2;
       case AppointmentRequestImageCategory.closeGlass:
       default:
         return _glassCloseGlassImages;
@@ -818,10 +872,15 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         return Icons.description_outlined;
       case AppointmentRequestImageCategory.frontVehicle:
         return Icons.directions_car_outlined;
+      case AppointmentRequestImageCategory.hailVehicleDocument:
+        return Icons.description_outlined;
       case AppointmentRequestImageCategory.hailDamage:
         return Icons.broken_image_outlined;
       case AppointmentRequestImageCategory.hailOverview:
         return Icons.directions_car_filled_outlined;
+      case AppointmentRequestImageCategory.hailExtra1:
+      case AppointmentRequestImageCategory.hailExtra2:
+        return Icons.add_a_photo_outlined;
       case AppointmentRequestImageCategory.closeGlass:
       default:
         return Icons.broken_image_outlined;
@@ -848,6 +907,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   bool get _isFrontVehiclePhotoMissing => _glassFrontVehicleImages.isEmpty;
 
+  bool get _isHailVehicleDocumentPhotoMissing =>
+      _hailVehicleDocumentImages.isEmpty;
+
   bool get _isHailDamagePhotoMissing => _hailDamageImages.isEmpty;
 
   bool get _isHailOverviewPhotoMissing => _hailOverviewImages.isEmpty;
@@ -855,6 +917,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   bool get _isTownMissing => _glassTownCtrl.text.trim().isEmpty;
 
   bool get _isDamageDateMissing => _glassDamageDate == null;
+
+  bool get _isDamageTimeMissing => _isHailDamage && _hailDamageTime == null;
 
   bool get _isAppointmentSelectionMissing => _selectedSlot == null;
 
@@ -873,10 +937,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       _isLicensePlateMissing ||
       _isNameMissing ||
       _isContactMissing ||
+      _isHailVehicleDocumentPhotoMissing ||
       _isHailDamagePhotoMissing ||
       _isHailOverviewPhotoMissing ||
       _isTownMissing ||
       _isDamageDateMissing ||
+      _isDamageTimeMissing ||
       _isAppointmentSelectionMissing;
 
   bool get _canSubmitRequest {
@@ -1020,6 +1086,17 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     });
   }
 
+  Future<void> _pickHailDamageTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _hailDamageTime ?? TimeOfDay.now(),
+    );
+    if (picked == null) return;
+    setState(() {
+      _hailDamageTime = picked;
+    });
+  }
+
   Future<void> _showGlassImageActionSheet(String category) async {
     if (!mounted) return;
     await showModalBottomSheet<void>(
@@ -1113,8 +1190,11 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     }
     if (_isHailDamage) {
       return const [
+        AppointmentRequestImageCategory.hailVehicleDocument,
         AppointmentRequestImageCategory.hailDamage,
         AppointmentRequestImageCategory.hailOverview,
+        AppointmentRequestImageCategory.hailExtra1,
+        AppointmentRequestImageCategory.hailExtra2,
       ];
     }
     return const [];
@@ -1154,6 +1234,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         _usesDamageDetailsForm &&
         ((category == AppointmentRequestImageCategory.vehicleDocument &&
                 _isVehicleDocumentPhotoMissing) ||
+            (category == AppointmentRequestImageCategory.hailVehicleDocument &&
+                _isHailVehicleDocumentPhotoMissing) ||
             (category == AppointmentRequestImageCategory.closeGlass &&
                 _isCloseGlassPhotoMissing) ||
             (category == AppointmentRequestImageCategory.frontVehicle &&
@@ -1302,8 +1384,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final dateLabel = _glassDamageDate == null
         ? _pickDateButton(context)
         : DateFormat.yMMMMd(localeTag).format(_glassDamageDate!);
+    final timeLabel = _hailDamageTime == null
+        ? _pickTimeButton(context)
+        : _hailDamageTime!.format(context);
     final showTownError = _showValidationErrors && _isTownMissing;
     final showDamageDateError = _showValidationErrors && _isDamageDateMissing;
+    final showDamageTimeError = _showValidationErrors && _isDamageTimeMissing;
 
     return Container(
       width: double.infinity,
@@ -1414,6 +1500,57 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 fontWeight: FontWeight.w600,
               ),
             ),
+          ],
+          if (_isHailDamage) ...[
+            const SizedBox(height: 12),
+            Text(
+              _hailTimeLabel(context),
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: showDamageTimeError ? theme.colorScheme.error : null,
+              ),
+            ),
+            const SizedBox(height: 8),
+            InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: _pickHailDamageTime,
+              child: Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface.withOpacity(0.22),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: showDamageTimeError
+                        ? theme.colorScheme.error
+                        : theme.dividerColor.withOpacity(0.35),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.access_time_outlined,
+                      color: showDamageTimeError
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(timeLabel)),
+                  ],
+                ),
+              ),
+            ),
+            if (showDamageTimeError) ...[
+              const SizedBox(height: 6),
+              Text(
+                _requiredDamageTimeText(context),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ],
         ],
       ),
@@ -1553,6 +1690,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         hailDamageDate: _isHailDamage && _glassDamageDate != null
             ? _glassDamageDate!.toUtc().toIso8601String()
             : null,
+        hailDamageTime: _isHailDamage && _hailDamageTime != null
+            ? '${_hailDamageTime!.hour.toString().padLeft(2, '0')}:${_hailDamageTime!.minute.toString().padLeft(2, '0')}'
+            : null,
         glassDamageVehicleDocumentImages: _isGlassDamage
             ? _glassVehicleDocumentImages.map((e) => e.toInput()).toList()
             : const [],
@@ -1562,11 +1702,20 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         glassDamageFrontVehicleImages: _isGlassDamage
             ? _glassFrontVehicleImages.map((e) => e.toInput()).toList()
             : const [],
-        hailDamageImages: _isHailDamage
+        hailDamageVehicleDocumentImages: _isHailDamage
+            ? _hailVehicleDocumentImages.map((e) => e.toInput()).toList()
+            : const [],
+        hailDamageDamageImages: _isHailDamage
             ? _hailDamageImages.map((e) => e.toInput()).toList()
             : const [],
         hailDamageOverviewImages: _isHailDamage
             ? _hailOverviewImages.map((e) => e.toInput()).toList()
+            : const [],
+        hailDamageExtraImages: _isHailDamage
+            ? [
+                ..._hailExtraImage1.map((e) => e.toInput()),
+                ..._hailExtraImage2.map((e) => e.toInput()),
+              ]
             : const [],
       );
       if (!mounted) return;

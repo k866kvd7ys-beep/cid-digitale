@@ -25,8 +25,12 @@ class AppointmentRequest {
     this.glassDamageImages = const [],
     this.hailDamageTown,
     this.hailDamageDate,
+    this.hailDamageTime,
+    this.hailDamageVehicleDocumentImages = const [],
+    this.hailDamageDamageImages = const [],
     this.hailDamageImages = const [],
     this.hailDamageOverviewImages = const [],
+    this.hailDamageExtraImages = const [],
   });
 
   final String id;
@@ -52,8 +56,12 @@ class AppointmentRequest {
   final List<String> glassDamageImages;
   final String? hailDamageTown;
   final String? hailDamageDate;
+  final String? hailDamageTime;
+  final List<String> hailDamageVehicleDocumentImages;
+  final List<String> hailDamageDamageImages;
   final List<String> hailDamageImages;
   final List<String> hailDamageOverviewImages;
+  final List<String> hailDamageExtraImages;
 
   static List<String> _readStringList(dynamic value) {
     if (value is! List) return const <String>[];
@@ -116,10 +124,26 @@ class AppointmentRequest {
           map['hail_damage_images'] ??
           structuredNotes['hailDamageImages'],
     );
+    final hailDamageVehicleDocumentImages = _readStringList(
+      map['hailDamageVehicleDocumentImages'] ??
+          map['hail_damage_vehicle_document_images'] ??
+          structuredNotes['hailDamageVehicleDocumentImages'],
+    );
+    final hailDamageDamageImages = _readStringList(
+      map['hailDamageDamageImages'] ??
+          map['hail_damage_damage_images'] ??
+          structuredNotes['hailDamageDamageImages'] ??
+          hailDamageImages,
+    );
     final hailDamageOverviewImages = _readStringList(
       map['hailDamageOverviewImages'] ??
           map['hail_damage_overview_images'] ??
           structuredNotes['hailDamageOverviewImages'],
+    );
+    final hailDamageExtraImages = _readStringList(
+      map['hailDamageExtraImages'] ??
+          map['hail_damage_extra_images'] ??
+          structuredNotes['hailDamageExtraImages'],
     );
     final mergedGlassDamageImages = glassDamageImages.isNotEmpty
         ? glassDamageImages
@@ -127,6 +151,14 @@ class AppointmentRequest {
             glassDamageVehicleDocumentImages,
             glassDamageCloseGlassImages,
             glassDamageFrontVehicleImages,
+          ]);
+    final mergedHailDamageImages = hailDamageImages.isNotEmpty
+        ? hailDamageImages
+        : _mergeImageLists([
+            hailDamageVehicleDocumentImages,
+            hailDamageDamageImages,
+            hailDamageOverviewImages,
+            hailDamageExtraImages,
           ]);
     final extractedNotes = structuredNotes['text']?.toString();
 
@@ -173,8 +205,15 @@ class AppointmentRequest {
               map['hail_damage_date'] ??
               structuredNotes['hailDamageDate'])
           ?.toString(),
-      hailDamageImages: hailDamageImages,
+      hailDamageTime: (map['hailDamageTime'] ??
+              map['hail_damage_time'] ??
+              structuredNotes['hailDamageTime'])
+          ?.toString(),
+      hailDamageVehicleDocumentImages: hailDamageVehicleDocumentImages,
+      hailDamageDamageImages: hailDamageDamageImages,
+      hailDamageImages: mergedHailDamageImages,
       hailDamageOverviewImages: hailDamageOverviewImages,
+      hailDamageExtraImages: hailDamageExtraImages,
     );
   }
 
@@ -203,8 +242,12 @@ class AppointmentRequest {
       'glassDamageImages': glassDamageImages,
       'hailDamageTown': hailDamageTown,
       'hailDamageDate': hailDamageDate,
+      'hailDamageTime': hailDamageTime,
+      'hailDamageVehicleDocumentImages': hailDamageVehicleDocumentImages,
+      'hailDamageDamageImages': hailDamageDamageImages,
       'hailDamageImages': hailDamageImages,
       'hailDamageOverviewImages': hailDamageOverviewImages,
+      'hailDamageExtraImages': hailDamageExtraImages,
     };
   }
 }

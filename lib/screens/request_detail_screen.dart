@@ -76,17 +76,31 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       );
 
   String get _hailDamagePhotosTitle => _copy(
-        de: 'Foto der Hagelschaeden',
+        de: 'Foto Hagelschaden',
         it: 'Foto dei danni da grandine',
-        en: 'Photo of hail damage',
-        fr: 'Photo des degats de grele',
+        en: 'Hail damage photo',
+        fr: 'Photo degats grele',
       );
 
   String get _hailOverviewPhotosTitle => _copy(
-        de: 'Uebersichtsfoto des Fahrzeugs',
-        it: 'Foto panoramica del veicolo',
-        en: 'Overview photo of the vehicle',
+        de: 'Uebersichtsfoto Fahrzeug',
+        it: 'Foto panoramica veicolo',
+        en: 'Vehicle overview photo',
         fr: 'Photo generale du vehicule',
+      );
+
+  String get _hailVehicleDocumentPhotosTitle => _copy(
+        de: 'Foto Fahrzeugausweis',
+        it: 'Foto libretto',
+        en: 'Vehicle document photo',
+        fr: 'Photo carte grise',
+      );
+
+  String get _hailExtraPhotosTitle => _copy(
+        de: 'Zusaetzliches Foto',
+        it: 'Foto aggiuntiva',
+        en: 'Additional photo',
+        fr: 'Photo supplementaire',
       );
 
   String get _noPhotosText => _copy(
@@ -117,6 +131,12 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     final parsed = DateTime.tryParse(raw);
     if (parsed == null) return raw;
     return parsed.toLocal().toIso8601String().substring(0, 10);
+  }
+
+  String _hailDamageTimeLabel() {
+    final raw = request.hailDamageTime?.trim() ?? '';
+    if (raw.isEmpty) return '-';
+    return raw.length == 5 ? raw : raw.substring(0, raw.length >= 5 ? 5 : raw.length);
   }
 
   String _damageTownValue() {
@@ -215,12 +235,23 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   }
 
   List<String> _hailDamageImageSources() {
-    final direct = request.hailDamageImages
+    final direct = request.hailDamageDamageImages
         .map((image) => image.trim())
         .where((image) => image.isNotEmpty)
         .toList();
     if (direct.isNotEmpty) return direct;
+    final specific = _readImageListFromNotes('hailDamageDamageImages');
+    if (specific.isNotEmpty) return specific;
     return _readImageListFromNotes('hailDamageImages');
+  }
+
+  List<String> _hailVehicleDocumentImageSources() {
+    final direct = request.hailDamageVehicleDocumentImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('hailDamageVehicleDocumentImages');
   }
 
   List<String> _hailOverviewImageSources() {
@@ -230,6 +261,15 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         .toList();
     if (direct.isNotEmpty) return direct;
     return _readImageListFromNotes('hailDamageOverviewImages');
+  }
+
+  List<String> _hailExtraImageSources() {
+    final direct = request.hailDamageExtraImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('hailDamageExtraImages');
   }
 
   Widget _photoGrid(List<String> images) {
@@ -380,27 +420,50 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
 
   Widget _photosSection() {
     if (_isHailDamageRequest) {
+      final hailVehicleDocumentImages = _hailVehicleDocumentImageSources();
       final hailDamageImages = _hailDamageImageSources();
       final hailOverviewImages = _hailOverviewImageSources();
+      final hailExtraImages = _hailExtraImageSources();
       final hasSpecificSections =
-          hailDamageImages.isNotEmpty || hailOverviewImages.isNotEmpty;
+          hailVehicleDocumentImages.isNotEmpty ||
+          hailDamageImages.isNotEmpty ||
+          hailOverviewImages.isNotEmpty ||
+          hailExtraImages.isNotEmpty;
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 12),
           if (hasSpecificSections) ...[
+            if (hailVehicleDocumentImages.isNotEmpty)
+              _photoSection(
+                title: _hailVehicleDocumentPhotosTitle,
+                images: hailVehicleDocumentImages,
+              ),
+            if (hailVehicleDocumentImages.isNotEmpty &&
+                (hailDamageImages.isNotEmpty ||
+                    hailOverviewImages.isNotEmpty ||
+                    hailExtraImages.isNotEmpty))
+              const SizedBox(height: 12),
             if (hailDamageImages.isNotEmpty)
               _photoSection(
                 title: _hailDamagePhotosTitle,
                 images: hailDamageImages,
               ),
-            if (hailDamageImages.isNotEmpty && hailOverviewImages.isNotEmpty)
+            if (hailDamageImages.isNotEmpty &&
+                (hailOverviewImages.isNotEmpty || hailExtraImages.isNotEmpty))
               const SizedBox(height: 12),
             if (hailOverviewImages.isNotEmpty)
               _photoSection(
                 title: _hailOverviewPhotosTitle,
                 images: hailOverviewImages,
+              ),
+            if (hailOverviewImages.isNotEmpty && hailExtraImages.isNotEmpty)
+              const SizedBox(height: 12),
+            if (hailExtraImages.isNotEmpty)
+              _photoSection(
+                title: _hailExtraPhotosTitle,
+                images: hailExtraImages,
               ),
           ] else
             Text(
@@ -546,6 +609,9 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                         _row('Ort', _damageTownValue()),
                       if (_damageDateValue().isNotEmpty)
                         _row('Schadentag', _damageDateLabel()),
+                      if (_isHailDamageRequest &&
+                          (request.hailDamageTime ?? '').trim().isNotEmpty)
+                        _row('Schadenzeit', _hailDamageTimeLabel()),
                       _row('Status', request.status),
                       if ((request.notes ?? '').isNotEmpty) ...[
                         const SizedBox(height: 8),

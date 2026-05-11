@@ -17,8 +17,11 @@ class AppointmentRequestImageCategory {
   static const vehicleDocument = 'document';
   static const closeGlass = 'close_glass';
   static const frontVehicle = 'front_vehicle';
+  static const hailVehicleDocument = 'hail_vehicle_document';
   static const hailDamage = 'hail_damage';
   static const hailOverview = 'hail_overview';
+  static const hailExtra1 = 'hail_extra_1';
+  static const hailExtra2 = 'hail_extra_2';
 }
 
 class AppointmentRequestImageInput {
@@ -58,22 +61,28 @@ class _DamageRequestImageGroups {
     this.vehicleDocumentImages = const [],
     this.closeGlassImages = const [],
     this.frontVehicleImages = const [],
+    this.hailVehicleDocumentImages = const [],
     this.hailDamageImages = const [],
     this.hailOverviewImages = const [],
+    this.hailExtraImages = const [],
   });
 
   final List<String> vehicleDocumentImages;
   final List<String> closeGlassImages;
   final List<String> frontVehicleImages;
+  final List<String> hailVehicleDocumentImages;
   final List<String> hailDamageImages;
   final List<String> hailOverviewImages;
+  final List<String> hailExtraImages;
 
   List<String> get allImages => _mergeUniqueUrls([
         vehicleDocumentImages,
         closeGlassImages,
         frontVehicleImages,
+        hailVehicleDocumentImages,
         hailDamageImages,
         hailOverviewImages,
+        hailExtraImages,
       ]);
 }
 
@@ -206,12 +215,16 @@ class AppointmentRequestsService {
     String? glassDamageDate,
     String? hailDamageTown,
     String? hailDamageDate,
+    String? hailDamageTime,
     List<AppointmentRequestImageInput> glassDamageVehicleDocumentImages =
         const [],
     List<AppointmentRequestImageInput> glassDamageCloseGlassImages = const [],
     List<AppointmentRequestImageInput> glassDamageFrontVehicleImages = const [],
-    List<AppointmentRequestImageInput> hailDamageImages = const [],
+    List<AppointmentRequestImageInput> hailDamageVehicleDocumentImages =
+        const [],
+    List<AppointmentRequestImageInput> hailDamageDamageImages = const [],
     List<AppointmentRequestImageInput> hailDamageOverviewImages = const [],
+    List<AppointmentRequestImageInput> hailDamageExtraImages = const [],
   }) async {
     final normalizedDate = appointmentDate ?? DateTime.now();
     final normalizedTime = appointmentTime ?? '08:00:00';
@@ -233,11 +246,14 @@ class AppointmentRequestsService {
         glassDamageDate: glassDamageDate,
         hailDamageTown: hailDamageTown,
         hailDamageDate: hailDamageDate,
+        hailDamageTime: hailDamageTime,
         glassDamageVehicleDocumentImages: glassDamageVehicleDocumentImages,
         glassDamageCloseGlassImages: glassDamageCloseGlassImages,
         glassDamageFrontVehicleImages: glassDamageFrontVehicleImages,
-        hailDamageImages: hailDamageImages,
+        hailDamageVehicleDocumentImages: hailDamageVehicleDocumentImages,
+        hailDamageDamageImages: hailDamageDamageImages,
         hailDamageOverviewImages: hailDamageOverviewImages,
+        hailDamageExtraImages: hailDamageExtraImages,
       );
     }
 
@@ -259,11 +275,14 @@ class AppointmentRequestsService {
         glassDamageDate: glassDamageDate,
         hailDamageTown: hailDamageTown,
         hailDamageDate: hailDamageDate,
+        hailDamageTime: hailDamageTime,
         glassDamageVehicleDocumentImages: const [],
         glassDamageCloseGlassImages: const [],
         glassDamageFrontVehicleImages: const [],
-        hailDamageImages: const [],
+        hailDamageVehicleDocumentImages: const [],
+        hailDamageDamageImages: const [],
         hailDamageOverviewImages: const [],
+        hailDamageExtraImages: const [],
       );
     } catch (e) {
       if (await _shouldQueueOffline(e)) {
@@ -283,11 +302,14 @@ class AppointmentRequestsService {
           glassDamageDate: glassDamageDate,
           hailDamageTown: hailDamageTown,
           hailDamageDate: hailDamageDate,
+          hailDamageTime: hailDamageTime,
           glassDamageVehicleDocumentImages: glassDamageVehicleDocumentImages,
           glassDamageCloseGlassImages: glassDamageCloseGlassImages,
           glassDamageFrontVehicleImages: glassDamageFrontVehicleImages,
-          hailDamageImages: hailDamageImages,
+          hailDamageVehicleDocumentImages: hailDamageVehicleDocumentImages,
+          hailDamageDamageImages: hailDamageDamageImages,
           hailDamageOverviewImages: hailDamageOverviewImages,
+          hailDamageExtraImages: hailDamageExtraImages,
         );
       }
       rethrow;
@@ -296,8 +318,10 @@ class AppointmentRequestsService {
     if (glassDamageVehicleDocumentImages.isNotEmpty ||
         glassDamageCloseGlassImages.isNotEmpty ||
         glassDamageFrontVehicleImages.isNotEmpty ||
-        hailDamageImages.isNotEmpty ||
-        hailDamageOverviewImages.isNotEmpty) {
+        hailDamageVehicleDocumentImages.isNotEmpty ||
+        hailDamageDamageImages.isNotEmpty ||
+        hailDamageOverviewImages.isNotEmpty ||
+        hailDamageExtraImages.isNotEmpty) {
       try {
         final uploadedImages = await _uploadDamageImages(
           record.id,
@@ -305,8 +329,10 @@ class AppointmentRequestsService {
             ...glassDamageVehicleDocumentImages,
             ...glassDamageCloseGlassImages,
             ...glassDamageFrontVehicleImages,
-            ...hailDamageImages,
+            ...hailDamageVehicleDocumentImages,
+            ...hailDamageDamageImages,
             ...hailDamageOverviewImages,
+            ...hailDamageExtraImages,
           ],
         );
         record = await _updateRequestMetadata(
@@ -316,8 +342,11 @@ class AppointmentRequestsService {
               uploadedImages.vehicleDocumentImages,
           glassDamageCloseGlassImages: uploadedImages.closeGlassImages,
           glassDamageFrontVehicleImages: uploadedImages.frontVehicleImages,
-          hailDamageImages: uploadedImages.hailDamageImages,
+          hailDamageVehicleDocumentImages:
+              uploadedImages.hailVehicleDocumentImages,
+          hailDamageDamageImages: uploadedImages.hailDamageImages,
           hailDamageOverviewImages: uploadedImages.hailOverviewImages,
+          hailDamageExtraImages: uploadedImages.hailExtraImages,
         );
       } catch (e) {
         debugPrint('Damage image upload failed: $e');
@@ -416,11 +445,14 @@ class AppointmentRequestsService {
           glassDamageDate: localRequest.glassDamageDate,
           hailDamageTown: localRequest.hailDamageTown,
           hailDamageDate: localRequest.hailDamageDate,
+          hailDamageTime: localRequest.hailDamageTime,
           glassDamageVehicleDocumentImages: const [],
           glassDamageCloseGlassImages: const [],
           glassDamageFrontVehicleImages: const [],
-          hailDamageImages: const [],
+          hailDamageVehicleDocumentImages: const [],
+          hailDamageDamageImages: const [],
           hailDamageOverviewImages: const [],
+          hailDamageExtraImages: const [],
         );
 
         if (imageDescriptors.isNotEmpty) {
@@ -436,8 +468,11 @@ class AppointmentRequestsService {
                   uploadedImages.vehicleDocumentImages,
               glassDamageCloseGlassImages: uploadedImages.closeGlassImages,
               glassDamageFrontVehicleImages: uploadedImages.frontVehicleImages,
-              hailDamageImages: uploadedImages.hailDamageImages,
+              hailDamageVehicleDocumentImages:
+                  uploadedImages.hailVehicleDocumentImages,
+              hailDamageDamageImages: uploadedImages.hailDamageImages,
               hailDamageOverviewImages: uploadedImages.hailOverviewImages,
+              hailDamageExtraImages: uploadedImages.hailExtraImages,
             );
           } catch (e) {
             debugPrint('syncPendingRequests image upload failed: $e');
@@ -474,11 +509,14 @@ class AppointmentRequestsService {
     String? glassDamageDate,
     String? hailDamageTown,
     String? hailDamageDate,
+    String? hailDamageTime,
     required List<String> glassDamageVehicleDocumentImages,
     required List<String> glassDamageCloseGlassImages,
     required List<String> glassDamageFrontVehicleImages,
-    required List<String> hailDamageImages,
+    required List<String> hailDamageVehicleDocumentImages,
+    required List<String> hailDamageDamageImages,
     required List<String> hailDamageOverviewImages,
+    required List<String> hailDamageExtraImages,
   }) async {
     final payload = <String, dynamic>{
       'service_type': serviceType,
@@ -495,11 +533,14 @@ class AppointmentRequestsService {
         glassDamageDate: glassDamageDate,
         hailDamageTown: hailDamageTown,
         hailDamageDate: hailDamageDate,
+        hailDamageTime: hailDamageTime,
         glassDamageVehicleDocumentImages: glassDamageVehicleDocumentImages,
         glassDamageCloseGlassImages: glassDamageCloseGlassImages,
         glassDamageFrontVehicleImages: glassDamageFrontVehicleImages,
-        hailDamageImages: hailDamageImages,
+        hailDamageVehicleDocumentImages: hailDamageVehicleDocumentImages,
+        hailDamageDamageImages: hailDamageDamageImages,
         hailDamageOverviewImages: hailDamageOverviewImages,
+        hailDamageExtraImages: hailDamageExtraImages,
       ),
       'locale': locale,
       'damage_type': damageType,
@@ -520,8 +561,10 @@ class AppointmentRequestsService {
     required List<String> glassDamageVehicleDocumentImages,
     required List<String> glassDamageCloseGlassImages,
     required List<String> glassDamageFrontVehicleImages,
-    required List<String> hailDamageImages,
+    required List<String> hailDamageVehicleDocumentImages,
+    required List<String> hailDamageDamageImages,
     required List<String> hailDamageOverviewImages,
+    required List<String> hailDamageExtraImages,
   }) async {
     final res = await _client
         .from('appointment_requests')
@@ -532,12 +575,16 @@ class AppointmentRequestsService {
             glassDamageDate: existing.glassDamageDate,
             hailDamageTown: existing.hailDamageTown,
             hailDamageDate: existing.hailDamageDate,
+            hailDamageTime: existing.hailDamageTime,
             glassDamageVehicleDocumentImages:
                 glassDamageVehicleDocumentImages,
             glassDamageCloseGlassImages: glassDamageCloseGlassImages,
             glassDamageFrontVehicleImages: glassDamageFrontVehicleImages,
-            hailDamageImages: hailDamageImages,
+            hailDamageVehicleDocumentImages:
+                hailDamageVehicleDocumentImages,
+            hailDamageDamageImages: hailDamageDamageImages,
             hailDamageOverviewImages: hailDamageOverviewImages,
+            hailDamageExtraImages: hailDamageExtraImages,
           ),
         })
         .eq('id', requestId)
@@ -553,17 +600,21 @@ class AppointmentRequestsService {
     String? glassDamageDate,
     String? hailDamageTown,
     String? hailDamageDate,
+    String? hailDamageTime,
     List<String> glassDamageVehicleDocumentImages = const [],
     List<String> glassDamageCloseGlassImages = const [],
     List<String> glassDamageFrontVehicleImages = const [],
-    List<String> hailDamageImages = const [],
+    List<String> hailDamageVehicleDocumentImages = const [],
+    List<String> hailDamageDamageImages = const [],
     List<String> hailDamageOverviewImages = const [],
+    List<String> hailDamageExtraImages = const [],
   }) {
     final trimmedNotes = notes?.trim();
     final trimmedGlassTown = glassDamageTown?.trim();
     final trimmedGlassDate = glassDamageDate?.trim();
     final trimmedHailTown = hailDamageTown?.trim();
     final trimmedHailDate = hailDamageDate?.trim();
+    final trimmedHailTime = hailDamageTime?.trim();
     final cleanedDocumentImages = glassDamageVehicleDocumentImages
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
@@ -576,7 +627,11 @@ class AppointmentRequestsService {
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
-    final cleanedHailDamageImages = hailDamageImages
+    final cleanedHailVehicleDocumentImages = hailDamageVehicleDocumentImages
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final cleanedHailDamageImages = hailDamageDamageImages
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
@@ -584,21 +639,36 @@ class AppointmentRequestsService {
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
+    final cleanedHailExtraImages = hailDamageExtraImages
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .take(2)
+        .toList();
     final cleanedGlassImages = _mergeUniqueUrls([
       cleanedDocumentImages,
       cleanedCloseGlassImages,
       cleanedFrontVehicleImages,
+    ]);
+    final cleanedHailImages = _mergeUniqueUrls([
+      cleanedHailVehicleDocumentImages,
+      cleanedHailDamageImages,
+      cleanedHailOverviewImages,
+      cleanedHailExtraImages,
     ]);
 
     final hasStructuredData = (trimmedGlassTown?.isNotEmpty ?? false) ||
         (trimmedGlassDate?.isNotEmpty ?? false) ||
         (trimmedHailTown?.isNotEmpty ?? false) ||
         (trimmedHailDate?.isNotEmpty ?? false) ||
+        (trimmedHailTime?.isNotEmpty ?? false) ||
         cleanedDocumentImages.isNotEmpty ||
         cleanedCloseGlassImages.isNotEmpty ||
         cleanedFrontVehicleImages.isNotEmpty ||
+        cleanedHailVehicleDocumentImages.isNotEmpty ||
         cleanedHailDamageImages.isNotEmpty ||
         cleanedHailOverviewImages.isNotEmpty ||
+        cleanedHailExtraImages.isNotEmpty ||
+        cleanedHailImages.isNotEmpty ||
         cleanedGlassImages.isNotEmpty;
 
     if (!hasStructuredData) {
@@ -619,18 +689,27 @@ class AppointmentRequestsService {
         'glassDamageFrontVehicleImages': cleanedFrontVehicleImages,
       if (trimmedHailTown?.isNotEmpty ?? false) 'hailDamageTown': trimmedHailTown,
       if (trimmedHailDate?.isNotEmpty ?? false) 'hailDamageDate': trimmedHailDate,
+      if (trimmedHailTime?.isNotEmpty ?? false) 'hailDamageTime': trimmedHailTime,
+      if (cleanedHailVehicleDocumentImages.isNotEmpty)
+        'hailDamageVehicleDocumentImages': cleanedHailVehicleDocumentImages,
       if (cleanedHailDamageImages.isNotEmpty)
-        'hailDamageImages': cleanedHailDamageImages,
+        'hailDamageDamageImages': cleanedHailDamageImages,
       if (cleanedHailOverviewImages.isNotEmpty)
         'hailDamageOverviewImages': cleanedHailOverviewImages,
+      if (cleanedHailExtraImages.isNotEmpty)
+        'hailDamageExtraImages': cleanedHailExtraImages,
+      if (cleanedHailImages.isNotEmpty) 'hailDamageImages': cleanedHailImages,
       if (cleanedGlassImages.isNotEmpty) 'glassDamageImages': cleanedGlassImages,
     });
   }
 
   String _storageRootForDamageImageCategory(String category) {
     switch (category) {
+      case AppointmentRequestImageCategory.hailVehicleDocument:
       case AppointmentRequestImageCategory.hailDamage:
       case AppointmentRequestImageCategory.hailOverview:
+      case AppointmentRequestImageCategory.hailExtra1:
+      case AppointmentRequestImageCategory.hailExtra2:
         return 'hail_damage';
       default:
         return 'glass_damage';
@@ -645,10 +724,15 @@ class AppointmentRequestsService {
         return 'close_glass';
       case AppointmentRequestImageCategory.frontVehicle:
         return 'front_vehicle';
+      case AppointmentRequestImageCategory.hailVehicleDocument:
+        return 'document';
       case AppointmentRequestImageCategory.hailDamage:
         return 'damage';
       case AppointmentRequestImageCategory.hailOverview:
         return 'overview';
+      case AppointmentRequestImageCategory.hailExtra1:
+      case AppointmentRequestImageCategory.hailExtra2:
+        return 'extra';
       default:
         return '';
     }
@@ -661,8 +745,10 @@ class AppointmentRequestsService {
     final vehicleDocumentImages = <String>[];
     final closeGlassImages = <String>[];
     final frontVehicleImages = <String>[];
+    final hailVehicleDocumentImages = <String>[];
     final hailDamageImages = <String>[];
     final hailOverviewImages = <String>[];
+    final hailExtraImages = <String>[];
     for (final image in images) {
       final bytes = await _resolveInputBytes(image);
       if (bytes == null || bytes.isEmpty) continue;
@@ -691,11 +777,18 @@ class AppointmentRequestsService {
         case AppointmentRequestImageCategory.frontVehicle:
           frontVehicleImages.add(publicUrl);
           break;
+        case AppointmentRequestImageCategory.hailVehicleDocument:
+          hailVehicleDocumentImages.add(publicUrl);
+          break;
         case AppointmentRequestImageCategory.hailDamage:
           hailDamageImages.add(publicUrl);
           break;
         case AppointmentRequestImageCategory.hailOverview:
           hailOverviewImages.add(publicUrl);
+          break;
+        case AppointmentRequestImageCategory.hailExtra1:
+        case AppointmentRequestImageCategory.hailExtra2:
+          hailExtraImages.add(publicUrl);
           break;
         default:
           closeGlassImages.add(publicUrl);
@@ -706,8 +799,10 @@ class AppointmentRequestsService {
       vehicleDocumentImages: vehicleDocumentImages,
       closeGlassImages: closeGlassImages,
       frontVehicleImages: frontVehicleImages,
+      hailVehicleDocumentImages: hailVehicleDocumentImages,
       hailDamageImages: hailDamageImages,
       hailOverviewImages: hailOverviewImages,
+      hailExtraImages: hailExtraImages,
     );
   }
 
@@ -770,11 +865,14 @@ class AppointmentRequestsService {
     String? glassDamageDate,
     String? hailDamageTown,
     String? hailDamageDate,
+    String? hailDamageTime,
     required List<AppointmentRequestImageInput> glassDamageVehicleDocumentImages,
     required List<AppointmentRequestImageInput> glassDamageCloseGlassImages,
     required List<AppointmentRequestImageInput> glassDamageFrontVehicleImages,
-    required List<AppointmentRequestImageInput> hailDamageImages,
+    required List<AppointmentRequestImageInput> hailDamageVehicleDocumentImages,
+    required List<AppointmentRequestImageInput> hailDamageDamageImages,
     required List<AppointmentRequestImageInput> hailDamageOverviewImages,
+    required List<AppointmentRequestImageInput> hailDamageExtraImages,
   }) async {
     final localId = 'local_req_${DateTime.now().millisecondsSinceEpoch}';
     final now = DateTime.now().toUtc();
@@ -782,13 +880,21 @@ class AppointmentRequestsService {
       ...glassDamageVehicleDocumentImages,
       ...glassDamageCloseGlassImages,
       ...glassDamageFrontVehicleImages,
-      ...hailDamageImages,
+      ...hailDamageVehicleDocumentImages,
+      ...hailDamageDamageImages,
       ...hailDamageOverviewImages,
+      ...hailDamageExtraImages,
     ];
     final allGlassImages = [
       ...glassDamageVehicleDocumentImages,
       ...glassDamageCloseGlassImages,
       ...glassDamageFrontVehicleImages,
+    ];
+    final allHailImages = [
+      ...hailDamageVehicleDocumentImages,
+      ...hailDamageDamageImages,
+      ...hailDamageOverviewImages,
+      ...hailDamageExtraImages,
     ];
     final localRequest = AppointmentRequest(
       id: localId,
@@ -810,6 +916,7 @@ class AppointmentRequestsService {
       glassDamageDate: glassDamageDate,
       hailDamageTown: hailDamageTown,
       hailDamageDate: hailDamageDate,
+      hailDamageTime: hailDamageTime,
       glassDamageVehicleDocumentImages: glassDamageVehicleDocumentImages
           .map((image) => image.previewReference)
           .toList(),
@@ -818,10 +925,17 @@ class AppointmentRequestsService {
       glassDamageFrontVehicleImages: glassDamageFrontVehicleImages
           .map((image) => image.previewReference)
           .toList(),
+      hailDamageVehicleDocumentImages: hailDamageVehicleDocumentImages
+          .map((image) => image.previewReference)
+          .toList(),
+      hailDamageDamageImages:
+          hailDamageDamageImages.map((image) => image.previewReference).toList(),
       hailDamageImages:
-          hailDamageImages.map((image) => image.previewReference).toList(),
+          allHailImages.map((image) => image.previewReference).toList(),
       hailDamageOverviewImages:
           hailDamageOverviewImages.map((image) => image.previewReference).toList(),
+      hailDamageExtraImages:
+          hailDamageExtraImages.map((image) => image.previewReference).toList(),
       glassDamageImages:
           allGlassImages.map((image) => image.previewReference).toList(),
     );
