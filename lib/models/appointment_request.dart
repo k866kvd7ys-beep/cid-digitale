@@ -33,6 +33,14 @@ class AppointmentRequest {
     this.hailDamageImages = const [],
     this.hailDamageOverviewImages = const [],
     this.hailDamageExtraImages = const [],
+    this.parkingDamageTown,
+    this.parkingDamageDate,
+    this.parkingDamageTime,
+    this.parkingDamageVehicleDocumentImages = const [],
+    this.parkingDamageDamageImages = const [],
+    this.parkingDamageImages = const [],
+    this.parkingDamageOverviewImages = const [],
+    this.parkingDamageExtraImages = const [],
   });
 
   final String id;
@@ -66,6 +74,14 @@ class AppointmentRequest {
   final List<String> hailDamageImages;
   final List<String> hailDamageOverviewImages;
   final List<String> hailDamageExtraImages;
+  final String? parkingDamageTown;
+  final String? parkingDamageDate;
+  final String? parkingDamageTime;
+  final List<String> parkingDamageVehicleDocumentImages;
+  final List<String> parkingDamageDamageImages;
+  final List<String> parkingDamageImages;
+  final List<String> parkingDamageOverviewImages;
+  final List<String> parkingDamageExtraImages;
 
   static List<String> _readStringList(dynamic value) {
     if (value is! List) return const <String>[];
@@ -149,6 +165,32 @@ class AppointmentRequest {
           map['hail_damage_extra_images'] ??
           structuredNotes['hailDamageExtraImages'],
     );
+    final parkingDamageImages = _readStringList(
+      map['parkingDamageImages'] ??
+          map['parking_damage_images'] ??
+          structuredNotes['parkingDamageImages'],
+    );
+    final parkingDamageVehicleDocumentImages = _readStringList(
+      map['parkingDamageVehicleDocumentImages'] ??
+          map['parking_damage_vehicle_document_images'] ??
+          structuredNotes['parkingDamageVehicleDocumentImages'],
+    );
+    final parkingDamageDamageImages = _readStringList(
+      map['parkingDamageDamageImages'] ??
+          map['parking_damage_damage_images'] ??
+          structuredNotes['parkingDamageDamageImages'] ??
+          parkingDamageImages,
+    );
+    final parkingDamageOverviewImages = _readStringList(
+      map['parkingDamageOverviewImages'] ??
+          map['parking_damage_overview_images'] ??
+          structuredNotes['parkingDamageOverviewImages'],
+    );
+    final parkingDamageExtraImages = _readStringList(
+      map['parkingDamageExtraImages'] ??
+          map['parking_damage_extra_images'] ??
+          structuredNotes['parkingDamageExtraImages'],
+    );
     final mergedGlassDamageImages = glassDamageImages.isNotEmpty
         ? glassDamageImages
         : _mergeImageLists([
@@ -164,20 +206,26 @@ class AppointmentRequest {
             hailDamageOverviewImages,
             hailDamageExtraImages,
           ]);
+    final mergedParkingDamageImages = parkingDamageImages.isNotEmpty
+        ? parkingDamageImages
+        : _mergeImageLists([
+            parkingDamageVehicleDocumentImages,
+            parkingDamageDamageImages,
+            parkingDamageOverviewImages,
+            parkingDamageExtraImages,
+          ]);
     final extractedNotes = structuredNotes['text']?.toString();
-    final resolvedRequestStatus =
-        (map['request_status'] ??
-                    map['requestStatus'] ??
-                    structuredNotes['requestStatus'] ??
-                    map['status'])
-                ?.toString()
-                .trim() ??
-            'pending';
-    final resolvedStatusUpdatedAt =
-        (map['status_updated_at'] ??
-                map['statusUpdatedAt'] ??
-                structuredNotes['statusUpdatedAt'])
-            ?.toString();
+    final resolvedRequestStatus = (map['request_status'] ??
+                map['requestStatus'] ??
+                structuredNotes['requestStatus'] ??
+                map['status'])
+            ?.toString()
+            .trim() ??
+        'pending';
+    final resolvedStatusUpdatedAt = (map['status_updated_at'] ??
+            map['statusUpdatedAt'] ??
+            structuredNotes['statusUpdatedAt'])
+        ?.toString();
 
     return AppointmentRequest(
       id: (map['id'] ?? '').toString(),
@@ -201,11 +249,11 @@ class AppointmentRequest {
       status: (map['status'] ?? 'pending').toString(),
       requestStatus:
           resolvedRequestStatus.isEmpty ? 'pending' : resolvedRequestStatus,
-      statusUpdatedAt:
-          (resolvedStatusUpdatedAt?.trim().isEmpty ?? true)
-              ? null
-              : resolvedStatusUpdatedAt!.trim(),
-      notes: extractedNotes ?? (structuredNotes.isEmpty ? map['notes'] as String? : null),
+      statusUpdatedAt: (resolvedStatusUpdatedAt?.trim().isEmpty ?? true)
+          ? null
+          : resolvedStatusUpdatedAt!.trim(),
+      notes: extractedNotes ??
+          (structuredNotes.isEmpty ? map['notes'] as String? : null),
       damageType: (map['damage_type'] ?? map['damageType'])?.toString(),
       locale: (map['locale'] ?? map['languageCode'])?.toString(),
       glassDamageTown: (map['glassDamageTown'] ??
@@ -237,6 +285,23 @@ class AppointmentRequest {
       hailDamageImages: mergedHailDamageImages,
       hailDamageOverviewImages: hailDamageOverviewImages,
       hailDamageExtraImages: hailDamageExtraImages,
+      parkingDamageTown: (map['parkingDamageTown'] ??
+              map['parking_damage_town'] ??
+              structuredNotes['parkingDamageTown'])
+          ?.toString(),
+      parkingDamageDate: (map['parkingDamageDate'] ??
+              map['parking_damage_date'] ??
+              structuredNotes['parkingDamageDate'])
+          ?.toString(),
+      parkingDamageTime: (map['parkingDamageTime'] ??
+              map['parking_damage_time'] ??
+              structuredNotes['parkingDamageTime'])
+          ?.toString(),
+      parkingDamageVehicleDocumentImages: parkingDamageVehicleDocumentImages,
+      parkingDamageDamageImages: parkingDamageDamageImages,
+      parkingDamageImages: mergedParkingDamageImages,
+      parkingDamageOverviewImages: parkingDamageOverviewImages,
+      parkingDamageExtraImages: parkingDamageExtraImages,
     );
   }
 
@@ -273,6 +338,14 @@ class AppointmentRequest {
       'hailDamageImages': hailDamageImages,
       'hailDamageOverviewImages': hailDamageOverviewImages,
       'hailDamageExtraImages': hailDamageExtraImages,
+      'parkingDamageTown': parkingDamageTown,
+      'parkingDamageDate': parkingDamageDate,
+      'parkingDamageTime': parkingDamageTime,
+      'parkingDamageVehicleDocumentImages': parkingDamageVehicleDocumentImages,
+      'parkingDamageDamageImages': parkingDamageDamageImages,
+      'parkingDamageImages': parkingDamageImages,
+      'parkingDamageOverviewImages': parkingDamageOverviewImages,
+      'parkingDamageExtraImages': parkingDamageExtraImages,
     };
   }
 }

@@ -130,7 +130,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get damage_marten => 'Danno da martora';
 
   @override
-  String get damage_parking => 'Danno da parcheggio';
+  String get damage_parking => 'Danno parcheggio';
 
   @override
   String get damage_comprehensive => 'Vollkasko';

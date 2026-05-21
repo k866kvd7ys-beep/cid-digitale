@@ -87,10 +87,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   final List<_GlassDamageImageDraft> _hailOverviewImages = [];
   final List<_GlassDamageImageDraft> _hailExtraImage1 = [];
   final List<_GlassDamageImageDraft> _hailExtraImage2 = [];
+  final List<_GlassDamageImageDraft> _parkingVehicleDocumentImages = [];
+  final List<_GlassDamageImageDraft> _parkingDamageImages = [];
+  final List<_GlassDamageImageDraft> _parkingOverviewImages = [];
+  final List<_GlassDamageImageDraft> _parkingExtraImages = [];
 
   bool get _isGlassDamage => widget.serviceType == 'damage_glass';
   bool get _isHailDamage => widget.serviceType == 'damage_hail';
-  bool get _usesDamageDetailsForm => _isGlassDamage || _isHailDamage;
+  bool get _isParkingDamage => widget.serviceType == 'damage_parking';
+  bool get _usesDamageDetailsForm =>
+      _isGlassDamage || _isHailDamage || _isParkingDamage;
 
   bool _isTaken(DateTime slot) => false;
 
@@ -261,6 +267,38 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
           en: 'Additional photo',
           fr: 'Photo supplementaire',
         );
+      case AppointmentRequestImageCategory.parkingDamage:
+        return _copy(
+          context: context,
+          de: 'Foto Parkschaden',
+          it: 'Foto danno parcheggio',
+          en: 'Parking damage photo',
+          fr: 'Photo dommage parking',
+        );
+      case AppointmentRequestImageCategory.parkingOverview:
+        return _copy(
+          context: context,
+          de: 'Uebersichtsfoto Fahrzeug',
+          it: 'Foto panoramica veicolo',
+          en: 'Vehicle overview photo',
+          fr: 'Photo generale du vehicule',
+        );
+      case AppointmentRequestImageCategory.parkingVehicleDocument:
+        return _copy(
+          context: context,
+          de: 'Foto Fahrzeugausweis',
+          it: 'Foto libretto',
+          en: 'Vehicle document photo',
+          fr: 'Photo carte grise',
+        );
+      case AppointmentRequestImageCategory.parkingExtra:
+        return _copy(
+          context: context,
+          de: 'Zusaetzliches Foto',
+          it: 'Foto aggiuntiva',
+          en: 'Additional photo',
+          fr: 'Photo supplementaire',
+        );
       default:
         return '';
     }
@@ -297,6 +335,10 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       case AppointmentRequestImageCategory.hailVehicleDocument:
       case AppointmentRequestImageCategory.hailExtra1:
       case AppointmentRequestImageCategory.hailExtra2:
+      case AppointmentRequestImageCategory.parkingDamage:
+      case AppointmentRequestImageCategory.parkingOverview:
+      case AppointmentRequestImageCategory.parkingVehicleDocument:
+      case AppointmentRequestImageCategory.parkingExtra:
         return '';
       default:
         return '';
@@ -305,10 +347,26 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   String _requiredPhotosTitle(BuildContext context) => _copy(
         context: context,
-        de: _isHailDamage ? 'Fotos Hagelschaden' : 'Benoetigte Fotos',
-        it: _isHailDamage ? 'Foto danno grandine' : 'Foto richieste',
-        en: _isHailDamage ? 'Hail damage photos' : 'Required photos',
-        fr: _isHailDamage ? 'Photos degats grele' : 'Photos requises',
+        de: _isHailDamage
+            ? 'Fotos Hagelschaden'
+            : _isParkingDamage
+                ? 'Fotos Parkschaden'
+                : 'Benoetigte Fotos',
+        it: _isHailDamage
+            ? 'Foto danno grandine'
+            : _isParkingDamage
+                ? 'Foto danno parcheggio'
+                : 'Foto richieste',
+        en: _isHailDamage
+            ? 'Hail damage photos'
+            : _isParkingDamage
+                ? 'Parking damage photos'
+                : 'Required photos',
+        fr: _isHailDamage
+            ? 'Photos degats grele'
+            : _isParkingDamage
+                ? 'Photos dommage parking'
+                : 'Photos requises',
       );
 
   String _requiredPhotosSubtitle(BuildContext context) => _copy(
@@ -641,8 +699,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   Widget _licensePlateCard(BuildContext context) {
     final theme = Theme.of(context);
-    final showError =
-        _showValidationErrors && _usesDamageDetailsForm && _isLicensePlateMissing;
+    final showError = _showValidationErrors &&
+        _usesDamageDetailsForm &&
+        _isLicensePlateMissing;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -727,8 +786,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final borderColor = isError
         ? theme.colorScheme.error
         : theme.dividerColor.withOpacity(0.35);
-    final focusColor =
-        isError ? theme.colorScheme.error : theme.colorScheme.primary.withOpacity(0.6);
+    final focusColor = isError
+        ? theme.colorScheme.error
+        : theme.colorScheme.primary.withOpacity(0.6);
     return InputDecoration(
       hintText: hint,
       filled: true,
@@ -860,6 +920,14 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         return _hailExtraImage1;
       case AppointmentRequestImageCategory.hailExtra2:
         return _hailExtraImage2;
+      case AppointmentRequestImageCategory.parkingVehicleDocument:
+        return _parkingVehicleDocumentImages;
+      case AppointmentRequestImageCategory.parkingDamage:
+        return _parkingDamageImages;
+      case AppointmentRequestImageCategory.parkingOverview:
+        return _parkingOverviewImages;
+      case AppointmentRequestImageCategory.parkingExtra:
+        return _parkingExtraImages;
       case AppointmentRequestImageCategory.closeGlass:
       default:
         return _glassCloseGlassImages;
@@ -880,6 +948,14 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         return Icons.directions_car_filled_outlined;
       case AppointmentRequestImageCategory.hailExtra1:
       case AppointmentRequestImageCategory.hailExtra2:
+        return Icons.add_a_photo_outlined;
+      case AppointmentRequestImageCategory.parkingVehicleDocument:
+        return Icons.description_outlined;
+      case AppointmentRequestImageCategory.parkingDamage:
+        return Icons.car_crash_outlined;
+      case AppointmentRequestImageCategory.parkingOverview:
+        return Icons.directions_car_filled_outlined;
+      case AppointmentRequestImageCategory.parkingExtra:
         return Icons.add_a_photo_outlined;
       case AppointmentRequestImageCategory.closeGlass:
       default:
@@ -914,11 +990,19 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   bool get _isHailOverviewPhotoMissing => _hailOverviewImages.isEmpty;
 
+  bool get _isParkingVehicleDocumentPhotoMissing =>
+      _parkingVehicleDocumentImages.isEmpty;
+
+  bool get _isParkingDamagePhotoMissing => _parkingDamageImages.isEmpty;
+
+  bool get _isParkingOverviewPhotoMissing => _parkingOverviewImages.isEmpty;
+
   bool get _isTownMissing => _glassTownCtrl.text.trim().isEmpty;
 
   bool get _isDamageDateMissing => _glassDamageDate == null;
 
-  bool get _isDamageTimeMissing => _isHailDamage && _hailDamageTime == null;
+  bool get _isDamageTimeMissing =>
+      (_isHailDamage || _isParkingDamage) && _hailDamageTime == null;
 
   bool get _isAppointmentSelectionMissing => _selectedSlot == null;
 
@@ -945,10 +1029,23 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       _isDamageTimeMissing ||
       _isAppointmentSelectionMissing;
 
+  bool get _hasParkingValidationErrors =>
+      _isLicensePlateMissing ||
+      _isNameMissing ||
+      _isContactMissing ||
+      _isParkingVehicleDocumentPhotoMissing ||
+      _isParkingDamagePhotoMissing ||
+      _isParkingOverviewPhotoMissing ||
+      _isTownMissing ||
+      _isDamageDateMissing ||
+      _isDamageTimeMissing ||
+      _isAppointmentSelectionMissing;
+
   bool get _canSubmitRequest {
     if (_selectedSlot == null) return false;
     if (_isGlassDamage) return !_hasGlassValidationErrors;
     if (_isHailDamage) return !_hasHailValidationErrors;
+    if (_isParkingDamage) return !_hasParkingValidationErrors;
     return _nameCtrl.text.trim().isNotEmpty;
   }
 
@@ -962,12 +1059,17 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   Future<String> _persistPickedFile(XFile file) async {
     final dir = await getApplicationDocumentsDirectory();
-    final folderName = _isHailDamage ? 'hail_damage_uploads' : 'glass_damage_uploads';
+    final folderName = _isHailDamage
+        ? 'hail_damage_uploads'
+        : _isParkingDamage
+            ? 'parking_damage_uploads'
+            : 'glass_damage_uploads';
     final targetDir = Directory('${dir.path}/$folderName');
     if (!await targetDir.exists()) {
       await targetDir.create(recursive: true);
     }
-    final originalName = file.name.isNotEmpty ? file.name : _fileNameFromPath(file.path);
+    final originalName =
+        file.name.isNotEmpty ? file.name : _fileNameFromPath(file.path);
     final safeName =
         '${DateTime.now().millisecondsSinceEpoch}_${_sanitizeFileName(originalName)}';
     final targetPath = '${targetDir.path}/$safeName';
@@ -1011,8 +1113,13 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     late final _GlassDamageImageDraft newItem;
     if (kIsWeb) {
       final bytes = await file.readAsBytes();
-      final prefix = _isHailDamage ? 'hail' : 'glass';
-      final cacheKey = '${prefix}_${DateTime.now().millisecondsSinceEpoch}_$category';
+      final prefix = _isHailDamage
+          ? 'hail'
+          : _isParkingDamage
+              ? 'parking'
+              : 'glass';
+      final cacheKey =
+          '${prefix}_${DateTime.now().millisecondsSinceEpoch}_$category';
       await LocalImageCache.saveImageLocally(cacheKey, bytes);
       newItem = _GlassDamageImageDraft(
         category: category,
@@ -1197,6 +1304,14 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         AppointmentRequestImageCategory.hailExtra2,
       ];
     }
+    if (_isParkingDamage) {
+      return const [
+        AppointmentRequestImageCategory.parkingVehicleDocument,
+        AppointmentRequestImageCategory.parkingDamage,
+        AppointmentRequestImageCategory.parkingOverview,
+        AppointmentRequestImageCategory.parkingExtra,
+      ];
+    }
     return const [];
   }
 
@@ -1236,14 +1351,21 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 _isVehicleDocumentPhotoMissing) ||
             (category == AppointmentRequestImageCategory.hailVehicleDocument &&
                 _isHailVehicleDocumentPhotoMissing) ||
+            (category ==
+                    AppointmentRequestImageCategory.parkingVehicleDocument &&
+                _isParkingVehicleDocumentPhotoMissing) ||
             (category == AppointmentRequestImageCategory.closeGlass &&
                 _isCloseGlassPhotoMissing) ||
             (category == AppointmentRequestImageCategory.frontVehicle &&
                 _isFrontVehiclePhotoMissing) ||
             (category == AppointmentRequestImageCategory.hailDamage &&
                 _isHailDamagePhotoMissing) ||
+            (category == AppointmentRequestImageCategory.parkingDamage &&
+                _isParkingDamagePhotoMissing) ||
             (category == AppointmentRequestImageCategory.hailOverview &&
-                _isHailOverviewPhotoMissing));
+                _isHailOverviewPhotoMissing) ||
+            (category == AppointmentRequestImageCategory.parkingOverview &&
+                _isParkingOverviewPhotoMissing));
 
     return Column(
       children: [
@@ -1457,8 +1579,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             _dateLabel(context),
             style: theme.textTheme.labelLarge?.copyWith(
               fontWeight: FontWeight.w700,
-              color:
-                  showDamageDateError ? theme.colorScheme.error : null,
+              color: showDamageDateError ? theme.colorScheme.error : null,
             ),
           ),
           const SizedBox(height: 8),
@@ -1501,7 +1622,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
               ),
             ),
           ],
-          if (_isHailDamage) ...[
+          if (_isHailDamage || _isParkingDamage) ...[
             const SizedBox(height: 12),
             Text(
               _hailTimeLabel(context),
@@ -1559,8 +1680,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   Widget _buildCalendarGuideCard(BuildContext context) {
     final theme = Theme.of(context);
-    final hasError =
-        _showValidationErrors &&
+    final hasError = _showValidationErrors &&
         _usesDamageDetailsForm &&
         _isAppointmentSelectionMissing;
     return Container(
@@ -1592,8 +1712,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             ),
             child: Icon(
               Icons.calendar_month_outlined,
-              color:
-                  hasError ? theme.colorScheme.error : theme.colorScheme.primary,
+              color: hasError
+                  ? theme.colorScheme.error
+                  : theme.colorScheme.primary,
             ),
           ),
           const SizedBox(width: 14),
@@ -1639,7 +1760,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         ? _hasGlassValidationErrors
         : _isHailDamage
             ? _hasHailValidationErrors
-            : name.isEmpty || _selectedSlot == null;
+            : _isParkingDamage
+                ? _hasParkingValidationErrors
+                : name.isEmpty || _selectedSlot == null;
 
     if (hasValidationErrors) {
       setState(() {
@@ -1671,8 +1794,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       final locale = Localizations.localeOf(context).languageCode;
       final request = await _appointmentService.createRequest(
         serviceType: widget.serviceType,
-        damageType:
-            widget.serviceType.startsWith('damage_') ? widget.serviceType : widget.damageType,
+        damageType: widget.serviceType.startsWith('damage_')
+            ? widget.serviceType
+            : widget.damageType,
         appointmentDate: _selectedSlot,
         appointmentTime: DateFormat('HH:mm:ss').format(_selectedSlot!),
         durationMinutes: 60,
@@ -1691,6 +1815,13 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             ? _glassDamageDate!.toUtc().toIso8601String()
             : null,
         hailDamageTime: _isHailDamage && _hailDamageTime != null
+            ? '${_hailDamageTime!.hour.toString().padLeft(2, '0')}:${_hailDamageTime!.minute.toString().padLeft(2, '0')}'
+            : null,
+        parkingDamageTown: _isParkingDamage ? _glassTownCtrl.text.trim() : null,
+        parkingDamageDate: _isParkingDamage && _glassDamageDate != null
+            ? _glassDamageDate!.toUtc().toIso8601String()
+            : null,
+        parkingDamageTime: _isParkingDamage && _hailDamageTime != null
             ? '${_hailDamageTime!.hour.toString().padLeft(2, '0')}:${_hailDamageTime!.minute.toString().padLeft(2, '0')}'
             : null,
         glassDamageVehicleDocumentImages: _isGlassDamage
@@ -1716,6 +1847,18 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 ..._hailExtraImage1.map((e) => e.toInput()),
                 ..._hailExtraImage2.map((e) => e.toInput()),
               ]
+            : const [],
+        parkingDamageVehicleDocumentImages: _isParkingDamage
+            ? _parkingVehicleDocumentImages.map((e) => e.toInput()).toList()
+            : const [],
+        parkingDamageDamageImages: _isParkingDamage
+            ? _parkingDamageImages.map((e) => e.toInput()).toList()
+            : const [],
+        parkingDamageOverviewImages: _isParkingDamage
+            ? _parkingOverviewImages.map((e) => e.toInput()).toList()
+            : const [],
+        parkingDamageExtraImages: _isParkingDamage
+            ? _parkingExtraImages.map((e) => e.toInput()).toList()
             : const [],
       );
       if (!mounted) return;
@@ -1752,11 +1895,13 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final slots =
         _buildSlots(_selectedDay).where((slot) => !_isBooked(slot)).toList();
     final usesDamageValidation = _usesDamageDetailsForm;
-    final showNameError = _showValidationErrors && usesDamageValidation && _isNameMissing;
+    final showNameError =
+        _showValidationErrors && usesDamageValidation && _isNameMissing;
     final showContactError =
         _showValidationErrors && usesDamageValidation && _isContactMissing;
-    final showAppointmentError =
-        _showValidationErrors && usesDamageValidation && _isAppointmentSelectionMissing;
+    final showAppointmentError = _showValidationErrors &&
+        usesDamageValidation &&
+        _isAppointmentSelectionMissing;
     final canTapSubmit = !_loading && !_submitting;
     final submitReady = _canSubmitRequest;
 
@@ -1784,8 +1929,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 context,
                 _nameHint(context),
                 isError: showNameError,
-                errorText:
-                    showNameError ? _requiredNameText(context) : null,
+                errorText: showNameError ? _requiredNameText(context) : null,
               ),
             ),
             const SizedBox(height: 10),
@@ -1941,8 +2085,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                           style: OutlinedButton.styleFrom(
                             backgroundColor:
                                 selected ? primary : Colors.transparent,
-                            foregroundColor:
-                                selected ? Colors.white : primary,
+                            foregroundColor: selected ? Colors.white : primary,
                             side: BorderSide(color: borderColor),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),

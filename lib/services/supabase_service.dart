@@ -255,6 +255,7 @@ class SupabaseService {
         final candidates = [
           'workshop_org_id',
           'org_id',
+
           'organization_id',
           'organisation_id',
         ];

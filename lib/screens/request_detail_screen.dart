@@ -26,10 +26,16 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
 
   AppointmentRequest get request => _request;
   bool get _isGlassDamageRequest =>
-      request.serviceType == 'damage_glass' || request.damageType == 'damage_glass';
+      request.serviceType == 'damage_glass' ||
+      request.damageType == 'damage_glass';
   bool get _isHailDamageRequest =>
-      request.serviceType == 'damage_hail' || request.damageType == 'damage_hail';
-  bool get _hasDamagePhotoSections => _isGlassDamageRequest || _isHailDamageRequest;
+      request.serviceType == 'damage_hail' ||
+      request.damageType == 'damage_hail';
+  bool get _isParkingDamageRequest =>
+      request.serviceType == 'damage_parking' ||
+      request.damageType == 'damage_parking';
+  bool get _hasDamagePhotoSections =>
+      _isGlassDamageRequest || _isHailDamageRequest || _isParkingDamageRequest;
 
   String _copy({
     required String de,
@@ -106,6 +112,34 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         fr: 'Photo supplementaire',
       );
 
+  String get _parkingDamagePhotosTitle => _copy(
+        de: 'Foto Parkschaden',
+        it: 'Foto danno parcheggio',
+        en: 'Parking damage photo',
+        fr: 'Photo dommage parking',
+      );
+
+  String get _parkingOverviewPhotosTitle => _copy(
+        de: 'Uebersichtsfoto Fahrzeug',
+        it: 'Foto panoramica veicolo',
+        en: 'Vehicle overview photo',
+        fr: 'Photo generale du vehicule',
+      );
+
+  String get _parkingVehicleDocumentPhotosTitle => _copy(
+        de: 'Foto Fahrzeugausweis',
+        it: 'Foto libretto',
+        en: 'Vehicle document photo',
+        fr: 'Photo carte grise',
+      );
+
+  String get _parkingExtraPhotosTitle => _copy(
+        de: 'Zusaetzliches Foto',
+        it: 'Foto aggiuntiva',
+        en: 'Additional photo',
+        fr: 'Photo supplementaire',
+      );
+
   String get _noPhotosText => _copy(
         de: 'Keine Fotos vorhanden.',
         it: 'Nessuna foto disponibile.',
@@ -118,6 +152,27 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         it: 'Chiudi foto',
         en: 'Close photo',
         fr: 'Fermer la photo',
+      );
+
+  String get _damageTownFieldLabel => _copy(
+        de: 'Ort',
+        it: 'Localita',
+        en: 'Town',
+        fr: 'Localite',
+      );
+
+  String get _damageDateFieldLabel => _copy(
+        de: 'Schadentag',
+        it: 'Data danno',
+        en: 'Damage date',
+        fr: 'Date du dommage',
+      );
+
+  String get _damageTimeFieldLabel => _copy(
+        de: 'Schadenzeit',
+        it: 'Ora danno',
+        en: 'Damage time',
+        fr: 'Heure du dommage',
       );
 
   String _requestStatusLabel(String status) => _copy(
@@ -217,7 +272,11 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     if (raw.isEmpty) return '-';
     final parsed = DateTime.tryParse(raw);
     if (parsed == null) return raw;
-    return parsed.toLocal().toIso8601String().replaceFirst('T', ' ').substring(0, 16);
+    return parsed
+        .toLocal()
+        .toIso8601String()
+        .replaceFirst('T', ' ')
+        .substring(0, 16);
   }
 
   @override
@@ -247,21 +306,42 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   String _hailDamageTimeLabel() {
     final raw = request.hailDamageTime?.trim() ?? '';
     if (raw.isEmpty) return '-';
-    return raw.length == 5 ? raw : raw.substring(0, raw.length >= 5 ? 5 : raw.length);
+    return raw.length == 5
+        ? raw
+        : raw.substring(0, raw.length >= 5 ? 5 : raw.length);
+  }
+
+  String _parkingDamageDateLabel() {
+    final raw = request.parkingDamageDate?.trim() ?? '';
+    if (raw.isEmpty) return '-';
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+    return parsed.toLocal().toIso8601String().substring(0, 10);
+  }
+
+  String _parkingDamageTimeLabel() {
+    final raw = request.parkingDamageTime?.trim() ?? '';
+    if (raw.isEmpty) return '-';
+    return raw.length == 5
+        ? raw
+        : raw.substring(0, raw.length >= 5 ? 5 : raw.length);
   }
 
   String _damageTownValue() {
     if (_isHailDamageRequest) return request.hailDamageTown?.trim() ?? '';
+    if (_isParkingDamageRequest) return request.parkingDamageTown?.trim() ?? '';
     return request.glassDamageTown?.trim() ?? '';
   }
 
   String _damageDateValue() {
     if (_isHailDamageRequest) return request.hailDamageDate?.trim() ?? '';
+    if (_isParkingDamageRequest) return request.parkingDamageDate?.trim() ?? '';
     return request.glassDamageDate?.trim() ?? '';
   }
 
   String _damageDateLabel() {
     if (_isHailDamageRequest) return _hailDamageDateLabel();
+    if (_isParkingDamageRequest) return _parkingDamageDateLabel();
     return _glassDamageDateLabel();
   }
 
@@ -381,6 +461,44 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         .toList();
     if (direct.isNotEmpty) return direct;
     return _readImageListFromNotes('hailDamageExtraImages');
+  }
+
+  List<String> _parkingDamageImageSources() {
+    final direct = request.parkingDamageDamageImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    final specific = _readImageListFromNotes('parkingDamageDamageImages');
+    if (specific.isNotEmpty) return specific;
+    return _readImageListFromNotes('parkingDamageImages');
+  }
+
+  List<String> _parkingVehicleDocumentImageSources() {
+    final direct = request.parkingDamageVehicleDocumentImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('parkingDamageVehicleDocumentImages');
+  }
+
+  List<String> _parkingOverviewImageSources() {
+    final direct = request.parkingDamageOverviewImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('parkingDamageOverviewImages');
+  }
+
+  List<String> _parkingExtraImageSources() {
+    final direct = request.parkingDamageExtraImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('parkingDamageExtraImages');
   }
 
   Widget _photoGrid(List<String> images) {
@@ -663,8 +781,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       final hailDamageImages = _hailDamageImageSources();
       final hailOverviewImages = _hailOverviewImageSources();
       final hailExtraImages = _hailExtraImageSources();
-      final hasSpecificSections =
-          hailVehicleDocumentImages.isNotEmpty ||
+      final hasSpecificSections = hailVehicleDocumentImages.isNotEmpty ||
           hailDamageImages.isNotEmpty ||
           hailOverviewImages.isNotEmpty ||
           hailExtraImages.isNotEmpty;
@@ -703,6 +820,63 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
               _photoSection(
                 title: _hailExtraPhotosTitle,
                 images: hailExtraImages,
+              ),
+          ] else
+            Text(
+              _noPhotosText,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+        ],
+      );
+    }
+
+    if (_isParkingDamageRequest) {
+      final parkingVehicleDocumentImages =
+          _parkingVehicleDocumentImageSources();
+      final parkingDamageImages = _parkingDamageImageSources();
+      final parkingOverviewImages = _parkingOverviewImageSources();
+      final parkingExtraImages = _parkingExtraImageSources();
+      final hasSpecificSections = parkingVehicleDocumentImages.isNotEmpty ||
+          parkingDamageImages.isNotEmpty ||
+          parkingOverviewImages.isNotEmpty ||
+          parkingExtraImages.isNotEmpty;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 12),
+          if (hasSpecificSections) ...[
+            if (parkingVehicleDocumentImages.isNotEmpty)
+              _photoSection(
+                title: _parkingVehicleDocumentPhotosTitle,
+                images: parkingVehicleDocumentImages,
+              ),
+            if (parkingVehicleDocumentImages.isNotEmpty &&
+                (parkingDamageImages.isNotEmpty ||
+                    parkingOverviewImages.isNotEmpty ||
+                    parkingExtraImages.isNotEmpty))
+              const SizedBox(height: 12),
+            if (parkingDamageImages.isNotEmpty)
+              _photoSection(
+                title: _parkingDamagePhotosTitle,
+                images: parkingDamageImages,
+              ),
+            if (parkingDamageImages.isNotEmpty &&
+                (parkingOverviewImages.isNotEmpty ||
+                    parkingExtraImages.isNotEmpty))
+              const SizedBox(height: 12),
+            if (parkingOverviewImages.isNotEmpty)
+              _photoSection(
+                title: _parkingOverviewPhotosTitle,
+                images: parkingOverviewImages,
+              ),
+            if (parkingOverviewImages.isNotEmpty &&
+                parkingExtraImages.isNotEmpty)
+              const SizedBox(height: 12),
+            if (parkingExtraImages.isNotEmpty)
+              _photoSection(
+                title: _parkingExtraPhotosTitle,
+                images: parkingExtraImages,
               ),
           ] else
             Text(
@@ -816,7 +990,8 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       return serviceType.isEmpty ? l10n.my_requests_title : serviceType;
     }
 
-    final canCancel = request.id.isNotEmpty && request.requestStatus != 'cancelled';
+    final canCancel =
+        request.id.isNotEmpty && request.requestStatus != 'cancelled';
 
     return Scaffold(
       appBar: AppBar(
@@ -847,13 +1022,17 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                       _row('Telefon', request.customerPhone ?? ''),
                       _row('E-Mail', request.customerEmail ?? ''),
                       if (_damageTownValue().isNotEmpty)
-                        _row('Ort', _damageTownValue()),
+                        _row(_damageTownFieldLabel, _damageTownValue()),
                       if (_damageDateValue().isNotEmpty)
-                        _row('Schadentag', _damageDateLabel()),
+                        _row(_damageDateFieldLabel, _damageDateLabel()),
                       if (_isHailDamageRequest &&
                           (request.hailDamageTime ?? '').trim().isNotEmpty)
-                        _row('Schadenzeit', _hailDamageTimeLabel()),
-                      _row('Status', _requestStatusLabel(request.requestStatus)),
+                        _row(_damageTimeFieldLabel, _hailDamageTimeLabel()),
+                      if (_isParkingDamageRequest &&
+                          (request.parkingDamageTime ?? '').trim().isNotEmpty)
+                        _row(_damageTimeFieldLabel, _parkingDamageTimeLabel()),
+                      _row(
+                          'Status', _requestStatusLabel(request.requestStatus)),
                       if ((request.notes ?? '').isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Text(
