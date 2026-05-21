@@ -82,14 +82,17 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   final List<_GlassDamageImageDraft> _glassVehicleDocumentImages = [];
   final List<_GlassDamageImageDraft> _glassCloseGlassImages = [];
   final List<_GlassDamageImageDraft> _glassFrontVehicleImages = [];
+  final List<_GlassDamageImageDraft> _glassCurrentKmImages = [];
   final List<_GlassDamageImageDraft> _hailVehicleDocumentImages = [];
   final List<_GlassDamageImageDraft> _hailDamageImages = [];
   final List<_GlassDamageImageDraft> _hailOverviewImages = [];
+  final List<_GlassDamageImageDraft> _hailCurrentKmImages = [];
   final List<_GlassDamageImageDraft> _hailExtraImage1 = [];
   final List<_GlassDamageImageDraft> _hailExtraImage2 = [];
   final List<_GlassDamageImageDraft> _parkingVehicleDocumentImages = [];
   final List<_GlassDamageImageDraft> _parkingDamageImages = [];
   final List<_GlassDamageImageDraft> _parkingOverviewImages = [];
+  final List<_GlassDamageImageDraft> _parkingCurrentKmImages = [];
   final List<_GlassDamageImageDraft> _parkingExtraImages = [];
 
   bool get _isGlassDamage => widget.serviceType == 'damage_glass';
@@ -234,6 +237,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
           en: 'Close-up glass photo',
           fr: 'Photo rapprochee du verre',
         );
+      case AppointmentRequestImageCategory.glassCurrentKm:
+      case AppointmentRequestImageCategory.hailCurrentKm:
+      case AppointmentRequestImageCategory.parkingCurrentKm:
+        return _copy(
+          context: context,
+          de: 'Foto aktueller KM-Stand',
+          it: 'Foto stato attuale KM',
+          en: 'Current mileage photo',
+          fr: 'Photo kilometrage actuel',
+        );
       case AppointmentRequestImageCategory.hailDamage:
         return _copy(
           context: context,
@@ -335,10 +348,13 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       case AppointmentRequestImageCategory.hailVehicleDocument:
       case AppointmentRequestImageCategory.hailExtra1:
       case AppointmentRequestImageCategory.hailExtra2:
+      case AppointmentRequestImageCategory.hailCurrentKm:
       case AppointmentRequestImageCategory.parkingDamage:
       case AppointmentRequestImageCategory.parkingOverview:
       case AppointmentRequestImageCategory.parkingVehicleDocument:
       case AppointmentRequestImageCategory.parkingExtra:
+      case AppointmentRequestImageCategory.parkingCurrentKm:
+      case AppointmentRequestImageCategory.glassCurrentKm:
         return '';
       default:
         return '';
@@ -385,12 +401,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         fr: 'Ajouter',
       );
 
-  String _statusDoneLabel(BuildContext context) => _copy(
+  String _statusChangeLabel(BuildContext context) => _copy(
         context: context,
-        de: 'Erledigt',
-        it: 'Completato',
-        en: 'Completed',
-        fr: 'Terminé',
+        de: 'Ändern',
+        it: 'Modifica',
+        en: 'Change',
+        fr: 'Modifier',
       );
 
   String _takePhotoLabel(BuildContext context) => _copy(
@@ -910,12 +926,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         return _glassVehicleDocumentImages;
       case AppointmentRequestImageCategory.frontVehicle:
         return _glassFrontVehicleImages;
+      case AppointmentRequestImageCategory.glassCurrentKm:
+        return _glassCurrentKmImages;
       case AppointmentRequestImageCategory.hailVehicleDocument:
         return _hailVehicleDocumentImages;
       case AppointmentRequestImageCategory.hailDamage:
         return _hailDamageImages;
       case AppointmentRequestImageCategory.hailOverview:
         return _hailOverviewImages;
+      case AppointmentRequestImageCategory.hailCurrentKm:
+        return _hailCurrentKmImages;
       case AppointmentRequestImageCategory.hailExtra1:
         return _hailExtraImage1;
       case AppointmentRequestImageCategory.hailExtra2:
@@ -926,6 +946,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         return _parkingDamageImages;
       case AppointmentRequestImageCategory.parkingOverview:
         return _parkingOverviewImages;
+      case AppointmentRequestImageCategory.parkingCurrentKm:
+        return _parkingCurrentKmImages;
       case AppointmentRequestImageCategory.parkingExtra:
         return _parkingExtraImages;
       case AppointmentRequestImageCategory.closeGlass:
@@ -940,6 +962,10 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         return Icons.description_outlined;
       case AppointmentRequestImageCategory.frontVehicle:
         return Icons.directions_car_outlined;
+      case AppointmentRequestImageCategory.glassCurrentKm:
+      case AppointmentRequestImageCategory.hailCurrentKm:
+      case AppointmentRequestImageCategory.parkingCurrentKm:
+        return Icons.speed_outlined;
       case AppointmentRequestImageCategory.hailVehicleDocument:
         return Icons.description_outlined;
       case AppointmentRequestImageCategory.hailDamage:
@@ -983,6 +1009,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   bool get _isFrontVehiclePhotoMissing => _glassFrontVehicleImages.isEmpty;
 
+  bool get _isGlassCurrentKmPhotoMissing => _glassCurrentKmImages.isEmpty;
+
   bool get _isHailVehicleDocumentPhotoMissing =>
       _hailVehicleDocumentImages.isEmpty;
 
@@ -990,12 +1018,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   bool get _isHailOverviewPhotoMissing => _hailOverviewImages.isEmpty;
 
+  bool get _isHailCurrentKmPhotoMissing => _hailCurrentKmImages.isEmpty;
+
   bool get _isParkingVehicleDocumentPhotoMissing =>
       _parkingVehicleDocumentImages.isEmpty;
 
   bool get _isParkingDamagePhotoMissing => _parkingDamageImages.isEmpty;
 
   bool get _isParkingOverviewPhotoMissing => _parkingOverviewImages.isEmpty;
+
+  bool get _isParkingCurrentKmPhotoMissing => _parkingCurrentKmImages.isEmpty;
 
   bool get _isTownMissing => _glassTownCtrl.text.trim().isEmpty;
 
@@ -1013,6 +1045,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       _isVehicleDocumentPhotoMissing ||
       _isCloseGlassPhotoMissing ||
       _isFrontVehiclePhotoMissing ||
+      _isGlassCurrentKmPhotoMissing ||
       _isTownMissing ||
       _isDamageDateMissing ||
       _isAppointmentSelectionMissing;
@@ -1024,6 +1057,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       _isHailVehicleDocumentPhotoMissing ||
       _isHailDamagePhotoMissing ||
       _isHailOverviewPhotoMissing ||
+      _isHailCurrentKmPhotoMissing ||
       _isTownMissing ||
       _isDamageDateMissing ||
       _isDamageTimeMissing ||
@@ -1036,6 +1070,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       _isParkingVehicleDocumentPhotoMissing ||
       _isParkingDamagePhotoMissing ||
       _isParkingOverviewPhotoMissing ||
+      _isParkingCurrentKmPhotoMissing ||
       _isTownMissing ||
       _isDamageDateMissing ||
       _isDamageTimeMissing ||
@@ -1293,6 +1328,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         AppointmentRequestImageCategory.vehicleDocument,
         AppointmentRequestImageCategory.closeGlass,
         AppointmentRequestImageCategory.frontVehicle,
+        AppointmentRequestImageCategory.glassCurrentKm,
       ];
     }
     if (_isHailDamage) {
@@ -1300,6 +1336,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         AppointmentRequestImageCategory.hailVehicleDocument,
         AppointmentRequestImageCategory.hailDamage,
         AppointmentRequestImageCategory.hailOverview,
+        AppointmentRequestImageCategory.hailCurrentKm,
         AppointmentRequestImageCategory.hailExtra1,
         AppointmentRequestImageCategory.hailExtra2,
       ];
@@ -1309,6 +1346,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         AppointmentRequestImageCategory.parkingVehicleDocument,
         AppointmentRequestImageCategory.parkingDamage,
         AppointmentRequestImageCategory.parkingOverview,
+        AppointmentRequestImageCategory.parkingCurrentKm,
         AppointmentRequestImageCategory.parkingExtra,
       ];
     }
@@ -1358,14 +1396,20 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 _isCloseGlassPhotoMissing) ||
             (category == AppointmentRequestImageCategory.frontVehicle &&
                 _isFrontVehiclePhotoMissing) ||
+            (category == AppointmentRequestImageCategory.glassCurrentKm &&
+                _isGlassCurrentKmPhotoMissing) ||
             (category == AppointmentRequestImageCategory.hailDamage &&
                 _isHailDamagePhotoMissing) ||
             (category == AppointmentRequestImageCategory.parkingDamage &&
                 _isParkingDamagePhotoMissing) ||
             (category == AppointmentRequestImageCategory.hailOverview &&
                 _isHailOverviewPhotoMissing) ||
+            (category == AppointmentRequestImageCategory.hailCurrentKm &&
+                _isHailCurrentKmPhotoMissing) ||
             (category == AppointmentRequestImageCategory.parkingOverview &&
-                _isParkingOverviewPhotoMissing));
+                _isParkingOverviewPhotoMissing) ||
+            (category == AppointmentRequestImageCategory.parkingCurrentKm &&
+                _isParkingCurrentKmPhotoMissing));
 
     return Column(
       children: [
@@ -1445,20 +1489,33 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: hasImage
-                          ? theme.colorScheme.primary.withOpacity(0.12)
+                          ? const Color(0xFF16A34A).withOpacity(0.12)
                           : theme.colorScheme.surface.withOpacity(0.24),
                       borderRadius: BorderRadius.circular(999),
                     ),
-                    child: Text(
-                      hasImage
-                          ? _statusDoneLabel(context)
-                          : _statusAddLabel(context),
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: hasImage
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurface.withOpacity(0.75),
-                        fontWeight: FontWeight.w700,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (hasImage) ...[
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            size: 16,
+                            color: Color(0xFF16A34A),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        Text(
+                          hasImage
+                              ? _statusChangeLabel(context)
+                              : _statusAddLabel(context),
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: hasImage
+                                ? const Color(0xFF16A34A)
+                                : theme.colorScheme.onSurface.withOpacity(0.75),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   if (hasImage) ...[
@@ -1833,6 +1890,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         glassDamageFrontVehicleImages: _isGlassDamage
             ? _glassFrontVehicleImages.map((e) => e.toInput()).toList()
             : const [],
+        glassDamageCurrentKmImages: _isGlassDamage
+            ? _glassCurrentKmImages.map((e) => e.toInput()).toList()
+            : const [],
         hailDamageVehicleDocumentImages: _isHailDamage
             ? _hailVehicleDocumentImages.map((e) => e.toInput()).toList()
             : const [],
@@ -1841,6 +1901,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             : const [],
         hailDamageOverviewImages: _isHailDamage
             ? _hailOverviewImages.map((e) => e.toInput()).toList()
+            : const [],
+        hailDamageCurrentKmImages: _isHailDamage
+            ? _hailCurrentKmImages.map((e) => e.toInput()).toList()
             : const [],
         hailDamageExtraImages: _isHailDamage
             ? [
@@ -1856,6 +1919,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             : const [],
         parkingDamageOverviewImages: _isParkingDamage
             ? _parkingOverviewImages.map((e) => e.toInput()).toList()
+            : const [],
+        parkingDamageCurrentKmImages: _isParkingDamage
+            ? _parkingCurrentKmImages.map((e) => e.toInput()).toList()
             : const [],
         parkingDamageExtraImages: _isParkingDamage
             ? _parkingExtraImages.map((e) => e.toInput()).toList()
@@ -1902,6 +1968,13 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final showAppointmentError = _showValidationErrors &&
         usesDamageValidation &&
         _isAppointmentSelectionMissing;
+    final isCurrentKmPhotoMissing = _isGlassDamage
+        ? _isGlassCurrentKmPhotoMissing
+        : _isHailDamage
+            ? _isHailCurrentKmPhotoMissing
+            : _isParkingDamage
+                ? _isParkingCurrentKmPhotoMissing
+                : false;
     final canTapSubmit = !_loading && !_submitting;
     final submitReady = _canSubmitRequest;
 
@@ -2128,7 +2201,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: canTapSubmit ? _onBookPressed : null,
+                  onPressed: canTapSubmit && !isCurrentKmPhotoMissing
+                      ? _onBookPressed
+                      : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: submitReady
                         ? theme.colorScheme.primary

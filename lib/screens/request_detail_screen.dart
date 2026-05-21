@@ -84,6 +84,13 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         fr: 'Photo frontale du vehicule',
       );
 
+  String get _currentKmPhotosTitle => _copy(
+        de: 'Foto aktueller KM-Stand',
+        it: 'Foto stato attuale KM',
+        en: 'Current mileage photo',
+        fr: 'Photo kilometrage actuel',
+      );
+
   String get _hailDamagePhotosTitle => _copy(
         de: 'Foto Hagelschaden',
         it: 'Foto dei danni da grandine',
@@ -425,6 +432,15 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     return const [];
   }
 
+  List<String> _glassCurrentKmImageSources() {
+    final direct = request.glassDamageCurrentKmImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('glassDamageCurrentKmImages');
+  }
+
   List<String> _hailDamageImageSources() {
     final direct = request.hailDamageDamageImages
         .map((image) => image.trim())
@@ -452,6 +468,15 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         .toList();
     if (direct.isNotEmpty) return direct;
     return _readImageListFromNotes('hailDamageOverviewImages');
+  }
+
+  List<String> _hailCurrentKmImageSources() {
+    final direct = request.hailDamageCurrentKmImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('hailDamageCurrentKmImages');
   }
 
   List<String> _hailExtraImageSources() {
@@ -490,6 +515,15 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         .toList();
     if (direct.isNotEmpty) return direct;
     return _readImageListFromNotes('parkingDamageOverviewImages');
+  }
+
+  List<String> _parkingCurrentKmImageSources() {
+    final direct = request.parkingDamageCurrentKmImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('parkingDamageCurrentKmImages');
   }
 
   List<String> _parkingExtraImageSources() {
@@ -780,47 +814,50 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       final hailVehicleDocumentImages = _hailVehicleDocumentImageSources();
       final hailDamageImages = _hailDamageImageSources();
       final hailOverviewImages = _hailOverviewImageSources();
+      final hailCurrentKmImages = _hailCurrentKmImageSources();
       final hailExtraImages = _hailExtraImageSources();
       final hasSpecificSections = hailVehicleDocumentImages.isNotEmpty ||
           hailDamageImages.isNotEmpty ||
           hailOverviewImages.isNotEmpty ||
+          hailCurrentKmImages.isNotEmpty ||
           hailExtraImages.isNotEmpty;
+      final sections = <Widget>[
+        if (hailVehicleDocumentImages.isNotEmpty)
+          _photoSection(
+            title: _hailVehicleDocumentPhotosTitle,
+            images: hailVehicleDocumentImages,
+          ),
+        if (hailDamageImages.isNotEmpty)
+          _photoSection(
+            title: _hailDamagePhotosTitle,
+            images: hailDamageImages,
+          ),
+        if (hailOverviewImages.isNotEmpty)
+          _photoSection(
+            title: _hailOverviewPhotosTitle,
+            images: hailOverviewImages,
+          ),
+        if (hailCurrentKmImages.isNotEmpty)
+          _photoSection(
+            title: _currentKmPhotosTitle,
+            images: hailCurrentKmImages,
+          ),
+        if (hailExtraImages.isNotEmpty)
+          _photoSection(
+            title: _hailExtraPhotosTitle,
+            images: hailExtraImages,
+          ),
+      ];
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 12),
           if (hasSpecificSections) ...[
-            if (hailVehicleDocumentImages.isNotEmpty)
-              _photoSection(
-                title: _hailVehicleDocumentPhotosTitle,
-                images: hailVehicleDocumentImages,
-              ),
-            if (hailVehicleDocumentImages.isNotEmpty &&
-                (hailDamageImages.isNotEmpty ||
-                    hailOverviewImages.isNotEmpty ||
-                    hailExtraImages.isNotEmpty))
-              const SizedBox(height: 12),
-            if (hailDamageImages.isNotEmpty)
-              _photoSection(
-                title: _hailDamagePhotosTitle,
-                images: hailDamageImages,
-              ),
-            if (hailDamageImages.isNotEmpty &&
-                (hailOverviewImages.isNotEmpty || hailExtraImages.isNotEmpty))
-              const SizedBox(height: 12),
-            if (hailOverviewImages.isNotEmpty)
-              _photoSection(
-                title: _hailOverviewPhotosTitle,
-                images: hailOverviewImages,
-              ),
-            if (hailOverviewImages.isNotEmpty && hailExtraImages.isNotEmpty)
-              const SizedBox(height: 12),
-            if (hailExtraImages.isNotEmpty)
-              _photoSection(
-                title: _hailExtraPhotosTitle,
-                images: hailExtraImages,
-              ),
+            for (var i = 0; i < sections.length; i++) ...[
+              sections[i],
+              if (i != sections.length - 1) const SizedBox(height: 12),
+            ],
           ] else
             Text(
               _noPhotosText,
@@ -835,49 +872,50 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
           _parkingVehicleDocumentImageSources();
       final parkingDamageImages = _parkingDamageImageSources();
       final parkingOverviewImages = _parkingOverviewImageSources();
+      final parkingCurrentKmImages = _parkingCurrentKmImageSources();
       final parkingExtraImages = _parkingExtraImageSources();
       final hasSpecificSections = parkingVehicleDocumentImages.isNotEmpty ||
           parkingDamageImages.isNotEmpty ||
           parkingOverviewImages.isNotEmpty ||
+          parkingCurrentKmImages.isNotEmpty ||
           parkingExtraImages.isNotEmpty;
+      final sections = <Widget>[
+        if (parkingVehicleDocumentImages.isNotEmpty)
+          _photoSection(
+            title: _parkingVehicleDocumentPhotosTitle,
+            images: parkingVehicleDocumentImages,
+          ),
+        if (parkingDamageImages.isNotEmpty)
+          _photoSection(
+            title: _parkingDamagePhotosTitle,
+            images: parkingDamageImages,
+          ),
+        if (parkingOverviewImages.isNotEmpty)
+          _photoSection(
+            title: _parkingOverviewPhotosTitle,
+            images: parkingOverviewImages,
+          ),
+        if (parkingCurrentKmImages.isNotEmpty)
+          _photoSection(
+            title: _currentKmPhotosTitle,
+            images: parkingCurrentKmImages,
+          ),
+        if (parkingExtraImages.isNotEmpty)
+          _photoSection(
+            title: _parkingExtraPhotosTitle,
+            images: parkingExtraImages,
+          ),
+      ];
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 12),
           if (hasSpecificSections) ...[
-            if (parkingVehicleDocumentImages.isNotEmpty)
-              _photoSection(
-                title: _parkingVehicleDocumentPhotosTitle,
-                images: parkingVehicleDocumentImages,
-              ),
-            if (parkingVehicleDocumentImages.isNotEmpty &&
-                (parkingDamageImages.isNotEmpty ||
-                    parkingOverviewImages.isNotEmpty ||
-                    parkingExtraImages.isNotEmpty))
-              const SizedBox(height: 12),
-            if (parkingDamageImages.isNotEmpty)
-              _photoSection(
-                title: _parkingDamagePhotosTitle,
-                images: parkingDamageImages,
-              ),
-            if (parkingDamageImages.isNotEmpty &&
-                (parkingOverviewImages.isNotEmpty ||
-                    parkingExtraImages.isNotEmpty))
-              const SizedBox(height: 12),
-            if (parkingOverviewImages.isNotEmpty)
-              _photoSection(
-                title: _parkingOverviewPhotosTitle,
-                images: parkingOverviewImages,
-              ),
-            if (parkingOverviewImages.isNotEmpty &&
-                parkingExtraImages.isNotEmpty)
-              const SizedBox(height: 12),
-            if (parkingExtraImages.isNotEmpty)
-              _photoSection(
-                title: _parkingExtraPhotosTitle,
-                images: parkingExtraImages,
-              ),
+            for (var i = 0; i < sections.length; i++) ...[
+              sections[i],
+              if (i != sections.length - 1) const SizedBox(height: 12),
+            ],
           ] else
             Text(
               _noPhotosText,
@@ -890,50 +928,57 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     final vehicleDocumentImages = _vehicleDocumentImageSources();
     final closeGlassImages = _closeGlassImageSources();
     final frontVehicleImages = _frontVehicleImageSources();
+    final currentKmImages = _glassCurrentKmImageSources();
     final fallbackImages = _glassImageSources();
     final categorizedImages = <String>{
       ...vehicleDocumentImages.map((image) => image.trim()),
       ...closeGlassImages.map((image) => image.trim()),
       ...frontVehicleImages.map((image) => image.trim()),
+      ...currentKmImages.map((image) => image.trim()),
     };
     final fallbackOnlyImages = fallbackImages
         .where((image) => !categorizedImages.contains(image.trim()))
         .toList();
     final hasSpecificSections = vehicleDocumentImages.isNotEmpty ||
         closeGlassImages.isNotEmpty ||
-        frontVehicleImages.isNotEmpty;
+        frontVehicleImages.isNotEmpty ||
+        currentKmImages.isNotEmpty;
+    final sections = <Widget>[
+      if (vehicleDocumentImages.isNotEmpty)
+        _photoSection(
+          title: _vehicleDocumentPhotosTitle,
+          images: vehicleDocumentImages,
+        ),
+      if (closeGlassImages.isNotEmpty)
+        _photoSection(
+          title: _closeGlassPhotosTitle,
+          images: closeGlassImages,
+        ),
+      if (frontVehicleImages.isNotEmpty)
+        _photoSection(
+          title: _frontVehiclePhotosTitle,
+          images: frontVehicleImages,
+        ),
+      if (currentKmImages.isNotEmpty)
+        _photoSection(
+          title: _currentKmPhotosTitle,
+          images: currentKmImages,
+        ),
+      if (fallbackOnlyImages.isNotEmpty)
+        _photoSection(
+          title: _photosTitle,
+          images: fallbackOnlyImages,
+        ),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 12),
         if (hasSpecificSections) ...[
-          if (vehicleDocumentImages.isNotEmpty)
-            _photoSection(
-              title: _vehicleDocumentPhotosTitle,
-              images: vehicleDocumentImages,
-            ),
-          if (vehicleDocumentImages.isNotEmpty &&
-              (closeGlassImages.isNotEmpty || frontVehicleImages.isNotEmpty))
-            const SizedBox(height: 12),
-          if (closeGlassImages.isNotEmpty)
-            _photoSection(
-              title: _closeGlassPhotosTitle,
-              images: closeGlassImages,
-            ),
-          if (closeGlassImages.isNotEmpty && frontVehicleImages.isNotEmpty)
-            const SizedBox(height: 12),
-          if (frontVehicleImages.isNotEmpty)
-            _photoSection(
-              title: _frontVehiclePhotosTitle,
-              images: frontVehicleImages,
-            ),
-          if (fallbackOnlyImages.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _photoSection(
-              title: _photosTitle,
-              images: fallbackOnlyImages,
-            ),
+          for (var i = 0; i < sections.length; i++) ...[
+            sections[i],
+            if (i != sections.length - 1) const SizedBox(height: 12),
           ],
         ] else if (fallbackImages.isEmpty)
           Text(

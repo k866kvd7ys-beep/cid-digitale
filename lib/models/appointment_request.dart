@@ -24,6 +24,7 @@ class AppointmentRequest {
     this.glassDamageVehicleDocumentImages = const [],
     this.glassDamageCloseGlassImages = const [],
     this.glassDamageFrontVehicleImages = const [],
+    this.glassDamageCurrentKmImages = const [],
     this.glassDamageImages = const [],
     this.hailDamageTown,
     this.hailDamageDate,
@@ -32,6 +33,7 @@ class AppointmentRequest {
     this.hailDamageDamageImages = const [],
     this.hailDamageImages = const [],
     this.hailDamageOverviewImages = const [],
+    this.hailDamageCurrentKmImages = const [],
     this.hailDamageExtraImages = const [],
     this.parkingDamageTown,
     this.parkingDamageDate,
@@ -40,6 +42,7 @@ class AppointmentRequest {
     this.parkingDamageDamageImages = const [],
     this.parkingDamageImages = const [],
     this.parkingDamageOverviewImages = const [],
+    this.parkingDamageCurrentKmImages = const [],
     this.parkingDamageExtraImages = const [],
   });
 
@@ -65,6 +68,7 @@ class AppointmentRequest {
   final List<String> glassDamageVehicleDocumentImages;
   final List<String> glassDamageCloseGlassImages;
   final List<String> glassDamageFrontVehicleImages;
+  final List<String> glassDamageCurrentKmImages;
   final List<String> glassDamageImages;
   final String? hailDamageTown;
   final String? hailDamageDate;
@@ -73,6 +77,7 @@ class AppointmentRequest {
   final List<String> hailDamageDamageImages;
   final List<String> hailDamageImages;
   final List<String> hailDamageOverviewImages;
+  final List<String> hailDamageCurrentKmImages;
   final List<String> hailDamageExtraImages;
   final String? parkingDamageTown;
   final String? parkingDamageDate;
@@ -81,6 +86,7 @@ class AppointmentRequest {
   final List<String> parkingDamageDamageImages;
   final List<String> parkingDamageImages;
   final List<String> parkingDamageOverviewImages;
+  final List<String> parkingDamageCurrentKmImages;
   final List<String> parkingDamageExtraImages;
 
   static List<String> _readStringList(dynamic value) {
@@ -139,6 +145,11 @@ class AppointmentRequest {
           map['glass_damage_images'] ??
           structuredNotes['glassDamageImages'],
     );
+    final glassDamageCurrentKmImages = _readStringList(
+      map['glassDamageCurrentKmImages'] ??
+          map['glass_damage_current_km_images'] ??
+          structuredNotes['glassDamageCurrentKmImages'],
+    );
     final hailDamageImages = _readStringList(
       map['hailDamageImages'] ??
           map['hail_damage_images'] ??
@@ -159,6 +170,11 @@ class AppointmentRequest {
       map['hailDamageOverviewImages'] ??
           map['hail_damage_overview_images'] ??
           structuredNotes['hailDamageOverviewImages'],
+    );
+    final hailDamageCurrentKmImages = _readStringList(
+      map['hailDamageCurrentKmImages'] ??
+          map['hail_damage_current_km_images'] ??
+          structuredNotes['hailDamageCurrentKmImages'],
     );
     final hailDamageExtraImages = _readStringList(
       map['hailDamageExtraImages'] ??
@@ -186,6 +202,11 @@ class AppointmentRequest {
           map['parking_damage_overview_images'] ??
           structuredNotes['parkingDamageOverviewImages'],
     );
+    final parkingDamageCurrentKmImages = _readStringList(
+      map['parkingDamageCurrentKmImages'] ??
+          map['parking_damage_current_km_images'] ??
+          structuredNotes['parkingDamageCurrentKmImages'],
+    );
     final parkingDamageExtraImages = _readStringList(
       map['parkingDamageExtraImages'] ??
           map['parking_damage_extra_images'] ??
@@ -197,6 +218,7 @@ class AppointmentRequest {
             glassDamageVehicleDocumentImages,
             glassDamageCloseGlassImages,
             glassDamageFrontVehicleImages,
+            glassDamageCurrentKmImages,
           ]);
     final mergedHailDamageImages = hailDamageImages.isNotEmpty
         ? hailDamageImages
@@ -204,6 +226,7 @@ class AppointmentRequest {
             hailDamageVehicleDocumentImages,
             hailDamageDamageImages,
             hailDamageOverviewImages,
+            hailDamageCurrentKmImages,
             hailDamageExtraImages,
           ]);
     final mergedParkingDamageImages = parkingDamageImages.isNotEmpty
@@ -212,6 +235,7 @@ class AppointmentRequest {
             parkingDamageVehicleDocumentImages,
             parkingDamageDamageImages,
             parkingDamageOverviewImages,
+            parkingDamageCurrentKmImages,
             parkingDamageExtraImages,
           ]);
     final extractedNotes = structuredNotes['text']?.toString();
@@ -267,6 +291,7 @@ class AppointmentRequest {
       glassDamageVehicleDocumentImages: glassDamageVehicleDocumentImages,
       glassDamageCloseGlassImages: glassDamageCloseGlassImages,
       glassDamageFrontVehicleImages: glassDamageFrontVehicleImages,
+      glassDamageCurrentKmImages: glassDamageCurrentKmImages,
       glassDamageImages: mergedGlassDamageImages,
       hailDamageTown: (map['hailDamageTown'] ??
               map['hail_damage_town'] ??
@@ -284,6 +309,7 @@ class AppointmentRequest {
       hailDamageDamageImages: hailDamageDamageImages,
       hailDamageImages: mergedHailDamageImages,
       hailDamageOverviewImages: hailDamageOverviewImages,
+      hailDamageCurrentKmImages: hailDamageCurrentKmImages,
       hailDamageExtraImages: hailDamageExtraImages,
       parkingDamageTown: (map['parkingDamageTown'] ??
               map['parking_damage_town'] ??
@@ -301,6 +327,7 @@ class AppointmentRequest {
       parkingDamageDamageImages: parkingDamageDamageImages,
       parkingDamageImages: mergedParkingDamageImages,
       parkingDamageOverviewImages: parkingDamageOverviewImages,
+      parkingDamageCurrentKmImages: parkingDamageCurrentKmImages,
       parkingDamageExtraImages: parkingDamageExtraImages,
     );
   }
@@ -329,6 +356,7 @@ class AppointmentRequest {
       'glassDamageVehicleDocumentImages': glassDamageVehicleDocumentImages,
       'glassDamageCloseGlassImages': glassDamageCloseGlassImages,
       'glassDamageFrontVehicleImages': glassDamageFrontVehicleImages,
+      'glassDamageCurrentKmImages': glassDamageCurrentKmImages,
       'glassDamageImages': glassDamageImages,
       'hailDamageTown': hailDamageTown,
       'hailDamageDate': hailDamageDate,
@@ -337,6 +365,7 @@ class AppointmentRequest {
       'hailDamageDamageImages': hailDamageDamageImages,
       'hailDamageImages': hailDamageImages,
       'hailDamageOverviewImages': hailDamageOverviewImages,
+      'hailDamageCurrentKmImages': hailDamageCurrentKmImages,
       'hailDamageExtraImages': hailDamageExtraImages,
       'parkingDamageTown': parkingDamageTown,
       'parkingDamageDate': parkingDamageDate,
@@ -345,6 +374,7 @@ class AppointmentRequest {
       'parkingDamageDamageImages': parkingDamageDamageImages,
       'parkingDamageImages': parkingDamageImages,
       'parkingDamageOverviewImages': parkingDamageOverviewImages,
+      'parkingDamageCurrentKmImages': parkingDamageCurrentKmImages,
       'parkingDamageExtraImages': parkingDamageExtraImages,
     };
   }
