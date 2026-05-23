@@ -35,6 +35,16 @@ class AppointmentRequest {
     this.hailDamageOverviewImages = const [],
     this.hailDamageCurrentKmImages = const [],
     this.hailDamageExtraImages = const [],
+    this.marderDamageTown,
+    this.marderDamageDate,
+    this.marderDamageTime,
+    this.marderDamageDrivable,
+    this.marderDamageDescription,
+    this.marderDamageVehicleDocumentImages = const [],
+    this.marderDamageEngineBayImages = const [],
+    this.marderDamageCableImages = const [],
+    this.marderDamageCurrentKmImages = const [],
+    this.marderDamageExtraImages = const [],
     this.parkingDamageTown,
     this.parkingDamageDate,
     this.parkingDamageTime,
@@ -79,6 +89,16 @@ class AppointmentRequest {
   final List<String> hailDamageOverviewImages;
   final List<String> hailDamageCurrentKmImages;
   final List<String> hailDamageExtraImages;
+  final String? marderDamageTown;
+  final String? marderDamageDate;
+  final String? marderDamageTime;
+  final String? marderDamageDrivable;
+  final String? marderDamageDescription;
+  final List<String> marderDamageVehicleDocumentImages;
+  final List<String> marderDamageEngineBayImages;
+  final List<String> marderDamageCableImages;
+  final List<String> marderDamageCurrentKmImages;
+  final List<String> marderDamageExtraImages;
   final String? parkingDamageTown;
   final String? parkingDamageDate;
   final String? parkingDamageTime;
@@ -180,6 +200,31 @@ class AppointmentRequest {
       map['hailDamageExtraImages'] ??
           map['hail_damage_extra_images'] ??
           structuredNotes['hailDamageExtraImages'],
+    );
+    final marderDamageVehicleDocumentImages = _readStringList(
+      map['marderDamageVehicleDocumentImages'] ??
+          map['marder_damage_vehicle_document_images'] ??
+          structuredNotes['marderDamageVehicleDocumentImages'],
+    );
+    final marderDamageEngineBayImages = _readStringList(
+      map['marderDamageEngineBayImages'] ??
+          map['marder_damage_engine_bay_images'] ??
+          structuredNotes['marderDamageEngineBayImages'],
+    );
+    final marderDamageCableImages = _readStringList(
+      map['marderDamageCableImages'] ??
+          map['marder_damage_cable_images'] ??
+          structuredNotes['marderDamageCableImages'],
+    );
+    final marderDamageCurrentKmImages = _readStringList(
+      map['marderDamageCurrentKmImages'] ??
+          map['marder_damage_current_km_images'] ??
+          structuredNotes['marderDamageCurrentKmImages'],
+    );
+    final marderDamageExtraImages = _readStringList(
+      map['marderDamageExtraImages'] ??
+          map['marder_damage_extra_images'] ??
+          structuredNotes['marderDamageExtraImages'],
     );
     final parkingDamageImages = _readStringList(
       map['parkingDamageImages'] ??
@@ -311,6 +356,31 @@ class AppointmentRequest {
       hailDamageOverviewImages: hailDamageOverviewImages,
       hailDamageCurrentKmImages: hailDamageCurrentKmImages,
       hailDamageExtraImages: hailDamageExtraImages,
+      marderDamageTown: (map['marderDamageTown'] ??
+              map['marder_damage_town'] ??
+              structuredNotes['marderDamageTown'])
+          ?.toString(),
+      marderDamageDate: (map['marderDamageDate'] ??
+              map['marder_damage_date'] ??
+              structuredNotes['marderDamageDate'])
+          ?.toString(),
+      marderDamageTime: (map['marderDamageTime'] ??
+              map['marder_damage_time'] ??
+              structuredNotes['marderDamageTime'])
+          ?.toString(),
+      marderDamageDrivable: (map['marderDamageDrivable'] ??
+              map['marder_damage_drivable'] ??
+              structuredNotes['marderDamageDrivable'])
+          ?.toString(),
+      marderDamageDescription: (map['marderDamageDescription'] ??
+              map['marder_damage_description'] ??
+              structuredNotes['marderDamageDescription'])
+          ?.toString(),
+      marderDamageVehicleDocumentImages: marderDamageVehicleDocumentImages,
+      marderDamageEngineBayImages: marderDamageEngineBayImages,
+      marderDamageCableImages: marderDamageCableImages,
+      marderDamageCurrentKmImages: marderDamageCurrentKmImages,
+      marderDamageExtraImages: marderDamageExtraImages,
       parkingDamageTown: (map['parkingDamageTown'] ??
               map['parking_damage_town'] ??
               structuredNotes['parkingDamageTown'])
@@ -367,6 +437,16 @@ class AppointmentRequest {
       'hailDamageOverviewImages': hailDamageOverviewImages,
       'hailDamageCurrentKmImages': hailDamageCurrentKmImages,
       'hailDamageExtraImages': hailDamageExtraImages,
+      'marderDamageTown': marderDamageTown,
+      'marderDamageDate': marderDamageDate,
+      'marderDamageTime': marderDamageTime,
+      'marderDamageDrivable': marderDamageDrivable,
+      'marderDamageDescription': marderDamageDescription,
+      'marderDamageVehicleDocumentImages': marderDamageVehicleDocumentImages,
+      'marderDamageEngineBayImages': marderDamageEngineBayImages,
+      'marderDamageCableImages': marderDamageCableImages,
+      'marderDamageCurrentKmImages': marderDamageCurrentKmImages,
+      'marderDamageExtraImages': marderDamageExtraImages,
       'parkingDamageTown': parkingDamageTown,
       'parkingDamageDate': parkingDamageDate,
       'parkingDamageTime': parkingDamageTime,

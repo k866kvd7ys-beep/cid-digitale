@@ -77,6 +77,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   final _emailCtrl = TextEditingController();
   final _plateCtrl = TextEditingController();
   final _glassTownCtrl = TextEditingController();
+  final _marderDescriptionCtrl = TextEditingController();
   final _appointmentService = AppointmentRequestsService();
   final _picker = ImagePicker();
   final List<_GlassDamageImageDraft> _glassVehicleDocumentImages = [];
@@ -89,17 +90,30 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   final List<_GlassDamageImageDraft> _hailCurrentKmImages = [];
   final List<_GlassDamageImageDraft> _hailExtraImage1 = [];
   final List<_GlassDamageImageDraft> _hailExtraImage2 = [];
+  final List<_GlassDamageImageDraft> _marderVehicleDocumentImages = [];
+  final List<_GlassDamageImageDraft> _marderEngineBayImages = [];
+  final List<_GlassDamageImageDraft> _marderCableImages = [];
+  final List<_GlassDamageImageDraft> _marderCurrentKmImages = [];
+  final List<_GlassDamageImageDraft> _marderExtraImages = [];
   final List<_GlassDamageImageDraft> _parkingVehicleDocumentImages = [];
   final List<_GlassDamageImageDraft> _parkingDamageImages = [];
   final List<_GlassDamageImageDraft> _parkingOverviewImages = [];
   final List<_GlassDamageImageDraft> _parkingCurrentKmImages = [];
   final List<_GlassDamageImageDraft> _parkingExtraImages = [];
+  String? _marderDamageDrivable;
 
   bool get _isGlassDamage => widget.serviceType == 'damage_glass';
   bool get _isHailDamage => widget.serviceType == 'damage_hail';
+  bool get _isMartenDamage => widget.serviceType == 'damage_marten';
   bool get _isParkingDamage => widget.serviceType == 'damage_parking';
   bool get _usesDamageDetailsForm =>
-      _isGlassDamage || _isHailDamage || _isParkingDamage;
+      _isGlassDamage || _isHailDamage || _isMartenDamage || _isParkingDamage;
+  bool get _usesDamageTimeField =>
+      _isHailDamage || _isMartenDamage || _isParkingDamage;
+
+  static const _marderDrivableYes = 'yes';
+  static const _marderDrivableNo = 'no';
+  static const _marderDrivableNotSure = 'not_sure';
 
   bool _isTaken(DateTime slot) => false;
 
@@ -280,6 +294,46 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
           en: 'Additional photo',
           fr: 'Photo supplementaire',
         );
+      case AppointmentRequestImageCategory.marderVehicleDocument:
+        return _copy(
+          context: context,
+          de: 'Foto Fahrzeugausweis',
+          it: 'Foto libretto',
+          en: 'Vehicle document photo',
+          fr: 'Photo carte grise',
+        );
+      case AppointmentRequestImageCategory.marderEngineBay:
+        return _copy(
+          context: context,
+          de: 'Foto Motorraum',
+          it: 'Foto vano motore',
+          en: 'Engine bay photo',
+          fr: 'Photo compartiment moteur',
+        );
+      case AppointmentRequestImageCategory.marderCable:
+        return _copy(
+          context: context,
+          de: 'Foto beschädigte Kabel',
+          it: 'Foto cavi danneggiati',
+          en: 'Damaged cable photo',
+          fr: 'Photo cables endommages',
+        );
+      case AppointmentRequestImageCategory.marderCurrentKm:
+        return _copy(
+          context: context,
+          de: 'Foto aktueller KM-Stand',
+          it: 'Foto stato attuale KM',
+          en: 'Current mileage photo',
+          fr: 'Photo kilometrage actuel',
+        );
+      case AppointmentRequestImageCategory.marderExtra:
+        return _copy(
+          context: context,
+          de: 'Zusaetzliches Foto',
+          it: 'Foto aggiuntiva',
+          en: 'Additional photo',
+          fr: 'Photo supplementaire',
+        );
       case AppointmentRequestImageCategory.parkingDamage:
         return _copy(
           context: context,
@@ -349,6 +403,11 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       case AppointmentRequestImageCategory.hailExtra1:
       case AppointmentRequestImageCategory.hailExtra2:
       case AppointmentRequestImageCategory.hailCurrentKm:
+      case AppointmentRequestImageCategory.marderVehicleDocument:
+      case AppointmentRequestImageCategory.marderEngineBay:
+      case AppointmentRequestImageCategory.marderCable:
+      case AppointmentRequestImageCategory.marderCurrentKm:
+      case AppointmentRequestImageCategory.marderExtra:
       case AppointmentRequestImageCategory.parkingDamage:
       case AppointmentRequestImageCategory.parkingOverview:
       case AppointmentRequestImageCategory.parkingVehicleDocument:
@@ -365,24 +424,32 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         context: context,
         de: _isHailDamage
             ? 'Fotos Hagelschaden'
-            : _isParkingDamage
-                ? 'Fotos Parkschaden'
-                : 'Benoetigte Fotos',
+            : _isMartenDamage
+                ? 'Fotos Marderschaden'
+                : _isParkingDamage
+                    ? 'Fotos Parkschaden'
+                    : 'Benoetigte Fotos',
         it: _isHailDamage
             ? 'Foto danno grandine'
-            : _isParkingDamage
-                ? 'Foto danno parcheggio'
-                : 'Foto richieste',
+            : _isMartenDamage
+                ? 'Foto danno da martora'
+                : _isParkingDamage
+                    ? 'Foto danno parcheggio'
+                    : 'Foto richieste',
         en: _isHailDamage
             ? 'Hail damage photos'
-            : _isParkingDamage
-                ? 'Parking damage photos'
-                : 'Required photos',
+            : _isMartenDamage
+                ? 'Marten damage photos'
+                : _isParkingDamage
+                    ? 'Parking damage photos'
+                    : 'Required photos',
         fr: _isHailDamage
             ? 'Photos degats grele'
-            : _isParkingDamage
-                ? 'Photos dommage parking'
-                : 'Photos requises',
+            : _isMartenDamage
+                ? 'Photos dommage fouine'
+                : _isParkingDamage
+                    ? 'Photos dommage parking'
+                    : 'Photos requises',
       );
 
   String _requiredPhotosSubtitle(BuildContext context) => _copy(
@@ -451,18 +518,34 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   String _dateLabel(BuildContext context) => _copy(
         context: context,
-        de: 'An welchem Tag ereignete sich der Schaden?',
-        it: 'In quale giorno è avvenuto il danno?',
-        en: 'On which day did the damage occur?',
-        fr: 'À quelle date le dommage est-il survenu ?',
+        de: _isMartenDamage
+            ? 'An welchem Tag wurde der Schaden bemerkt?'
+            : 'An welchem Tag ereignete sich der Schaden?',
+        it: _isMartenDamage
+            ? 'In quale giorno è stato notato il danno?'
+            : 'In quale giorno è avvenuto il danno?',
+        en: _isMartenDamage
+            ? 'On which day was the damage noticed?'
+            : 'On which day did the damage occur?',
+        fr: _isMartenDamage
+            ? 'À quelle date le dommage a-t-il été constaté ?'
+            : 'À quelle date le dommage est-il survenu ?',
       );
 
   String _hailTimeLabel(BuildContext context) => _copy(
         context: context,
-        de: 'Zu welcher Uhrzeit ist der Schaden passiert?',
-        it: 'A che ora è avvenuto il danno?',
-        en: 'At what time did the damage occur?',
-        fr: 'À quelle heure le dommage est-il survenu ?',
+        de: _isMartenDamage
+            ? 'Zu welcher Uhrzeit wurde der Schaden bemerkt?'
+            : 'Zu welcher Uhrzeit ist der Schaden passiert?',
+        it: _isMartenDamage
+            ? 'A che ora è stato notato il danno?'
+            : 'A che ora è avvenuto il danno?',
+        en: _isMartenDamage
+            ? 'At what time was the damage noticed?'
+            : 'At what time did the damage occur?',
+        fr: _isMartenDamage
+            ? 'À quelle heure le dommage a-t-il été constaté ?'
+            : 'À quelle heure le dommage est-il survenu ?',
       );
 
   String _pickDateButton(BuildContext context) => _copy(
@@ -567,6 +650,60 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         it: 'Ora danno obbligatoria',
         en: 'Damage time required',
         fr: 'Heure du dommage obligatoire',
+      );
+
+  String _marderDrivableQuestion(BuildContext context) => _copy(
+        context: context,
+        de: 'Ist das Fahrzeug noch fahrbereit?',
+        it: 'Il veicolo è ancora marciante?',
+        en: 'Is the vehicle still drivable?',
+        fr: 'Le véhicule peut-il encore rouler ?',
+      );
+
+  String _marderDrivableOptionLabel(BuildContext context, String value) {
+    switch (value) {
+      case _marderDrivableYes:
+        return _copy(
+          context: context,
+          de: 'Ja',
+          it: 'Sì',
+          en: 'Yes',
+          fr: 'Oui',
+        );
+      case _marderDrivableNo:
+        return _copy(
+          context: context,
+          de: 'Nein',
+          it: 'No',
+          en: 'No',
+          fr: 'Non',
+        );
+      case _marderDrivableNotSure:
+      default:
+        return _copy(
+          context: context,
+          de: 'Unsicher',
+          it: 'Non sicuro',
+          en: 'Not sure',
+          fr: 'Pas sûr',
+        );
+    }
+  }
+
+  String _marderDescriptionLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Beschreiben Sie kurz das Problem',
+        it: 'Descrivi brevemente il problema',
+        en: 'Briefly describe the problem',
+        fr: 'Décrivez brièvement le problème',
+      );
+
+  String _requiredMarderDrivableText(BuildContext context) => _copy(
+        context: context,
+        de: 'Bitte Fahrbereitschaft auswählen',
+        it: 'Seleziona se il veicolo è marciante',
+        en: 'Please select whether the vehicle is drivable',
+        fr: 'Veuillez indiquer si le véhicule peut encore rouler',
       );
 
   String _calendarLocaleTag(BuildContext context) {
@@ -846,11 +983,13 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     _emailCtrl.removeListener(_onValidationFieldChanged);
     _plateCtrl.removeListener(_onValidationFieldChanged);
     _glassTownCtrl.removeListener(_onValidationFieldChanged);
+    _marderDescriptionCtrl.removeListener(_onValidationFieldChanged);
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _plateCtrl.dispose();
     _glassTownCtrl.dispose();
+    _marderDescriptionCtrl.dispose();
     super.dispose();
   }
 
@@ -862,6 +1001,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     _emailCtrl.addListener(_onValidationFieldChanged);
     _plateCtrl.addListener(_onValidationFieldChanged);
     _glassTownCtrl.addListener(_onValidationFieldChanged);
+    _marderDescriptionCtrl.addListener(_onValidationFieldChanged);
     _loadAvailableSlots(_selectedDay);
     unawaited(AppointmentRequestsSyncManager.trigger());
   }
@@ -940,6 +1080,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         return _hailExtraImage1;
       case AppointmentRequestImageCategory.hailExtra2:
         return _hailExtraImage2;
+      case AppointmentRequestImageCategory.marderVehicleDocument:
+        return _marderVehicleDocumentImages;
+      case AppointmentRequestImageCategory.marderEngineBay:
+        return _marderEngineBayImages;
+      case AppointmentRequestImageCategory.marderCable:
+        return _marderCableImages;
+      case AppointmentRequestImageCategory.marderCurrentKm:
+        return _marderCurrentKmImages;
+      case AppointmentRequestImageCategory.marderExtra:
+        return _marderExtraImages;
       case AppointmentRequestImageCategory.parkingVehicleDocument:
         return _parkingVehicleDocumentImages;
       case AppointmentRequestImageCategory.parkingDamage:
@@ -974,6 +1124,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         return Icons.directions_car_filled_outlined;
       case AppointmentRequestImageCategory.hailExtra1:
       case AppointmentRequestImageCategory.hailExtra2:
+        return Icons.add_a_photo_outlined;
+      case AppointmentRequestImageCategory.marderVehicleDocument:
+        return Icons.description_outlined;
+      case AppointmentRequestImageCategory.marderEngineBay:
+        return Icons.car_repair_outlined;
+      case AppointmentRequestImageCategory.marderCable:
+        return Icons.electrical_services_outlined;
+      case AppointmentRequestImageCategory.marderCurrentKm:
+        return Icons.speed_outlined;
+      case AppointmentRequestImageCategory.marderExtra:
         return Icons.add_a_photo_outlined;
       case AppointmentRequestImageCategory.parkingVehicleDocument:
         return Icons.description_outlined;
@@ -1020,6 +1180,15 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   bool get _isHailCurrentKmPhotoMissing => _hailCurrentKmImages.isEmpty;
 
+  bool get _isMarderVehicleDocumentPhotoMissing =>
+      _marderVehicleDocumentImages.isEmpty;
+
+  bool get _isMarderEngineBayPhotoMissing => _marderEngineBayImages.isEmpty;
+
+  bool get _isMarderCablePhotoMissing => _marderCableImages.isEmpty;
+
+  bool get _isMarderCurrentKmPhotoMissing => _marderCurrentKmImages.isEmpty;
+
   bool get _isParkingVehicleDocumentPhotoMissing =>
       _parkingVehicleDocumentImages.isEmpty;
 
@@ -1034,7 +1203,10 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   bool get _isDamageDateMissing => _glassDamageDate == null;
 
   bool get _isDamageTimeMissing =>
-      (_isHailDamage || _isParkingDamage) && _hailDamageTime == null;
+      _usesDamageTimeField && _hailDamageTime == null;
+
+  bool get _isMarderDrivableMissing =>
+      (_marderDamageDrivable?.trim().isEmpty ?? true);
 
   bool get _isAppointmentSelectionMissing => _selectedSlot == null;
 
@@ -1063,6 +1235,20 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       _isDamageTimeMissing ||
       _isAppointmentSelectionMissing;
 
+  bool get _hasMartenValidationErrors =>
+      _isLicensePlateMissing ||
+      _isNameMissing ||
+      _isContactMissing ||
+      _isMarderVehicleDocumentPhotoMissing ||
+      _isMarderEngineBayPhotoMissing ||
+      _isMarderCablePhotoMissing ||
+      _isMarderCurrentKmPhotoMissing ||
+      _isTownMissing ||
+      _isDamageDateMissing ||
+      _isDamageTimeMissing ||
+      _isMarderDrivableMissing ||
+      _isAppointmentSelectionMissing;
+
   bool get _hasParkingValidationErrors =>
       _isLicensePlateMissing ||
       _isNameMissing ||
@@ -1080,6 +1266,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     if (_selectedSlot == null) return false;
     if (_isGlassDamage) return !_hasGlassValidationErrors;
     if (_isHailDamage) return !_hasHailValidationErrors;
+    if (_isMartenDamage) return !_hasMartenValidationErrors;
     if (_isParkingDamage) return !_hasParkingValidationErrors;
     return _nameCtrl.text.trim().isNotEmpty;
   }
@@ -1096,9 +1283,11 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final dir = await getApplicationDocumentsDirectory();
     final folderName = _isHailDamage
         ? 'hail_damage_uploads'
-        : _isParkingDamage
-            ? 'parking_damage_uploads'
-            : 'glass_damage_uploads';
+        : _isMartenDamage
+            ? 'marder_damage_uploads'
+            : _isParkingDamage
+                ? 'parking_damage_uploads'
+                : 'glass_damage_uploads';
     final targetDir = Directory('${dir.path}/$folderName');
     if (!await targetDir.exists()) {
       await targetDir.create(recursive: true);
@@ -1150,9 +1339,11 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       final bytes = await file.readAsBytes();
       final prefix = _isHailDamage
           ? 'hail'
-          : _isParkingDamage
-              ? 'parking'
-              : 'glass';
+          : _isMartenDamage
+              ? 'marder'
+              : _isParkingDamage
+                  ? 'parking'
+                  : 'glass';
       final cacheKey =
           '${prefix}_${DateTime.now().millisecondsSinceEpoch}_$category';
       await LocalImageCache.saveImageLocally(cacheKey, bytes);
@@ -1341,6 +1532,15 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         AppointmentRequestImageCategory.hailExtra2,
       ];
     }
+    if (_isMartenDamage) {
+      return const [
+        AppointmentRequestImageCategory.marderVehicleDocument,
+        AppointmentRequestImageCategory.marderEngineBay,
+        AppointmentRequestImageCategory.marderCable,
+        AppointmentRequestImageCategory.marderCurrentKm,
+        AppointmentRequestImageCategory.marderExtra,
+      ];
+    }
     if (_isParkingDamage) {
       return const [
         AppointmentRequestImageCategory.parkingVehicleDocument,
@@ -1406,6 +1606,17 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 _isHailOverviewPhotoMissing) ||
             (category == AppointmentRequestImageCategory.hailCurrentKm &&
                 _isHailCurrentKmPhotoMissing) ||
+            (category ==
+                    AppointmentRequestImageCategory.marderVehicleDocument &&
+                _isMarderVehicleDocumentPhotoMissing) ||
+            (category == AppointmentRequestImageCategory.marderEngineBay &&
+                _isMarderEngineBayPhotoMissing) ||
+            (category ==
+                    AppointmentRequestImageCategory.marderCable &&
+                _isMarderCablePhotoMissing) ||
+            (category ==
+                    AppointmentRequestImageCategory.marderCurrentKm &&
+                _isMarderCurrentKmPhotoMissing) ||
             (category == AppointmentRequestImageCategory.parkingOverview &&
                 _isParkingOverviewPhotoMissing) ||
             (category == AppointmentRequestImageCategory.parkingCurrentKm &&
@@ -1556,6 +1767,110 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     );
   }
 
+  Widget _buildMarderDrivableSection(BuildContext context) {
+    final theme = Theme.of(context);
+    final showError = _showValidationErrors && _isMarderDrivableMissing;
+    const options = [
+      _marderDrivableYes,
+      _marderDrivableNo,
+      _marderDrivableNotSure,
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withOpacity(0.22),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: showError
+              ? theme.colorScheme.error
+              : theme.dividerColor.withOpacity(0.35),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: (showError
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.primary)
+                      .withOpacity(0.12),
+                ),
+                child: Icon(
+                  Icons.directions_car_outlined,
+                  color: showError
+                      ? theme.colorScheme.error
+                      : theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _marderDrivableQuestion(context),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: showError ? theme.colorScheme.error : null,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: options.map((value) {
+              final selected = _marderDamageDrivable == value;
+              return ChoiceChip(
+                label: Text(_marderDrivableOptionLabel(context, value)),
+                selected: selected,
+                showCheckmark: false,
+                onSelected: (_) {
+                  setState(() {
+                    _marderDamageDrivable = value;
+                  });
+                },
+                labelStyle: theme.textTheme.labelLarge?.copyWith(
+                  color: selected
+                      ? Colors.white
+                      : theme.colorScheme.onSurface.withOpacity(0.78),
+                  fontWeight: FontWeight.w700,
+                ),
+                backgroundColor: theme.colorScheme.surface.withOpacity(0.26),
+                selectedColor: theme.colorScheme.primary,
+                side: BorderSide(
+                  color: selected
+                      ? theme.colorScheme.primary
+                      : theme.dividerColor.withOpacity(0.30),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              );
+            }).toList(),
+          ),
+          if (showError) ...[
+            const SizedBox(height: 8),
+            Text(
+              _requiredMarderDrivableText(context),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildGlassDamageSection(BuildContext context) {
     final theme = Theme.of(context);
     final localeTag = Localizations.localeOf(context).toLanguageTag();
@@ -1569,6 +1884,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final showTownError = _showValidationErrors && _isTownMissing;
     final showDamageDateError = _showValidationErrors && _isDamageDateMissing;
     final showDamageTimeError = _showValidationErrors && _isDamageTimeMissing;
+    final marderDescriptionLabel = _marderDescriptionLabel(context);
 
     return Container(
       width: double.infinity,
@@ -1679,7 +1995,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
               ),
             ),
           ],
-          if (_isHailDamage || _isParkingDamage) ...[
+          if (_usesDamageTimeField) ...[
             const SizedBox(height: 12),
             Text(
               _hailTimeLabel(context),
@@ -1729,6 +2045,21 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 ),
               ),
             ],
+          ],
+          if (_isMartenDamage) ...[
+            const SizedBox(height: 12),
+            _buildMarderDrivableSection(context),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _marderDescriptionCtrl,
+              textInputAction: TextInputAction.done,
+              minLines: 3,
+              maxLines: 5,
+              decoration: _premiumFieldDec(
+                context,
+                marderDescriptionLabel,
+              ),
+            ),
           ],
         ],
       ),
@@ -1817,9 +2148,11 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         ? _hasGlassValidationErrors
         : _isHailDamage
             ? _hasHailValidationErrors
-            : _isParkingDamage
-                ? _hasParkingValidationErrors
-                : name.isEmpty || _selectedSlot == null;
+            : _isMartenDamage
+                ? _hasMartenValidationErrors
+                : _isParkingDamage
+                    ? _hasParkingValidationErrors
+                    : name.isEmpty || _selectedSlot == null;
 
     if (hasValidationErrors) {
       setState(() {
@@ -1874,6 +2207,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         hailDamageTime: _isHailDamage && _hailDamageTime != null
             ? '${_hailDamageTime!.hour.toString().padLeft(2, '0')}:${_hailDamageTime!.minute.toString().padLeft(2, '0')}'
             : null,
+        marderDamageTown: _isMartenDamage ? _glassTownCtrl.text.trim() : null,
+        marderDamageDate: _isMartenDamage && _glassDamageDate != null
+            ? _glassDamageDate!.toUtc().toIso8601String()
+            : null,
+        marderDamageTime: _isMartenDamage && _hailDamageTime != null
+            ? '${_hailDamageTime!.hour.toString().padLeft(2, '0')}:${_hailDamageTime!.minute.toString().padLeft(2, '0')}'
+            : null,
+        marderDamageDrivable: _isMartenDamage ? _marderDamageDrivable : null,
+        marderDamageDescription:
+            _isMartenDamage ? _marderDescriptionCtrl.text.trim() : null,
         parkingDamageTown: _isParkingDamage ? _glassTownCtrl.text.trim() : null,
         parkingDamageDate: _isParkingDamage && _glassDamageDate != null
             ? _glassDamageDate!.toUtc().toIso8601String()
@@ -1910,6 +2253,21 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 ..._hailExtraImage1.map((e) => e.toInput()),
                 ..._hailExtraImage2.map((e) => e.toInput()),
               ]
+            : const [],
+        marderDamageVehicleDocumentImages: _isMartenDamage
+            ? _marderVehicleDocumentImages.map((e) => e.toInput()).toList()
+            : const [],
+        marderDamageEngineBayImages: _isMartenDamage
+            ? _marderEngineBayImages.map((e) => e.toInput()).toList()
+            : const [],
+        marderDamageCableImages: _isMartenDamage
+            ? _marderCableImages.map((e) => e.toInput()).toList()
+            : const [],
+        marderDamageCurrentKmImages: _isMartenDamage
+            ? _marderCurrentKmImages.map((e) => e.toInput()).toList()
+            : const [],
+        marderDamageExtraImages: _isMartenDamage
+            ? _marderExtraImages.map((e) => e.toInput()).toList()
             : const [],
         parkingDamageVehicleDocumentImages: _isParkingDamage
             ? _parkingVehicleDocumentImages.map((e) => e.toInput()).toList()
@@ -1972,9 +2330,11 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         ? _isGlassCurrentKmPhotoMissing
         : _isHailDamage
             ? _isHailCurrentKmPhotoMissing
-            : _isParkingDamage
-                ? _isParkingCurrentKmPhotoMissing
-                : false;
+            : _isMartenDamage
+                ? _isMarderCurrentKmPhotoMissing
+                : _isParkingDamage
+                    ? _isParkingCurrentKmPhotoMissing
+                    : false;
     final canTapSubmit = !_loading && !_submitting;
     final submitReady = _canSubmitRequest;
 
