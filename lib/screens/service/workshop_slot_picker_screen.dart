@@ -43,6 +43,18 @@ class _GlassDamageImageDraft {
   }
 }
 
+class _SummaryPhotoCountData {
+  const _SummaryPhotoCountData({
+    required this.title,
+    required this.count,
+    required this.optional,
+  });
+
+  final String title;
+  final int count;
+  final bool optional;
+}
+
 class WorkshopSlotPickerScreen extends StatefulWidget {
   final String title;
   final String serviceType;
@@ -70,6 +82,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   bool _loading = false;
   bool _submitting = false;
   bool _loadingSlots = false;
+  bool _confirmationAccepted = false;
+  bool _summaryCardVisible = false;
+  bool _submitPressed = false;
   List<DateTime> _bookedSlots = const [];
 
   final _nameCtrl = TextEditingController();
@@ -80,6 +95,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   final _marderDescriptionCtrl = TextEditingController();
   final _fullDamageDescriptionCtrl = TextEditingController();
   final _otherDamageDescriptionCtrl = TextEditingController();
+  late final Listenable _summaryFormListenable;
   final _appointmentService = AppointmentRequestsService();
   final _picker = ImagePicker();
   final List<_GlassDamageImageDraft> _glassVehicleDocumentImages = [];
@@ -937,6 +953,134 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         fr: 'Description obligatoire',
       );
 
+  String _summaryTitle(BuildContext context) => _copy(
+        context: context,
+        de: 'Ihre Anfrage im Ueberblick',
+        it: 'Riepilogo della tua richiesta',
+        en: 'Your request summary',
+        fr: 'Resume de votre demande',
+      );
+
+  String _summarySubtitle(BuildContext context) => _copy(
+        context: context,
+        de: 'Bitte pruefen Sie alle Angaben vor der finalen Terminbuchung.',
+        it: 'Controlla tutti i dati prima della conferma finale dell’appuntamento.',
+        en: 'Please review all details before confirming the appointment.',
+        fr: 'Veuillez verifier toutes les informations avant la confirmation finale.',
+      );
+
+  String _summaryVehicleSectionTitle(BuildContext context) => _copy(
+        context: context,
+        de: 'Fahrzeug',
+        it: 'Veicolo',
+        en: 'Vehicle',
+        fr: 'Vehicule',
+      );
+
+  String _summaryDamageSectionTitle(BuildContext context) => _copy(
+        context: context,
+        de: 'Schaden',
+        it: 'Danno',
+        en: 'Damage',
+        fr: 'Dommage',
+      );
+
+  String _summaryPhotosSectionTitle(BuildContext context) => _copy(
+        context: context,
+        de: 'Bilder',
+        it: 'Immagini',
+        en: 'Images',
+        fr: 'Images',
+      );
+
+  String _summaryAppointmentSectionTitle(BuildContext context) => _copy(
+        context: context,
+        de: 'Termin',
+        it: 'Appuntamento',
+        en: 'Appointment',
+        fr: 'Rendez-vous',
+      );
+
+  String _summaryTypeLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Schadenart',
+        it: 'Tipo danno',
+        en: 'Damage type',
+        fr: 'Type de dommage',
+      );
+
+  String _summaryTownShortLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Ortschaft',
+        it: 'Localita',
+        en: 'Town',
+        fr: 'Localite',
+      );
+
+  String _summaryDamageDateShortLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Schadentag',
+        it: 'Data danno',
+        en: 'Damage date',
+        fr: 'Date du dommage',
+      );
+
+  String _summaryDamageTimeShortLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Schadenzeit',
+        it: 'Ora danno',
+        en: 'Damage time',
+        fr: 'Heure du dommage',
+      );
+
+  String _summaryDayLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Tag',
+        it: 'Giorno',
+        en: 'Day',
+        fr: 'Jour',
+      );
+
+  String _summaryTimeLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Uhrzeit',
+        it: 'Orario',
+        en: 'Time',
+        fr: 'Heure',
+      );
+
+  String _summaryWorkshopLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Werkstatt',
+        it: 'Officina',
+        en: 'Workshop',
+        fr: 'Atelier',
+      );
+
+  String _summaryCustomerLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Kunde',
+        it: 'Cliente',
+        en: 'Customer',
+        fr: 'Client',
+      );
+
+  String _confirmationLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Ich bestaetige die Richtigkeit meiner Angaben',
+        it: 'Confermo la correttezza dei miei dati',
+        en: 'I confirm that my information is correct',
+        fr: 'Je confirme l’exactitude de mes informations',
+      );
+
+  String _confirmationHint(BuildContext context) => _copy(
+        context: context,
+        de: 'Bitte bestaetigen Sie Ihre Angaben, um den Termin zu buchen.',
+        it: 'Conferma i tuoi dati per poter prenotare l’appuntamento.',
+        en: 'Please confirm your details to book the appointment.',
+        fr: 'Veuillez confirmer vos informations pour reserver le rendez-vous.',
+      );
+
   List<String> get _otherDamageCategories => const [
         _otherCategoryEngineWarning,
         _otherCategoryBattery,
@@ -1303,6 +1447,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   @override
   void initState() {
     super.initState();
+    _summaryFormListenable = Listenable.merge([
+      _nameCtrl,
+      _phoneCtrl,
+      _emailCtrl,
+      _plateCtrl,
+      _glassTownCtrl,
+      _marderDescriptionCtrl,
+      _fullDamageDescriptionCtrl,
+      _otherDamageDescriptionCtrl,
+    ]);
     _nameCtrl.addListener(_onValidationFieldChanged);
     _phoneCtrl.addListener(_onValidationFieldChanged);
     _emailCtrl.addListener(_onValidationFieldChanged);
@@ -1313,6 +1467,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     _otherDamageDescriptionCtrl.addListener(_onValidationFieldChanged);
     _loadAvailableSlots(_selectedDay);
     unawaited(AppointmentRequestsSyncManager.trigger());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _summaryCardVisible = true;
+      });
+    });
   }
 
   List<DateTime> _buildSlots(DateTime day) {
@@ -1980,6 +2140,134 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       ];
     }
     return const [];
+  }
+
+  bool _isOptionalPhotoCategory(String category) {
+    switch (category) {
+      case AppointmentRequestImageCategory.hailExtra1:
+      case AppointmentRequestImageCategory.hailExtra2:
+      case AppointmentRequestImageCategory.marderExtra:
+      case AppointmentRequestImageCategory.fullExtra:
+      case AppointmentRequestImageCategory.otherExtra:
+      case AppointmentRequestImageCategory.parkingExtra:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  String _summaryPhotoTitle(BuildContext context, String category) {
+    switch (category) {
+      case AppointmentRequestImageCategory.vehicleDocument:
+      case AppointmentRequestImageCategory.hailVehicleDocument:
+      case AppointmentRequestImageCategory.marderVehicleDocument:
+      case AppointmentRequestImageCategory.fullVehicleDocument:
+      case AppointmentRequestImageCategory.otherVehicleDocument:
+      case AppointmentRequestImageCategory.parkingVehicleDocument:
+        return _copy(
+          context: context,
+          de: 'Foto Fahrzeugausweis',
+          it: 'Foto libretto',
+          en: 'Vehicle document photo',
+          fr: 'Photo carte grise',
+        );
+      case AppointmentRequestImageCategory.closeGlass:
+      case AppointmentRequestImageCategory.hailDamage:
+      case AppointmentRequestImageCategory.fullClose:
+      case AppointmentRequestImageCategory.otherProblem:
+      case AppointmentRequestImageCategory.parkingDamage:
+        return _copy(
+          context: context,
+          de: 'Schadenfoto',
+          it: 'Foto danno',
+          en: 'Damage photo',
+          fr: 'Photo du dommage',
+        );
+      case AppointmentRequestImageCategory.frontVehicle:
+      case AppointmentRequestImageCategory.hailOverview:
+      case AppointmentRequestImageCategory.fullOverview:
+      case AppointmentRequestImageCategory.parkingOverview:
+        return _copy(
+          context: context,
+          de: 'Uebersicht Fahrzeug',
+          it: 'Panoramica veicolo',
+          en: 'Vehicle overview',
+          fr: 'Vue d’ensemble du vehicule',
+        );
+      case AppointmentRequestImageCategory.glassCurrentKm:
+      case AppointmentRequestImageCategory.hailCurrentKm:
+      case AppointmentRequestImageCategory.marderCurrentKm:
+      case AppointmentRequestImageCategory.fullCurrentKm:
+      case AppointmentRequestImageCategory.otherCurrentKm:
+      case AppointmentRequestImageCategory.parkingCurrentKm:
+        return _copy(
+          context: context,
+          de: 'KM Foto',
+          it: 'Foto KM',
+          en: 'Mileage photo',
+          fr: 'Photo kilometrage',
+        );
+      case AppointmentRequestImageCategory.marderEngineBay:
+        return _copy(
+          context: context,
+          de: 'Foto Motorraum',
+          it: 'Foto vano motore',
+          en: 'Engine bay photo',
+          fr: 'Photo compartiment moteur',
+        );
+      case AppointmentRequestImageCategory.marderCable:
+        return _copy(
+          context: context,
+          de: 'Foto Kabel',
+          it: 'Foto cavi',
+          en: 'Cable photo',
+          fr: 'Photo cables',
+        );
+      case AppointmentRequestImageCategory.hailExtra1:
+      case AppointmentRequestImageCategory.hailExtra2:
+      case AppointmentRequestImageCategory.marderExtra:
+      case AppointmentRequestImageCategory.fullExtra:
+      case AppointmentRequestImageCategory.otherExtra:
+      case AppointmentRequestImageCategory.parkingExtra:
+        return _copy(
+          context: context,
+          de: 'Extra',
+          it: 'Extra',
+          en: 'Extra',
+          fr: 'Extra',
+        );
+      default:
+        return _glassSectionTitle(context, category);
+    }
+  }
+
+  List<_SummaryPhotoCountData> _summaryPhotoCounts(BuildContext context) {
+    final titlesInOrder = <String>[];
+    final counts = <String, int>{};
+    final optionalMap = <String, bool>{};
+
+    for (final category in _activePhotoCategories()) {
+      final title = _summaryPhotoTitle(context, category);
+      if (title.trim().isEmpty) continue;
+      if (!counts.containsKey(title)) {
+        titlesInOrder.add(title);
+        counts[title] = 0;
+        optionalMap[title] = _isOptionalPhotoCategory(category);
+      }
+      counts[title] =
+          (counts[title] ?? 0) + _imagesForCategory(category).length;
+      optionalMap[title] =
+          (optionalMap[title] ?? true) && _isOptionalPhotoCategory(category);
+    }
+
+    return [
+      for (final title in titlesInOrder)
+        _SummaryPhotoCountData(
+          title: title,
+          count: counts[title] ?? 0,
+          optional: optionalMap[title] ?? false,
+        ),
+    ];
   }
 
   Widget _buildGlassImageThumbnail(
@@ -2737,7 +3025,520 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     );
   }
 
+  String _selectedRequestTypeLabel(BuildContext context) {
+    if (_isGlassDamage) return AppLocalizations.of(context)!.damage_glass;
+    if (_isHailDamage) return AppLocalizations.of(context)!.damage_hail;
+    if (_isMartenDamage) return AppLocalizations.of(context)!.damage_marten;
+    if (_isParkingDamage) return AppLocalizations.of(context)!.damage_parking;
+    if (_isComprehensiveDamage) {
+      return AppLocalizations.of(context)!.damage_comprehensive;
+    }
+    if (_isOtherDamage) {
+      return _copy(
+        context: context,
+        de: 'Sonstige Schaeden oder technische Probleme',
+        it: 'Altri danni o problemi tecnici',
+        en: 'Other damages or technical problems',
+        fr: 'Autres dommages ou problemes techniques',
+      );
+    }
+    if (widget.serviceType == 'service_anmelden') {
+      return _copy(
+        context: context,
+        de: 'Service / Wartung',
+        it: 'Service / manutenzione',
+        en: 'Service / maintenance',
+        fr: 'Service / entretien',
+      );
+    }
+    if (widget.serviceType == 'raeder_sommer') {
+      return _copy(
+        context: context,
+        de: 'Raederwechsel Sommer',
+        it: 'Cambio gomme estive',
+        en: 'Summer tire change',
+        fr: 'Changement pneus ete',
+      );
+    }
+    if (widget.serviceType == 'raeder_winter') {
+      return _copy(
+        context: context,
+        de: 'Raederwechsel Winter',
+        it: 'Cambio gomme invernali',
+        en: 'Winter tire change',
+        fr: 'Changement pneus hiver',
+      );
+    }
+    return widget.title;
+  }
+
+  String _selectedWorkshopName(BuildContext context) => _copy(
+        context: context,
+        de: 'CrashForm Partnerwerkstatt',
+        it: 'Officina partner CrashForm',
+        en: 'CrashForm partner workshop',
+        fr: 'Atelier partenaire CrashForm',
+      );
+
+  String _summaryValue(String? value) {
+    final trimmed = value?.trim() ?? '';
+    return trimmed.isEmpty ? '-' : trimmed;
+  }
+
+  String _summaryDamageDateValue(BuildContext context) {
+    if (_glassDamageDate == null) return '-';
+    return DateFormat.yMMMMd(
+      Localizations.localeOf(context).toLanguageTag(),
+    ).format(_glassDamageDate!);
+  }
+
+  String _summaryDamageTimeValue(BuildContext context) {
+    if (!_usesDamageTimeField) return '-';
+    return _hailDamageTime == null ? '-' : _hailDamageTime!.format(context);
+  }
+
+  String _summaryAppointmentDateValue(BuildContext context) {
+    if (_selectedSlot == null) return '-';
+    return DateFormat.yMMMMd(
+      Localizations.localeOf(context).toLanguageTag(),
+    ).format(_selectedSlot!);
+  }
+
+  String _summaryAppointmentTimeValue(BuildContext context) {
+    if (_selectedSlot == null) return '-';
+    return DateFormat('HH:mm').format(_selectedSlot!);
+  }
+
+  Widget _summarySectionCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required List<Widget> children,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F1FF),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: const Color(0xFF2563EB)),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryInfoRow(
+    BuildContext context, {
+    required String label,
+    required String value,
+    bool emphasize = false,
+  }) {
+    final theme = Theme.of(context);
+    final displayValue = _summaryValue(value);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 116,
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: const Color(0xFF64748B),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              displayValue,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF0F172A),
+                fontWeight: emphasize ? FontWeight.w800 : FontWeight.w700,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryPhotoRow(
+    BuildContext context, {
+    required _SummaryPhotoCountData item,
+  }) {
+    final theme = Theme.of(context);
+    final hasPhotos = item.count > 0;
+    final iconColor =
+        hasPhotos ? const Color(0xFF16A34A) : const Color(0xFF94A3B8);
+    final icon = hasPhotos
+        ? Icons.check_circle_rounded
+        : item.optional
+            ? Icons.add_circle_outline_rounded
+            : Icons.radio_button_unchecked_rounded;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: iconColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '${item.count}x ${item.title}',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: hasPhotos
+                    ? const Color(0xFF0F172A)
+                    : theme.colorScheme.onSurface.withOpacity(0.62),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumSummaryCard(BuildContext context) {
+    final theme = Theme.of(context);
+    final photoItems = _summaryPhotoCounts(context);
+    final showConfirmationAccent = _canSubmitRequest && !_confirmationAccepted;
+
+    return AnimatedSlide(
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+      offset: _summaryCardVisible ? Offset.zero : const Offset(0, 0.06),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+        opacity: _summaryCardVisible ? 1 : 0,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFE5EDF7)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0F172A).withOpacity(0.05),
+                blurRadius: 28,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _summaryTitle(context),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _summarySubtitle(context),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF64748B),
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 18),
+              _summarySectionCard(
+                context,
+                icon: Icons.directions_car_outlined,
+                title: _summaryVehicleSectionTitle(context),
+                children: [
+                  _summaryInfoRow(
+                    context,
+                    label: AppLocalizations.of(context)!.license_plate_label,
+                    value: _plateCtrl.text,
+                    emphasize: true,
+                  ),
+                  _summaryInfoRow(
+                    context,
+                    label: _summaryCustomerLabel(context),
+                    value: _nameCtrl.text,
+                  ),
+                  _summaryInfoRow(
+                    context,
+                    label: _phoneHint(context),
+                    value: _phoneCtrl.text,
+                  ),
+                  _summaryInfoRow(
+                    context,
+                    label: _emailHint(context),
+                    value: _emailCtrl.text,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _summarySectionCard(
+                context,
+                icon: Icons.report_gmailerrorred_outlined,
+                title: _summaryDamageSectionTitle(context),
+                children: [
+                  _summaryInfoRow(
+                    context,
+                    label: _summaryTypeLabel(context),
+                    value: _selectedRequestTypeLabel(context),
+                  ),
+                  _summaryInfoRow(
+                    context,
+                    label: _summaryTownShortLabel(context),
+                    value: _glassTownCtrl.text,
+                  ),
+                  _summaryInfoRow(
+                    context,
+                    label: _summaryDamageDateShortLabel(context),
+                    value: _summaryDamageDateValue(context),
+                  ),
+                  _summaryInfoRow(
+                    context,
+                    label: _summaryDamageTimeShortLabel(context),
+                    value: _summaryDamageTimeValue(context),
+                  ),
+                ],
+              ),
+              if (photoItems.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                _summarySectionCard(
+                  context,
+                  icon: Icons.photo_library_outlined,
+                  title: _summaryPhotosSectionTitle(context),
+                  children: [
+                    for (final item in photoItems)
+                      _summaryPhotoRow(context, item: item),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 14),
+              _summarySectionCard(
+                context,
+                icon: Icons.event_available_outlined,
+                title: _summaryAppointmentSectionTitle(context),
+                children: [
+                  _summaryInfoRow(
+                    context,
+                    label: _summaryDayLabel(context),
+                    value: _summaryAppointmentDateValue(context),
+                  ),
+                  _summaryInfoRow(
+                    context,
+                    label: _summaryTimeLabel(context),
+                    value: _summaryAppointmentTimeValue(context),
+                  ),
+                  _summaryInfoRow(
+                    context,
+                    label: _summaryWorkshopLabel(context),
+                    value: _selectedWorkshopName(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: showConfirmationAccent
+                      ? const Color(0xFFEFF6FF)
+                      : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: showConfirmationAccent
+                        ? const Color(0xFF93C5FD)
+                        : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: Checkbox.adaptive(
+                        value: _confirmationAccepted,
+                        activeColor: const Color(0xFF2563EB),
+                        onChanged: _submitting
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _confirmationAccepted = value ?? false;
+                                });
+                              },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _confirmationLabel(context),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: const Color(0xFF0F172A),
+                              fontWeight: FontWeight.w800,
+                              height: 1.35,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _confirmationHint(context),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF64748B),
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPremiumSubmitButton(
+    BuildContext context, {
+    required bool canTapSubmit,
+    required bool submitReady,
+  }) {
+    final theme = Theme.of(context);
+    final gradient = submitReady
+        ? const LinearGradient(
+            colors: [
+              Color(0xFF79B6FF),
+              Color(0xFF3D82F6),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : LinearGradient(
+            colors: [
+              const Color(0xFFCBD5E1).withOpacity(0.9),
+              const Color(0xFF94A3B8).withOpacity(0.9),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 120),
+      scale: _submitPressed && canTapSubmit ? 0.985 : 1,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: submitReady
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF3D82F6).withOpacity(0.26),
+                    blurRadius: 22,
+                    offset: const Offset(0, 12),
+                  ),
+                ]
+              : const [],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: canTapSubmit ? _onBookPressed : null,
+            onTapDown: canTapSubmit
+                ? (_) {
+                    setState(() {
+                      _submitPressed = true;
+                    });
+                  }
+                : null,
+            onTapUp: canTapSubmit
+                ? (_) {
+                    setState(() {
+                      _submitPressed = false;
+                    });
+                  }
+                : null,
+            onTapCancel: canTapSubmit
+                ? () {
+                    setState(() {
+                      _submitPressed = false;
+                    });
+                  }
+                : null,
+            child: SizedBox(
+              width: double.infinity,
+              height: 58,
+              child: Center(
+                child: _loading || _submitting
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.4,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                    : Text(
+                        AppLocalizations.of(context)!.termin_buchen,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _onBookPressed() async {
+    if (!_confirmationAccepted) {
+      return;
+    }
     final name = _nameCtrl.text.trim();
     final hasValidationErrors = _isGlassDamage
         ? _hasGlassValidationErrors
@@ -2961,7 +3762,6 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final tf = DateFormat('HH:mm');
     final slots =
@@ -2974,21 +3774,6 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final showAppointmentError = _showValidationErrors &&
         usesDamageValidation &&
         _isAppointmentSelectionMissing;
-    final isCurrentKmPhotoMissing = _isGlassDamage
-        ? _isGlassCurrentKmPhotoMissing
-        : _isHailDamage
-            ? _isHailCurrentKmPhotoMissing
-            : _isMartenDamage
-                ? _isMarderCurrentKmPhotoMissing
-                : _isComprehensiveDamage
-                    ? _isFullCurrentKmPhotoMissing
-                    : _isOtherDamage
-                        ? _isOtherCurrentKmPhotoMissing
-                        : _isParkingDamage
-                            ? _isParkingCurrentKmPhotoMissing
-                            : false;
-    final canTapSubmit = !_loading && !_submitting;
-    final submitReady = _canSubmitRequest;
     final formHeaderTitle = _formHeaderTitle(context);
     final formHeaderSubtitle = _formHeaderSubtitle(context);
 
@@ -3206,52 +3991,24 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
               ),
             ),
             const SizedBox(height: 28),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: submitReady
-                    ? [
-                        BoxShadow(
-                          color: theme.colorScheme.primary.withOpacity(0.22),
-                          blurRadius: 18,
-                          offset: const Offset(0, 10),
-                        ),
-                      ]
-                    : const [],
-              ),
-              child: SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: canTapSubmit && !isCurrentKmPhotoMissing
-                      ? _onBookPressed
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: submitReady
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.primary.withOpacity(0.36),
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor:
-                        theme.colorScheme.primary.withOpacity(0.24),
-                    disabledForegroundColor:
-                        theme.colorScheme.onSurface.withOpacity(0.48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
+            AnimatedBuilder(
+              animation: _summaryFormListenable,
+              builder: (context, _) {
+                final canTapSubmit =
+                    !_loading && !_submitting && _confirmationAccepted;
+                final submitReady = _canSubmitRequest && _confirmationAccepted;
+                return Column(
+                  children: [
+                    _buildPremiumSummaryCard(context),
+                    const SizedBox(height: 18),
+                    _buildPremiumSubmitButton(
+                      context,
+                      canTapSubmit: canTapSubmit,
+                      submitReady: submitReady,
                     ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    _loading || _submitting ? '...' : l10n.termin_buchen,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: submitReady
-                          ? Colors.white
-                          : theme.colorScheme.onSurface.withOpacity(0.55),
-                    ),
-                  ),
-                ),
-              ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 20),
             SafeArea(
