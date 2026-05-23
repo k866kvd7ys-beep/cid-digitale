@@ -156,11 +156,11 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
       );
     }
 
-    final active =
-        _items.where((r) => r.requestStatus != 'cancelled').toList()
+    final active = _items.where((r) => r.requestStatus != 'cancelled').toList()
       ..sort((a, b) => _sortDate(a).compareTo(_sortDate(b)));
-    final cancelled =
-        _items.where((r) => r.requestStatus == 'cancelled').toList()
+    final cancelled = _items
+        .where((r) => r.requestStatus == 'cancelled')
+        .toList()
       ..sort((a, b) => _sortDate(b).compareTo(_sortDate(a)));
 
     return ListView(
@@ -276,6 +276,14 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
         return l10n.damage_parking;
       case 'damage_comprehensive':
         return l10n.damage_comprehensive;
+      case 'damage_other':
+        return _copy(
+          context,
+          de: 'Sonstige Schäden oder technische Probleme',
+          it: 'Altri danni o problemi tecnici',
+          en: 'Other damages or technical problems',
+          fr: 'Autres dommages ou problèmes techniques',
+        );
       default:
         return l10n.service_type_damage;
     }

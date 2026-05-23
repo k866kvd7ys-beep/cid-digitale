@@ -34,6 +34,12 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   bool get _isMartenDamageRequest =>
       request.serviceType == 'damage_marten' ||
       request.damageType == 'damage_marten';
+  bool get _isComprehensiveDamageRequest =>
+      request.serviceType == 'damage_comprehensive' ||
+      request.damageType == 'damage_comprehensive';
+  bool get _isOtherDamageRequest =>
+      request.serviceType == 'damage_other' ||
+      request.damageType == 'damage_other';
   bool get _isParkingDamageRequest =>
       request.serviceType == 'damage_parking' ||
       request.damageType == 'damage_parking';
@@ -41,6 +47,8 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       _isGlassDamageRequest ||
       _isHailDamageRequest ||
       _isMartenDamageRequest ||
+      _isComprehensiveDamageRequest ||
+      _isOtherDamageRequest ||
       _isParkingDamageRequest;
 
   String _copy({
@@ -153,6 +161,55 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         fr: 'Photo supplementaire',
       );
 
+  String get _fullVehicleDocumentPhotosTitle => _copy(
+        de: 'Foto Fahrzeugausweis',
+        it: 'Foto libretto',
+        en: 'Vehicle document photo',
+        fr: 'Photo carte grise',
+      );
+
+  String get _fullClosePhotosTitle => _copy(
+        de: 'Foto Schaden Nahaufnahme',
+        it: 'Foto danno ravvicinata',
+        en: 'Damage close-up photo',
+        fr: 'Photo gros plan du dommage',
+      );
+
+  String get _fullOverviewPhotosTitle => _copy(
+        de: 'Foto Gesamtansicht Fahrzeug',
+        it: 'Foto panoramica veicolo',
+        en: 'Vehicle overview photo',
+        fr: 'Photo vue d ensemble du véhicule',
+      );
+
+  String get _fullExtraPhotosTitle => _copy(
+        de: 'Zusaetzliches Foto',
+        it: 'Foto aggiuntiva',
+        en: 'Additional photo',
+        fr: 'Photo supplementaire',
+      );
+
+  String get _otherVehicleDocumentPhotosTitle => _copy(
+        de: 'Foto Fahrzeugausweis',
+        it: 'Foto libretto',
+        en: 'Vehicle document photo',
+        fr: 'Photo carte grise',
+      );
+
+  String get _otherProblemPhotosTitle => _copy(
+        de: 'Foto Problem / Schaden',
+        it: 'Foto problema / danno',
+        en: 'Problem / damage photo',
+        fr: 'Photo problème / dommage',
+      );
+
+  String get _otherExtraPhotosTitle => _copy(
+        de: 'Zusaetzliches Foto',
+        it: 'Foto aggiuntiva',
+        en: 'Additional photo',
+        fr: 'Photo supplementaire',
+      );
+
   String get _parkingDamagePhotosTitle => _copy(
         de: 'Foto Parkschaden',
         it: 'Foto danno parcheggio',
@@ -203,17 +260,17 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       );
 
   String get _damageDateFieldLabel => _copy(
-        de: 'Schadentag',
-        it: 'Data danno',
-        en: 'Damage date',
-        fr: 'Date du dommage',
+        de: _isOtherDamageRequest ? 'Problemtag' : 'Schadentag',
+        it: _isOtherDamageRequest ? 'Data problema' : 'Data danno',
+        en: _isOtherDamageRequest ? 'Problem date' : 'Damage date',
+        fr: _isOtherDamageRequest ? 'Date du problème' : 'Date du dommage',
       );
 
   String get _damageTimeFieldLabel => _copy(
-        de: 'Schadenzeit',
-        it: 'Ora danno',
-        en: 'Damage time',
-        fr: 'Heure du dommage',
+        de: _isOtherDamageRequest ? 'Problemzeit' : 'Schadenzeit',
+        it: _isOtherDamageRequest ? 'Ora problema' : 'Ora danno',
+        en: _isOtherDamageRequest ? 'Problem time' : 'Damage time',
+        fr: _isOtherDamageRequest ? 'Heure du problème' : 'Heure du dommage',
       );
 
   String get _marderDrivableFieldLabel => _copy(
@@ -224,6 +281,34 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       );
 
   String get _marderDescriptionFieldLabel => _copy(
+        de: 'Problembeschreibung',
+        it: 'Descrizione problema',
+        en: 'Problem description',
+        fr: 'Description du problème',
+      );
+
+  String get _fullDrivableFieldLabel => _copy(
+        de: 'Fahrbereit',
+        it: 'Marciante',
+        en: 'Drivable',
+        fr: 'Peut rouler',
+      );
+
+  String get _fullDescriptionFieldLabel => _copy(
+        de: 'Unfallbeschreibung',
+        it: 'Descrizione danno',
+        en: 'Accident description',
+        fr: 'Description de l’accident',
+      );
+
+  String get _otherCategoryFieldLabel => _copy(
+        de: 'Problemkategorie',
+        it: 'Categoria problema',
+        en: 'Problem category',
+        fr: 'Catégorie du problème',
+      );
+
+  String get _otherDescriptionFieldLabel => _copy(
         de: 'Problembeschreibung',
         it: 'Descrizione problema',
         en: 'Problem description',
@@ -383,7 +468,11 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   }
 
   String _marderDamageDrivableLabel() {
-    switch (request.marderDamageDrivable?.trim()) {
+    return _drivableAnswerLabel(request.marderDamageDrivable);
+  }
+
+  String _drivableAnswerLabel(String? rawValue) {
+    switch (rawValue?.trim()) {
       case 'yes':
         return _copy(
           de: 'Ja',
@@ -410,6 +499,98 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     }
   }
 
+  String _fullDamageDateLabel() {
+    final raw = request.fullDamageDate?.trim() ?? '';
+    if (raw.isEmpty) return '-';
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+    return parsed.toLocal().toIso8601String().substring(0, 10);
+  }
+
+  String _fullDamageTimeLabel() {
+    final raw = request.fullDamageTime?.trim() ?? '';
+    if (raw.isEmpty) return '-';
+    return raw.length == 5
+        ? raw
+        : raw.substring(0, raw.length >= 5 ? 5 : raw.length);
+  }
+
+  String _fullDamageDrivableLabel() {
+    return _drivableAnswerLabel(request.fullDamageDrivable);
+  }
+
+  String _otherDamageDateLabel() {
+    final raw = request.otherDamageDate?.trim() ?? '';
+    if (raw.isEmpty) return '-';
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+    return parsed.toLocal().toIso8601String().substring(0, 10);
+  }
+
+  String _otherDamageTimeLabel() {
+    final raw = request.otherDamageTime?.trim() ?? '';
+    if (raw.isEmpty) return '-';
+    return raw.length == 5
+        ? raw
+        : raw.substring(0, raw.length >= 5 ? 5 : raw.length);
+  }
+
+  String _otherDamageCategoryLabel() {
+    switch (request.otherDamageCategory?.trim()) {
+      case 'engine_warning':
+        return _copy(
+          de: 'Motorwarnleuchte',
+          it: 'Spia motore',
+          en: 'Engine warning light',
+          fr: 'Voyant moteur',
+        );
+      case 'battery':
+        return _copy(
+          de: 'Batterieproblem',
+          it: 'Problema batteria',
+          en: 'Battery problem',
+          fr: 'Problème de batterie',
+        );
+      case 'air_conditioning':
+        return _copy(
+          de: 'Klimaanlage',
+          it: 'Aria condizionata',
+          en: 'Air conditioning',
+          fr: 'Climatisation',
+        );
+      case 'electronics':
+        return _copy(
+          de: 'Elektronikproblem',
+          it: 'Problema elettronico',
+          en: 'Electronic problem',
+          fr: 'Problème électronique',
+        );
+      case 'noise_vibration':
+        return _copy(
+          de: 'Geräusch/Vibration',
+          it: 'Rumore/Vibrazione',
+          en: 'Noise/Vibration',
+          fr: 'Bruit/Vibration',
+        );
+      case 'recall':
+        return _copy(
+          de: 'Rückrufaktion',
+          it: 'Richiamo ufficiale',
+          en: 'Official recall',
+          fr: 'Rappel officiel',
+        );
+      case 'other':
+        return _copy(
+          de: 'Sonstiges',
+          it: 'Altro',
+          en: 'Other',
+          fr: 'Autre',
+        );
+      default:
+        return '-';
+    }
+  }
+
   String _parkingDamageDateLabel() {
     final raw = request.parkingDamageDate?.trim() ?? '';
     if (raw.isEmpty) return '-';
@@ -429,6 +610,10 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   String _damageTownValue() {
     if (_isHailDamageRequest) return request.hailDamageTown?.trim() ?? '';
     if (_isMartenDamageRequest) return request.marderDamageTown?.trim() ?? '';
+    if (_isComprehensiveDamageRequest) {
+      return request.fullDamageTown?.trim() ?? '';
+    }
+    if (_isOtherDamageRequest) return request.otherDamageTown?.trim() ?? '';
     if (_isParkingDamageRequest) return request.parkingDamageTown?.trim() ?? '';
     return request.glassDamageTown?.trim() ?? '';
   }
@@ -436,6 +621,10 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   String _damageDateValue() {
     if (_isHailDamageRequest) return request.hailDamageDate?.trim() ?? '';
     if (_isMartenDamageRequest) return request.marderDamageDate?.trim() ?? '';
+    if (_isComprehensiveDamageRequest) {
+      return request.fullDamageDate?.trim() ?? '';
+    }
+    if (_isOtherDamageRequest) return request.otherDamageDate?.trim() ?? '';
     if (_isParkingDamageRequest) return request.parkingDamageDate?.trim() ?? '';
     return request.glassDamageDate?.trim() ?? '';
   }
@@ -443,6 +632,8 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   String _damageDateLabel() {
     if (_isHailDamageRequest) return _hailDamageDateLabel();
     if (_isMartenDamageRequest) return _marderDamageDateLabel();
+    if (_isComprehensiveDamageRequest) return _fullDamageDateLabel();
+    if (_isOtherDamageRequest) return _otherDamageDateLabel();
     if (_isParkingDamageRequest) return _parkingDamageDateLabel();
     return _glassDamageDateLabel();
   }
@@ -626,6 +817,87 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         .toList();
     if (direct.isNotEmpty) return direct;
     return _readImageListFromNotes('marderDamageExtraImages');
+  }
+
+  List<String> _fullVehicleDocumentImageSources() {
+    final direct = request.fullDamageVehicleDocumentImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('fullDamageVehicleDocumentImages');
+  }
+
+  List<String> _fullCloseImageSources() {
+    final direct = request.fullDamageCloseImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('fullDamageCloseImages');
+  }
+
+  List<String> _fullOverviewImageSources() {
+    final direct = request.fullDamageOverviewImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('fullDamageOverviewImages');
+  }
+
+  List<String> _fullCurrentKmImageSources() {
+    final direct = request.fullDamageCurrentKmImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('fullDamageCurrentKmImages');
+  }
+
+  List<String> _fullExtraImageSources() {
+    final direct = request.fullDamageExtraImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('fullDamageExtraImages');
+  }
+
+  List<String> _otherVehicleDocumentImageSources() {
+    final direct = request.otherDamageVehicleDocumentImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('otherDamageVehicleDocumentImages');
+  }
+
+  List<String> _otherProblemImageSources() {
+    final direct = request.otherDamageProblemImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('otherDamageProblemImages');
+  }
+
+  List<String> _otherCurrentKmImageSources() {
+    final direct = request.otherDamageCurrentKmImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('otherDamageCurrentKmImages');
+  }
+
+  List<String> _otherExtraImageSources() {
+    final direct = request.otherDamageExtraImages
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
+    if (direct.isNotEmpty) return direct;
+    return _readImageListFromNotes('otherDamageExtraImages');
   }
 
   List<String> _parkingDamageImageSources() {
@@ -1122,6 +1394,113 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       );
     }
 
+    if (_isComprehensiveDamageRequest) {
+      final fullVehicleDocumentImages = _fullVehicleDocumentImageSources();
+      final fullCloseImages = _fullCloseImageSources();
+      final fullOverviewImages = _fullOverviewImageSources();
+      final fullCurrentKmImages = _fullCurrentKmImageSources();
+      final fullExtraImages = _fullExtraImageSources();
+      final hasSpecificSections = fullVehicleDocumentImages.isNotEmpty ||
+          fullCloseImages.isNotEmpty ||
+          fullOverviewImages.isNotEmpty ||
+          fullCurrentKmImages.isNotEmpty ||
+          fullExtraImages.isNotEmpty;
+      final sections = <Widget>[
+        if (fullVehicleDocumentImages.isNotEmpty)
+          _photoSection(
+            title: _fullVehicleDocumentPhotosTitle,
+            images: fullVehicleDocumentImages,
+          ),
+        if (fullCloseImages.isNotEmpty)
+          _photoSection(
+            title: _fullClosePhotosTitle,
+            images: fullCloseImages,
+          ),
+        if (fullOverviewImages.isNotEmpty)
+          _photoSection(
+            title: _fullOverviewPhotosTitle,
+            images: fullOverviewImages,
+          ),
+        if (fullCurrentKmImages.isNotEmpty)
+          _photoSection(
+            title: _currentKmPhotosTitle,
+            images: fullCurrentKmImages,
+          ),
+        if (fullExtraImages.isNotEmpty)
+          _photoSection(
+            title: _fullExtraPhotosTitle,
+            images: fullExtraImages,
+          ),
+      ];
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 12),
+          if (hasSpecificSections) ...[
+            for (var i = 0; i < sections.length; i++) ...[
+              sections[i],
+              if (i != sections.length - 1) const SizedBox(height: 12),
+            ],
+          ] else
+            Text(
+              _noPhotosText,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+        ],
+      );
+    }
+
+    if (_isOtherDamageRequest) {
+      final otherVehicleDocumentImages = _otherVehicleDocumentImageSources();
+      final otherProblemImages = _otherProblemImageSources();
+      final otherCurrentKmImages = _otherCurrentKmImageSources();
+      final otherExtraImages = _otherExtraImageSources();
+      final hasSpecificSections = otherVehicleDocumentImages.isNotEmpty ||
+          otherProblemImages.isNotEmpty ||
+          otherCurrentKmImages.isNotEmpty ||
+          otherExtraImages.isNotEmpty;
+      final sections = <Widget>[
+        if (otherVehicleDocumentImages.isNotEmpty)
+          _photoSection(
+            title: _otherVehicleDocumentPhotosTitle,
+            images: otherVehicleDocumentImages,
+          ),
+        if (otherProblemImages.isNotEmpty)
+          _photoSection(
+            title: _otherProblemPhotosTitle,
+            images: otherProblemImages,
+          ),
+        if (otherCurrentKmImages.isNotEmpty)
+          _photoSection(
+            title: _currentKmPhotosTitle,
+            images: otherCurrentKmImages,
+          ),
+        if (otherExtraImages.isNotEmpty)
+          _photoSection(
+            title: _otherExtraPhotosTitle,
+            images: otherExtraImages,
+          ),
+      ];
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 12),
+          if (hasSpecificSections) ...[
+            for (var i = 0; i < sections.length; i++) ...[
+              sections[i],
+              if (i != sections.length - 1) const SizedBox(height: 12),
+            ],
+          ] else
+            Text(
+              _noPhotosText,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+        ],
+      );
+    }
+
     final vehicleDocumentImages = _vehicleDocumentImageSources();
     final closeGlassImages = _closeGlassImageSources();
     final frontVehicleImages = _frontVehicleImageSources();
@@ -1221,6 +1600,13 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
             return l10n.damage_parking;
           case 'damage_comprehensive':
             return l10n.damage_comprehensive;
+          case 'damage_other':
+            return _copy(
+              de: 'Sonstige Schäden oder technische Probleme',
+              it: 'Altri danni o problemi tecnici',
+              en: 'Other damages or technical problems',
+              fr: 'Autres dommages ou problèmes techniques',
+            );
           default:
             return l10n.service_type_damage;
         }
@@ -1273,6 +1659,12 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                       if (_isMartenDamageRequest &&
                           (request.marderDamageTime ?? '').trim().isNotEmpty)
                         _row(_damageTimeFieldLabel, _marderDamageTimeLabel()),
+                      if (_isComprehensiveDamageRequest &&
+                          (request.fullDamageTime ?? '').trim().isNotEmpty)
+                        _row(_damageTimeFieldLabel, _fullDamageTimeLabel()),
+                      if (_isOtherDamageRequest &&
+                          (request.otherDamageTime ?? '').trim().isNotEmpty)
+                        _row(_damageTimeFieldLabel, _otherDamageTimeLabel()),
                       if (_isParkingDamageRequest &&
                           (request.parkingDamageTime ?? '').trim().isNotEmpty)
                         _row(_damageTimeFieldLabel, _parkingDamageTimeLabel()),
@@ -1282,12 +1674,32 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                               .isNotEmpty)
                         _row(_marderDrivableFieldLabel,
                             _marderDamageDrivableLabel()),
+                      if (_isComprehensiveDamageRequest &&
+                          (request.fullDamageDrivable ?? '').trim().isNotEmpty)
+                        _row(_fullDrivableFieldLabel,
+                            _fullDamageDrivableLabel()),
                       if (_isMartenDamageRequest &&
                           (request.marderDamageDescription ?? '')
                               .trim()
                               .isNotEmpty)
                         _row(_marderDescriptionFieldLabel,
                             request.marderDamageDescription!.trim()),
+                      if (_isComprehensiveDamageRequest &&
+                          (request.fullDamageDescription ?? '')
+                              .trim()
+                              .isNotEmpty)
+                        _row(_fullDescriptionFieldLabel,
+                            request.fullDamageDescription!.trim()),
+                      if (_isOtherDamageRequest &&
+                          (request.otherDamageCategory ?? '').trim().isNotEmpty)
+                        _row(_otherCategoryFieldLabel,
+                            _otherDamageCategoryLabel()),
+                      if (_isOtherDamageRequest &&
+                          (request.otherDamageDescription ?? '')
+                              .trim()
+                              .isNotEmpty)
+                        _row(_otherDescriptionFieldLabel,
+                            request.otherDamageDescription!.trim()),
                       _row(
                           'Status', _requestStatusLabel(request.requestStatus)),
                       if ((request.notes ?? '').isNotEmpty) ...[

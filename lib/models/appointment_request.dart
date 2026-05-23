@@ -45,6 +45,25 @@ class AppointmentRequest {
     this.marderDamageCableImages = const [],
     this.marderDamageCurrentKmImages = const [],
     this.marderDamageExtraImages = const [],
+    this.fullDamageTown,
+    this.fullDamageDate,
+    this.fullDamageTime,
+    this.fullDamageDrivable,
+    this.fullDamageDescription,
+    this.fullDamageVehicleDocumentImages = const [],
+    this.fullDamageCloseImages = const [],
+    this.fullDamageOverviewImages = const [],
+    this.fullDamageCurrentKmImages = const [],
+    this.fullDamageExtraImages = const [],
+    this.otherDamageTown,
+    this.otherDamageDate,
+    this.otherDamageTime,
+    this.otherDamageCategory,
+    this.otherDamageDescription,
+    this.otherDamageVehicleDocumentImages = const [],
+    this.otherDamageProblemImages = const [],
+    this.otherDamageCurrentKmImages = const [],
+    this.otherDamageExtraImages = const [],
     this.parkingDamageTown,
     this.parkingDamageDate,
     this.parkingDamageTime,
@@ -99,6 +118,25 @@ class AppointmentRequest {
   final List<String> marderDamageCableImages;
   final List<String> marderDamageCurrentKmImages;
   final List<String> marderDamageExtraImages;
+  final String? fullDamageTown;
+  final String? fullDamageDate;
+  final String? fullDamageTime;
+  final String? fullDamageDrivable;
+  final String? fullDamageDescription;
+  final List<String> fullDamageVehicleDocumentImages;
+  final List<String> fullDamageCloseImages;
+  final List<String> fullDamageOverviewImages;
+  final List<String> fullDamageCurrentKmImages;
+  final List<String> fullDamageExtraImages;
+  final String? otherDamageTown;
+  final String? otherDamageDate;
+  final String? otherDamageTime;
+  final String? otherDamageCategory;
+  final String? otherDamageDescription;
+  final List<String> otherDamageVehicleDocumentImages;
+  final List<String> otherDamageProblemImages;
+  final List<String> otherDamageCurrentKmImages;
+  final List<String> otherDamageExtraImages;
   final String? parkingDamageTown;
   final String? parkingDamageDate;
   final String? parkingDamageTime;
@@ -225,6 +263,51 @@ class AppointmentRequest {
       map['marderDamageExtraImages'] ??
           map['marder_damage_extra_images'] ??
           structuredNotes['marderDamageExtraImages'],
+    );
+    final fullDamageVehicleDocumentImages = _readStringList(
+      map['fullDamageVehicleDocumentImages'] ??
+          map['full_damage_vehicle_document_images'] ??
+          structuredNotes['fullDamageVehicleDocumentImages'],
+    );
+    final fullDamageCloseImages = _readStringList(
+      map['fullDamageCloseImages'] ??
+          map['full_damage_close_images'] ??
+          structuredNotes['fullDamageCloseImages'],
+    );
+    final fullDamageOverviewImages = _readStringList(
+      map['fullDamageOverviewImages'] ??
+          map['full_damage_overview_images'] ??
+          structuredNotes['fullDamageOverviewImages'],
+    );
+    final fullDamageCurrentKmImages = _readStringList(
+      map['fullDamageCurrentKmImages'] ??
+          map['full_damage_current_km_images'] ??
+          structuredNotes['fullDamageCurrentKmImages'],
+    );
+    final fullDamageExtraImages = _readStringList(
+      map['fullDamageExtraImages'] ??
+          map['full_damage_extra_images'] ??
+          structuredNotes['fullDamageExtraImages'],
+    );
+    final otherDamageVehicleDocumentImages = _readStringList(
+      map['otherDamageVehicleDocumentImages'] ??
+          map['other_damage_vehicle_document_images'] ??
+          structuredNotes['otherDamageVehicleDocumentImages'],
+    );
+    final otherDamageProblemImages = _readStringList(
+      map['otherDamageProblemImages'] ??
+          map['other_damage_problem_images'] ??
+          structuredNotes['otherDamageProblemImages'],
+    );
+    final otherDamageCurrentKmImages = _readStringList(
+      map['otherDamageCurrentKmImages'] ??
+          map['other_damage_current_km_images'] ??
+          structuredNotes['otherDamageCurrentKmImages'],
+    );
+    final otherDamageExtraImages = _readStringList(
+      map['otherDamageExtraImages'] ??
+          map['other_damage_extra_images'] ??
+          structuredNotes['otherDamageExtraImages'],
     );
     final parkingDamageImages = _readStringList(
       map['parkingDamageImages'] ??
@@ -381,6 +464,55 @@ class AppointmentRequest {
       marderDamageCableImages: marderDamageCableImages,
       marderDamageCurrentKmImages: marderDamageCurrentKmImages,
       marderDamageExtraImages: marderDamageExtraImages,
+      fullDamageTown: (map['fullDamageTown'] ??
+              map['full_damage_town'] ??
+              structuredNotes['fullDamageTown'])
+          ?.toString(),
+      fullDamageDate: (map['fullDamageDate'] ??
+              map['full_damage_date'] ??
+              structuredNotes['fullDamageDate'])
+          ?.toString(),
+      fullDamageTime: (map['fullDamageTime'] ??
+              map['full_damage_time'] ??
+              structuredNotes['fullDamageTime'])
+          ?.toString(),
+      fullDamageDrivable: (map['fullDamageDrivable'] ??
+              map['full_damage_drivable'] ??
+              structuredNotes['fullDamageDrivable'])
+          ?.toString(),
+      fullDamageDescription: (map['fullDamageDescription'] ??
+              map['full_damage_description'] ??
+              structuredNotes['fullDamageDescription'])
+          ?.toString(),
+      fullDamageVehicleDocumentImages: fullDamageVehicleDocumentImages,
+      fullDamageCloseImages: fullDamageCloseImages,
+      fullDamageOverviewImages: fullDamageOverviewImages,
+      fullDamageCurrentKmImages: fullDamageCurrentKmImages,
+      fullDamageExtraImages: fullDamageExtraImages,
+      otherDamageTown: (map['otherDamageTown'] ??
+              map['other_damage_town'] ??
+              structuredNotes['otherDamageTown'])
+          ?.toString(),
+      otherDamageDate: (map['otherDamageDate'] ??
+              map['other_damage_date'] ??
+              structuredNotes['otherDamageDate'])
+          ?.toString(),
+      otherDamageTime: (map['otherDamageTime'] ??
+              map['other_damage_time'] ??
+              structuredNotes['otherDamageTime'])
+          ?.toString(),
+      otherDamageCategory: (map['otherDamageCategory'] ??
+              map['other_damage_category'] ??
+              structuredNotes['otherDamageCategory'])
+          ?.toString(),
+      otherDamageDescription: (map['otherDamageDescription'] ??
+              map['other_damage_description'] ??
+              structuredNotes['otherDamageDescription'])
+          ?.toString(),
+      otherDamageVehicleDocumentImages: otherDamageVehicleDocumentImages,
+      otherDamageProblemImages: otherDamageProblemImages,
+      otherDamageCurrentKmImages: otherDamageCurrentKmImages,
+      otherDamageExtraImages: otherDamageExtraImages,
       parkingDamageTown: (map['parkingDamageTown'] ??
               map['parking_damage_town'] ??
               structuredNotes['parkingDamageTown'])
@@ -447,6 +579,25 @@ class AppointmentRequest {
       'marderDamageCableImages': marderDamageCableImages,
       'marderDamageCurrentKmImages': marderDamageCurrentKmImages,
       'marderDamageExtraImages': marderDamageExtraImages,
+      'fullDamageTown': fullDamageTown,
+      'fullDamageDate': fullDamageDate,
+      'fullDamageTime': fullDamageTime,
+      'fullDamageDrivable': fullDamageDrivable,
+      'fullDamageDescription': fullDamageDescription,
+      'fullDamageVehicleDocumentImages': fullDamageVehicleDocumentImages,
+      'fullDamageCloseImages': fullDamageCloseImages,
+      'fullDamageOverviewImages': fullDamageOverviewImages,
+      'fullDamageCurrentKmImages': fullDamageCurrentKmImages,
+      'fullDamageExtraImages': fullDamageExtraImages,
+      'otherDamageTown': otherDamageTown,
+      'otherDamageDate': otherDamageDate,
+      'otherDamageTime': otherDamageTime,
+      'otherDamageCategory': otherDamageCategory,
+      'otherDamageDescription': otherDamageDescription,
+      'otherDamageVehicleDocumentImages': otherDamageVehicleDocumentImages,
+      'otherDamageProblemImages': otherDamageProblemImages,
+      'otherDamageCurrentKmImages': otherDamageCurrentKmImages,
+      'otherDamageExtraImages': otherDamageExtraImages,
       'parkingDamageTown': parkingDamageTown,
       'parkingDamageDate': parkingDamageDate,
       'parkingDamageTime': parkingDamageTime,

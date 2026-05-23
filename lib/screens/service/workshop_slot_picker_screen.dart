@@ -78,6 +78,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   final _plateCtrl = TextEditingController();
   final _glassTownCtrl = TextEditingController();
   final _marderDescriptionCtrl = TextEditingController();
+  final _fullDamageDescriptionCtrl = TextEditingController();
+  final _otherDamageDescriptionCtrl = TextEditingController();
   final _appointmentService = AppointmentRequestsService();
   final _picker = ImagePicker();
   final List<_GlassDamageImageDraft> _glassVehicleDocumentImages = [];
@@ -95,25 +97,55 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   final List<_GlassDamageImageDraft> _marderCableImages = [];
   final List<_GlassDamageImageDraft> _marderCurrentKmImages = [];
   final List<_GlassDamageImageDraft> _marderExtraImages = [];
+  final List<_GlassDamageImageDraft> _fullVehicleDocumentImages = [];
+  final List<_GlassDamageImageDraft> _fullCloseImages = [];
+  final List<_GlassDamageImageDraft> _fullOverviewImages = [];
+  final List<_GlassDamageImageDraft> _fullCurrentKmImages = [];
+  final List<_GlassDamageImageDraft> _fullExtraImages = [];
+  final List<_GlassDamageImageDraft> _otherVehicleDocumentImages = [];
+  final List<_GlassDamageImageDraft> _otherProblemImages = [];
+  final List<_GlassDamageImageDraft> _otherCurrentKmImages = [];
+  final List<_GlassDamageImageDraft> _otherExtraImages = [];
   final List<_GlassDamageImageDraft> _parkingVehicleDocumentImages = [];
   final List<_GlassDamageImageDraft> _parkingDamageImages = [];
   final List<_GlassDamageImageDraft> _parkingOverviewImages = [];
   final List<_GlassDamageImageDraft> _parkingCurrentKmImages = [];
   final List<_GlassDamageImageDraft> _parkingExtraImages = [];
   String? _marderDamageDrivable;
+  String? _fullDamageDrivable;
+  String? _otherDamageCategory;
 
   bool get _isGlassDamage => widget.serviceType == 'damage_glass';
   bool get _isHailDamage => widget.serviceType == 'damage_hail';
   bool get _isMartenDamage => widget.serviceType == 'damage_marten';
+  bool get _isComprehensiveDamage =>
+      widget.serviceType == 'damage_comprehensive';
+  bool get _isOtherDamage => widget.serviceType == 'damage_other';
   bool get _isParkingDamage => widget.serviceType == 'damage_parking';
   bool get _usesDamageDetailsForm =>
-      _isGlassDamage || _isHailDamage || _isMartenDamage || _isParkingDamage;
+      _isGlassDamage ||
+      _isHailDamage ||
+      _isMartenDamage ||
+      _isComprehensiveDamage ||
+      _isOtherDamage ||
+      _isParkingDamage;
   bool get _usesDamageTimeField =>
-      _isHailDamage || _isMartenDamage || _isParkingDamage;
+      _isHailDamage ||
+      _isMartenDamage ||
+      _isComprehensiveDamage ||
+      _isOtherDamage ||
+      _isParkingDamage;
 
   static const _marderDrivableYes = 'yes';
   static const _marderDrivableNo = 'no';
   static const _marderDrivableNotSure = 'not_sure';
+  static const _otherCategoryEngineWarning = 'engine_warning';
+  static const _otherCategoryBattery = 'battery';
+  static const _otherCategoryAirConditioning = 'air_conditioning';
+  static const _otherCategoryElectronics = 'electronics';
+  static const _otherCategoryNoiseVibration = 'noise_vibration';
+  static const _otherCategoryRecall = 'recall';
+  static const _otherCategoryOther = 'other';
 
   bool _isTaken(DateTime slot) => false;
 
@@ -184,6 +216,44 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         en: 'Select appointment',
         fr: 'Sélectionner le rendez-vous',
       );
+
+  String _formHeaderTitle(BuildContext context) {
+    if (_isComprehensiveDamage) {
+      return AppLocalizations.of(context)!.damage_comprehensive;
+    }
+    if (_isOtherDamage) {
+      return _copy(
+        context: context,
+        de: 'Sonstige Schäden oder technische Probleme',
+        it: 'Altri danni o problemi tecnici',
+        en: 'Other damages or technical problems',
+        fr: 'Autres dommages ou problèmes techniques',
+      );
+    }
+    return widget.title;
+  }
+
+  String? _formHeaderSubtitle(BuildContext context) {
+    if (_isComprehensiveDamage) {
+      return _copy(
+        context: context,
+        de: 'Kollision mit Objekt oder selbst verursachter Schaden',
+        it: 'Collisione con oggetto o danno causato dal conducente',
+        en: 'Collision with object or self-caused damage',
+        fr: 'Collision avec un objet ou dommage causé par le conducteur',
+      );
+    }
+    if (_isOtherDamage) {
+      return _copy(
+        context: context,
+        de: 'Melden Sie technische Probleme, Warnmeldungen oder sonstige Schäden.',
+        it: 'Segnala problemi tecnici, spie o altri danni.',
+        en: 'Report technical problems, warning lights or other damages.',
+        fr: 'Signalez des problèmes techniques, voyants ou autres dommages.',
+      );
+    }
+    return null;
+  }
 
   String _nameHint(BuildContext context) => _copy(
         context: context,
@@ -334,6 +404,78 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
           en: 'Additional photo',
           fr: 'Photo supplementaire',
         );
+      case AppointmentRequestImageCategory.fullVehicleDocument:
+        return _copy(
+          context: context,
+          de: 'Foto Fahrzeugausweis',
+          it: 'Foto libretto',
+          en: 'Vehicle document photo',
+          fr: 'Photo carte grise',
+        );
+      case AppointmentRequestImageCategory.fullClose:
+        return _copy(
+          context: context,
+          de: 'Foto Schaden Nahaufnahme',
+          it: 'Foto danno ravvicinata',
+          en: 'Damage close-up photo',
+          fr: 'Photo gros plan du dommage',
+        );
+      case AppointmentRequestImageCategory.fullOverview:
+        return _copy(
+          context: context,
+          de: 'Foto Gesamtansicht Fahrzeug',
+          it: 'Foto panoramica veicolo',
+          en: 'Vehicle overview photo',
+          fr: 'Photo vue d ensemble du véhicule',
+        );
+      case AppointmentRequestImageCategory.fullCurrentKm:
+        return _copy(
+          context: context,
+          de: 'Foto aktueller KM-Stand',
+          it: 'Foto stato attuale KM',
+          en: 'Current mileage photo',
+          fr: 'Photo kilometrage actuel',
+        );
+      case AppointmentRequestImageCategory.fullExtra:
+        return _copy(
+          context: context,
+          de: 'Zusaetzliches Foto',
+          it: 'Foto aggiuntiva',
+          en: 'Additional photo',
+          fr: 'Photo supplementaire',
+        );
+      case AppointmentRequestImageCategory.otherVehicleDocument:
+        return _copy(
+          context: context,
+          de: 'Foto Fahrzeugausweis',
+          it: 'Foto libretto',
+          en: 'Vehicle document photo',
+          fr: 'Photo carte grise',
+        );
+      case AppointmentRequestImageCategory.otherProblem:
+        return _copy(
+          context: context,
+          de: 'Foto Problem / Schaden',
+          it: 'Foto problema / danno',
+          en: 'Problem / damage photo',
+          fr: 'Photo problème / dommage',
+        );
+      case AppointmentRequestImageCategory.otherCurrentKm:
+        return _copy(
+          context: context,
+          de: 'Foto aktueller KM-Stand',
+          it: 'Foto stato attuale KM',
+          en: 'Current mileage photo',
+          fr: 'Photo kilometrage actuel',
+        );
+      case AppointmentRequestImageCategory.otherExtra:
+        return _copy(
+          context: context,
+          de: 'Zusaetzliches Foto',
+          it: 'Foto aggiuntiva',
+          en: 'Additional photo',
+          fr: 'Photo supplementaire',
+        );
       case AppointmentRequestImageCategory.parkingDamage:
         return _copy(
           context: context,
@@ -408,6 +550,15 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       case AppointmentRequestImageCategory.marderCable:
       case AppointmentRequestImageCategory.marderCurrentKm:
       case AppointmentRequestImageCategory.marderExtra:
+      case AppointmentRequestImageCategory.fullVehicleDocument:
+      case AppointmentRequestImageCategory.fullClose:
+      case AppointmentRequestImageCategory.fullOverview:
+      case AppointmentRequestImageCategory.fullCurrentKm:
+      case AppointmentRequestImageCategory.fullExtra:
+      case AppointmentRequestImageCategory.otherVehicleDocument:
+      case AppointmentRequestImageCategory.otherProblem:
+      case AppointmentRequestImageCategory.otherCurrentKm:
+      case AppointmentRequestImageCategory.otherExtra:
       case AppointmentRequestImageCategory.parkingDamage:
       case AppointmentRequestImageCategory.parkingOverview:
       case AppointmentRequestImageCategory.parkingVehicleDocument:
@@ -426,30 +577,46 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             ? 'Fotos Hagelschaden'
             : _isMartenDamage
                 ? 'Fotos Marderschaden'
-                : _isParkingDamage
-                    ? 'Fotos Parkschaden'
-                    : 'Benoetigte Fotos',
+                : _isComprehensiveDamage
+                    ? 'Fotos Vollkasko'
+                    : _isOtherDamage
+                        ? 'Fotos Sonstige Schäden'
+                        : _isParkingDamage
+                            ? 'Fotos Parkschaden'
+                            : 'Benoetigte Fotos',
         it: _isHailDamage
             ? 'Foto danno grandine'
             : _isMartenDamage
                 ? 'Foto danno da martora'
-                : _isParkingDamage
-                    ? 'Foto danno parcheggio'
-                    : 'Foto richieste',
+                : _isComprehensiveDamage
+                    ? 'Foto Vollkasko'
+                    : _isOtherDamage
+                        ? 'Foto altri danni'
+                        : _isParkingDamage
+                            ? 'Foto danno parcheggio'
+                            : 'Foto richieste',
         en: _isHailDamage
             ? 'Hail damage photos'
             : _isMartenDamage
                 ? 'Marten damage photos'
-                : _isParkingDamage
-                    ? 'Parking damage photos'
-                    : 'Required photos',
+                : _isComprehensiveDamage
+                    ? 'Comprehensive damage photos'
+                    : _isOtherDamage
+                        ? 'Other damage photos'
+                        : _isParkingDamage
+                            ? 'Parking damage photos'
+                            : 'Required photos',
         fr: _isHailDamage
             ? 'Photos degats grele'
             : _isMartenDamage
                 ? 'Photos dommage fouine'
-                : _isParkingDamage
-                    ? 'Photos dommage parking'
-                    : 'Photos requises',
+                : _isComprehensiveDamage
+                    ? 'Photos Vollkasko'
+                    : _isOtherDamage
+                        ? 'Photos autres dommages'
+                        : _isParkingDamage
+                            ? 'Photos dommage parking'
+                            : 'Photos requises',
       );
 
   String _requiredPhotosSubtitle(BuildContext context) => _copy(
@@ -510,42 +677,66 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   String _townLabel(BuildContext context) => _copy(
         context: context,
-        de: 'In welcher Ortschaft ist es passiert?',
-        it: 'In quale località è successo?',
-        en: 'In which town did it happen?',
-        fr: 'Dans quelle localité cela s’est-il produit ?',
+        de: _isOtherDamage
+            ? 'In welcher Ortschaft befindet sich das Fahrzeug?'
+            : 'In welcher Ortschaft ist es passiert?',
+        it: _isOtherDamage
+            ? 'In quale località si trova il veicolo?'
+            : 'In quale località è successo?',
+        en: _isOtherDamage
+            ? 'In which town is the vehicle located?'
+            : 'In which town did it happen?',
+        fr: _isOtherDamage
+            ? 'Dans quelle localité se trouve le véhicule ?'
+            : 'Dans quelle localité cela s’est-il produit ?',
       );
 
   String _dateLabel(BuildContext context) => _copy(
         context: context,
-        de: _isMartenDamage
-            ? 'An welchem Tag wurde der Schaden bemerkt?'
-            : 'An welchem Tag ereignete sich der Schaden?',
-        it: _isMartenDamage
-            ? 'In quale giorno è stato notato il danno?'
-            : 'In quale giorno è avvenuto il danno?',
-        en: _isMartenDamage
-            ? 'On which day was the damage noticed?'
-            : 'On which day did the damage occur?',
-        fr: _isMartenDamage
-            ? 'À quelle date le dommage a-t-il été constaté ?'
-            : 'À quelle date le dommage est-il survenu ?',
+        de: _isOtherDamage
+            ? 'An welchem Tag trat das Problem auf?'
+            : _isMartenDamage
+                ? 'An welchem Tag wurde der Schaden bemerkt?'
+                : 'An welchem Tag ereignete sich der Schaden?',
+        it: _isOtherDamage
+            ? 'In quale giorno si è verificato il problema?'
+            : _isMartenDamage
+                ? 'In quale giorno è stato notato il danno?'
+                : 'In quale giorno è avvenuto il danno?',
+        en: _isOtherDamage
+            ? 'On which day did the problem occur?'
+            : _isMartenDamage
+                ? 'On which day was the damage noticed?'
+                : 'On which day did the damage occur?',
+        fr: _isOtherDamage
+            ? 'À quelle date le problème s’est-il produit ?'
+            : _isMartenDamage
+                ? 'À quelle date le dommage a-t-il été constaté ?'
+                : 'À quelle date le dommage est-il survenu ?',
       );
 
   String _hailTimeLabel(BuildContext context) => _copy(
         context: context,
-        de: _isMartenDamage
-            ? 'Zu welcher Uhrzeit wurde der Schaden bemerkt?'
-            : 'Zu welcher Uhrzeit ist der Schaden passiert?',
-        it: _isMartenDamage
-            ? 'A che ora è stato notato il danno?'
-            : 'A che ora è avvenuto il danno?',
-        en: _isMartenDamage
-            ? 'At what time was the damage noticed?'
-            : 'At what time did the damage occur?',
-        fr: _isMartenDamage
-            ? 'À quelle heure le dommage a-t-il été constaté ?'
-            : 'À quelle heure le dommage est-il survenu ?',
+        de: _isOtherDamage
+            ? 'Zu welcher Uhrzeit trat das Problem auf?'
+            : _isMartenDamage
+                ? 'Zu welcher Uhrzeit wurde der Schaden bemerkt?'
+                : 'Zu welcher Uhrzeit ist der Schaden passiert?',
+        it: _isOtherDamage
+            ? 'A che ora si è verificato il problema?'
+            : _isMartenDamage
+                ? 'A che ora è stato notato il danno?'
+                : 'A che ora è avvenuto il danno?',
+        en: _isOtherDamage
+            ? 'At what time did the problem occur?'
+            : _isMartenDamage
+                ? 'At what time was the damage noticed?'
+                : 'At what time did the damage occur?',
+        fr: _isOtherDamage
+            ? 'À quelle heure le problème s’est-il produit ?'
+            : _isMartenDamage
+                ? 'À quelle heure le dommage a-t-il été constaté ?'
+                : 'À quelle heure le dommage est-il survenu ?',
       );
 
   String _pickDateButton(BuildContext context) => _copy(
@@ -698,6 +889,30 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         fr: 'Décrivez brièvement le problème',
       );
 
+  String _fullDescriptionLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Beschreiben Sie kurz den Unfall',
+        it: 'Descrivi brevemente il danno',
+        en: 'Briefly describe the accident',
+        fr: 'Décrivez brièvement l’accident',
+      );
+
+  String _otherCategoryLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Was ist das Problem?',
+        it: 'Qual è il problema?',
+        en: 'What is the problem?',
+        fr: 'Quel est le problème ?',
+      );
+
+  String _otherDescriptionLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Beschreiben Sie das Problem',
+        it: 'Descrivi il problema',
+        en: 'Describe the problem',
+        fr: 'Décrivez le problème',
+      );
+
   String _requiredMarderDrivableText(BuildContext context) => _copy(
         context: context,
         de: 'Bitte Fahrbereitschaft auswählen',
@@ -705,6 +920,94 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         en: 'Please select whether the vehicle is drivable',
         fr: 'Veuillez indiquer si le véhicule peut encore rouler',
       );
+
+  String _requiredOtherCategoryText(BuildContext context) => _copy(
+        context: context,
+        de: 'Bitte Problemkategorie auswählen',
+        it: 'Seleziona la categoria del problema',
+        en: 'Please select the problem category',
+        fr: 'Veuillez sélectionner la catégorie du problème',
+      );
+
+  String _requiredDescriptionText(BuildContext context) => _copy(
+        context: context,
+        de: 'Beschreibung erforderlich',
+        it: 'Descrizione obbligatoria',
+        en: 'Description required',
+        fr: 'Description obligatoire',
+      );
+
+  List<String> get _otherDamageCategories => const [
+        _otherCategoryEngineWarning,
+        _otherCategoryBattery,
+        _otherCategoryAirConditioning,
+        _otherCategoryElectronics,
+        _otherCategoryNoiseVibration,
+        _otherCategoryRecall,
+        _otherCategoryOther,
+      ];
+
+  String _otherCategoryOptionLabel(BuildContext context, String value) {
+    switch (value) {
+      case _otherCategoryEngineWarning:
+        return _copy(
+          context: context,
+          de: 'Motorwarnleuchte',
+          it: 'Spia motore',
+          en: 'Engine warning light',
+          fr: 'Voyant moteur',
+        );
+      case _otherCategoryBattery:
+        return _copy(
+          context: context,
+          de: 'Batterieproblem',
+          it: 'Problema batteria',
+          en: 'Battery problem',
+          fr: 'Problème de batterie',
+        );
+      case _otherCategoryAirConditioning:
+        return _copy(
+          context: context,
+          de: 'Klimaanlage',
+          it: 'Aria condizionata',
+          en: 'Air conditioning',
+          fr: 'Climatisation',
+        );
+      case _otherCategoryElectronics:
+        return _copy(
+          context: context,
+          de: 'Elektronikproblem',
+          it: 'Problema elettronico',
+          en: 'Electronic problem',
+          fr: 'Problème électronique',
+        );
+      case _otherCategoryNoiseVibration:
+        return _copy(
+          context: context,
+          de: 'Geräusch/Vibration',
+          it: 'Rumore/Vibrazione',
+          en: 'Noise/Vibration',
+          fr: 'Bruit/Vibration',
+        );
+      case _otherCategoryRecall:
+        return _copy(
+          context: context,
+          de: 'Rückrufaktion',
+          it: 'Richiamo ufficiale',
+          en: 'Official recall',
+          fr: 'Rappel officiel',
+        );
+      case _otherCategoryOther:
+      default:
+        return _copy(
+          context: context,
+          de: 'Sonstiges',
+          it: 'Altro',
+          en: 'Other',
+          fr: 'Autre',
+        );
+    }
+  }
 
   String _calendarLocaleTag(BuildContext context) {
     switch (Localizations.localeOf(context).languageCode) {
@@ -984,12 +1287,16 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     _plateCtrl.removeListener(_onValidationFieldChanged);
     _glassTownCtrl.removeListener(_onValidationFieldChanged);
     _marderDescriptionCtrl.removeListener(_onValidationFieldChanged);
+    _fullDamageDescriptionCtrl.removeListener(_onValidationFieldChanged);
+    _otherDamageDescriptionCtrl.removeListener(_onValidationFieldChanged);
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _plateCtrl.dispose();
     _glassTownCtrl.dispose();
     _marderDescriptionCtrl.dispose();
+    _fullDamageDescriptionCtrl.dispose();
+    _otherDamageDescriptionCtrl.dispose();
     super.dispose();
   }
 
@@ -1002,6 +1309,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     _plateCtrl.addListener(_onValidationFieldChanged);
     _glassTownCtrl.addListener(_onValidationFieldChanged);
     _marderDescriptionCtrl.addListener(_onValidationFieldChanged);
+    _fullDamageDescriptionCtrl.addListener(_onValidationFieldChanged);
+    _otherDamageDescriptionCtrl.addListener(_onValidationFieldChanged);
     _loadAvailableSlots(_selectedDay);
     unawaited(AppointmentRequestsSyncManager.trigger());
   }
@@ -1090,6 +1399,24 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         return _marderCurrentKmImages;
       case AppointmentRequestImageCategory.marderExtra:
         return _marderExtraImages;
+      case AppointmentRequestImageCategory.fullVehicleDocument:
+        return _fullVehicleDocumentImages;
+      case AppointmentRequestImageCategory.fullClose:
+        return _fullCloseImages;
+      case AppointmentRequestImageCategory.fullOverview:
+        return _fullOverviewImages;
+      case AppointmentRequestImageCategory.fullCurrentKm:
+        return _fullCurrentKmImages;
+      case AppointmentRequestImageCategory.fullExtra:
+        return _fullExtraImages;
+      case AppointmentRequestImageCategory.otherVehicleDocument:
+        return _otherVehicleDocumentImages;
+      case AppointmentRequestImageCategory.otherProblem:
+        return _otherProblemImages;
+      case AppointmentRequestImageCategory.otherCurrentKm:
+        return _otherCurrentKmImages;
+      case AppointmentRequestImageCategory.otherExtra:
+        return _otherExtraImages;
       case AppointmentRequestImageCategory.parkingVehicleDocument:
         return _parkingVehicleDocumentImages;
       case AppointmentRequestImageCategory.parkingDamage:
@@ -1134,6 +1461,24 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       case AppointmentRequestImageCategory.marderCurrentKm:
         return Icons.speed_outlined;
       case AppointmentRequestImageCategory.marderExtra:
+        return Icons.add_a_photo_outlined;
+      case AppointmentRequestImageCategory.fullVehicleDocument:
+        return Icons.description_outlined;
+      case AppointmentRequestImageCategory.fullClose:
+        return Icons.broken_image_outlined;
+      case AppointmentRequestImageCategory.fullOverview:
+        return Icons.directions_car_filled_outlined;
+      case AppointmentRequestImageCategory.fullCurrentKm:
+        return Icons.speed_outlined;
+      case AppointmentRequestImageCategory.fullExtra:
+        return Icons.add_a_photo_outlined;
+      case AppointmentRequestImageCategory.otherVehicleDocument:
+        return Icons.description_outlined;
+      case AppointmentRequestImageCategory.otherProblem:
+        return Icons.warning_amber_rounded;
+      case AppointmentRequestImageCategory.otherCurrentKm:
+        return Icons.speed_outlined;
+      case AppointmentRequestImageCategory.otherExtra:
         return Icons.add_a_photo_outlined;
       case AppointmentRequestImageCategory.parkingVehicleDocument:
         return Icons.description_outlined;
@@ -1189,6 +1534,22 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   bool get _isMarderCurrentKmPhotoMissing => _marderCurrentKmImages.isEmpty;
 
+  bool get _isFullVehicleDocumentPhotoMissing =>
+      _fullVehicleDocumentImages.isEmpty;
+
+  bool get _isFullClosePhotoMissing => _fullCloseImages.isEmpty;
+
+  bool get _isFullOverviewPhotoMissing => _fullOverviewImages.isEmpty;
+
+  bool get _isFullCurrentKmPhotoMissing => _fullCurrentKmImages.isEmpty;
+
+  bool get _isOtherVehicleDocumentPhotoMissing =>
+      _otherVehicleDocumentImages.isEmpty;
+
+  bool get _isOtherProblemPhotoMissing => _otherProblemImages.isEmpty;
+
+  bool get _isOtherCurrentKmPhotoMissing => _otherCurrentKmImages.isEmpty;
+
   bool get _isParkingVehicleDocumentPhotoMissing =>
       _parkingVehicleDocumentImages.isEmpty;
 
@@ -1207,6 +1568,18 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   bool get _isMarderDrivableMissing =>
       (_marderDamageDrivable?.trim().isEmpty ?? true);
+
+  bool get _isFullDrivableMissing =>
+      (_fullDamageDrivable?.trim().isEmpty ?? true);
+
+  bool get _isFullDescriptionMissing =>
+      _fullDamageDescriptionCtrl.text.trim().isEmpty;
+
+  bool get _isOtherCategoryMissing =>
+      (_otherDamageCategory?.trim().isEmpty ?? true);
+
+  bool get _isOtherDescriptionMissing =>
+      _otherDamageDescriptionCtrl.text.trim().isEmpty;
 
   bool get _isAppointmentSelectionMissing => _selectedSlot == null;
 
@@ -1249,6 +1622,35 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       _isMarderDrivableMissing ||
       _isAppointmentSelectionMissing;
 
+  bool get _hasComprehensiveValidationErrors =>
+      _isLicensePlateMissing ||
+      _isNameMissing ||
+      _isContactMissing ||
+      _isFullVehicleDocumentPhotoMissing ||
+      _isFullClosePhotoMissing ||
+      _isFullOverviewPhotoMissing ||
+      _isFullCurrentKmPhotoMissing ||
+      _isTownMissing ||
+      _isDamageDateMissing ||
+      _isDamageTimeMissing ||
+      _isFullDrivableMissing ||
+      _isFullDescriptionMissing ||
+      _isAppointmentSelectionMissing;
+
+  bool get _hasOtherValidationErrors =>
+      _isLicensePlateMissing ||
+      _isNameMissing ||
+      _isContactMissing ||
+      _isOtherVehicleDocumentPhotoMissing ||
+      _isOtherProblemPhotoMissing ||
+      _isOtherCurrentKmPhotoMissing ||
+      _isTownMissing ||
+      _isDamageDateMissing ||
+      _isDamageTimeMissing ||
+      _isOtherCategoryMissing ||
+      _isOtherDescriptionMissing ||
+      _isAppointmentSelectionMissing;
+
   bool get _hasParkingValidationErrors =>
       _isLicensePlateMissing ||
       _isNameMissing ||
@@ -1267,6 +1669,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     if (_isGlassDamage) return !_hasGlassValidationErrors;
     if (_isHailDamage) return !_hasHailValidationErrors;
     if (_isMartenDamage) return !_hasMartenValidationErrors;
+    if (_isComprehensiveDamage) return !_hasComprehensiveValidationErrors;
+    if (_isOtherDamage) return !_hasOtherValidationErrors;
     if (_isParkingDamage) return !_hasParkingValidationErrors;
     return _nameCtrl.text.trim().isNotEmpty;
   }
@@ -1285,9 +1689,13 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         ? 'hail_damage_uploads'
         : _isMartenDamage
             ? 'marder_damage_uploads'
-            : _isParkingDamage
-                ? 'parking_damage_uploads'
-                : 'glass_damage_uploads';
+            : _isComprehensiveDamage
+                ? 'full_damage_uploads'
+                : _isOtherDamage
+                    ? 'other_damage_uploads'
+                    : _isParkingDamage
+                        ? 'parking_damage_uploads'
+                        : 'glass_damage_uploads';
     final targetDir = Directory('${dir.path}/$folderName');
     if (!await targetDir.exists()) {
       await targetDir.create(recursive: true);
@@ -1341,9 +1749,13 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
           ? 'hail'
           : _isMartenDamage
               ? 'marder'
-              : _isParkingDamage
-                  ? 'parking'
-                  : 'glass';
+              : _isComprehensiveDamage
+                  ? 'full'
+                  : _isOtherDamage
+                      ? 'other'
+                      : _isParkingDamage
+                          ? 'parking'
+                          : 'glass';
       final cacheKey =
           '${prefix}_${DateTime.now().millisecondsSinceEpoch}_$category';
       await LocalImageCache.saveImageLocally(cacheKey, bytes);
@@ -1541,6 +1953,23 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         AppointmentRequestImageCategory.marderExtra,
       ];
     }
+    if (_isComprehensiveDamage) {
+      return const [
+        AppointmentRequestImageCategory.fullVehicleDocument,
+        AppointmentRequestImageCategory.fullClose,
+        AppointmentRequestImageCategory.fullOverview,
+        AppointmentRequestImageCategory.fullCurrentKm,
+        AppointmentRequestImageCategory.fullExtra,
+      ];
+    }
+    if (_isOtherDamage) {
+      return const [
+        AppointmentRequestImageCategory.otherVehicleDocument,
+        AppointmentRequestImageCategory.otherProblem,
+        AppointmentRequestImageCategory.otherCurrentKm,
+        AppointmentRequestImageCategory.otherExtra,
+      ];
+    }
     if (_isParkingDamage) {
       return const [
         AppointmentRequestImageCategory.parkingVehicleDocument,
@@ -1606,17 +2035,29 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 _isHailOverviewPhotoMissing) ||
             (category == AppointmentRequestImageCategory.hailCurrentKm &&
                 _isHailCurrentKmPhotoMissing) ||
-            (category ==
-                    AppointmentRequestImageCategory.marderVehicleDocument &&
+            (category == AppointmentRequestImageCategory.marderVehicleDocument &&
                 _isMarderVehicleDocumentPhotoMissing) ||
             (category == AppointmentRequestImageCategory.marderEngineBay &&
                 _isMarderEngineBayPhotoMissing) ||
-            (category ==
-                    AppointmentRequestImageCategory.marderCable &&
+            (category == AppointmentRequestImageCategory.marderCable &&
                 _isMarderCablePhotoMissing) ||
-            (category ==
-                    AppointmentRequestImageCategory.marderCurrentKm &&
+            (category == AppointmentRequestImageCategory.marderCurrentKm &&
                 _isMarderCurrentKmPhotoMissing) ||
+            (category == AppointmentRequestImageCategory.fullVehicleDocument &&
+                _isFullVehicleDocumentPhotoMissing) ||
+            (category == AppointmentRequestImageCategory.fullClose &&
+                _isFullClosePhotoMissing) ||
+            (category == AppointmentRequestImageCategory.fullOverview &&
+                _isFullOverviewPhotoMissing) ||
+            (category == AppointmentRequestImageCategory.fullCurrentKm &&
+                _isFullCurrentKmPhotoMissing) ||
+            (category == AppointmentRequestImageCategory.otherVehicleDocument &&
+                _isOtherVehicleDocumentPhotoMissing) ||
+            (category ==
+                    AppointmentRequestImageCategory.otherProblem &&
+                _isOtherProblemPhotoMissing) ||
+            (category == AppointmentRequestImageCategory.otherCurrentKm &&
+                _isOtherCurrentKmPhotoMissing) ||
             (category == AppointmentRequestImageCategory.parkingOverview &&
                 _isParkingOverviewPhotoMissing) ||
             (category == AppointmentRequestImageCategory.parkingCurrentKm &&
@@ -1767,9 +2208,13 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     );
   }
 
-  Widget _buildMarderDrivableSection(BuildContext context) {
+  Widget _buildDrivableSection(
+    BuildContext context, {
+    required String? selectedValue,
+    required bool showError,
+    required ValueChanged<String> onChanged,
+  }) {
     final theme = Theme.of(context);
-    final showError = _showValidationErrors && _isMarderDrivableMissing;
     const options = [
       _marderDrivableYes,
       _marderDrivableNo,
@@ -1828,14 +2273,14 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             spacing: 10,
             runSpacing: 10,
             children: options.map((value) {
-              final selected = _marderDamageDrivable == value;
+              final selected = selectedValue == value;
               return ChoiceChip(
                 label: Text(_marderDrivableOptionLabel(context, value)),
                 selected: selected,
                 showCheckmark: false,
                 onSelected: (_) {
                   setState(() {
-                    _marderDamageDrivable = value;
+                    onChanged(value);
                   });
                 },
                 labelStyle: theme.textTheme.labelLarge?.copyWith(
@@ -1871,6 +2316,112 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     );
   }
 
+  Widget _buildMarderDrivableSection(BuildContext context) {
+    return _buildDrivableSection(
+      context,
+      selectedValue: _marderDamageDrivable,
+      showError: _showValidationErrors && _isMarderDrivableMissing,
+      onChanged: (value) => _marderDamageDrivable = value,
+    );
+  }
+
+  Widget _buildFullDamageDrivableSection(BuildContext context) {
+    return _buildDrivableSection(
+      context,
+      selectedValue: _fullDamageDrivable,
+      showError: _showValidationErrors && _isFullDrivableMissing,
+      onChanged: (value) => _fullDamageDrivable = value,
+    );
+  }
+
+  Widget _buildOtherCategorySection(BuildContext context) {
+    final theme = Theme.of(context);
+    final showError = _showValidationErrors && _isOtherCategoryMissing;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withOpacity(0.22),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: showError
+              ? theme.colorScheme.error
+              : theme.dividerColor.withOpacity(0.35),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: (showError
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.primary)
+                      .withOpacity(0.12),
+                ),
+                child: Icon(
+                  Icons.build_circle_outlined,
+                  color: showError
+                      ? theme.colorScheme.error
+                      : theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _otherCategoryLabel(context),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: showError ? theme.colorScheme.error : null,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _otherDamageCategory,
+            items: _otherDamageCategories
+                .map(
+                  (value) => DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(_otherCategoryOptionLabel(context, value)),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              setState(() {
+                _otherDamageCategory = value;
+              });
+            },
+            decoration: _premiumFieldDec(
+              context,
+              _otherCategoryLabel(context),
+              isError: showError,
+            ),
+          ),
+          if (showError) ...[
+            const SizedBox(height: 8),
+            Text(
+              _requiredOtherCategoryText(context),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildGlassDamageSection(BuildContext context) {
     final theme = Theme.of(context);
     final localeTag = Localizations.localeOf(context).toLanguageTag();
@@ -1885,6 +2436,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final showDamageDateError = _showValidationErrors && _isDamageDateMissing;
     final showDamageTimeError = _showValidationErrors && _isDamageTimeMissing;
     final marderDescriptionLabel = _marderDescriptionLabel(context);
+    final fullDescriptionLabel = _fullDescriptionLabel(context);
+    final otherDescriptionLabel = _otherDescriptionLabel(context);
+    final showFullDescriptionError =
+        _showValidationErrors && _isFullDescriptionMissing;
+    final showOtherDescriptionError =
+        _showValidationErrors && _isOtherDescriptionMissing;
 
     return Container(
       width: double.infinity,
@@ -2061,6 +2618,44 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
               ),
             ),
           ],
+          if (_isComprehensiveDamage) ...[
+            const SizedBox(height: 12),
+            _buildFullDamageDrivableSection(context),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _fullDamageDescriptionCtrl,
+              textInputAction: TextInputAction.done,
+              minLines: 3,
+              maxLines: 5,
+              decoration: _premiumFieldDec(
+                context,
+                fullDescriptionLabel,
+                isError: showFullDescriptionError,
+                errorText: showFullDescriptionError
+                    ? _requiredDescriptionText(context)
+                    : null,
+              ),
+            ),
+          ],
+          if (_isOtherDamage) ...[
+            const SizedBox(height: 12),
+            _buildOtherCategorySection(context),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _otherDamageDescriptionCtrl,
+              textInputAction: TextInputAction.done,
+              minLines: 3,
+              maxLines: 5,
+              decoration: _premiumFieldDec(
+                context,
+                otherDescriptionLabel,
+                isError: showOtherDescriptionError,
+                errorText: showOtherDescriptionError
+                    ? _requiredDescriptionText(context)
+                    : null,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -2150,9 +2745,13 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             ? _hasHailValidationErrors
             : _isMartenDamage
                 ? _hasMartenValidationErrors
-                : _isParkingDamage
-                    ? _hasParkingValidationErrors
-                    : name.isEmpty || _selectedSlot == null;
+                : _isComprehensiveDamage
+                    ? _hasComprehensiveValidationErrors
+                    : _isOtherDamage
+                        ? _hasOtherValidationErrors
+                        : _isParkingDamage
+                            ? _hasParkingValidationErrors
+                            : name.isEmpty || _selectedSlot == null;
 
     if (hasValidationErrors) {
       setState(() {
@@ -2217,6 +2816,28 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         marderDamageDrivable: _isMartenDamage ? _marderDamageDrivable : null,
         marderDamageDescription:
             _isMartenDamage ? _marderDescriptionCtrl.text.trim() : null,
+        fullDamageTown:
+            _isComprehensiveDamage ? _glassTownCtrl.text.trim() : null,
+        fullDamageDate: _isComprehensiveDamage && _glassDamageDate != null
+            ? _glassDamageDate!.toUtc().toIso8601String()
+            : null,
+        fullDamageTime: _isComprehensiveDamage && _hailDamageTime != null
+            ? '${_hailDamageTime!.hour.toString().padLeft(2, '0')}:${_hailDamageTime!.minute.toString().padLeft(2, '0')}'
+            : null,
+        fullDamageDrivable: _isComprehensiveDamage ? _fullDamageDrivable : null,
+        fullDamageDescription: _isComprehensiveDamage
+            ? _fullDamageDescriptionCtrl.text.trim()
+            : null,
+        otherDamageTown: _isOtherDamage ? _glassTownCtrl.text.trim() : null,
+        otherDamageDate: _isOtherDamage && _glassDamageDate != null
+            ? _glassDamageDate!.toUtc().toIso8601String()
+            : null,
+        otherDamageTime: _isOtherDamage && _hailDamageTime != null
+            ? '${_hailDamageTime!.hour.toString().padLeft(2, '0')}:${_hailDamageTime!.minute.toString().padLeft(2, '0')}'
+            : null,
+        otherDamageCategory: _isOtherDamage ? _otherDamageCategory : null,
+        otherDamageDescription:
+            _isOtherDamage ? _otherDamageDescriptionCtrl.text.trim() : null,
         parkingDamageTown: _isParkingDamage ? _glassTownCtrl.text.trim() : null,
         parkingDamageDate: _isParkingDamage && _glassDamageDate != null
             ? _glassDamageDate!.toUtc().toIso8601String()
@@ -2268,6 +2889,33 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             : const [],
         marderDamageExtraImages: _isMartenDamage
             ? _marderExtraImages.map((e) => e.toInput()).toList()
+            : const [],
+        fullDamageVehicleDocumentImages: _isComprehensiveDamage
+            ? _fullVehicleDocumentImages.map((e) => e.toInput()).toList()
+            : const [],
+        fullDamageCloseImages: _isComprehensiveDamage
+            ? _fullCloseImages.map((e) => e.toInput()).toList()
+            : const [],
+        fullDamageOverviewImages: _isComprehensiveDamage
+            ? _fullOverviewImages.map((e) => e.toInput()).toList()
+            : const [],
+        fullDamageCurrentKmImages: _isComprehensiveDamage
+            ? _fullCurrentKmImages.map((e) => e.toInput()).toList()
+            : const [],
+        fullDamageExtraImages: _isComprehensiveDamage
+            ? _fullExtraImages.map((e) => e.toInput()).toList()
+            : const [],
+        otherDamageVehicleDocumentImages: _isOtherDamage
+            ? _otherVehicleDocumentImages.map((e) => e.toInput()).toList()
+            : const [],
+        otherDamageProblemImages: _isOtherDamage
+            ? _otherProblemImages.map((e) => e.toInput()).toList()
+            : const [],
+        otherDamageCurrentKmImages: _isOtherDamage
+            ? _otherCurrentKmImages.map((e) => e.toInput()).toList()
+            : const [],
+        otherDamageExtraImages: _isOtherDamage
+            ? _otherExtraImages.map((e) => e.toInput()).toList()
             : const [],
         parkingDamageVehicleDocumentImages: _isParkingDamage
             ? _parkingVehicleDocumentImages.map((e) => e.toInput()).toList()
@@ -2332,11 +2980,17 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             ? _isHailCurrentKmPhotoMissing
             : _isMartenDamage
                 ? _isMarderCurrentKmPhotoMissing
-                : _isParkingDamage
-                    ? _isParkingCurrentKmPhotoMissing
-                    : false;
+                : _isComprehensiveDamage
+                    ? _isFullCurrentKmPhotoMissing
+                    : _isOtherDamage
+                        ? _isOtherCurrentKmPhotoMissing
+                        : _isParkingDamage
+                            ? _isParkingCurrentKmPhotoMissing
+                            : false;
     final canTapSubmit = !_loading && !_submitting;
     final submitReady = _canSubmitRequest;
+    final formHeaderTitle = _formHeaderTitle(context);
+    final formHeaderSubtitle = _formHeaderSubtitle(context);
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -2349,9 +3003,18 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             Text(
-              widget.title,
+              formHeaderTitle,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
+            if (formHeaderSubtitle != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                formHeaderSubtitle,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.72),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             _licensePlateCard(context),
             const SizedBox(height: 12),

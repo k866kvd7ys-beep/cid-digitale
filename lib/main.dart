@@ -638,7 +638,8 @@ String _pendingSyncEntryLocalId(Map<String, dynamic> entry) {
 Future<void> _upsertPendingSyncEntry(Map<String, dynamic> entry) async {
   final queue = await _loadPendingSyncQueue();
   final localId = _pendingSyncEntryLocalId(entry);
-  final index = queue.indexWhere((item) => _pendingSyncEntryLocalId(item) == localId);
+  final index =
+      queue.indexWhere((item) => _pendingSyncEntryLocalId(item) == localId);
   if (index != -1) {
     queue[index] = entry;
   } else {
@@ -751,9 +752,10 @@ Future<Incidente> _syncPendingQueueEntry(Map<String, dynamic> entry) async {
     if (descriptor == null) return null;
     final bytes = await _readQueuedAttachmentBytes(descriptor);
     if (bytes == null || bytes.isEmpty) return null;
-    final filename = descriptor['filename']?.toString().trim().isNotEmpty == true
-        ? descriptor['filename'].toString().trim()
-        : '${kind}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final filename =
+        descriptor['filename']?.toString().trim().isNotEmpty == true
+            ? descriptor['filename'].toString().trim()
+            : '${kind}_${DateTime.now().millisecondsSinceEpoch}.jpg';
     final contentType =
         descriptor['contentType']?.toString().trim().isNotEmpty == true
             ? descriptor['contentType'].toString().trim()
@@ -2681,33 +2683,34 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  String _damageComingSoonMessage(BuildContext context) {
-    switch (Localizations.localeOf(context).languageCode) {
-      case 'it':
-        return 'Funzione in preparazione';
-      case 'en':
-        return 'Feature in preparation';
-      case 'fr':
-        return 'Fonction en préparation';
-      case 'de':
-      default:
-        return 'Funktion in Vorbereitung';
-    }
-  }
-
   String? _damageCardSubtitle(BuildContext context, DamageType type) {
-    if (type != DamageType.comprehensive) return null;
-
-    switch (Localizations.localeOf(context).languageCode) {
-      case 'it':
-        return 'Danno causato autonomamente al veicolo.';
-      case 'en':
-        return 'Self-caused vehicle damage.';
-      case 'fr':
-        return 'Dommage causé par le conducteur lui-même.';
-      case 'de':
+    switch (type) {
+      case DamageType.comprehensive:
+        switch (Localizations.localeOf(context).languageCode) {
+          case 'it':
+            return 'Collisione con oggetto o danno causato dal conducente';
+          case 'en':
+            return 'Collision with object or self-caused damage';
+          case 'fr':
+            return 'Collision avec un objet ou dommage causé par le conducteur';
+          case 'de':
+          default:
+            return 'Kollision mit Objekt oder selbst verursachter Schaden';
+        }
+      case DamageType.other:
+        switch (Localizations.localeOf(context).languageCode) {
+          case 'it':
+            return 'Segnala problemi tecnici, spie o altri danni.';
+          case 'en':
+            return 'Report technical problems, warning lights or other damages.';
+          case 'fr':
+            return 'Signalez des problèmes techniques, voyants ou autres dommages.';
+          case 'de':
+          default:
+            return 'Melden Sie technische Probleme, Warnmeldungen oder sonstige Schäden.';
+        }
       default:
-        return 'Selbst verursachter Schaden am Fahrzeug.';
+        return null;
     }
   }
 
@@ -2807,13 +2810,6 @@ class _HomePageState extends State<HomePage> {
     );
 
     if (selected == null) return;
-
-    if (selected == DamageType.other) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_damageComingSoonMessage(context))),
-      );
-      return;
-    }
 
     _openCalendarSameLogic(selected, l10n);
   }
@@ -4261,8 +4257,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       'filename': resolvedFilename,
       'localPath': cleanPath,
       'cacheKey': cleanCacheKey,
-      'bytesBase64':
-          bytes != null && !kIsWeb ? base64Encode(bytes) : '',
+      'bytesBase64': bytes != null && !kIsWeb ? base64Encode(bytes) : '',
       'contentType': 'image/jpeg',
     };
   }
@@ -4338,7 +4333,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     await _upsertPendingSyncEntry(
       _buildPendingSyncEntry(offlineIncident, localId: localId),
     );
-    debugPrint('OFFLINE SAVE DONE: localId=$localId incidentId=${offlineIncident.id}');
+    debugPrint(
+        'OFFLINE SAVE DONE: localId=$localId incidentId=${offlineIncident.id}');
     return offlineIncident;
   }
 
@@ -4934,10 +4930,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
       if (kind == 'libretto') {
         if (!QrPayload.looksLikeUuid(uploadClaimId)) {
-          final workshopCode =
-              claimId.length > 6
-                  ? claimId.substring(claimId.length - 6)
-                  : claimId.padLeft(6, '0');
+          final workshopCode = claimId.length > 6
+              ? claimId.substring(claimId.length - 6)
+              : claimId.padLeft(6, '0');
           final realClaimId = (await _supabaseService.rpcCreateClaimDraft(
             workshopCode: workshopCode,
             payload: const <String, dynamic>{},
@@ -5543,10 +5538,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       _draftClaimId ??= DateTime.now().millisecondsSinceEpoch.toString();
       draftId = _draftClaimId!;
 
-      final codiceOfficina =
-          draftId.length > 6
-              ? draftId.substring(draftId.length - 6)
-              : draftId.padLeft(6, '0');
+      final codiceOfficina = draftId.length > 6
+          ? draftId.substring(draftId.length - 6)
+          : draftId.padLeft(6, '0');
 
       final List<Testimone> testimoni = _testimoni
           .map((t) {
@@ -7559,7 +7553,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
     switch (lang) {
       case 'it':
-        subject = 'Constatazione amichevole digitale (CID) - Pratica ${incidente.id}';
+        subject =
+            'Constatazione amichevole digitale (CID) - Pratica ${incidente.id}';
         title = 'Constatazione amichevole digitale (CID) - Pratica';
         greeting = 'Buongiorno,';
         intro =
@@ -7658,8 +7653,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         liabilityEmpty = 'No information provided.';
         signaturesLabel = 'Signatures';
         workshopCodeLabel = 'Workshop code';
-        qrNote =
-            'QR code available in the app to quickly reopen the claim.';
+        qrNote = 'QR code available in the app to quickly reopen the claim.';
         attachmentsNote =
             'The PDF report and the uploaded attachments are included.';
         closing = 'Kind regards';
@@ -7708,19 +7702,23 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     final witnessesText = incidente.testimoni.isEmpty
         ? witnessesEmpty
         : joinLines(
-            incidente.testimoni.map(
-              (testimone) => '- ${valueOrDash(testimone.nome)}'
-                  ' (${valueOrDash(testimone.telefono)})',
-            ).toList(),
+            incidente.testimoni
+                .map(
+                  (testimone) => '- ${valueOrDash(testimone.nome)}'
+                      ' (${valueOrDash(testimone.telefono)})',
+                )
+                .toList(),
           );
     final injuriesText = incidente.feriti.isEmpty
         ? injuriesEmpty
         : joinLines(
-            incidente.feriti.map(
-              (ferito) => '- ${valueOrDash(ferito.nome)}'
-                  ' | ${valueOrDash(ferito.indirizzo)}'
-                  ' | ${valueOrDash(ferito.telefono)}',
-            ).toList(),
+            incidente.feriti
+                .map(
+                  (ferito) => '- ${valueOrDash(ferito.nome)}'
+                      ' | ${valueOrDash(ferito.indirizzo)}'
+                      ' | ${valueOrDash(ferito.telefono)}',
+                )
+                .toList(),
           );
 
     final body = StringBuffer()
@@ -7734,8 +7732,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       ..writeln('$placeLabel: ${valueOrDash(incidente.luogo)}')
       ..writeln()
       ..writeln('$driverALabel:')
-      ..writeln(
-          '$nameLabel: ${fullName(incidente.nomeA, incidente.cognomeA)}')
+      ..writeln('$nameLabel: ${fullName(incidente.nomeA, incidente.cognomeA)}')
       ..writeln('$plateLabel: ${valueOrDash(incidente.targaA)}')
       ..writeln('$insuranceLabel: ${valueOrDash(incidente.assicurazioneA)}')
       ..writeln('$phoneLabel: ${valueOrDash(incidente.telefonoA)}')
@@ -7744,8 +7741,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
           '$addressLabel: ${fullAddress(incidente.indirizzoA, incidente.zipA, incidente.cityA)}')
       ..writeln()
       ..writeln('$driverBLabel:')
-      ..writeln(
-          '$nameLabel: ${fullName(incidente.nomeB, incidente.cognomeB)}')
+      ..writeln('$nameLabel: ${fullName(incidente.nomeB, incidente.cognomeB)}')
       ..writeln('$plateLabel: ${valueOrDash(incidente.targaB)}')
       ..writeln('$insuranceLabel: ${valueOrDash(incidente.assicurazioneB)}')
       ..writeln('$phoneLabel: ${valueOrDash(incidente.telefonoB)}')
@@ -7763,19 +7759,15 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       ..writeln(injuriesText)
       ..writeln()
       ..writeln('$damageLabel:')
-      ..writeln(
-          '$damageVehicleALabel: ${valueOrDash(incidente.danniVeicoloA)}')
-      ..writeln(
-          '$damageVehicleBLabel: ${valueOrDash(incidente.danniVeicoloB)}')
+      ..writeln('$damageVehicleALabel: ${valueOrDash(incidente.danniVeicoloA)}')
+      ..writeln('$damageVehicleBLabel: ${valueOrDash(incidente.danniVeicoloB)}')
       ..writeln()
       ..writeln('$liabilityLabel:')
       ..writeln(liabilityText.isEmpty ? liabilityEmpty : liabilityText)
       ..writeln()
       ..writeln('$signaturesLabel:')
-      ..writeln(
-          '$driverALabel: ${hasFirmaA ? presentText : missingText}')
-      ..writeln(
-          '$driverBLabel: ${hasFirmaB ? presentText : missingText}')
+      ..writeln('$driverALabel: ${hasFirmaA ? presentText : missingText}')
+      ..writeln('$driverBLabel: ${hasFirmaB ? presentText : missingText}')
       ..writeln()
       ..writeln('$workshopCodeLabel: ${valueOrDash(incidente.codiceOfficina)}')
       ..writeln(qrNote)
@@ -8138,7 +8130,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
             .update({'claim_id': realClaimId}).eq('claim_id', claimId);
 
         if (updatedIncident.id != incidente.id) {
-          final index = incidentiSalvati.indexWhere((e) => e.id == incidente.id);
+          final index =
+              incidentiSalvati.indexWhere((e) => e.id == incidente.id);
           if (index != -1) {
             incidentiSalvati[index] = updatedIncident;
             await salvaIncidenti();
@@ -9123,9 +9116,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
-                          onPressed: _isSendingAuto
-                              ? null
-                              : _retryPendingSync,
+                          onPressed: _isSendingAuto ? null : _retryPendingSync,
                           icon: const Icon(Icons.refresh),
                           label: const Text('Riprova invio'),
                         ),

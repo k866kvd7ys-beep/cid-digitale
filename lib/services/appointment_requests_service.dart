@@ -29,6 +29,15 @@ class AppointmentRequestImageCategory {
   static const marderCable = 'marder_cable';
   static const marderCurrentKm = 'marder_current_km';
   static const marderExtra = 'marder_extra';
+  static const fullVehicleDocument = 'full_vehicle_document';
+  static const fullClose = 'full_close';
+  static const fullOverview = 'full_overview';
+  static const fullCurrentKm = 'full_current_km';
+  static const fullExtra = 'full_extra';
+  static const otherVehicleDocument = 'other_vehicle_document';
+  static const otherProblem = 'other_problem';
+  static const otherCurrentKm = 'other_current_km';
+  static const otherExtra = 'other_extra';
   static const parkingVehicleDocument = 'parking_vehicle_document';
   static const parkingDamage = 'parking_damage';
   static const parkingOverview = 'parking_overview';
@@ -84,6 +93,15 @@ class _DamageRequestImageGroups {
     this.marderCableImages = const [],
     this.marderCurrentKmImages = const [],
     this.marderExtraImages = const [],
+    this.fullVehicleDocumentImages = const [],
+    this.fullCloseImages = const [],
+    this.fullOverviewImages = const [],
+    this.fullCurrentKmImages = const [],
+    this.fullExtraImages = const [],
+    this.otherVehicleDocumentImages = const [],
+    this.otherProblemImages = const [],
+    this.otherCurrentKmImages = const [],
+    this.otherExtraImages = const [],
     this.parkingVehicleDocumentImages = const [],
     this.parkingDamageImages = const [],
     this.parkingOverviewImages = const [],
@@ -105,6 +123,15 @@ class _DamageRequestImageGroups {
   final List<String> marderCableImages;
   final List<String> marderCurrentKmImages;
   final List<String> marderExtraImages;
+  final List<String> fullVehicleDocumentImages;
+  final List<String> fullCloseImages;
+  final List<String> fullOverviewImages;
+  final List<String> fullCurrentKmImages;
+  final List<String> fullExtraImages;
+  final List<String> otherVehicleDocumentImages;
+  final List<String> otherProblemImages;
+  final List<String> otherCurrentKmImages;
+  final List<String> otherExtraImages;
   final List<String> parkingVehicleDocumentImages;
   final List<String> parkingDamageImages;
   final List<String> parkingOverviewImages;
@@ -126,6 +153,15 @@ class _DamageRequestImageGroups {
         marderCableImages,
         marderCurrentKmImages,
         marderExtraImages,
+        fullVehicleDocumentImages,
+        fullCloseImages,
+        fullOverviewImages,
+        fullCurrentKmImages,
+        fullExtraImages,
+        otherVehicleDocumentImages,
+        otherProblemImages,
+        otherCurrentKmImages,
+        otherExtraImages,
         parkingVehicleDocumentImages,
         parkingDamageImages,
         parkingOverviewImages,
@@ -269,6 +305,16 @@ class AppointmentRequestsService {
     String? marderDamageTime,
     String? marderDamageDrivable,
     String? marderDamageDescription,
+    String? fullDamageTown,
+    String? fullDamageDate,
+    String? fullDamageTime,
+    String? fullDamageDrivable,
+    String? fullDamageDescription,
+    String? otherDamageTown,
+    String? otherDamageDate,
+    String? otherDamageTime,
+    String? otherDamageCategory,
+    String? otherDamageDescription,
     String? parkingDamageTown,
     String? parkingDamageDate,
     String? parkingDamageTime,
@@ -289,6 +335,17 @@ class AppointmentRequestsService {
     List<AppointmentRequestImageInput> marderDamageCableImages = const [],
     List<AppointmentRequestImageInput> marderDamageCurrentKmImages = const [],
     List<AppointmentRequestImageInput> marderDamageExtraImages = const [],
+    List<AppointmentRequestImageInput> fullDamageVehicleDocumentImages =
+        const [],
+    List<AppointmentRequestImageInput> fullDamageCloseImages = const [],
+    List<AppointmentRequestImageInput> fullDamageOverviewImages = const [],
+    List<AppointmentRequestImageInput> fullDamageCurrentKmImages = const [],
+    List<AppointmentRequestImageInput> fullDamageExtraImages = const [],
+    List<AppointmentRequestImageInput> otherDamageVehicleDocumentImages =
+        const [],
+    List<AppointmentRequestImageInput> otherDamageProblemImages = const [],
+    List<AppointmentRequestImageInput> otherDamageCurrentKmImages = const [],
+    List<AppointmentRequestImageInput> otherDamageExtraImages = const [],
     List<AppointmentRequestImageInput> parkingDamageVehicleDocumentImages =
         const [],
     List<AppointmentRequestImageInput> parkingDamageDamageImages = const [],
@@ -326,6 +383,16 @@ class AppointmentRequestsService {
         marderDamageTime: marderDamageTime,
         marderDamageDrivable: marderDamageDrivable,
         marderDamageDescription: marderDamageDescription,
+        fullDamageTown: fullDamageTown,
+        fullDamageDate: fullDamageDate,
+        fullDamageTime: fullDamageTime,
+        fullDamageDrivable: fullDamageDrivable,
+        fullDamageDescription: fullDamageDescription,
+        otherDamageTown: otherDamageTown,
+        otherDamageDate: otherDamageDate,
+        otherDamageTime: otherDamageTime,
+        otherDamageCategory: otherDamageCategory,
+        otherDamageDescription: otherDamageDescription,
         parkingDamageTown: parkingDamageTown,
         parkingDamageDate: parkingDamageDate,
         parkingDamageTime: parkingDamageTime,
@@ -343,6 +410,15 @@ class AppointmentRequestsService {
         marderDamageCableImages: marderDamageCableImages,
         marderDamageCurrentKmImages: marderDamageCurrentKmImages,
         marderDamageExtraImages: marderDamageExtraImages,
+        fullDamageVehicleDocumentImages: fullDamageVehicleDocumentImages,
+        fullDamageCloseImages: fullDamageCloseImages,
+        fullDamageOverviewImages: fullDamageOverviewImages,
+        fullDamageCurrentKmImages: fullDamageCurrentKmImages,
+        fullDamageExtraImages: fullDamageExtraImages,
+        otherDamageVehicleDocumentImages: otherDamageVehicleDocumentImages,
+        otherDamageProblemImages: otherDamageProblemImages,
+        otherDamageCurrentKmImages: otherDamageCurrentKmImages,
+        otherDamageExtraImages: otherDamageExtraImages,
         parkingDamageVehicleDocumentImages: parkingDamageVehicleDocumentImages,
         parkingDamageDamageImages: parkingDamageDamageImages,
         parkingDamageOverviewImages: parkingDamageOverviewImages,
@@ -377,6 +453,16 @@ class AppointmentRequestsService {
         marderDamageTime: marderDamageTime,
         marderDamageDrivable: marderDamageDrivable,
         marderDamageDescription: marderDamageDescription,
+        fullDamageTown: fullDamageTown,
+        fullDamageDate: fullDamageDate,
+        fullDamageTime: fullDamageTime,
+        fullDamageDrivable: fullDamageDrivable,
+        fullDamageDescription: fullDamageDescription,
+        otherDamageTown: otherDamageTown,
+        otherDamageDate: otherDamageDate,
+        otherDamageTime: otherDamageTime,
+        otherDamageCategory: otherDamageCategory,
+        otherDamageDescription: otherDamageDescription,
         parkingDamageTown: parkingDamageTown,
         parkingDamageDate: parkingDamageDate,
         parkingDamageTime: parkingDamageTime,
@@ -394,6 +480,15 @@ class AppointmentRequestsService {
         marderDamageCableImages: const [],
         marderDamageCurrentKmImages: const [],
         marderDamageExtraImages: const [],
+        fullDamageVehicleDocumentImages: const [],
+        fullDamageCloseImages: const [],
+        fullDamageOverviewImages: const [],
+        fullDamageCurrentKmImages: const [],
+        fullDamageExtraImages: const [],
+        otherDamageVehicleDocumentImages: const [],
+        otherDamageProblemImages: const [],
+        otherDamageCurrentKmImages: const [],
+        otherDamageExtraImages: const [],
         parkingDamageVehicleDocumentImages: const [],
         parkingDamageDamageImages: const [],
         parkingDamageOverviewImages: const [],
@@ -426,6 +521,16 @@ class AppointmentRequestsService {
           marderDamageTime: marderDamageTime,
           marderDamageDrivable: marderDamageDrivable,
           marderDamageDescription: marderDamageDescription,
+          fullDamageTown: fullDamageTown,
+          fullDamageDate: fullDamageDate,
+          fullDamageTime: fullDamageTime,
+          fullDamageDrivable: fullDamageDrivable,
+          fullDamageDescription: fullDamageDescription,
+          otherDamageTown: otherDamageTown,
+          otherDamageDate: otherDamageDate,
+          otherDamageTime: otherDamageTime,
+          otherDamageCategory: otherDamageCategory,
+          otherDamageDescription: otherDamageDescription,
           parkingDamageTown: parkingDamageTown,
           parkingDamageDate: parkingDamageDate,
           parkingDamageTime: parkingDamageTime,
@@ -443,6 +548,15 @@ class AppointmentRequestsService {
           marderDamageCableImages: marderDamageCableImages,
           marderDamageCurrentKmImages: marderDamageCurrentKmImages,
           marderDamageExtraImages: marderDamageExtraImages,
+          fullDamageVehicleDocumentImages: fullDamageVehicleDocumentImages,
+          fullDamageCloseImages: fullDamageCloseImages,
+          fullDamageOverviewImages: fullDamageOverviewImages,
+          fullDamageCurrentKmImages: fullDamageCurrentKmImages,
+          fullDamageExtraImages: fullDamageExtraImages,
+          otherDamageVehicleDocumentImages: otherDamageVehicleDocumentImages,
+          otherDamageProblemImages: otherDamageProblemImages,
+          otherDamageCurrentKmImages: otherDamageCurrentKmImages,
+          otherDamageExtraImages: otherDamageExtraImages,
           parkingDamageVehicleDocumentImages:
               parkingDamageVehicleDocumentImages,
           parkingDamageDamageImages: parkingDamageDamageImages,
@@ -468,6 +582,15 @@ class AppointmentRequestsService {
         marderDamageCableImages.isNotEmpty ||
         marderDamageCurrentKmImages.isNotEmpty ||
         marderDamageExtraImages.isNotEmpty ||
+        fullDamageVehicleDocumentImages.isNotEmpty ||
+        fullDamageCloseImages.isNotEmpty ||
+        fullDamageOverviewImages.isNotEmpty ||
+        fullDamageCurrentKmImages.isNotEmpty ||
+        fullDamageExtraImages.isNotEmpty ||
+        otherDamageVehicleDocumentImages.isNotEmpty ||
+        otherDamageProblemImages.isNotEmpty ||
+        otherDamageCurrentKmImages.isNotEmpty ||
+        otherDamageExtraImages.isNotEmpty ||
         parkingDamageVehicleDocumentImages.isNotEmpty ||
         parkingDamageDamageImages.isNotEmpty ||
         parkingDamageOverviewImages.isNotEmpty ||
@@ -491,6 +614,15 @@ class AppointmentRequestsService {
             ...marderDamageCableImages,
             ...marderDamageCurrentKmImages,
             ...marderDamageExtraImages,
+            ...fullDamageVehicleDocumentImages,
+            ...fullDamageCloseImages,
+            ...fullDamageOverviewImages,
+            ...fullDamageCurrentKmImages,
+            ...fullDamageExtraImages,
+            ...otherDamageVehicleDocumentImages,
+            ...otherDamageProblemImages,
+            ...otherDamageCurrentKmImages,
+            ...otherDamageExtraImages,
             ...parkingDamageVehicleDocumentImages,
             ...parkingDamageDamageImages,
             ...parkingDamageOverviewImages,
@@ -518,6 +650,17 @@ class AppointmentRequestsService {
           marderDamageCableImages: uploadedImages.marderCableImages,
           marderDamageCurrentKmImages: uploadedImages.marderCurrentKmImages,
           marderDamageExtraImages: uploadedImages.marderExtraImages,
+          fullDamageVehicleDocumentImages:
+              uploadedImages.fullVehicleDocumentImages,
+          fullDamageCloseImages: uploadedImages.fullCloseImages,
+          fullDamageOverviewImages: uploadedImages.fullOverviewImages,
+          fullDamageCurrentKmImages: uploadedImages.fullCurrentKmImages,
+          fullDamageExtraImages: uploadedImages.fullExtraImages,
+          otherDamageVehicleDocumentImages:
+              uploadedImages.otherVehicleDocumentImages,
+          otherDamageProblemImages: uploadedImages.otherProblemImages,
+          otherDamageCurrentKmImages: uploadedImages.otherCurrentKmImages,
+          otherDamageExtraImages: uploadedImages.otherExtraImages,
           parkingDamageVehicleDocumentImages:
               uploadedImages.parkingVehicleDocumentImages,
           parkingDamageDamageImages: uploadedImages.parkingDamageImages,
@@ -651,6 +794,16 @@ class AppointmentRequestsService {
         marderDamageTime: existing.marderDamageTime,
         marderDamageDrivable: existing.marderDamageDrivable,
         marderDamageDescription: existing.marderDamageDescription,
+        fullDamageTown: existing.fullDamageTown,
+        fullDamageDate: existing.fullDamageDate,
+        fullDamageTime: existing.fullDamageTime,
+        fullDamageDrivable: existing.fullDamageDrivable,
+        fullDamageDescription: existing.fullDamageDescription,
+        otherDamageTown: existing.otherDamageTown,
+        otherDamageDate: existing.otherDamageDate,
+        otherDamageTime: existing.otherDamageTime,
+        otherDamageCategory: existing.otherDamageCategory,
+        otherDamageDescription: existing.otherDamageDescription,
         parkingDamageTown: existing.parkingDamageTown,
         parkingDamageDate: existing.parkingDamageDate,
         parkingDamageTime: existing.parkingDamageTime,
@@ -671,6 +824,17 @@ class AppointmentRequestsService {
         marderDamageCableImages: existing.marderDamageCableImages,
         marderDamageCurrentKmImages: existing.marderDamageCurrentKmImages,
         marderDamageExtraImages: existing.marderDamageExtraImages,
+        fullDamageVehicleDocumentImages:
+            existing.fullDamageVehicleDocumentImages,
+        fullDamageCloseImages: existing.fullDamageCloseImages,
+        fullDamageOverviewImages: existing.fullDamageOverviewImages,
+        fullDamageCurrentKmImages: existing.fullDamageCurrentKmImages,
+        fullDamageExtraImages: existing.fullDamageExtraImages,
+        otherDamageVehicleDocumentImages:
+            existing.otherDamageVehicleDocumentImages,
+        otherDamageProblemImages: existing.otherDamageProblemImages,
+        otherDamageCurrentKmImages: existing.otherDamageCurrentKmImages,
+        otherDamageExtraImages: existing.otherDamageExtraImages,
         parkingDamageVehicleDocumentImages:
             existing.parkingDamageVehicleDocumentImages,
         parkingDamageDamageImages: existing.parkingDamageDamageImages,
@@ -747,6 +911,16 @@ class AppointmentRequestsService {
           marderDamageTime: localRequest.marderDamageTime,
           marderDamageDrivable: localRequest.marderDamageDrivable,
           marderDamageDescription: localRequest.marderDamageDescription,
+          fullDamageTown: localRequest.fullDamageTown,
+          fullDamageDate: localRequest.fullDamageDate,
+          fullDamageTime: localRequest.fullDamageTime,
+          fullDamageDrivable: localRequest.fullDamageDrivable,
+          fullDamageDescription: localRequest.fullDamageDescription,
+          otherDamageTown: localRequest.otherDamageTown,
+          otherDamageDate: localRequest.otherDamageDate,
+          otherDamageTime: localRequest.otherDamageTime,
+          otherDamageCategory: localRequest.otherDamageCategory,
+          otherDamageDescription: localRequest.otherDamageDescription,
           parkingDamageTown: localRequest.parkingDamageTown,
           parkingDamageDate: localRequest.parkingDamageDate,
           parkingDamageTime: localRequest.parkingDamageTime,
@@ -764,6 +938,15 @@ class AppointmentRequestsService {
           marderDamageCableImages: const [],
           marderDamageCurrentKmImages: const [],
           marderDamageExtraImages: const [],
+          fullDamageVehicleDocumentImages: const [],
+          fullDamageCloseImages: const [],
+          fullDamageOverviewImages: const [],
+          fullDamageCurrentKmImages: const [],
+          fullDamageExtraImages: const [],
+          otherDamageVehicleDocumentImages: const [],
+          otherDamageProblemImages: const [],
+          otherDamageCurrentKmImages: const [],
+          otherDamageExtraImages: const [],
           parkingDamageVehicleDocumentImages: const [],
           parkingDamageDamageImages: const [],
           parkingDamageOverviewImages: const [],
@@ -797,6 +980,17 @@ class AppointmentRequestsService {
               marderDamageCableImages: uploadedImages.marderCableImages,
               marderDamageCurrentKmImages: uploadedImages.marderCurrentKmImages,
               marderDamageExtraImages: uploadedImages.marderExtraImages,
+              fullDamageVehicleDocumentImages:
+                  uploadedImages.fullVehicleDocumentImages,
+              fullDamageCloseImages: uploadedImages.fullCloseImages,
+              fullDamageOverviewImages: uploadedImages.fullOverviewImages,
+              fullDamageCurrentKmImages: uploadedImages.fullCurrentKmImages,
+              fullDamageExtraImages: uploadedImages.fullExtraImages,
+              otherDamageVehicleDocumentImages:
+                  uploadedImages.otherVehicleDocumentImages,
+              otherDamageProblemImages: uploadedImages.otherProblemImages,
+              otherDamageCurrentKmImages: uploadedImages.otherCurrentKmImages,
+              otherDamageExtraImages: uploadedImages.otherExtraImages,
               parkingDamageVehicleDocumentImages:
                   uploadedImages.parkingVehicleDocumentImages,
               parkingDamageDamageImages: uploadedImages.parkingDamageImages,
@@ -849,6 +1043,16 @@ class AppointmentRequestsService {
     String? marderDamageTime,
     String? marderDamageDrivable,
     String? marderDamageDescription,
+    String? fullDamageTown,
+    String? fullDamageDate,
+    String? fullDamageTime,
+    String? fullDamageDrivable,
+    String? fullDamageDescription,
+    String? otherDamageTown,
+    String? otherDamageDate,
+    String? otherDamageTime,
+    String? otherDamageCategory,
+    String? otherDamageDescription,
     String? parkingDamageTown,
     String? parkingDamageDate,
     String? parkingDamageTime,
@@ -866,6 +1070,15 @@ class AppointmentRequestsService {
     required List<String> marderDamageCableImages,
     required List<String> marderDamageCurrentKmImages,
     required List<String> marderDamageExtraImages,
+    required List<String> fullDamageVehicleDocumentImages,
+    required List<String> fullDamageCloseImages,
+    required List<String> fullDamageOverviewImages,
+    required List<String> fullDamageCurrentKmImages,
+    required List<String> fullDamageExtraImages,
+    required List<String> otherDamageVehicleDocumentImages,
+    required List<String> otherDamageProblemImages,
+    required List<String> otherDamageCurrentKmImages,
+    required List<String> otherDamageExtraImages,
     required List<String> parkingDamageVehicleDocumentImages,
     required List<String> parkingDamageDamageImages,
     required List<String> parkingDamageOverviewImages,
@@ -896,6 +1109,16 @@ class AppointmentRequestsService {
         marderDamageTime: marderDamageTime,
         marderDamageDrivable: marderDamageDrivable,
         marderDamageDescription: marderDamageDescription,
+        fullDamageTown: fullDamageTown,
+        fullDamageDate: fullDamageDate,
+        fullDamageTime: fullDamageTime,
+        fullDamageDrivable: fullDamageDrivable,
+        fullDamageDescription: fullDamageDescription,
+        otherDamageTown: otherDamageTown,
+        otherDamageDate: otherDamageDate,
+        otherDamageTime: otherDamageTime,
+        otherDamageCategory: otherDamageCategory,
+        otherDamageDescription: otherDamageDescription,
         parkingDamageTown: parkingDamageTown,
         parkingDamageDate: parkingDamageDate,
         parkingDamageTime: parkingDamageTime,
@@ -913,6 +1136,15 @@ class AppointmentRequestsService {
         marderDamageCableImages: marderDamageCableImages,
         marderDamageCurrentKmImages: marderDamageCurrentKmImages,
         marderDamageExtraImages: marderDamageExtraImages,
+        fullDamageVehicleDocumentImages: fullDamageVehicleDocumentImages,
+        fullDamageCloseImages: fullDamageCloseImages,
+        fullDamageOverviewImages: fullDamageOverviewImages,
+        fullDamageCurrentKmImages: fullDamageCurrentKmImages,
+        fullDamageExtraImages: fullDamageExtraImages,
+        otherDamageVehicleDocumentImages: otherDamageVehicleDocumentImages,
+        otherDamageProblemImages: otherDamageProblemImages,
+        otherDamageCurrentKmImages: otherDamageCurrentKmImages,
+        otherDamageExtraImages: otherDamageExtraImages,
         parkingDamageVehicleDocumentImages: parkingDamageVehicleDocumentImages,
         parkingDamageDamageImages: parkingDamageDamageImages,
         parkingDamageOverviewImages: parkingDamageOverviewImages,
@@ -949,6 +1181,15 @@ class AppointmentRequestsService {
     required List<String> marderDamageCableImages,
     required List<String> marderDamageCurrentKmImages,
     required List<String> marderDamageExtraImages,
+    required List<String> fullDamageVehicleDocumentImages,
+    required List<String> fullDamageCloseImages,
+    required List<String> fullDamageOverviewImages,
+    required List<String> fullDamageCurrentKmImages,
+    required List<String> fullDamageExtraImages,
+    required List<String> otherDamageVehicleDocumentImages,
+    required List<String> otherDamageProblemImages,
+    required List<String> otherDamageCurrentKmImages,
+    required List<String> otherDamageExtraImages,
     required List<String> parkingDamageVehicleDocumentImages,
     required List<String> parkingDamageDamageImages,
     required List<String> parkingDamageOverviewImages,
@@ -972,6 +1213,16 @@ class AppointmentRequestsService {
             marderDamageTime: existing.marderDamageTime,
             marderDamageDrivable: existing.marderDamageDrivable,
             marderDamageDescription: existing.marderDamageDescription,
+            fullDamageTown: existing.fullDamageTown,
+            fullDamageDate: existing.fullDamageDate,
+            fullDamageTime: existing.fullDamageTime,
+            fullDamageDrivable: existing.fullDamageDrivable,
+            fullDamageDescription: existing.fullDamageDescription,
+            otherDamageTown: existing.otherDamageTown,
+            otherDamageDate: existing.otherDamageDate,
+            otherDamageTime: existing.otherDamageTime,
+            otherDamageCategory: existing.otherDamageCategory,
+            otherDamageDescription: existing.otherDamageDescription,
             parkingDamageTown: existing.parkingDamageTown,
             parkingDamageDate: existing.parkingDamageDate,
             parkingDamageTime: existing.parkingDamageTime,
@@ -990,6 +1241,15 @@ class AppointmentRequestsService {
             marderDamageCableImages: marderDamageCableImages,
             marderDamageCurrentKmImages: marderDamageCurrentKmImages,
             marderDamageExtraImages: marderDamageExtraImages,
+            fullDamageVehicleDocumentImages: fullDamageVehicleDocumentImages,
+            fullDamageCloseImages: fullDamageCloseImages,
+            fullDamageOverviewImages: fullDamageOverviewImages,
+            fullDamageCurrentKmImages: fullDamageCurrentKmImages,
+            fullDamageExtraImages: fullDamageExtraImages,
+            otherDamageVehicleDocumentImages: otherDamageVehicleDocumentImages,
+            otherDamageProblemImages: otherDamageProblemImages,
+            otherDamageCurrentKmImages: otherDamageCurrentKmImages,
+            otherDamageExtraImages: otherDamageExtraImages,
             parkingDamageVehicleDocumentImages:
                 parkingDamageVehicleDocumentImages,
             parkingDamageDamageImages: parkingDamageDamageImages,
@@ -1019,6 +1279,16 @@ class AppointmentRequestsService {
     String? marderDamageTime,
     String? marderDamageDrivable,
     String? marderDamageDescription,
+    String? fullDamageTown,
+    String? fullDamageDate,
+    String? fullDamageTime,
+    String? fullDamageDrivable,
+    String? fullDamageDescription,
+    String? otherDamageTown,
+    String? otherDamageDate,
+    String? otherDamageTime,
+    String? otherDamageCategory,
+    String? otherDamageDescription,
     String? parkingDamageTown,
     String? parkingDamageDate,
     String? parkingDamageTime,
@@ -1036,6 +1306,15 @@ class AppointmentRequestsService {
     List<String> marderDamageCableImages = const [],
     List<String> marderDamageCurrentKmImages = const [],
     List<String> marderDamageExtraImages = const [],
+    List<String> fullDamageVehicleDocumentImages = const [],
+    List<String> fullDamageCloseImages = const [],
+    List<String> fullDamageOverviewImages = const [],
+    List<String> fullDamageCurrentKmImages = const [],
+    List<String> fullDamageExtraImages = const [],
+    List<String> otherDamageVehicleDocumentImages = const [],
+    List<String> otherDamageProblemImages = const [],
+    List<String> otherDamageCurrentKmImages = const [],
+    List<String> otherDamageExtraImages = const [],
     List<String> parkingDamageVehicleDocumentImages = const [],
     List<String> parkingDamageDamageImages = const [],
     List<String> parkingDamageOverviewImages = const [],
@@ -1055,6 +1334,16 @@ class AppointmentRequestsService {
     final trimmedMarderTime = marderDamageTime?.trim();
     final trimmedMarderDrivable = marderDamageDrivable?.trim();
     final trimmedMarderDescription = marderDamageDescription?.trim();
+    final trimmedFullTown = fullDamageTown?.trim();
+    final trimmedFullDate = fullDamageDate?.trim();
+    final trimmedFullTime = fullDamageTime?.trim();
+    final trimmedFullDrivable = fullDamageDrivable?.trim();
+    final trimmedFullDescription = fullDamageDescription?.trim();
+    final trimmedOtherTown = otherDamageTown?.trim();
+    final trimmedOtherDate = otherDamageDate?.trim();
+    final trimmedOtherTime = otherDamageTime?.trim();
+    final trimmedOtherCategory = otherDamageCategory?.trim();
+    final trimmedOtherDescription = otherDamageDescription?.trim();
     final trimmedParkingTown = parkingDamageTown?.trim();
     final trimmedParkingDate = parkingDamageDate?.trim();
     final trimmedParkingTime = parkingDamageTime?.trim();
@@ -1116,6 +1405,44 @@ class AppointmentRequestsService {
         .where((e) => e.isNotEmpty)
         .take(2)
         .toList();
+    final cleanedFullVehicleDocumentImages = fullDamageVehicleDocumentImages
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final cleanedFullCloseImages = fullDamageCloseImages
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final cleanedFullOverviewImages = fullDamageOverviewImages
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final cleanedFullCurrentKmImages = fullDamageCurrentKmImages
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final cleanedFullExtraImages = fullDamageExtraImages
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .take(2)
+        .toList();
+    final cleanedOtherVehicleDocumentImages = otherDamageVehicleDocumentImages
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final cleanedOtherProblemImages = otherDamageProblemImages
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final cleanedOtherCurrentKmImages = otherDamageCurrentKmImages
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final cleanedOtherExtraImages = otherDamageExtraImages
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .take(2)
+        .toList();
     final cleanedParkingVehicleDocumentImages =
         parkingDamageVehicleDocumentImages
             .map((e) => e.trim())
@@ -1171,6 +1498,16 @@ class AppointmentRequestsService {
         (trimmedMarderTime?.isNotEmpty ?? false) ||
         (trimmedMarderDrivable?.isNotEmpty ?? false) ||
         (trimmedMarderDescription?.isNotEmpty ?? false) ||
+        (trimmedFullTown?.isNotEmpty ?? false) ||
+        (trimmedFullDate?.isNotEmpty ?? false) ||
+        (trimmedFullTime?.isNotEmpty ?? false) ||
+        (trimmedFullDrivable?.isNotEmpty ?? false) ||
+        (trimmedFullDescription?.isNotEmpty ?? false) ||
+        (trimmedOtherTown?.isNotEmpty ?? false) ||
+        (trimmedOtherDate?.isNotEmpty ?? false) ||
+        (trimmedOtherTime?.isNotEmpty ?? false) ||
+        (trimmedOtherCategory?.isNotEmpty ?? false) ||
+        (trimmedOtherDescription?.isNotEmpty ?? false) ||
         (trimmedParkingTown?.isNotEmpty ?? false) ||
         (trimmedParkingDate?.isNotEmpty ?? false) ||
         (trimmedParkingTime?.isNotEmpty ?? false) ||
@@ -1188,6 +1525,15 @@ class AppointmentRequestsService {
         cleanedMarderCableImages.isNotEmpty ||
         cleanedMarderCurrentKmImages.isNotEmpty ||
         cleanedMarderExtraImages.isNotEmpty ||
+        cleanedFullVehicleDocumentImages.isNotEmpty ||
+        cleanedFullCloseImages.isNotEmpty ||
+        cleanedFullOverviewImages.isNotEmpty ||
+        cleanedFullCurrentKmImages.isNotEmpty ||
+        cleanedFullExtraImages.isNotEmpty ||
+        cleanedOtherVehicleDocumentImages.isNotEmpty ||
+        cleanedOtherProblemImages.isNotEmpty ||
+        cleanedOtherCurrentKmImages.isNotEmpty ||
+        cleanedOtherExtraImages.isNotEmpty ||
         cleanedParkingVehicleDocumentImages.isNotEmpty ||
         cleanedParkingDamageImages.isNotEmpty ||
         cleanedParkingOverviewImages.isNotEmpty ||
@@ -1255,6 +1601,44 @@ class AppointmentRequestsService {
         'marderDamageCurrentKmImages': cleanedMarderCurrentKmImages,
       if (cleanedMarderExtraImages.isNotEmpty)
         'marderDamageExtraImages': cleanedMarderExtraImages,
+      if (trimmedFullTown?.isNotEmpty ?? false)
+        'fullDamageTown': trimmedFullTown,
+      if (trimmedFullDate?.isNotEmpty ?? false)
+        'fullDamageDate': trimmedFullDate,
+      if (trimmedFullTime?.isNotEmpty ?? false)
+        'fullDamageTime': trimmedFullTime,
+      if (trimmedFullDrivable?.isNotEmpty ?? false)
+        'fullDamageDrivable': trimmedFullDrivable,
+      if (trimmedFullDescription?.isNotEmpty ?? false)
+        'fullDamageDescription': trimmedFullDescription,
+      if (cleanedFullVehicleDocumentImages.isNotEmpty)
+        'fullDamageVehicleDocumentImages': cleanedFullVehicleDocumentImages,
+      if (cleanedFullCloseImages.isNotEmpty)
+        'fullDamageCloseImages': cleanedFullCloseImages,
+      if (cleanedFullOverviewImages.isNotEmpty)
+        'fullDamageOverviewImages': cleanedFullOverviewImages,
+      if (cleanedFullCurrentKmImages.isNotEmpty)
+        'fullDamageCurrentKmImages': cleanedFullCurrentKmImages,
+      if (cleanedFullExtraImages.isNotEmpty)
+        'fullDamageExtraImages': cleanedFullExtraImages,
+      if (trimmedOtherTown?.isNotEmpty ?? false)
+        'otherDamageTown': trimmedOtherTown,
+      if (trimmedOtherDate?.isNotEmpty ?? false)
+        'otherDamageDate': trimmedOtherDate,
+      if (trimmedOtherTime?.isNotEmpty ?? false)
+        'otherDamageTime': trimmedOtherTime,
+      if (trimmedOtherCategory?.isNotEmpty ?? false)
+        'otherDamageCategory': trimmedOtherCategory,
+      if (trimmedOtherDescription?.isNotEmpty ?? false)
+        'otherDamageDescription': trimmedOtherDescription,
+      if (cleanedOtherVehicleDocumentImages.isNotEmpty)
+        'otherDamageVehicleDocumentImages': cleanedOtherVehicleDocumentImages,
+      if (cleanedOtherProblemImages.isNotEmpty)
+        'otherDamageProblemImages': cleanedOtherProblemImages,
+      if (cleanedOtherCurrentKmImages.isNotEmpty)
+        'otherDamageCurrentKmImages': cleanedOtherCurrentKmImages,
+      if (cleanedOtherExtraImages.isNotEmpty)
+        'otherDamageExtraImages': cleanedOtherExtraImages,
       if (trimmedParkingTown?.isNotEmpty ?? false)
         'parkingDamageTown': trimmedParkingTown,
       if (trimmedParkingDate?.isNotEmpty ?? false)
@@ -1295,6 +1679,17 @@ class AppointmentRequestsService {
       case AppointmentRequestImageCategory.marderCurrentKm:
       case AppointmentRequestImageCategory.marderExtra:
         return 'marder_damage';
+      case AppointmentRequestImageCategory.fullVehicleDocument:
+      case AppointmentRequestImageCategory.fullClose:
+      case AppointmentRequestImageCategory.fullOverview:
+      case AppointmentRequestImageCategory.fullCurrentKm:
+      case AppointmentRequestImageCategory.fullExtra:
+        return 'full_damage';
+      case AppointmentRequestImageCategory.otherVehicleDocument:
+      case AppointmentRequestImageCategory.otherProblem:
+      case AppointmentRequestImageCategory.otherCurrentKm:
+      case AppointmentRequestImageCategory.otherExtra:
+        return 'other_damage';
       case AppointmentRequestImageCategory.parkingVehicleDocument:
       case AppointmentRequestImageCategory.parkingDamage:
       case AppointmentRequestImageCategory.parkingOverview:
@@ -1337,6 +1732,24 @@ class AppointmentRequestsService {
         return 'current_km';
       case AppointmentRequestImageCategory.marderExtra:
         return 'extra';
+      case AppointmentRequestImageCategory.fullVehicleDocument:
+        return 'document';
+      case AppointmentRequestImageCategory.fullClose:
+        return 'close';
+      case AppointmentRequestImageCategory.fullOverview:
+        return 'overview';
+      case AppointmentRequestImageCategory.fullCurrentKm:
+        return 'current_km';
+      case AppointmentRequestImageCategory.fullExtra:
+        return 'extra';
+      case AppointmentRequestImageCategory.otherVehicleDocument:
+        return 'document';
+      case AppointmentRequestImageCategory.otherProblem:
+        return 'problem';
+      case AppointmentRequestImageCategory.otherCurrentKm:
+        return 'current_km';
+      case AppointmentRequestImageCategory.otherExtra:
+        return 'extra';
       case AppointmentRequestImageCategory.parkingVehicleDocument:
         return 'document';
       case AppointmentRequestImageCategory.parkingDamage:
@@ -1370,6 +1783,15 @@ class AppointmentRequestsService {
     final marderCableImages = <String>[];
     final marderCurrentKmImages = <String>[];
     final marderExtraImages = <String>[];
+    final fullVehicleDocumentImages = <String>[];
+    final fullCloseImages = <String>[];
+    final fullOverviewImages = <String>[];
+    final fullCurrentKmImages = <String>[];
+    final fullExtraImages = <String>[];
+    final otherVehicleDocumentImages = <String>[];
+    final otherProblemImages = <String>[];
+    final otherCurrentKmImages = <String>[];
+    final otherExtraImages = <String>[];
     final parkingVehicleDocumentImages = <String>[];
     final parkingDamageImages = <String>[];
     final parkingOverviewImages = <String>[];
@@ -1437,6 +1859,33 @@ class AppointmentRequestsService {
         case AppointmentRequestImageCategory.marderExtra:
           marderExtraImages.add(publicUrl);
           break;
+        case AppointmentRequestImageCategory.fullVehicleDocument:
+          fullVehicleDocumentImages.add(publicUrl);
+          break;
+        case AppointmentRequestImageCategory.fullClose:
+          fullCloseImages.add(publicUrl);
+          break;
+        case AppointmentRequestImageCategory.fullOverview:
+          fullOverviewImages.add(publicUrl);
+          break;
+        case AppointmentRequestImageCategory.fullCurrentKm:
+          fullCurrentKmImages.add(publicUrl);
+          break;
+        case AppointmentRequestImageCategory.fullExtra:
+          fullExtraImages.add(publicUrl);
+          break;
+        case AppointmentRequestImageCategory.otherVehicleDocument:
+          otherVehicleDocumentImages.add(publicUrl);
+          break;
+        case AppointmentRequestImageCategory.otherProblem:
+          otherProblemImages.add(publicUrl);
+          break;
+        case AppointmentRequestImageCategory.otherCurrentKm:
+          otherCurrentKmImages.add(publicUrl);
+          break;
+        case AppointmentRequestImageCategory.otherExtra:
+          otherExtraImages.add(publicUrl);
+          break;
         case AppointmentRequestImageCategory.parkingVehicleDocument:
           parkingVehicleDocumentImages.add(publicUrl);
           break;
@@ -1472,6 +1921,15 @@ class AppointmentRequestsService {
       marderCableImages: marderCableImages,
       marderCurrentKmImages: marderCurrentKmImages,
       marderExtraImages: marderExtraImages,
+      fullVehicleDocumentImages: fullVehicleDocumentImages,
+      fullCloseImages: fullCloseImages,
+      fullOverviewImages: fullOverviewImages,
+      fullCurrentKmImages: fullCurrentKmImages,
+      fullExtraImages: fullExtraImages,
+      otherVehicleDocumentImages: otherVehicleDocumentImages,
+      otherProblemImages: otherProblemImages,
+      otherCurrentKmImages: otherCurrentKmImages,
+      otherExtraImages: otherExtraImages,
       parkingVehicleDocumentImages: parkingVehicleDocumentImages,
       parkingDamageImages: parkingDamageImages,
       parkingOverviewImages: parkingOverviewImages,
@@ -1548,6 +2006,16 @@ class AppointmentRequestsService {
     String? marderDamageTime,
     String? marderDamageDrivable,
     String? marderDamageDescription,
+    String? fullDamageTown,
+    String? fullDamageDate,
+    String? fullDamageTime,
+    String? fullDamageDrivable,
+    String? fullDamageDescription,
+    String? otherDamageTown,
+    String? otherDamageDate,
+    String? otherDamageTime,
+    String? otherDamageCategory,
+    String? otherDamageDescription,
     String? parkingDamageTown,
     String? parkingDamageDate,
     String? parkingDamageTime,
@@ -1567,6 +2035,16 @@ class AppointmentRequestsService {
     required List<AppointmentRequestImageInput> marderDamageCableImages,
     required List<AppointmentRequestImageInput> marderDamageCurrentKmImages,
     required List<AppointmentRequestImageInput> marderDamageExtraImages,
+    required List<AppointmentRequestImageInput> fullDamageVehicleDocumentImages,
+    required List<AppointmentRequestImageInput> fullDamageCloseImages,
+    required List<AppointmentRequestImageInput> fullDamageOverviewImages,
+    required List<AppointmentRequestImageInput> fullDamageCurrentKmImages,
+    required List<AppointmentRequestImageInput> fullDamageExtraImages,
+    required List<AppointmentRequestImageInput>
+        otherDamageVehicleDocumentImages,
+    required List<AppointmentRequestImageInput> otherDamageProblemImages,
+    required List<AppointmentRequestImageInput> otherDamageCurrentKmImages,
+    required List<AppointmentRequestImageInput> otherDamageExtraImages,
     required List<AppointmentRequestImageInput>
         parkingDamageVehicleDocumentImages,
     required List<AppointmentRequestImageInput> parkingDamageDamageImages,
@@ -1591,6 +2069,15 @@ class AppointmentRequestsService {
       ...marderDamageCableImages,
       ...marderDamageCurrentKmImages,
       ...marderDamageExtraImages,
+      ...fullDamageVehicleDocumentImages,
+      ...fullDamageCloseImages,
+      ...fullDamageOverviewImages,
+      ...fullDamageCurrentKmImages,
+      ...fullDamageExtraImages,
+      ...otherDamageVehicleDocumentImages,
+      ...otherDamageProblemImages,
+      ...otherDamageCurrentKmImages,
+      ...otherDamageExtraImages,
       ...parkingDamageVehicleDocumentImages,
       ...parkingDamageDamageImages,
       ...parkingDamageOverviewImages,
@@ -1645,6 +2132,41 @@ class AppointmentRequestsService {
       marderDamageTime: marderDamageTime,
       marderDamageDrivable: marderDamageDrivable,
       marderDamageDescription: marderDamageDescription,
+      fullDamageTown: fullDamageTown,
+      fullDamageDate: fullDamageDate,
+      fullDamageTime: fullDamageTime,
+      fullDamageDrivable: fullDamageDrivable,
+      fullDamageDescription: fullDamageDescription,
+      otherDamageTown: otherDamageTown,
+      otherDamageDate: otherDamageDate,
+      otherDamageTime: otherDamageTime,
+      otherDamageCategory: otherDamageCategory,
+      otherDamageDescription: otherDamageDescription,
+      fullDamageVehicleDocumentImages: fullDamageVehicleDocumentImages
+          .map((image) => image.previewReference)
+          .toList(),
+      fullDamageCloseImages:
+          fullDamageCloseImages.map((image) => image.previewReference).toList(),
+      fullDamageOverviewImages: fullDamageOverviewImages
+          .map((image) => image.previewReference)
+          .toList(),
+      fullDamageCurrentKmImages: fullDamageCurrentKmImages
+          .map((image) => image.previewReference)
+          .toList(),
+      fullDamageExtraImages:
+          fullDamageExtraImages.map((image) => image.previewReference).toList(),
+      otherDamageVehicleDocumentImages: otherDamageVehicleDocumentImages
+          .map((image) => image.previewReference)
+          .toList(),
+      otherDamageProblemImages: otherDamageProblemImages
+          .map((image) => image.previewReference)
+          .toList(),
+      otherDamageCurrentKmImages: otherDamageCurrentKmImages
+          .map((image) => image.previewReference)
+          .toList(),
+      otherDamageExtraImages: otherDamageExtraImages
+          .map((image) => image.previewReference)
+          .toList(),
       marderDamageVehicleDocumentImages: marderDamageVehicleDocumentImages
           .map((image) => image.previewReference)
           .toList(),
