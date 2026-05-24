@@ -7,12 +7,10 @@ import 'package:cid_digitale/models/appointment_request.dart';
 import 'package:cid_digitale/services/appointment_requests_service.dart';
 import 'package:cid_digitale/services/local_image_cache.dart';
 import 'package:cid_digitale/services/premium_workshop_pdf_service.dart';
-import 'package:cid_digitale/services/workshop_pdf_file_helper.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class RequestDetailScreen extends StatefulWidget {
   const RequestDetailScreen({super.key, required this.request});
@@ -414,11 +412,11 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         fr: 'PDF',
       );
 
-  String _pdfOpenLabel() => _copy(
-        de: 'PDF öffnen',
-        it: 'Apri PDF',
-        en: 'Open PDF',
-        fr: 'Ouvrir PDF',
+  String _pdfShareLabel() => _copy(
+        de: 'PDF teilen',
+        it: 'Condividi PDF',
+        en: 'Share PDF',
+        fr: 'Partager PDF',
       );
 
   String _pdfLoadingTitle() => _copy(
@@ -435,11 +433,11 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         fr: 'Veuillez patienter un instant.',
       );
 
-  String _pdfOpenErrorText() => _copy(
-        de: 'PDF konnte nicht geoeffnet werden.',
-        it: 'Impossibile aprire il PDF.',
-        en: 'Unable to open the PDF.',
-        fr: 'Impossible d’ouvrir le PDF.',
+  String _pdfShareErrorText() => _copy(
+        de: 'PDF konnte nicht geteilt werden.',
+        it: 'Impossibile condividere il PDF.',
+        en: 'Unable to share the PDF.',
+        fr: 'Impossible de partager le PDF.',
       );
 
   String _pdfUnavailableText() => _copy(
@@ -449,11 +447,18 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         fr: 'Le PDF est disponible uniquement pour les demandes dommage.',
       );
 
-  String _pdfSaveHintText() => _copy(
-        de: 'Zum Speichern: PDF öffnen und Teilen → In Dateien sichern.',
-        it: 'Per salvare il PDF, aprilo e usa Condividi → Salva su File.',
-        en: 'To save the PDF, open it and use Share → Save to Files.',
-        fr: 'Pour enregistrer le PDF, ouvrez-le puis utilisez Partager → Enregistrer dans Fichiers.',
+  String _pdfShareDescriptionText() => _copy(
+        de: 'Teilen Sie den PDF-Bericht per Mail, WhatsApp oder speichern Sie ihn in Dateien.',
+        it: 'Condividi il PDF via Mail, WhatsApp oppure salvalo su File.',
+        en: 'Share the PDF report by Mail, WhatsApp or save it to Files.',
+        fr: 'Partagez le rapport PDF par mail, WhatsApp ou enregistrez-le dans Fichiers.',
+      );
+
+  String _pdfShareFallbackText(String claimId) => _copy(
+        de: 'PDF-Bericht fuer die Anfrage $claimId',
+        it: 'PDF generato per la richiesta $claimId',
+        en: 'PDF generated for request $claimId',
+        fr: 'PDF genere pour la demande $claimId',
       );
 
   String _workshopFallbackName() => _copy(
@@ -1179,31 +1184,21 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     }
   }
 
-  Future<void> _openPremiumPdf() async {
+  Future<void> _sharePremiumPdf() async {
     if (!_supportsPremiumWorkshopPdf) {
       _showSnackBar(_pdfUnavailableText());
       return;
     }
 
-    final preparedWindow =
-        kIsWeb ? preparePdfWindowWeb(title: _pdfOpenLabel()) : null;
     setState(() => _pdfBusy = true);
     try {
       await Future<void>.delayed(const Duration(milliseconds: 16));
       final pdf = await _generatePremiumPdf();
-      if (!mounted) {
-        await closePreparedPdfWindowWeb(preparedWindow);
-        return;
-      }
-      await _openPdfResult(
-        pdf,
-        showSaveHintOnSafari: true,
-        preparedWindow: preparedWindow,
-      );
-    } catch (_) {
-      await closePreparedPdfWindowWeb(preparedWindow);
       if (!mounted) return;
-      _showSnackBar(_pdfOpenErrorText());
+      await _sharePdfResult(pdf);
+    } catch (_) {
+      if (!mounted) return;
+      _showSnackBar(_pdfShareErrorText());
     } finally {
       if (mounted) {
         setState(() => _pdfBusy = false);
@@ -1219,47 +1214,68 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     );
   }
 
-  Future<void> _openPdfResult(
-    PremiumWorkshopPdfResult pdf, {
-    required bool showSaveHintOnSafari,
-    Object? preparedWindow,
-  }) async {
+  Future<void> _sharePdfResult(PremiumWorkshopPdfResult pdf) async {
+    final shareOrigin = _sharePositionOrigin();
+    final shareText = _pdfShareFallbackText(request.id);
+
     if (kIsWeb) {
+      final originalDownloadFallback = Share.downloadFallbackEnabled;
       try {
-        await openPdfPreviewWeb(
-          bytes: pdf.bytes,
-          fileName: pdf.fileName,
-          preparedWindow: preparedWindow,
+        Share.downloadFallbackEnabled = false;
+        await Share.shareXFiles(
+          [
+            XFile.fromData(
+              pdf.bytes,
+              mimeType: 'application/pdf',
+              name: pdf.fileName,
+            ),
+          ],
+          subject: pdf.fileName,
+          text: shareText,
+          sharePositionOrigin: shareOrigin,
+          fileNameOverrides: [pdf.fileName],
         );
-        if (showSaveHintOnSafari && shouldOpenPdfInNewTabForDownloadWeb()) {
-          _showSnackBar(_pdfSaveHintText());
-        }
       } catch (_) {
-        await closePreparedPdfWindowWeb(preparedWindow);
-        rethrow;
+        await Share.share(
+          shareText,
+          subject: pdf.fileName,
+          sharePositionOrigin: shareOrigin,
+        );
+      } finally {
+        Share.downloadFallbackEnabled = originalDownloadFallback;
       }
       return;
     }
 
     final file = await _writePdfFile(pdf.bytes, pdf.fileName);
-    final ok = await launchUrl(
-      Uri.file(file.path),
-      mode: LaunchMode.externalApplication,
-    );
-    if (!ok) {
+    try {
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/pdf', name: pdf.fileName)],
-        text: pdf.fileName,
+        text: shareText,
         subject: pdf.fileName,
+        sharePositionOrigin: shareOrigin,
+        fileNameOverrides: [pdf.fileName],
+      );
+    } catch (_) {
+      await Share.share(
+        shareText,
+        subject: pdf.fileName,
+        sharePositionOrigin: shareOrigin,
       );
     }
+  }
+
+  Rect? _sharePositionOrigin() {
+    final renderObject = context.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) return null;
+    final offset = renderObject.localToGlobal(Offset.zero);
+    return offset & renderObject.size;
   }
 
   Future<File> _writePdfFile(Uint8List bytes, String fileName) async {
     final directory = await getTemporaryDirectory();
     final safeFileName = fileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '_');
-    final path =
-        '${directory.path}/${DateTime.now().millisecondsSinceEpoch}_$safeFileName';
+    final path = '${directory.path}/$safeFileName';
     final file = File(path);
     await file.writeAsBytes(bytes, flush: true);
     return file;
@@ -1773,24 +1789,22 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: _pdfBusy ? null : _openPremiumPdf,
-                icon: const Icon(Icons.open_in_new_rounded),
-                label: Text(_pdfOpenLabel()),
+                onPressed: _pdfBusy ? null : _sharePremiumPdf,
+                icon: const Icon(Icons.share_rounded),
+                label: Text(_pdfShareLabel()),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(56),
                 ),
               ),
             ),
-            if (kIsWeb && shouldOpenPdfInNewTabForDownloadWeb()) ...[
-              const SizedBox(height: 10),
-              Text(
-                _pdfSaveHintText(),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF6B7280),
-                      height: 1.4,
-                    ),
-              ),
-            ],
+            const SizedBox(height: 10),
+            Text(
+              _pdfShareDescriptionText(),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF6B7280),
+                    height: 1.4,
+                  ),
+            ),
           ],
         ),
       ),
