@@ -3,11 +3,11 @@ const MANIFEST = 'flutter-app-manifest';
 const TEMP = 'flutter-temp-cache';
 const CACHE_NAME = 'flutter-app-cache';
 
-const RESOURCES = {"flutter_bootstrap.js": "a59c24a85d6d15b5c25ce5a9c37cbf2a",
+const RESOURCES = {"flutter_bootstrap.js": "365888a99fe135dd5e079f5b7f6df543",
 "version.json": "888943b38089b79929d4fe1fadd39b0b",
 "index.html": "1b479eb7cd2b630529656f895428de9b",
 "/": "1b479eb7cd2b630529656f895428de9b",
-"main.dart.js": "acb2913f507df5bf88788115d7a21508",
+"main.dart.js": "a4d3550929a59bdee6c413b14f4017ca",
 "flutter.js": "24bc71911b75b5f8135c949e27a2984e",
 "favicon.png": "5dcef449791fa27946b3d35ad8803796",
 "icons/Icon-192.png": "ac9a721a12bbc803b44f645561ecb1e1",
@@ -24,7 +24,7 @@ const RESOURCES = {"flutter_bootstrap.js": "a59c24a85d6d15b5c25ce5a9c37cbf2a",
 "assets/shaders/ink_sparkle.frag": "ecc85a2e95f5e9f53123dcaf8cb9b6ce",
 "assets/shaders/stretch_effect.frag": "40d68efbbf360632f614c731219e95f0",
 "assets/AssetManifest.bin": "a3b9f125f16f8ce2e2e6b728061ede21",
-"assets/fonts/MaterialIcons-Regular.otf": "1909340546c02eb1777b0cf837c6f2d2",
+"assets/fonts/MaterialIcons-Regular.otf": "fe8b3e9fb62724081327fa3922489237",
 "assets/assets/images/crashform_logo.png": "d560dd80ab56731e0b6f83fbac596be1",
 "assets/assets/translations/de.json": "5916807b123a6a0b54c87f66c3fe597f",
 "assets/assets/translations/en.json": "7023e95c15171102eb34ba095c48bc35",
