@@ -20,11 +20,10 @@ class PremiumWorkshopPdfResult {
 }
 
 class PremiumWorkshopPdfService {
-  static const PdfColor _brandBlue = PdfColor(0.2941, 0.4823, 1.0);
   static const PdfColor _textPrimary = PdfColor(0.0667, 0.0941, 0.1529);
   static const PdfColor _textSecondary = PdfColor(0.4196, 0.4588, 0.5216);
   static const PdfColor _borderColor = PdfColor(0.8980, 0.9098, 0.9255);
-  static const PdfColor _statusPending = PdfColor(0.9176, 0.3451, 0.0471);
+  static const PdfColor _statusPending = PdfColor(0.4196, 0.4588, 0.5216);
   static const PdfColor _statusConfirmed = PdfColor(0.1451, 0.3882, 0.9216);
   static const PdfColor _statusInProgress = PdfColor(0.4863, 0.2275, 0.9333);
   static const PdfColor _statusCompleted = PdfColor(0.0863, 0.6392, 0.2902);
@@ -527,6 +526,7 @@ class PremiumWorkshopPdfService {
           )
         else
           for (final group in availableGroups) ...[
+            pw.NewPage(freeSpace: 320),
             pw.Text(
               group.title,
               style: pw.TextStyle(
@@ -537,6 +537,7 @@ class PremiumWorkshopPdfService {
             ),
             pw.SizedBox(height: 8),
             for (var i = 0; i < group.sources.length; i++) ...[
+              pw.NewPage(freeSpace: 280),
               _buildPhotoTile(
                 locale: locale,
                 title: _photoItemTitle(
@@ -587,45 +588,42 @@ class PremiumWorkshopPdfService {
             ),
           ),
           pw.SizedBox(height: 8),
-          pw.ClipRRect(
-            horizontalRadius: 14,
-            verticalRadius: 14,
-            child: pw.Container(
-              height: 220,
-              width: double.infinity,
-              padding: const pw.EdgeInsets.all(10),
-              decoration: pw.BoxDecoration(
-                color: PdfColors.white,
-                border: pw.Border.all(color: _borderColor, width: 1),
-              ),
-              child: image != null
-                  ? pw.Center(
-                      child: pw.Image(
-                        image,
-                        fit: pw.BoxFit.contain,
-                        height: 200,
-                      ),
-                    )
-                  : pw.Center(
-                      child: pw.Padding(
-                        padding: const pw.EdgeInsets.all(10),
-                        child: pw.Text(
-                          _copy(
-                            locale,
-                            de: 'Foto nicht verfuegbar',
-                            it: 'Foto non disponibile',
-                            en: 'Photo unavailable',
-                            fr: 'Photo indisponible',
-                          ),
-                          textAlign: pw.TextAlign.center,
-                          style: const pw.TextStyle(
-                            color: _textSecondary,
-                            fontSize: 10,
-                          ),
+          pw.Container(
+            height: 236,
+            width: double.infinity,
+            padding: const pw.EdgeInsets.all(10),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.white,
+              borderRadius: pw.BorderRadius.circular(12),
+              border: pw.Border.all(color: _borderColor, width: 1),
+            ),
+            child: image != null
+                ? pw.Center(
+                    child: pw.Image(
+                      image,
+                      fit: pw.BoxFit.contain,
+                      height: 216,
+                    ),
+                  )
+                : pw.Center(
+                    child: pw.Padding(
+                      padding: const pw.EdgeInsets.all(10),
+                      child: pw.Text(
+                        _copy(
+                          locale,
+                          de: 'Foto nicht verfuegbar',
+                          it: 'Foto non disponibile',
+                          en: 'Photo unavailable',
+                          fr: 'Photo indisponible',
+                        ),
+                        textAlign: pw.TextAlign.center,
+                        style: const pw.TextStyle(
+                          color: _textSecondary,
+                          fontSize: 10,
                         ),
                       ),
                     ),
-            ),
+                  ),
           ),
         ],
       ),
@@ -764,7 +762,7 @@ class PremiumWorkshopPdfService {
                 pw.Text(
                   request.id,
                   style: pw.TextStyle(
-                    color: _brandBlue,
+                    color: _textPrimary,
                     fontSize: 10,
                     fontWeight: pw.FontWeight.bold,
                   ),
