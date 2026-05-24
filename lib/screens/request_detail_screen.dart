@@ -1192,6 +1192,8 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       return;
     }
 
+    final preparedWindow =
+        kIsWeb ? preparePdfWindowWeb(title: _pdfPreviewLabel()) : null;
     setState(() => _pdfBusy = true);
     try {
       await Future<void>.delayed(const Duration(milliseconds: 16));
@@ -1200,10 +1202,19 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         localeCode: _localizedRequestLocale(),
         workshopName: _workshopFallbackName(),
       );
-      if (!mounted) return;
+      if (!mounted) {
+        if (kIsWeb) {
+          await closePreparedPdfWindowWeb(preparedWindow);
+        }
+        return;
+      }
 
       if (kIsWeb) {
-        await openPdfPreviewWeb(bytes: pdf.bytes, fileName: pdf.fileName);
+        await openPdfPreviewWeb(
+          bytes: pdf.bytes,
+          fileName: pdf.fileName,
+          preparedWindow: preparedWindow,
+        );
         return;
       }
 
@@ -1220,6 +1231,9 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         );
       }
     } catch (_) {
+      if (kIsWeb) {
+        await closePreparedPdfWindowWeb(preparedWindow);
+      }
       if (!mounted) return;
       _showSnackBar(_pdfPreviewErrorText());
     } finally {
@@ -1235,6 +1249,9 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       return;
     }
 
+    final preparedWindow = kIsWeb && shouldOpenPdfInNewTabForDownloadWeb()
+        ? preparePdfWindowWeb(title: _pdfDownloadLabel())
+        : null;
     setState(() => _pdfBusy = true);
     try {
       await Future<void>.delayed(const Duration(milliseconds: 16));
@@ -1243,10 +1260,19 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         localeCode: _localizedRequestLocale(),
         workshopName: _workshopFallbackName(),
       );
-      if (!mounted) return;
+      if (!mounted) {
+        if (kIsWeb) {
+          await closePreparedPdfWindowWeb(preparedWindow);
+        }
+        return;
+      }
 
       if (kIsWeb) {
-        await downloadPdfWeb(bytes: pdf.bytes, fileName: pdf.fileName);
+        await downloadPdfWeb(
+          bytes: pdf.bytes,
+          fileName: pdf.fileName,
+          preparedWindow: preparedWindow,
+        );
         return;
       }
 
@@ -1257,6 +1283,9 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         subject: pdf.fileName,
       );
     } catch (_) {
+      if (kIsWeb) {
+        await closePreparedPdfWindowWeb(preparedWindow);
+      }
       if (!mounted) return;
       _showSnackBar(_pdfDownloadErrorText());
     } finally {

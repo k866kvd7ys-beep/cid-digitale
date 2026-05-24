@@ -327,7 +327,7 @@ class PremiumWorkshopPdfService {
     final bytes = await document.save();
     return PremiumWorkshopPdfResult(
       bytes: bytes,
-      fileName: 'workshop_request_${_referenceNumber(request.id)}.pdf',
+      fileName: _pdfFileName(request.id),
     );
   }
 
@@ -550,111 +550,194 @@ class PremiumWorkshopPdfService {
   }) {
     final availableGroups =
         photoGroups.where((group) => group.sources.isNotEmpty).toList();
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          _copy(
+            locale,
+            de: 'Fotos',
+            it: 'Foto',
+            en: 'Photos',
+            fr: 'Photos',
+          ),
+          style: pw.TextStyle(
+            color: _textPrimary,
+            fontSize: 14,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+        pw.SizedBox(height: 12),
+        if (availableGroups.isEmpty)
+          pw.Text(
+            _copy(
+              locale,
+              de: 'Keine Fotos vorhanden.',
+              it: 'Nessuna foto disponibile.',
+              en: 'No photos available.',
+              fr: 'Aucune photo disponible.',
+            ),
+            style: const pw.TextStyle(
+              color: _textSecondary,
+              fontSize: 11,
+            ),
+          )
+        else
+          for (final group in availableGroups) ...[
+            pw.Text(
+              group.title,
+              style: pw.TextStyle(
+                color: _textPrimary,
+                fontSize: 12,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+            pw.SizedBox(height: 8),
+            for (final row in _buildPhotoRows(
+              locale: locale,
+              group: group,
+              images: images,
+            )) ...[
+              row,
+              pw.SizedBox(height: 12),
+            ],
+            if (group != availableGroups.last) pw.SizedBox(height: 8),
+          ],
+      ],
+    );
+  }
+
+  List<pw.Widget> _buildPhotoRows({
+    required String locale,
+    required _PhotoGroup group,
+    required Map<String, pw.MemoryImage> images,
+  }) {
+    final rows = <pw.Widget>[];
+    for (var index = 0; index < group.sources.length; index += 2) {
+      final leftSource = group.sources[index];
+      final rightIndex = index + 1;
+      final rightSource =
+          rightIndex < group.sources.length ? group.sources[rightIndex] : null;
+      rows.add(
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Expanded(
+              child: _buildPhotoTile(
+                locale: locale,
+                title: _photoItemTitle(
+                  baseTitle: group.title,
+                  index: index,
+                  total: group.sources.length,
+                ),
+                image: images[leftSource],
+              ),
+            ),
+            pw.SizedBox(width: 12),
+            pw.Expanded(
+              child: rightSource == null
+                  ? pw.SizedBox()
+                  : _buildPhotoTile(
+                      locale: locale,
+                      title: _photoItemTitle(
+                        baseTitle: group.title,
+                        index: rightIndex,
+                        total: group.sources.length,
+                      ),
+                      image: images[rightSource],
+                    ),
+            ),
+          ],
+        ),
+      );
+    }
+    return rows;
+  }
+
+  String _photoItemTitle({
+    required String baseTitle,
+    required int index,
+    required int total,
+  }) {
+    if (total <= 1) return baseTitle;
+    return '$baseTitle ${index + 1}';
+  }
+
+  pw.Widget _buildPhotoTile({
+    required String locale,
+    required String title,
+    required pw.MemoryImage? image,
+  }) {
     return pw.Container(
-      padding: const pw.EdgeInsets.all(18),
+      padding: const pw.EdgeInsets.all(12),
       decoration: pw.BoxDecoration(
         color: PdfColors.white,
-        borderRadius: pw.BorderRadius.circular(22),
+        borderRadius: pw.BorderRadius.circular(16),
         border: pw.Border.all(color: _borderColor, width: 1),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text(
-            _copy(
-              locale,
-              de: 'Fotos',
-              it: 'Foto',
-              en: 'Photos',
-              fr: 'Photos',
-            ),
+            title,
             style: pw.TextStyle(
               color: _textPrimary,
-              fontSize: 14,
+              fontSize: 10,
               fontWeight: pw.FontWeight.bold,
             ),
           ),
-          pw.SizedBox(height: 12),
-          if (availableGroups.isEmpty)
-            pw.Text(
-              _copy(
-                locale,
-                de: 'Keine Fotos vorhanden.',
-                it: 'Nessuna foto disponibile.',
-                en: 'No photos available.',
-                fr: 'Aucune photo disponible.',
+          pw.SizedBox(height: 8),
+          pw.ClipRRect(
+            horizontalRadius: 14,
+            verticalRadius: 14,
+            child: pw.Container(
+              height: 180,
+              width: double.infinity,
+              padding: const pw.EdgeInsets.all(10),
+              decoration: pw.BoxDecoration(
+                color: _cardFill,
+                border: pw.Border.all(color: _borderColor, width: 1),
               ),
-              style: const pw.TextStyle(
-                color: _textSecondary,
-                fontSize: 11,
-              ),
-            )
-          else
-            for (final group in availableGroups) ...[
-              pw.Text(
-                group.title,
-                style: pw.TextStyle(
-                  color: _textPrimary,
-                  fontSize: 12,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-              pw.SizedBox(height: 8),
-              pw.Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  for (final source in group.sources)
-                    _buildPhotoTile(
-                      locale: locale,
-                      image: images[source],
+              child: image != null
+                  ? pw.Center(
+                      child: pw.Image(
+                        image,
+                        fit: pw.BoxFit.contain,
+                        height: 160,
+                      ),
+                    )
+                  : pw.Center(
+                      child: pw.Padding(
+                        padding: const pw.EdgeInsets.all(10),
+                        child: pw.Text(
+                          _copy(
+                            locale,
+                            de: 'Foto nicht verfuegbar',
+                            it: 'Foto non disponibile',
+                            en: 'Photo unavailable',
+                            fr: 'Photo indisponible',
+                          ),
+                          textAlign: pw.TextAlign.center,
+                          style: const pw.TextStyle(
+                            color: _textSecondary,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
                     ),
-                ],
-              ),
-              if (group != availableGroups.last) pw.SizedBox(height: 14),
-            ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  pw.Widget _buildPhotoTile({
-    required String locale,
-    required pw.MemoryImage? image,
-  }) {
-    return pw.ClipRRect(
-      horizontalRadius: 16,
-      verticalRadius: 16,
-      child: pw.Container(
-        width: 160,
-        height: 120,
-        decoration: pw.BoxDecoration(
-          color: _cardFill,
-          border: pw.Border.all(color: _borderColor, width: 1),
-        ),
-        child: image != null
-            ? pw.Image(image, fit: pw.BoxFit.cover)
-            : pw.Center(
-                child: pw.Padding(
-                  padding: const pw.EdgeInsets.all(10),
-                  child: pw.Text(
-                    _copy(
-                      locale,
-                      de: 'Foto nicht verfuegbar',
-                      it: 'Foto non disponibile',
-                      en: 'Photo unavailable',
-                      fr: 'Photo indisponible',
-                    ),
-                    textAlign: pw.TextAlign.center,
-                    style: const pw.TextStyle(
-                      color: _textSecondary,
-                      fontSize: 10,
-                    ),
-                  ),
-                ),
-              ),
-      ),
-    );
+  String _pdfFileName(String requestId) {
+    final trimmed = requestId.trim();
+    final safeId = trimmed.isEmpty
+        ? 'request'
+        : trimmed.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
+    return 'richiesta_$safeId.pdf';
   }
 
   pw.Widget _buildStatusSection({
