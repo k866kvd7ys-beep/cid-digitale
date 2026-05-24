@@ -2,8 +2,11 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:cid_digitale/l10n/app_localizations.dart';
+import 'package:cid_digitale/models/appointment_request.dart';
+import 'package:cid_digitale/screens/my_requests_page.dart';
 import 'package:cid_digitale/services/appointment_requests_service.dart';
 import 'package:cid_digitale/services/local_image_cache.dart';
+import 'package:cid_digitale/widgets/damage_type_picker_sheet.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -3535,6 +3538,42 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     );
   }
 
+  Route<void> _buildSuccessRoute({
+    required AppointmentRequest request,
+    required String requestTypeLabel,
+    required String appointmentLabel,
+    required String town,
+  }) {
+    return PageRouteBuilder<void>(
+      transitionDuration: const Duration(milliseconds: 420),
+      reverseTransitionDuration: const Duration(milliseconds: 260),
+      pageBuilder: (context, animation, secondaryAnimation) =>
+          _ClientRequestSuccessScreen(
+        request: request,
+        requestTypeLabel: requestTypeLabel,
+        appointmentLabel: appointmentLabel,
+        town: town,
+      ),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.045),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _onBookPressed() async {
     if (!_confirmationAccepted) {
       return;
@@ -3735,16 +3774,14 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             : const [],
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            request.status == 'pending_sync'
-                ? _snackOfflineQueued(context)
-                : _snackSuccess(context, slotStr),
-          ),
+      Navigator.of(context).pushReplacement(
+        _buildSuccessRoute(
+          request: request,
+          requestTypeLabel: _selectedRequestTypeLabel(context),
+          appointmentLabel: slotStr,
+          town: _glassTownCtrl.text.trim(),
         ),
       );
-      Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -4020,4 +4057,850 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       ),
     );
   }
+}
+
+class _ClientRequestSuccessScreen extends StatefulWidget {
+  const _ClientRequestSuccessScreen({
+    required this.request,
+    required this.requestTypeLabel,
+    required this.appointmentLabel,
+    required this.town,
+  });
+
+  final AppointmentRequest request;
+  final String requestTypeLabel;
+  final String appointmentLabel;
+  final String town;
+
+  @override
+  State<_ClientRequestSuccessScreen> createState() =>
+      _ClientRequestSuccessScreenState();
+}
+
+class _ClientRequestSuccessScreenState
+    extends State<_ClientRequestSuccessScreen> {
+  bool get _isOffline => widget.request.status == 'pending_sync';
+
+  String _copy(
+    BuildContext context, {
+    required String de,
+    required String it,
+    required String en,
+    required String fr,
+  }) {
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'it':
+        return it;
+      case 'fr':
+        return fr;
+      case 'en':
+        return en;
+      default:
+        return de;
+    }
+  }
+
+  String _title(BuildContext context) {
+    if (_isOffline) {
+      return _copy(
+        context,
+        de: 'Anfrage lokal gespeichert',
+        it: 'Richiesta salvata offline',
+        en: 'Request saved offline',
+        fr: 'Demande enregistree hors ligne',
+      );
+    }
+    return _copy(
+      context,
+      de: 'Anfrage erfolgreich gesendet',
+      it: 'Richiesta inviata con successo',
+      en: 'Request sent successfully',
+      fr: 'Demande envoyee avec succes',
+    );
+  }
+
+  String _subtitle(BuildContext context) {
+    if (_isOffline) {
+      return _copy(
+        context,
+        de: 'Sie wird automatisch gesendet, sobald wieder Internet verfugbar ist.',
+        it: 'Verra inviata automaticamente appena torna la connessione.',
+        en: 'It will be sent automatically once internet is available again.',
+        fr: 'Elle sera envoyee automatiquement des que la connexion sera disponible.',
+      );
+    }
+    return _copy(
+      context,
+      de: 'Ihre Anfrage wurde gespeichert und an die Werkstatt ubermittelt.',
+      it: 'La tua richiesta e stata salvata e inviata all’officina.',
+      en: 'Your request has been saved and sent to the workshop.',
+      fr: 'Votre demande a ete enregistree et envoyee a l’atelier.',
+    );
+  }
+
+  String _summaryTitle(BuildContext context) {
+    return _copy(
+      context,
+      de: 'Ubersicht Ihrer Anfrage',
+      it: 'Riepilogo della richiesta',
+      en: 'Request overview',
+      fr: 'Apercu de votre demande',
+    );
+  }
+
+  String _timelineTitle(BuildContext context) {
+    return _copy(
+      context,
+      de: 'Status der Ubermittlung',
+      it: 'Stato della trasmissione',
+      en: 'Submission status',
+      fr: 'Statut de l’envoi',
+    );
+  }
+
+  String _damageTypeLabel(BuildContext context) {
+    return _copy(
+      context,
+      de: 'Schadentyp',
+      it: 'Tipo danno',
+      en: 'Damage type',
+      fr: 'Type de dommage',
+    );
+  }
+
+  String _plateLabel(BuildContext context) {
+    return _copy(
+      context,
+      de: 'Kennzeichen',
+      it: 'Targa',
+      en: 'License plate',
+      fr: 'Plaque',
+    );
+  }
+
+  String _appointmentLabelTitle(BuildContext context) {
+    return _copy(
+      context,
+      de: 'Termin',
+      it: 'Appuntamento',
+      en: 'Appointment',
+      fr: 'Rendez-vous',
+    );
+  }
+
+  String _townLabel(BuildContext context) {
+    return _copy(
+      context,
+      de: 'Ort',
+      it: 'Localita',
+      en: 'Location',
+      fr: 'Lieu',
+    );
+  }
+
+  String _referenceLabel(BuildContext context) {
+    return _copy(
+      context,
+      de: 'Referenznummer',
+      it: 'Numero pratica',
+      en: 'Reference number',
+      fr: 'Numero de dossier',
+    );
+  }
+
+  String _overviewButtonLabel(BuildContext context) {
+    return _copy(
+      context,
+      de: 'Zur Ubersicht',
+      it: 'Vai al riepilogo',
+      en: 'Go to overview',
+      fr: 'Aller a l’aperçu',
+    );
+  }
+
+  String _newRequestButtonLabel(BuildContext context) {
+    return _copy(
+      context,
+      de: 'Neue Anfrage erstellen',
+      it: 'Crea nuova richiesta',
+      en: 'Create new request',
+      fr: 'Creer une nouvelle demande',
+    );
+  }
+
+  String _emptyValue(BuildContext context) {
+    return _copy(
+      context,
+      de: 'Nicht angegeben',
+      it: 'Non indicato',
+      en: 'Not provided',
+      fr: 'Non indique',
+    );
+  }
+
+  String _otherDamageLabel(BuildContext context) {
+    return _copy(
+      context,
+      de: 'Sonstige Schaden',
+      it: 'Altri danni',
+      en: 'Other damages',
+      fr: 'Autres dommages',
+    );
+  }
+
+  String _resolvedTown() {
+    final town = widget.town.trim();
+    if (town.isNotEmpty) return town;
+    final request = widget.request;
+    return request.glassDamageTown?.trim().isNotEmpty == true
+        ? request.glassDamageTown!.trim()
+        : request.hailDamageTown?.trim().isNotEmpty == true
+            ? request.hailDamageTown!.trim()
+            : request.marderDamageTown?.trim().isNotEmpty == true
+                ? request.marderDamageTown!.trim()
+                : request.fullDamageTown?.trim().isNotEmpty == true
+                    ? request.fullDamageTown!.trim()
+                    : request.otherDamageTown?.trim().isNotEmpty == true
+                        ? request.otherDamageTown!.trim()
+                        : request.parkingDamageTown?.trim().isNotEmpty == true
+                            ? request.parkingDamageTown!.trim()
+                            : '';
+  }
+
+  String _resolvedAppointmentLabel() {
+    final label = widget.appointmentLabel.trim();
+    if (label.isNotEmpty) return label;
+    final date =
+        DateFormat('dd.MM.yyyy').format(widget.request.appointmentDate);
+    final time = widget.request.appointmentTime.trim();
+    if (time.isEmpty) return date;
+    return '$date ${time.length >= 5 ? time.substring(0, 5) : time}';
+  }
+
+  String _referenceNumber() {
+    final id = widget.request.id.trim();
+    if (id.isEmpty) return '-';
+    if (id.startsWith('local_req_')) {
+      final suffix = id.replaceFirst('local_req_', '');
+      final short =
+          suffix.length > 8 ? suffix.substring(suffix.length - 8) : suffix;
+      return 'LOC-$short';
+    }
+    final compact = id.replaceAll('-', '').toUpperCase();
+    if (compact.length <= 10) return compact;
+    return compact.substring(0, 10);
+  }
+
+  IconData _damageIconFor(DamageType type) {
+    switch (type) {
+      case DamageType.glass:
+        return Icons.grid_view_rounded;
+      case DamageType.hail:
+        return Icons.grain_rounded;
+      case DamageType.marten:
+        return Icons.pets_rounded;
+      case DamageType.parking:
+        return Icons.local_parking_rounded;
+      case DamageType.comprehensive:
+        return Icons.description_rounded;
+      case DamageType.other:
+        return Icons.more_horiz_rounded;
+    }
+  }
+
+  String _damageLabelForType(BuildContext context, DamageType type) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (type) {
+      case DamageType.glass:
+        return l10n.damage_glass;
+      case DamageType.hail:
+        return l10n.damage_hail;
+      case DamageType.marten:
+        return l10n.damage_marten;
+      case DamageType.parking:
+        return l10n.damage_parking;
+      case DamageType.comprehensive:
+        return l10n.damage_comprehensive;
+      case DamageType.other:
+        return _otherDamageLabel(context);
+    }
+  }
+
+  String _damageServiceType(DamageType type) {
+    switch (type) {
+      case DamageType.glass:
+        return 'damage_glass';
+      case DamageType.hail:
+        return 'damage_hail';
+      case DamageType.marten:
+        return 'damage_marten';
+      case DamageType.parking:
+        return 'damage_parking';
+      case DamageType.comprehensive:
+        return 'damage_comprehensive';
+      case DamageType.other:
+        return 'damage_other';
+    }
+  }
+
+  Future<void> _openOverview() async {
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const MyRequestsPage()),
+    );
+  }
+
+  Future<void> _openNewRequestPicker() async {
+    final l10n = AppLocalizations.of(context)!;
+    final selected = await showModalBottomSheet<DamageType>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          child: DamageTypePickerSheet(
+            title: l10n.damage_type_title,
+            subtitle: l10n.damage_type_subtitle,
+            cancelText: l10n.cancel,
+            types: const [
+              DamageType.glass,
+              DamageType.hail,
+              DamageType.marten,
+              DamageType.parking,
+              DamageType.comprehensive,
+              DamageType.other,
+            ],
+            selectedDamageType: null,
+            iconFor: _damageIconFor,
+            labelFor: (type) => _damageLabelForType(context, type),
+            onSelected: (type) => Navigator.of(sheetContext).pop(type),
+          ),
+        );
+      },
+    );
+
+    if (!mounted || selected == null) return;
+
+    final title =
+        '${l10n.damage_type_title} - ${_damageLabelForType(context, selected)}';
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => WorkshopSlotPickerScreen(
+          title: title,
+          serviceType: _damageServiceType(selected),
+          damageType: selected.name,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryItem(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FAFD),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFDCE6F0)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF2FF),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: const Color(0xFF1D5B9C), size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: const Color(0xFF6A7C92),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: const Color(0xFF10243E),
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(BuildContext context) {
+    final theme = Theme.of(context);
+    final town = _resolvedTown();
+    final requestType = widget.requestTypeLabel.trim().isEmpty
+        ? _emptyValue(context)
+        : widget.requestTypeLabel.trim();
+    final plate = widget.request.licensePlate?.trim().isNotEmpty == true
+        ? widget.request.licensePlate!.trim()
+        : _emptyValue(context);
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x140B1F33),
+            blurRadius: 30,
+            offset: Offset(0, 14),
+          ),
+        ],
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final twoColumns = constraints.maxWidth >= 540;
+          final itemWidth = twoColumns
+              ? (constraints.maxWidth - 14) / 2
+              : constraints.maxWidth;
+
+          final items = [
+            (
+              icon: Icons.layers_rounded,
+              label: _damageTypeLabel(context),
+              value: requestType,
+            ),
+            (
+              icon: Icons.directions_car_filled_rounded,
+              label: _plateLabel(context),
+              value: plate,
+            ),
+            (
+              icon: Icons.event_available_rounded,
+              label: _appointmentLabelTitle(context),
+              value: _resolvedAppointmentLabel(),
+            ),
+            (
+              icon: Icons.place_rounded,
+              label: _townLabel(context),
+              value: town.isEmpty ? _emptyValue(context) : town,
+            ),
+            (
+              icon: Icons.tag_rounded,
+              label: _referenceLabel(context),
+              value: _referenceNumber(),
+            ),
+          ];
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _summaryTitle(context),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: const Color(0xFF10243E),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                children: [
+                  for (final item in items)
+                    SizedBox(
+                      width: itemWidth,
+                      child: _buildSummaryItem(
+                        context,
+                        icon: item.icon,
+                        label: item.label,
+                        value: item.value,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  List<_SuccessTimelineEntry> _timelineEntries(BuildContext context) {
+    final complete = !_isOffline;
+    return [
+      _SuccessTimelineEntry(
+        label: _copy(
+          context,
+          de: 'Anfrage erstellt',
+          it: 'Richiesta creata',
+          en: 'Request created',
+          fr: 'Demande creee',
+        ),
+        completed: true,
+      ),
+      _SuccessTimelineEntry(
+        label: _copy(
+          context,
+          de: 'Daten gespeichert',
+          it: 'Dati salvati',
+          en: 'Data saved',
+          fr: 'Donnees enregistrees',
+        ),
+        completed: true,
+      ),
+      _SuccessTimelineEntry(
+        label: _copy(
+          context,
+          de: 'Fotos hochgeladen',
+          it: 'Foto caricate',
+          en: 'Photos uploaded',
+          fr: 'Photos telechargees',
+        ),
+        completed: complete,
+      ),
+      _SuccessTimelineEntry(
+        label: _copy(
+          context,
+          de: 'Werkstatt informiert',
+          it: 'Officina informata',
+          en: 'Workshop notified',
+          fr: 'Atelier informe',
+        ),
+        completed: complete,
+      ),
+    ];
+  }
+
+  Widget _buildTimelineCard(BuildContext context) {
+    final theme = Theme.of(context);
+    final entries = _timelineEntries(context);
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x140B1F33),
+            blurRadius: 30,
+            offset: Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _timelineTitle(context),
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: const Color(0xFF10243E),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 18),
+          for (var i = 0; i < entries.length; i++) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  children: [
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: entries[i].completed
+                            ? const Color(0xFFE7F7EE)
+                            : const Color(0xFFEAF2FF),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        entries[i].completed
+                            ? Icons.check_rounded
+                            : Icons.sync_rounded,
+                        color: entries[i].completed
+                            ? const Color(0xFF169455)
+                            : const Color(0xFF1D5B9C),
+                        size: 18,
+                      ),
+                    ),
+                    if (i != entries.length - 1)
+                      Container(
+                        width: 2,
+                        height: 24,
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        color: const Color(0xFFDCE6F0),
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      entries[i].label,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: entries[i].completed
+                            ? const Color(0xFF10243E)
+                            : const Color(0xFF5F7690),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrimaryButton(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: double.infinity,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF2B6CB0), Color(0xFF5A8FD8)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x223E7BCB),
+              blurRadius: 22,
+              offset: Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: _openOverview,
+            child: SizedBox(
+              height: 58,
+              child: Center(
+                child: Text(
+                  _overviewButtonLabel(context),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSecondaryButton(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: _openNewRequestPicker,
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size.fromHeight(56),
+          side: const BorderSide(color: Color(0xFFBFD0E4)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          backgroundColor: const Color(0xEBFFFFFF),
+        ),
+        child: Text(
+          _newRequestButtonLabel(context),
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: const Color(0xFF1D5B9C),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final media = MediaQuery.of(context);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F8FC),
+      body: Stack(
+        children: [
+          Positioned(
+            top: -120,
+            right: -60,
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [Color(0x222B6CB0), Color(0x002B6CB0)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: -70,
+            top: 220,
+            child: Container(
+              width: 210,
+              height: 210,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [Color(0x1A20A86B), Color(0x0020A86B)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  24,
+                  16,
+                  24 + media.viewPadding.bottom,
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 520),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, value, child) {
+                      return Opacity(
+                        opacity: value,
+                        child: Transform.translate(
+                          offset: Offset(0, 28 * (1 - value)),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0, end: 1),
+                          duration: const Duration(milliseconds: 620),
+                          curve: Curves.easeOutBack,
+                          builder: (context, value, child) {
+                            return Opacity(
+                              opacity: value.clamp(0.0, 1.0),
+                              child: Transform.scale(
+                                scale: 0.78 + (0.22 * value),
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: Center(
+                            child: Container(
+                              width: 110,
+                              height: 110,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Color(0xFFE6F8EE),
+                                    Color(0xFFD8F1E4),
+                                  ],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Color(0x1F169455),
+                                    blurRadius: 24,
+                                    offset: Offset(0, 12),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.check_rounded,
+                                size: 56,
+                                color: Color(0xFF169455),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+                        Text(
+                          _title(context),
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            color: const Color(0xFF10243E),
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          _subtitle(context),
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: const Color(0xFF5F7690),
+                            height: 1.45,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        _buildSummaryCard(context),
+                        const SizedBox(height: 18),
+                        _buildTimelineCard(context),
+                        const SizedBox(height: 26),
+                        _buildPrimaryButton(context),
+                        const SizedBox(height: 12),
+                        _buildSecondaryButton(context),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SuccessTimelineEntry {
+  const _SuccessTimelineEntry({
+    required this.label,
+    required this.completed,
+  });
+
+  final String label;
+  final bool completed;
 }
