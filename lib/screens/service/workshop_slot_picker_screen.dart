@@ -89,6 +89,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   bool _summaryCardVisible = false;
   bool _submitPressed = false;
   List<DateTime> _bookedSlots = const [];
+  final Set<String> _photoLoadingCategories = <String>{};
 
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
@@ -660,6 +661,22 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         it: 'Modifica',
         en: 'Change',
         fr: 'Modifier',
+      );
+
+  String _photoAddedLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Foto hinzugefügt',
+        it: 'Foto aggiunta',
+        en: 'Photo added',
+        fr: 'Photo ajoutée',
+      );
+
+  String _photoLoadingLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Wird geladen',
+        it: 'Caricamento',
+        en: 'Loading',
+        fr: 'Chargement',
       );
 
   String _takePhotoLabel(BuildContext context) => _copy(
@@ -1955,29 +1972,47 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   }
 
   Future<void> _pickGlassDamageCamera(String category) async {
-    final file = await _picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 92,
-    );
-    await _handlePickedFile(file, category);
+    setState(() => _photoLoadingCategories.add(category));
+    try {
+      final file = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 92,
+      );
+      await _handlePickedFile(file, category);
+    } finally {
+      if (!mounted) return;
+      setState(() => _photoLoadingCategories.remove(category));
+    }
   }
 
   Future<void> _pickGlassDamageGallery(String category) async {
-    final file = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 92,
-    );
-    await _handlePickedFile(file, category);
+    setState(() => _photoLoadingCategories.add(category));
+    try {
+      final file = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 92,
+      );
+      await _handlePickedFile(file, category);
+    } finally {
+      if (!mounted) return;
+      setState(() => _photoLoadingCategories.remove(category));
+    }
   }
 
   Future<void> _removeGlassImage(String category, int index) async {
+    setState(() => _photoLoadingCategories.add(category));
     final items = _imagesForCategory(category);
     final item = items[index];
-    await _deleteGlassImageDraft(item);
-    if (!mounted) return;
-    setState(() {
-      items.removeAt(index);
-    });
+    try {
+      await _deleteGlassImageDraft(item);
+      if (!mounted) return;
+      setState(() {
+        items.removeAt(index);
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() => _photoLoadingCategories.remove(category));
+    }
   }
 
   Future<void> _pickGlassDamageDate() async {
@@ -2302,6 +2337,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     final theme = Theme.of(context);
     final image = _primaryImageForCategory(category);
     final hasImage = image != null;
+    final isBusy = _photoLoadingCategories.contains(category);
     final subtitle = _glassSectionSubtitle(context, category);
     final hasError = _showValidationErrors &&
         _usesDamageDetailsForm &&
@@ -2353,27 +2389,43 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                 _isParkingOverviewPhotoMissing) ||
             (category == AppointmentRequestImageCategory.parkingCurrentKm &&
                 _isParkingCurrentKmPhotoMissing));
+    final borderColor = hasError
+        ? Colors.red.withOpacity(0.25)
+        : hasImage
+            ? const Color(0xFF4CAF50).withOpacity(0.25)
+            : theme.dividerColor.withOpacity(0.18);
+    final statusText = isBusy
+        ? _photoLoadingLabel(context)
+        : hasImage
+            ? _photoAddedLabel(context)
+            : subtitle;
 
     return Column(
       children: [
-        Container(
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: hasError
-                  ? theme.colorScheme.error.withOpacity(0.45)
-                  : Colors.transparent,
+              color: borderColor,
+              width: hasImage || hasError ? 1.2 : 1,
             ),
-            color: hasError
-                ? theme.colorScheme.error.withOpacity(0.04)
-                : Colors.transparent,
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.025),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(14),
-            onTap: () => _showGlassImageActionSheet(category),
+            onTap: isBusy ? null : () => _showGlassImageActionSheet(category),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
                     width: 42,
@@ -2403,14 +2455,48 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        if (subtitle.isNotEmpty) ...[
+                        if (subtitle.isNotEmpty ||
+                            hasImage ||
+                            hasError ||
+                            isBusy) ...[
                           const SizedBox(height: 2),
-                          Text(
-                            subtitle,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color:
-                                  theme.colorScheme.onSurface.withOpacity(0.68),
-                            ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (isBusy) ...[
+                                const SizedBox(
+                                  width: 12,
+                                  height: 12,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                              ] else if (hasImage) ...[
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  size: 14,
+                                  color: Color(0xFF4CAF50),
+                                ),
+                                const SizedBox(width: 6),
+                              ],
+                              Expanded(
+                                child: Text(
+                                  statusText,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: hasError
+                                        ? Colors.red.withOpacity(0.75)
+                                        : hasImage
+                                            ? const Color(0xFF2E7D32)
+                                            : theme.colorScheme.onSurface
+                                                .withOpacity(0.68),
+                                    fontWeight: hasImage || hasError || isBusy
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                         if (hasError) ...[
@@ -2426,35 +2512,57 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  if (hasImage) ...[
+                    const SizedBox(width: 10),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap:
+                          isBusy ? null : () => _openGlassImagePreview(image),
+                      child: Tooltip(
+                        message: _previewPhotoTooltip(context),
+                        child: _buildGlassImageThumbnail(context, image: image),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(width: 10),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: hasImage
-                          ? const Color(0xFF16A34A).withOpacity(0.12)
-                          : theme.colorScheme.surface.withOpacity(0.24),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: hasImage
+                            ? const Color(0xFF4CAF50).withOpacity(0.22)
+                            : theme.dividerColor.withOpacity(0.20),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (hasImage) ...[
-                          const Icon(
-                            Icons.check_circle_rounded,
-                            size: 16,
-                            color: Color(0xFF16A34A),
+                        if (isBusy) ...[
+                          const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                            ),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 8),
                         ],
                         Text(
-                          hasImage
-                              ? _statusChangeLabel(context)
-                              : _statusAddLabel(context),
+                          isBusy
+                              ? _photoLoadingLabel(context)
+                              : hasImage
+                                  ? _statusChangeLabel(context)
+                                  : _statusAddLabel(context),
                           style: theme.textTheme.labelMedium?.copyWith(
-                            color: hasImage
-                                ? const Color(0xFF16A34A)
-                                : theme.colorScheme.onSurface.withOpacity(0.75),
+                            color: isBusy
+                                ? theme.colorScheme.onSurface.withOpacity(0.7)
+                                : hasImage
+                                    ? const Color(0xFF2E7D32)
+                                    : theme.colorScheme.onSurface
+                                        .withOpacity(0.75),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -2462,20 +2570,15 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                     ),
                   ),
                   if (hasImage) ...[
-                    const SizedBox(width: 10),
-                    InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => _openGlassImagePreview(image),
-                      child: Tooltip(
-                        message: _previewPhotoTooltip(context),
-                        child: _buildGlassImageThumbnail(context, image: image),
-                      ),
-                    ),
                     const SizedBox(width: 4),
                     IconButton(
-                      onPressed: () => _removeGlassImage(category, 0),
+                      onPressed:
+                          isBusy ? null : () => _removeGlassImage(category, 0),
                       tooltip: _removePhotoTooltip(context),
-                      icon: const Icon(Icons.close_rounded, size: 18),
+                      icon: const Icon(
+                        Icons.delete_outline_rounded,
+                        size: 18,
+                      ),
                       visualDensity: VisualDensity.compact,
                     ),
                   ] else ...[
