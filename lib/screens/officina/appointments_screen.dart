@@ -121,7 +121,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     );
     setState(() {
       _future = Future.value(
-        _currentItems.map((item) => item.id == updated.id ? updated : item).toList(),
+        _currentItems
+            .map((item) => item.id == updated.id ? updated : item)
+            .toList(),
       );
     });
   }
@@ -195,7 +197,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  color: Theme.of(context).colorScheme.surface.withOpacity(0.32),
+                  color:
+                      Theme.of(context).colorScheme.surface.withOpacity(0.32),
                   border: Border.all(
                     color: Theme.of(context).dividerColor.withOpacity(0.28),
                   ),
@@ -268,7 +271,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                     ),
                     const SizedBox(height: 14),
                     DropdownButtonFormField<String>(
-                      value: statusOptions.contains(status) ? status : 'pending',
+                      value:
+                          statusOptions.contains(status) ? status : 'pending',
                       decoration: InputDecoration(
                         labelText: _copy(
                           de: 'Status',
@@ -282,7 +286,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: BorderSide(
-                            color: Theme.of(context).dividerColor.withOpacity(0.35),
+                            color: Theme.of(context)
+                                .dividerColor
+                                .withOpacity(0.35),
                           ),
                         ),
                       ),

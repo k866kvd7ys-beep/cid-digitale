@@ -125,8 +125,11 @@ class SupabaseService {
     var resolvedClaimId = '';
 
     try {
-      final existingClaim =
-          await client.from('claims').select('id').eq('id', rawClaimId).maybeSingle();
+      final existingClaim = await client
+          .from('claims')
+          .select('id')
+          .eq('id', rawClaimId)
+          .maybeSingle();
 
       if (existingClaim != null) {
         claimRow = Map<String, dynamic>.from(existingClaim);
@@ -182,7 +185,8 @@ class SupabaseService {
       debugPrint('INSERT ATTACHMENT claim_id=$resolvedClaimId path=$path');
       debugPrint('FINAL INSERT claim_id=$resolvedClaimId path=$path');
 
-      final dynamic insertResult = await client.from('claim_attachments').insert({
+      final dynamic insertResult =
+          await client.from('claim_attachments').insert({
         'claim_id': resolvedClaimId,
         'kind': kind,
         'file_path': path,
@@ -255,7 +259,6 @@ class SupabaseService {
         final candidates = [
           'workshop_org_id',
           'org_id',
-
           'organization_id',
           'organisation_id',
         ];

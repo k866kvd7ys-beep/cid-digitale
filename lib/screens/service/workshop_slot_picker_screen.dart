@@ -75,7 +75,8 @@ class WorkshopSlotPickerScreen extends StatefulWidget {
       _WorkshopSlotPickerScreenState();
 }
 
-class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
+class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
+    with SingleTickerProviderStateMixin {
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();
   DateTime? _selectedSlot;
@@ -90,6 +91,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   bool _submitPressed = false;
   List<DateTime> _bookedSlots = const [];
   final Set<String> _photoLoadingCategories = <String>{};
+  late final AnimationController _skeletonController;
 
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
@@ -155,6 +157,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       _isComprehensiveDamage ||
       _isOtherDamage ||
       _isParkingDamage;
+  bool get _showInitialSkeleton => _loadingSlots && _bookedSlots.isEmpty;
 
   static const _marderDrivableYes = 'yes';
   static const _marderDrivableNo = 'no';
@@ -661,6 +664,38 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         it: 'Modifica',
         en: 'Change',
         fr: 'Modifier',
+      );
+
+  String _photoUploadingLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Wird hochgeladen...',
+        it: 'Caricamento...',
+        en: 'Uploading...',
+        fr: 'Telechargement...',
+      );
+
+  String _submitLoadingLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Wird gesendet...',
+        it: 'Invio...',
+        en: 'Sending...',
+        fr: 'Envoi...',
+      );
+
+  String _submitOverlayTitle(BuildContext context) => _copy(
+        context: context,
+        de: 'Anfrage wird gesendet...',
+        it: 'Invio richiesta in corso...',
+        en: 'Sending request...',
+        fr: 'Envoi de la demande...',
+      );
+
+  String _submitOverlaySubtitle(BuildContext context) => _copy(
+        context: context,
+        de: 'Bitte warten Sie einen Moment.',
+        it: 'Attendere qualche secondo.',
+        en: 'Please wait a moment.',
+        fr: 'Veuillez patienter quelques secondes.',
       );
 
   String _photoAddedLabel(BuildContext context) => _copy(
@@ -1445,6 +1480,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
 
   @override
   void dispose() {
+    _skeletonController.dispose();
     _nameCtrl.removeListener(_onValidationFieldChanged);
     _phoneCtrl.removeListener(_onValidationFieldChanged);
     _emailCtrl.removeListener(_onValidationFieldChanged);
@@ -1467,6 +1503,10 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
   @override
   void initState() {
     super.initState();
+    _skeletonController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 980),
+    )..repeat(reverse: true);
     _summaryFormListenable = Listenable.merge([
       _nameCtrl,
       _phoneCtrl,
@@ -2394,6 +2434,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
         : hasImage
             ? const Color(0xFF4CAF50).withOpacity(0.25)
             : theme.dividerColor.withOpacity(0.18);
+    final showUploadProgress = isBusy || (_submitting && hasImage);
     final statusText = isBusy
         ? _photoLoadingLabel(context)
         : hasImage
@@ -2514,59 +2555,89 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
                   ),
                   if (hasImage) ...[
                     const SizedBox(width: 10),
-                    InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap:
-                          isBusy ? null : () => _openGlassImagePreview(image),
-                      child: Tooltip(
-                        message: _previewPhotoTooltip(context),
-                        child: _buildGlassImageThumbnail(context, image: image),
-                      ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: isBusy
+                              ? null
+                              : () => _openGlassImagePreview(image),
+                          child: Tooltip(
+                            message: _previewPhotoTooltip(context),
+                            child: _buildGlassImageThumbnail(context,
+                                image: image),
+                          ),
+                        ),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 220),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeOutCubic,
+                          child: showUploadProgress
+                              ? Padding(
+                                  key: ValueKey('${category}_progress'),
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: _buildPhotoUploadProgress(context),
+                                )
+                              : const SizedBox(
+                                  key: ValueKey('no_progress'),
+                                  height: 0,
+                                ),
+                        ),
+                      ],
                     ),
                   ],
                   const SizedBox(width: 10),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: hasImage
-                            ? const Color(0xFF4CAF50).withOpacity(0.22)
-                            : theme.dividerColor.withOpacity(0.20),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeOutCubic,
+                    child: Container(
+                      key: ValueKey('${category}_action_$isBusy$hasImage'),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
                       ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (isBusy) ...[
-                          const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: hasImage
+                              ? const Color(0xFF4CAF50).withOpacity(0.22)
+                              : theme.dividerColor.withOpacity(0.20),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isBusy) ...[
+                            const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          Text(
+                            isBusy
+                                ? _photoLoadingLabel(context)
+                                : hasImage
+                                    ? _statusChangeLabel(context)
+                                    : _statusAddLabel(context),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: isBusy
+                                  ? theme.colorScheme.onSurface.withOpacity(0.7)
+                                  : hasImage
+                                      ? const Color(0xFF2E7D32)
+                                      : theme.colorScheme.onSurface
+                                          .withOpacity(0.75),
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const SizedBox(width: 8),
                         ],
-                        Text(
-                          isBusy
-                              ? _photoLoadingLabel(context)
-                              : hasImage
-                                  ? _statusChangeLabel(context)
-                                  : _statusAddLabel(context),
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: isBusy
-                                ? theme.colorScheme.onSurface.withOpacity(0.7)
-                                : hasImage
-                                    ? const Color(0xFF2E7D32)
-                                    : theme.colorScheme.onSurface
-                                        .withOpacity(0.75),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                   if (hasImage) ...[
@@ -2599,6 +2670,256 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
             color: theme.dividerColor.withOpacity(0.22),
           ),
       ],
+    );
+  }
+
+  Widget _buildPhotoUploadProgress(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: 56,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _photoUploadingLabel(context),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w600,
+              fontSize: 10.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: const SizedBox(
+              height: 5,
+              child: LinearProgressIndicator(
+                minHeight: 5,
+                backgroundColor: Color(0xFFE7EEF9),
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3D82F6)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonBlock({
+    required double height,
+    double? width,
+    double radius = 16,
+  }) {
+    return AnimatedBuilder(
+      animation: _skeletonController,
+      builder: (context, child) {
+        final color = Color.lerp(
+          const Color(0xFFF2F4F7),
+          const Color(0xFFE7ECF3),
+          _skeletonController.value,
+        )!;
+        return Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(radius),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInitialLoadingSkeleton(BuildContext context) {
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildSkeletonBlock(height: 22, width: 220, radius: 12),
+        const SizedBox(height: 10),
+        _buildSkeletonBlock(height: 16, width: 260, radius: 10),
+        const SizedBox(height: 18),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              _buildSkeletonBlock(height: 18, width: 160),
+              const SizedBox(height: 12),
+              _buildSkeletonBlock(height: 52, radius: 18),
+              const SizedBox(height: 10),
+              _buildSkeletonBlock(height: 52, radius: 18),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            children: List.generate(
+              4,
+              (index) => Padding(
+                padding: EdgeInsets.only(bottom: index == 3 ? 0 : 12),
+                child: Row(
+                  children: [
+                    _buildSkeletonBlock(height: 42, width: 42, radius: 14),
+                    const SizedBox(width: 12),
+                    Expanded(
+                        child: _buildSkeletonBlock(height: 44, radius: 14)),
+                    const SizedBox(width: 12),
+                    _buildSkeletonBlock(height: 56, width: 56, radius: 12),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSkeletonBlock(height: 18, width: 170),
+              const SizedBox(height: 14),
+              _buildSkeletonBlock(height: 270, radius: 20),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: List.generate(
+                  6,
+                  (_) => _buildSkeletonBlock(
+                    height: 38,
+                    width: (MediaQuery.of(context).size.width - 92) / 3,
+                    radius: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              _buildSkeletonBlock(height: 18, width: 180),
+              const SizedBox(height: 12),
+              _buildSkeletonBlock(height: 140, radius: 18),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubmitLoadingOverlay(BuildContext context) {
+    final theme = Theme.of(context);
+    return IgnorePointer(
+      ignoring: !_submitting,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        opacity: _submitting ? 1 : 0,
+        child: Container(
+          color: const Color(0x47000000),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            width: 320,
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(26),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.10),
+                  blurRadius: 26,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 34,
+                  height: 34,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(Color(0xFF3D82F6)),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  _submitOverlayTitle(context),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF111827),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _submitOverlaySubtitle(context),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF6B7280),
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -3615,24 +3936,44 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
               width: double.infinity,
               height: 58,
               child: Center(
-                child: _loading || _submitting
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.4,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeOutCubic,
+                  child: _loading || _submitting
+                      ? Row(
+                          key: const ValueKey('submit_loading'),
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              _submitLoadingLabel(context),
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          AppLocalizations.of(context)!.termin_buchen,
+                          key: const ValueKey('submit_idle'),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-                      )
-                    : Text(
-                        AppLocalizations.of(context)!.termin_buchen,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
+                ),
               ),
             ),
           ),
@@ -3648,8 +3989,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
     required String town,
   }) {
     return PageRouteBuilder<void>(
-      transitionDuration: const Duration(milliseconds: 420),
-      reverseTransitionDuration: const Duration(milliseconds: 260),
+      transitionDuration: const Duration(milliseconds: 340),
+      reverseTransitionDuration: const Duration(milliseconds: 220),
       pageBuilder: (context, animation, secondaryAnimation) =>
           _ClientRequestSuccessScreen(
         request: request,
@@ -3922,241 +4263,259 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen> {
       appBar: AppBar(
         title: Text(_appBarTitle(context)),
       ),
-      body: SafeArea(
-        child: ListView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          children: [
-            Text(
-              formHeaderTitle,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-            ),
-            if (formHeaderSubtitle != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                formHeaderSubtitle,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.72),
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            _licensePlateCard(context),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _nameCtrl,
-              textInputAction: TextInputAction.next,
-              decoration: _premiumFieldDec(
-                context,
-                _nameHint(context),
-                isError: showNameError,
-                errorText: showNameError ? _requiredNameText(context) : null,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _phoneCtrl,
+      body: Stack(
+        children: [
+          SafeArea(
+            child: _showInitialSkeleton
+                ? _buildInitialLoadingSkeleton(context)
+                : ListView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      Text(
+                        formHeaderTitle,
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w800),
+                      ),
+                      if (formHeaderSubtitle != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          formHeaderSubtitle,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color:
+                                theme.colorScheme.onSurface.withOpacity(0.72),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      _licensePlateCard(context),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _nameCtrl,
                         textInputAction: TextInputAction.next,
-                        keyboardType: TextInputType.phone,
                         decoration: _premiumFieldDec(
                           context,
-                          _phoneHint(context),
-                          isError: showContactError,
+                          _nameHint(context),
+                          isError: showNameError,
+                          errorText:
+                              showNameError ? _requiredNameText(context) : null,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextField(
-                        controller: _emailCtrl,
-                        textInputAction: TextInputAction.done,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: _premiumFieldDec(
-                          context,
-                          _emailHint(context),
-                          isError: showContactError,
+                      const SizedBox(height: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _phoneCtrl,
+                                  textInputAction: TextInputAction.next,
+                                  keyboardType: TextInputType.phone,
+                                  decoration: _premiumFieldDec(
+                                    context,
+                                    _phoneHint(context),
+                                    isError: showContactError,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: TextField(
+                                  controller: _emailCtrl,
+                                  textInputAction: TextInputAction.done,
+                                  keyboardType: TextInputType.emailAddress,
+                                  decoration: _premiumFieldDec(
+                                    context,
+                                    _emailHint(context),
+                                    isError: showContactError,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (showContactError) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              _requiredContactText(context),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.error,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (_usesDamageDetailsForm) ...[
+                        const SizedBox(height: 16),
+                        _buildGlassDamageSection(context),
+                      ],
+                      const SizedBox(height: 16),
+                      _buildCalendarGuideCard(context),
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: showAppointmentError
+                              ? theme.colorScheme.error.withOpacity(0.04)
+                              : theme.colorScheme.surface.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: showAppointmentError
+                                ? theme.colorScheme.error.withOpacity(0.40)
+                                : theme.dividerColor.withOpacity(0.28),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TableCalendar(
+                              firstDay: DateTime.now(),
+                              lastDay:
+                                  DateTime.now().add(const Duration(days: 120)),
+                              focusedDay: _focusedDay,
+                              locale: _calendarLocaleTag(context),
+                              startingDayOfWeek: StartingDayOfWeek.monday,
+                              availableCalendarFormats:
+                                  _calendarFormatLabels(context),
+                              headerStyle: HeaderStyle(
+                                titleCentered: true,
+                                titleTextFormatter: (date, _) =>
+                                    '${_calendarMonthLabel(context, date.month)} ${date.year}',
+                              ),
+                              daysOfWeekStyle: DaysOfWeekStyle(
+                                dowTextFormatter: (date, _) =>
+                                    _calendarWeekdayLabel(
+                                        context, date.weekday),
+                              ),
+                              selectedDayPredicate: (d) =>
+                                  isSameDay(d, _selectedDay),
+                              onDaySelected: (selectedDay, focusedDay) {
+                                setState(() {
+                                  _selectedDay = selectedDay;
+                                  _focusedDay = focusedDay;
+                                  _selectedSlot = null;
+                                });
+                                _loadAvailableSlots(selectedDay);
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _timeTitle(context),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            if (showAppointmentError) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                _calendarRequiredText(context),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.error,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 8),
+                            if (_loadingSlots)
+                              const Center(child: CircularProgressIndicator())
+                            else if (slots.isEmpty)
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                color: Colors.red.withOpacity(0.12),
+                                child: Text(_noSlotsText(context)),
+                              )
+                            else
+                              GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                  childAspectRatio: 2.8,
+                                ),
+                                itemCount: slots.length,
+                                itemBuilder: (context, index) {
+                                  final slot = slots[index];
+                                  final selected = _selectedSlot != null &&
+                                      _selectedSlot!.year == slot.year &&
+                                      _selectedSlot!.month == slot.month &&
+                                      _selectedSlot!.day == slot.day &&
+                                      _selectedSlot!.hour == slot.hour &&
+                                      _selectedSlot!.minute == slot.minute;
+
+                                  final primary = theme.colorScheme.primary;
+                                  final borderColor = selected
+                                      ? primary
+                                      : theme.dividerColor.withOpacity(0.6);
+
+                                  return OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      backgroundColor: selected
+                                          ? primary
+                                          : Colors.transparent,
+                                      foregroundColor:
+                                          selected ? Colors.white : primary,
+                                      side: BorderSide(color: borderColor),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _selectedSlot = slot;
+                                      });
+                                    },
+                                    child: Text(
+                                      tf.format(slot),
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                if (showContactError) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    _requiredContactText(context),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.error,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            if (_usesDamageDetailsForm) ...[
-              const SizedBox(height: 16),
-              _buildGlassDamageSection(context),
-            ],
-            const SizedBox(height: 16),
-            _buildCalendarGuideCard(context),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: showAppointmentError
-                    ? theme.colorScheme.error.withOpacity(0.04)
-                    : theme.colorScheme.surface.withOpacity(0.18),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: showAppointmentError
-                      ? theme.colorScheme.error.withOpacity(0.40)
-                      : theme.dividerColor.withOpacity(0.28),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TableCalendar(
-                    firstDay: DateTime.now(),
-                    lastDay: DateTime.now().add(const Duration(days: 120)),
-                    focusedDay: _focusedDay,
-                    locale: _calendarLocaleTag(context),
-                    startingDayOfWeek: StartingDayOfWeek.monday,
-                    availableCalendarFormats: _calendarFormatLabels(context),
-                    headerStyle: HeaderStyle(
-                      titleCentered: true,
-                      titleTextFormatter: (date, _) =>
-                          '${_calendarMonthLabel(context, date.month)} ${date.year}',
-                    ),
-                    daysOfWeekStyle: DaysOfWeekStyle(
-                      dowTextFormatter: (date, _) =>
-                          _calendarWeekdayLabel(context, date.weekday),
-                    ),
-                    selectedDayPredicate: (d) => isSameDay(d, _selectedDay),
-                    onDaySelected: (selectedDay, focusedDay) {
-                      setState(() {
-                        _selectedDay = selectedDay;
-                        _focusedDay = focusedDay;
-                        _selectedSlot = null;
-                      });
-                      _loadAvailableSlots(selectedDay);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _timeTitle(context),
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  if (showAppointmentError) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      _calendarRequiredText(context),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.error,
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(height: 28),
+                      AnimatedBuilder(
+                        animation: _summaryFormListenable,
+                        builder: (context, _) {
+                          final canTapSubmit = !_loading &&
+                              !_submitting &&
+                              _confirmationAccepted;
+                          final submitReady =
+                              _canSubmitRequest && _confirmationAccepted;
+                          return Column(
+                            children: [
+                              _buildPremiumSummaryCard(context),
+                              const SizedBox(height: 18),
+                              _buildPremiumSubmitButton(
+                                context,
+                                canTapSubmit: canTapSubmit,
+                                submitReady: submitReady,
+                              ),
+                            ],
+                          );
+                        },
                       ),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  if (_loadingSlots)
-                    const Center(child: CircularProgressIndicator())
-                  else if (slots.isEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      color: Colors.red.withOpacity(0.12),
-                      child: Text(_noSlotsText(context)),
-                    )
-                  else
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        childAspectRatio: 2.8,
+                      const SizedBox(height: 20),
+                      SafeArea(
+                        top: false,
+                        child: const SizedBox(height: 8),
                       ),
-                      itemCount: slots.length,
-                      itemBuilder: (context, index) {
-                        final slot = slots[index];
-                        final selected = _selectedSlot != null &&
-                            _selectedSlot!.year == slot.year &&
-                            _selectedSlot!.month == slot.month &&
-                            _selectedSlot!.day == slot.day &&
-                            _selectedSlot!.hour == slot.hour &&
-                            _selectedSlot!.minute == slot.minute;
-
-                        final primary = theme.colorScheme.primary;
-                        final borderColor = selected
-                            ? primary
-                            : theme.dividerColor.withOpacity(0.6);
-
-                        return OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor:
-                                selected ? primary : Colors.transparent,
-                            foregroundColor: selected ? Colors.white : primary,
-                            side: BorderSide(color: borderColor),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _selectedSlot = slot;
-                            });
-                          },
-                          child: Text(
-                            tf.format(slot),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 28),
-            AnimatedBuilder(
-              animation: _summaryFormListenable,
-              builder: (context, _) {
-                final canTapSubmit =
-                    !_loading && !_submitting && _confirmationAccepted;
-                final submitReady = _canSubmitRequest && _confirmationAccepted;
-                return Column(
-                  children: [
-                    _buildPremiumSummaryCard(context),
-                    const SizedBox(height: 18),
-                    _buildPremiumSubmitButton(
-                      context,
-                      canTapSubmit: canTapSubmit,
-                      submitReady: submitReady,
-                    ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            SafeArea(
-              top: false,
-              child: const SizedBox(height: 8),
-            ),
-          ],
-        ),
+                    ],
+                  ),
+          ),
+          _buildSubmitLoadingOverlay(context),
+        ],
       ),
     );
   }
@@ -4180,9 +4539,37 @@ class _ClientRequestSuccessScreen extends StatefulWidget {
       _ClientRequestSuccessScreenState();
 }
 
+enum _OfflineSyncBadgeState { savedOffline, syncing, synced }
+
 class _ClientRequestSuccessScreenState
     extends State<_ClientRequestSuccessScreen> {
   bool get _isOffline => widget.request.status == 'pending_sync';
+  final _syncService = AppointmentRequestsService();
+  Timer? _syncStatusTimer;
+  bool _syncCheckInFlight = false;
+  _OfflineSyncBadgeState _offlineSyncState =
+      _OfflineSyncBadgeState.savedOffline;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isOffline) {
+      Future<void>.delayed(
+        const Duration(seconds: 2),
+        _refreshOfflineSyncStatus,
+      );
+      _syncStatusTimer = Timer.periodic(
+        const Duration(seconds: 8),
+        (_) => _refreshOfflineSyncStatus(),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _syncStatusTimer?.cancel();
+    super.dispose();
+  }
 
   String _copy(
     BuildContext context, {
@@ -4348,6 +4735,115 @@ class _ClientRequestSuccessScreenState
       it: 'Altri danni',
       en: 'Other damages',
       fr: 'Autres dommages',
+    );
+  }
+
+  String _offlineSavedLabel(BuildContext context) => _copy(
+        context,
+        de: 'Offline gespeichert',
+        it: 'Salvato offline',
+        en: 'Saved offline',
+        fr: 'Enregistre hors ligne',
+      );
+
+  String _syncingLabel(BuildContext context) => _copy(
+        context,
+        de: 'Synchronisierung...',
+        it: 'Sincronizzazione...',
+        en: 'Synchronizing...',
+        fr: 'Synchronisation...',
+      );
+
+  String _syncedLabel(BuildContext context) => _copy(
+        context,
+        de: 'Synchronisiert',
+        it: 'Sincronizzato',
+        en: 'Synchronized',
+        fr: 'Synchronise',
+      );
+
+  Future<void> _refreshOfflineSyncStatus() async {
+    if (!_isOffline || !mounted || _syncCheckInFlight) return;
+    if (_offlineSyncState == _OfflineSyncBadgeState.synced) return;
+    _syncCheckInFlight = true;
+    setState(() {
+      _offlineSyncState = _OfflineSyncBadgeState.syncing;
+    });
+    try {
+      await AppointmentRequestsSyncManager.trigger();
+      final request = await _syncService.fetchRequestById(widget.request.id);
+      if (!mounted) return;
+      setState(() {
+        _offlineSyncState = request == null
+            ? _OfflineSyncBadgeState.synced
+            : _OfflineSyncBadgeState.savedOffline;
+      });
+      if (_offlineSyncState == _OfflineSyncBadgeState.synced) {
+        _syncStatusTimer?.cancel();
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _offlineSyncState = _OfflineSyncBadgeState.savedOffline;
+      });
+    } finally {
+      _syncCheckInFlight = false;
+    }
+  }
+
+  Widget _buildOfflineSyncBadge(BuildContext context) {
+    late final IconData icon;
+    late final Color foreground;
+    late final Color background;
+    late final String text;
+
+    switch (_offlineSyncState) {
+      case _OfflineSyncBadgeState.savedOffline:
+        icon = Icons.cloud_off_rounded;
+        foreground = const Color(0xFFB8651F);
+        background = const Color(0xFFFFF3E8);
+        text = _offlineSavedLabel(context);
+        break;
+      case _OfflineSyncBadgeState.syncing:
+        icon = Icons.sync_rounded;
+        foreground = const Color(0xFF1D5B9C);
+        background = const Color(0xFFEFF6FF);
+        text = _syncingLabel(context);
+        break;
+      case _OfflineSyncBadgeState.synced:
+        icon = Icons.check_rounded;
+        foreground = const Color(0xFF169455);
+        background = const Color(0xFFE7F7EE);
+        text = '✓ ${_syncedLabel(context)}';
+        break;
+    }
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 220),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeOutCubic,
+      child: Container(
+        key: ValueKey(_offlineSyncState),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: foreground),
+            const SizedBox(width: 8),
+            Text(
+              text,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: foreground,
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -4977,6 +5473,10 @@ class _ClientRequestSuccessScreenState
                             height: 1.45,
                           ),
                         ),
+                        if (_isOffline) ...[
+                          const SizedBox(height: 16),
+                          Center(child: _buildOfflineSyncBadge(context)),
+                        ],
                         const SizedBox(height: 28),
                         _buildSummaryCard(context),
                         const SizedBox(height: 18),
