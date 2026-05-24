@@ -6,8 +6,13 @@ import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:cid_digitale/models/appointment_request.dart';
 import 'package:cid_digitale/services/appointment_requests_service.dart';
 import 'package:cid_digitale/services/local_image_cache.dart';
+import 'package:cid_digitale/services/premium_workshop_pdf_service.dart';
+import 'package:cid_digitale/services/workshop_pdf_file_helper.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class RequestDetailScreen extends StatefulWidget {
   const RequestDetailScreen({super.key, required this.request});
@@ -20,7 +25,9 @@ class RequestDetailScreen extends StatefulWidget {
 
 class _RequestDetailScreenState extends State<RequestDetailScreen> {
   final _service = AppointmentRequestsService();
+  final _premiumPdfService = PremiumWorkshopPdfService();
   bool _busy = false;
+  bool _pdfBusy = false;
   Timer? _refreshTimer;
   late AppointmentRequest _request;
 
@@ -50,6 +57,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       _isComprehensiveDamageRequest ||
       _isOtherDamageRequest ||
       _isParkingDamageRequest;
+  bool get _supportsPremiumWorkshopPdf => _hasDamagePhotoSections;
 
   String _copy({
     required String de,
@@ -398,6 +406,78 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         en: 'Appointment date',
         fr: 'Date du rendez-vous',
       );
+
+  String _pdfActionsTitle() => _copy(
+        de: 'PDF',
+        it: 'PDF',
+        en: 'PDF',
+        fr: 'PDF',
+      );
+
+  String _pdfPreviewLabel() => _copy(
+        de: 'PDF Vorschau',
+        it: 'Anteprima PDF',
+        en: 'PDF preview',
+        fr: 'Aperçu PDF',
+      );
+
+  String _pdfDownloadLabel() => _copy(
+        de: 'PDF Download',
+        it: 'Scarica PDF',
+        en: 'Download PDF',
+        fr: 'Telecharger PDF',
+      );
+
+  String _pdfLoadingTitle() => _copy(
+        de: 'PDF wird erstellt...',
+        it: 'Creazione PDF...',
+        en: 'Creating PDF...',
+        fr: 'Creation du PDF...',
+      );
+
+  String _pdfLoadingSubtitle() => _copy(
+        de: 'Bitte warten Sie einen Moment.',
+        it: 'Attendere qualche secondo.',
+        en: 'Please wait a moment.',
+        fr: 'Veuillez patienter un instant.',
+      );
+
+  String _pdfPreviewErrorText() => _copy(
+        de: 'PDF Vorschau konnte nicht geoeffnet werden.',
+        it: 'Impossibile aprire l’anteprima PDF.',
+        en: 'Unable to open the PDF preview.',
+        fr: 'Impossible d’ouvrir l’aperçu PDF.',
+      );
+
+  String _pdfDownloadErrorText() => _copy(
+        de: 'PDF Download fehlgeschlagen.',
+        it: 'Download PDF non riuscito.',
+        en: 'PDF download failed.',
+        fr: 'Le telechargement du PDF a echoue.',
+      );
+
+  String _pdfUnavailableText() => _copy(
+        de: 'PDF ist nur fuer Schadensanfragen verfuegbar.',
+        it: 'Il PDF e disponibile solo per richieste danni.',
+        en: 'PDF is only available for damage requests.',
+        fr: 'Le PDF est disponible uniquement pour les demandes dommage.',
+      );
+
+  String _workshopFallbackName() => _copy(
+        de: 'CrashForm Partnerwerkstatt',
+        it: 'CrashForm Partnerwerkstatt',
+        en: 'CrashForm Partner Workshop',
+        fr: 'Atelier partenaire CrashForm',
+      );
+
+  String _localizedRequestLocale() {
+    final raw = request.locale?.trim().toLowerCase() ?? '';
+    if (raw.startsWith('it')) return 'it';
+    if (raw.startsWith('en')) return 'en';
+    if (raw.startsWith('fr')) return 'fr';
+    if (raw.startsWith('de')) return 'de';
+    return Localizations.localeOf(context).languageCode;
+  }
 
   String _glassDamageDateLabel() {
     final raw = request.glassDamageDate?.trim() ?? '';
@@ -1106,6 +1186,103 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     }
   }
 
+  Future<void> _previewPremiumPdf() async {
+    if (!_supportsPremiumWorkshopPdf) {
+      _showSnackBar(_pdfUnavailableText());
+      return;
+    }
+
+    setState(() => _pdfBusy = true);
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+      final pdf = await _premiumPdfService.generatePremiumWorkshopPdf(
+        request: request,
+        localeCode: _localizedRequestLocale(),
+        workshopName: _workshopFallbackName(),
+      );
+      if (!mounted) return;
+
+      if (kIsWeb) {
+        await openPdfPreviewWeb(bytes: pdf.bytes, fileName: pdf.fileName);
+        return;
+      }
+
+      final file = await _writePdfFile(pdf.bytes, pdf.fileName);
+      final ok = await launchUrl(
+        Uri.file(file.path),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!ok) {
+        await Share.shareXFiles(
+          [XFile(file.path, mimeType: 'application/pdf', name: pdf.fileName)],
+          text: pdf.fileName,
+          subject: pdf.fileName,
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      _showSnackBar(_pdfPreviewErrorText());
+    } finally {
+      if (mounted) {
+        setState(() => _pdfBusy = false);
+      }
+    }
+  }
+
+  Future<void> _downloadPremiumPdf() async {
+    if (!_supportsPremiumWorkshopPdf) {
+      _showSnackBar(_pdfUnavailableText());
+      return;
+    }
+
+    setState(() => _pdfBusy = true);
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+      final pdf = await _premiumPdfService.generatePremiumWorkshopPdf(
+        request: request,
+        localeCode: _localizedRequestLocale(),
+        workshopName: _workshopFallbackName(),
+      );
+      if (!mounted) return;
+
+      if (kIsWeb) {
+        await downloadPdfWeb(bytes: pdf.bytes, fileName: pdf.fileName);
+        return;
+      }
+
+      final file = await _writePdfFile(pdf.bytes, pdf.fileName);
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'application/pdf', name: pdf.fileName)],
+        text: pdf.fileName,
+        subject: pdf.fileName,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      _showSnackBar(_pdfDownloadErrorText());
+    } finally {
+      if (mounted) {
+        setState(() => _pdfBusy = false);
+      }
+    }
+  }
+
+  Future<File> _writePdfFile(Uint8List bytes, String fileName) async {
+    final directory = await getTemporaryDirectory();
+    final safeFileName = fileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '_');
+    final path =
+        '${directory.path}/${DateTime.now().millisecondsSinceEpoch}_$safeFileName';
+    final file = File(path);
+    await file.writeAsBytes(bytes, flush: true);
+    return file;
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   Widget _statusCard(BuildContext context) {
     final theme = Theme.of(context);
     final status = request.requestStatus;
@@ -1570,6 +1747,126 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     );
   }
 
+  Widget _pdfActionsCard() {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.picture_as_pdf_outlined,
+                    color: Color(0xFF2563EB),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _pdfActionsTitle(),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.tonalIcon(
+                    onPressed: _pdfBusy ? null : _previewPremiumPdf,
+                    icon: const Icon(Icons.visibility_outlined),
+                    label: Text(_pdfPreviewLabel()),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _pdfBusy ? null : _downloadPremiumPdf,
+                    icon: const Icon(Icons.download_rounded),
+                    label: Text(_pdfDownloadLabel()),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPdfLoadingOverlay() {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Container(
+          color: Colors.black.withValues(alpha: 0.28),
+          alignment: Alignment.center,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 320),
+            margin: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(
+                color: const Color(0xFFEAEAEA),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.07),
+                  blurRadius: 26,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 34,
+                  height: 34,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    color: Color(0xFF4B7BFF),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  _pdfLoadingTitle(),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF111827),
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _pdfLoadingSubtitle(),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF6B7280),
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -1625,106 +1922,126 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       appBar: AppBar(
         title: const Text('Anfrage Details'),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Card(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _statusCard(context),
-                      const SizedBox(height: 16),
-                      _row(l10n.service_type_service, serviceLabel()),
-                      _row('Datum', dateLabel()),
-                      _row('Uhrzeit', timeLabel()),
-                      _row('Werkstatt', value('workshop_name')),
-                      _row(
-                          l10n.license_plate_label, request.licensePlate ?? ''),
-                      _row('Name', request.customerName ?? ''),
-                      _row('Telefon', request.customerPhone ?? ''),
-                      _row('E-Mail', request.customerEmail ?? ''),
-                      if (_damageTownValue().isNotEmpty)
-                        _row(_damageTownFieldLabel, _damageTownValue()),
-                      if (_damageDateValue().isNotEmpty)
-                        _row(_damageDateFieldLabel, _damageDateLabel()),
-                      if (_isHailDamageRequest &&
-                          (request.hailDamageTime ?? '').trim().isNotEmpty)
-                        _row(_damageTimeFieldLabel, _hailDamageTimeLabel()),
-                      if (_isMartenDamageRequest &&
-                          (request.marderDamageTime ?? '').trim().isNotEmpty)
-                        _row(_damageTimeFieldLabel, _marderDamageTimeLabel()),
-                      if (_isComprehensiveDamageRequest &&
-                          (request.fullDamageTime ?? '').trim().isNotEmpty)
-                        _row(_damageTimeFieldLabel, _fullDamageTimeLabel()),
-                      if (_isOtherDamageRequest &&
-                          (request.otherDamageTime ?? '').trim().isNotEmpty)
-                        _row(_damageTimeFieldLabel, _otherDamageTimeLabel()),
-                      if (_isParkingDamageRequest &&
-                          (request.parkingDamageTime ?? '').trim().isNotEmpty)
-                        _row(_damageTimeFieldLabel, _parkingDamageTimeLabel()),
-                      if (_isMartenDamageRequest &&
-                          (request.marderDamageDrivable ?? '')
-                              .trim()
-                              .isNotEmpty)
-                        _row(_marderDrivableFieldLabel,
-                            _marderDamageDrivableLabel()),
-                      if (_isComprehensiveDamageRequest &&
-                          (request.fullDamageDrivable ?? '').trim().isNotEmpty)
-                        _row(_fullDrivableFieldLabel,
-                            _fullDamageDrivableLabel()),
-                      if (_isMartenDamageRequest &&
-                          (request.marderDamageDescription ?? '')
-                              .trim()
-                              .isNotEmpty)
-                        _row(_marderDescriptionFieldLabel,
-                            request.marderDamageDescription!.trim()),
-                      if (_isComprehensiveDamageRequest &&
-                          (request.fullDamageDescription ?? '')
-                              .trim()
-                              .isNotEmpty)
-                        _row(_fullDescriptionFieldLabel,
-                            request.fullDamageDescription!.trim()),
-                      if (_isOtherDamageRequest &&
-                          (request.otherDamageCategory ?? '').trim().isNotEmpty)
-                        _row(_otherCategoryFieldLabel,
-                            _otherDamageCategoryLabel()),
-                      if (_isOtherDamageRequest &&
-                          (request.otherDamageDescription ?? '')
-                              .trim()
-                              .isNotEmpty)
-                        _row(_otherDescriptionFieldLabel,
-                            request.otherDamageDescription!.trim()),
-                      _row(
-                          'Status', _requestStatusLabel(request.requestStatus)),
-                      if ((request.notes ?? '').isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          'Notizen',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(request.notes ?? ''),
-                      ],
-                      if (_hasDamagePhotoSections) _photosSection(),
-                    ],
+      body: Stack(
+        children: [
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Card(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _statusCard(context),
+                          const SizedBox(height: 16),
+                          _row(l10n.service_type_service, serviceLabel()),
+                          _row('Datum', dateLabel()),
+                          _row('Uhrzeit', timeLabel()),
+                          _row('Werkstatt', value('workshop_name')),
+                          _row(l10n.license_plate_label,
+                              request.licensePlate ?? ''),
+                          _row('Name', request.customerName ?? ''),
+                          _row('Telefon', request.customerPhone ?? ''),
+                          _row('E-Mail', request.customerEmail ?? ''),
+                          if (_damageTownValue().isNotEmpty)
+                            _row(_damageTownFieldLabel, _damageTownValue()),
+                          if (_damageDateValue().isNotEmpty)
+                            _row(_damageDateFieldLabel, _damageDateLabel()),
+                          if (_isHailDamageRequest &&
+                              (request.hailDamageTime ?? '').trim().isNotEmpty)
+                            _row(_damageTimeFieldLabel, _hailDamageTimeLabel()),
+                          if (_isMartenDamageRequest &&
+                              (request.marderDamageTime ?? '')
+                                  .trim()
+                                  .isNotEmpty)
+                            _row(_damageTimeFieldLabel,
+                                _marderDamageTimeLabel()),
+                          if (_isComprehensiveDamageRequest &&
+                              (request.fullDamageTime ?? '').trim().isNotEmpty)
+                            _row(_damageTimeFieldLabel, _fullDamageTimeLabel()),
+                          if (_isOtherDamageRequest &&
+                              (request.otherDamageTime ?? '').trim().isNotEmpty)
+                            _row(
+                                _damageTimeFieldLabel, _otherDamageTimeLabel()),
+                          if (_isParkingDamageRequest &&
+                              (request.parkingDamageTime ?? '')
+                                  .trim()
+                                  .isNotEmpty)
+                            _row(_damageTimeFieldLabel,
+                                _parkingDamageTimeLabel()),
+                          if (_isMartenDamageRequest &&
+                              (request.marderDamageDrivable ?? '')
+                                  .trim()
+                                  .isNotEmpty)
+                            _row(_marderDrivableFieldLabel,
+                                _marderDamageDrivableLabel()),
+                          if (_isComprehensiveDamageRequest &&
+                              (request.fullDamageDrivable ?? '')
+                                  .trim()
+                                  .isNotEmpty)
+                            _row(_fullDrivableFieldLabel,
+                                _fullDamageDrivableLabel()),
+                          if (_isMartenDamageRequest &&
+                              (request.marderDamageDescription ?? '')
+                                  .trim()
+                                  .isNotEmpty)
+                            _row(_marderDescriptionFieldLabel,
+                                request.marderDamageDescription!.trim()),
+                          if (_isComprehensiveDamageRequest &&
+                              (request.fullDamageDescription ?? '')
+                                  .trim()
+                                  .isNotEmpty)
+                            _row(_fullDescriptionFieldLabel,
+                                request.fullDamageDescription!.trim()),
+                          if (_isOtherDamageRequest &&
+                              (request.otherDamageCategory ?? '')
+                                  .trim()
+                                  .isNotEmpty)
+                            _row(_otherCategoryFieldLabel,
+                                _otherDamageCategoryLabel()),
+                          if (_isOtherDamageRequest &&
+                              (request.otherDamageDescription ?? '')
+                                  .trim()
+                                  .isNotEmpty)
+                            _row(_otherDescriptionFieldLabel,
+                                request.otherDamageDescription!.trim()),
+                          _row('Status',
+                              _requestStatusLabel(request.requestStatus)),
+                          if ((request.notes ?? '').isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              'Notizen',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(request.notes ?? ''),
+                          ],
+                          if (_hasDamagePhotoSections) _photosSection(),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                  if (_supportsPremiumWorkshopPdf) ...[
+                    const SizedBox(height: 16),
+                    _pdfActionsCard(),
+                  ],
+                  const SizedBox(height: 16),
+                  if (canCancel) _cancelButton(context),
+                  const SizedBox(height: 8),
+                ],
               ),
-              const SizedBox(height: 16),
-              if (canCancel) _cancelButton(context),
-              const SizedBox(height: 8),
-            ],
+            ),
           ),
-        ),
+          if (_pdfBusy) _buildPdfLoadingOverlay(),
+        ],
       ),
     );
   }
@@ -1736,7 +2053,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       child: OutlinedButton.icon(
         icon: const Icon(Icons.cancel_outlined),
         label: const Text('Termin stornieren'),
-        onPressed: _busy
+        onPressed: (_busy || _pdfBusy)
             ? null
             : () async {
                 final ok = await showDialog<bool>(
