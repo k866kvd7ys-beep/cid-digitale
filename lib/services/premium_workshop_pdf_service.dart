@@ -20,6 +20,7 @@ class PremiumWorkshopPdfResult {
 }
 
 class PremiumWorkshopPdfService {
+  static const PdfColor _accentOrange = PdfColor(0.9373, 0.4745, 0.1843);
   static const PdfColor _textPrimary = PdfColor(0.0667, 0.0941, 0.1529);
   static const PdfColor _textSecondary = PdfColor(0.4196, 0.4588, 0.5216);
   static const PdfColor _borderColor = PdfColor(0.8980, 0.9098, 0.9255);
@@ -119,233 +120,584 @@ class PremiumWorkshopPdfService {
     required String workshopLabel,
     required List<_PhotoGroup> photoGroups,
   }) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
+    return pw.Stack(
+      fit: pw.StackFit.expand,
       children: [
-        _buildHeader(
-          locale: locale,
-          request: request,
-          createdAt: createdAt,
-        ),
-        pw.SizedBox(height: 14),
-        _buildSectionCard(
-          title: _copy(
-            locale,
-            de: 'Kunde',
-            it: 'Cliente',
-            en: 'Customer',
-            fr: 'Client',
+        ..._buildFirstPageDecorations(),
+        pw.Container(
+          padding: const pw.EdgeInsets.only(
+            left: 8,
+            top: 4,
+            right: 8,
+            bottom: 4,
           ),
-          rows: [
-            _PdfRow(
-              label: _copy(
-                locale,
-                de: 'Name',
-                it: 'Nome',
-                en: 'Name',
-                fr: 'Nom',
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              _buildFirstPageHeader(
+                locale: locale,
+                request: request,
+                createdAt: createdAt,
               ),
-              value: _valueOrDash(request.customerName),
-            ),
-            _PdfRow(
-              label: _copy(
-                locale,
-                de: 'Telefon',
-                it: 'Telefono',
-                en: 'Phone',
-                fr: 'Telephone',
+              pw.SizedBox(height: 18),
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Expanded(
+                    child: _buildFirstPageCard(
+                      title: _copy(
+                        locale,
+                        de: 'Kunde',
+                        it: 'Cliente',
+                        en: 'Customer',
+                        fr: 'Client',
+                      ),
+                      groups: [
+                        [
+                          _PdfRow(
+                            label: _copy(
+                              locale,
+                              de: 'Name',
+                              it: 'Nome',
+                              en: 'Name',
+                              fr: 'Nom',
+                            ),
+                            value: _valueOrDash(request.customerName),
+                          ),
+                          _PdfRow(
+                            label: _copy(
+                              locale,
+                              de: 'Kennzeichen',
+                              it: 'Targa',
+                              en: 'License plate',
+                              fr: 'Plaque',
+                            ),
+                            value: _valueOrDash(request.licensePlate),
+                          ),
+                        ],
+                        [
+                          _PdfRow(
+                            label: _copy(
+                              locale,
+                              de: 'Telefon',
+                              it: 'Telefono',
+                              en: 'Phone',
+                              fr: 'Telephone',
+                            ),
+                            value: _valueOrDash(request.customerPhone),
+                          ),
+                          _PdfRow(
+                            label: _copy(
+                              locale,
+                              de: 'E-Mail',
+                              it: 'E-Mail',
+                              en: 'E-mail',
+                              fr: 'E-mail',
+                            ),
+                            value: _valueOrDash(request.customerEmail),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  pw.SizedBox(width: 14),
+                  pw.Expanded(
+                    child: _buildFirstPageCard(
+                      title: _copy(
+                        locale,
+                        de: 'Schaden',
+                        it: 'Danno',
+                        en: 'Damage',
+                        fr: 'Dommage',
+                      ),
+                      groups: [
+                        [
+                          _PdfRow(
+                            label: _copy(
+                              locale,
+                              de: 'Typ',
+                              it: 'Tipo',
+                              en: 'Type',
+                              fr: 'Type',
+                            ),
+                            value: _requestTitle(request, locale),
+                          ),
+                          _PdfRow(
+                            label: _copy(
+                              locale,
+                              de: 'Ort',
+                              it: 'Localita',
+                              en: 'Town',
+                              fr: 'Localite',
+                            ),
+                            value: _valueOrDash(_damageTown(request)),
+                          ),
+                        ],
+                        [
+                          _PdfRow(
+                            label: _copy(
+                              locale,
+                              de: _isOtherDamageRequest(request)
+                                  ? 'Problemtag'
+                                  : 'Schadentag',
+                              it: _isOtherDamageRequest(request)
+                                  ? 'Data problema'
+                                  : 'Data danno',
+                              en: _isOtherDamageRequest(request)
+                                  ? 'Problem date'
+                                  : 'Damage date',
+                              fr: _isOtherDamageRequest(request)
+                                  ? 'Date du probleme'
+                                  : 'Date du dommage',
+                            ),
+                            value: _valueOrDash(_damageDateLabel(request)),
+                          ),
+                          _PdfRow(
+                            label: _copy(
+                              locale,
+                              de: _isOtherDamageRequest(request)
+                                  ? 'Problemzeit'
+                                  : 'Schadenzeit',
+                              it: _isOtherDamageRequest(request)
+                                  ? 'Ora problema'
+                                  : 'Ora danno',
+                              en: _isOtherDamageRequest(request)
+                                  ? 'Problem time'
+                                  : 'Damage time',
+                              fr: _isOtherDamageRequest(request)
+                                  ? 'Heure du probleme'
+                                  : 'Heure du dommage',
+                            ),
+                            value: _valueOrDash(_damageTime(request)),
+                          ),
+                        ],
+                        if (_isOtherDamageRequest(request))
+                          [
+                            _PdfRow(
+                              label: _copy(
+                                locale,
+                                de: 'Kategorie',
+                                it: 'Categoria',
+                                en: 'Category',
+                                fr: 'Categorie',
+                              ),
+                              value: _valueOrDash(_otherDamageCategoryLabel(
+                                locale,
+                                request.otherDamageCategory,
+                              )),
+                            ),
+                          ],
+                        [
+                          _PdfRow(
+                            label: _copy(
+                              locale,
+                              de: 'Beschreibung',
+                              it: 'Descrizione',
+                              en: 'Description',
+                              fr: 'Description',
+                            ),
+                            value: _valueOrDash(_damageDescription(request)),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              value: _valueOrDash(request.customerPhone),
-            ),
-            _PdfRow(
-              label: _copy(
-                locale,
-                de: 'E-Mail',
-                it: 'E-Mail',
-                en: 'E-mail',
-                fr: 'E-mail',
+              pw.SizedBox(height: 14),
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Expanded(
+                    child: _buildFirstPageCard(
+                      title: _copy(
+                        locale,
+                        de: 'Termin',
+                        it: 'Appuntamento',
+                        en: 'Appointment',
+                        fr: 'Rendez-vous',
+                      ),
+                      groups: [
+                        [
+                          _PdfRow(
+                            label: _copy(
+                              locale,
+                              de: 'Tag',
+                              it: 'Giorno',
+                              en: 'Day',
+                              fr: 'Jour',
+                            ),
+                            value: _formatDate(request.appointmentDate),
+                          ),
+                          _PdfRow(
+                            label: _copy(
+                              locale,
+                              de: 'Uhrzeit',
+                              it: 'Orario',
+                              en: 'Time',
+                              fr: 'Heure',
+                            ),
+                            value: _appointmentTime(request.appointmentTime),
+                          ),
+                        ],
+                        [
+                          _PdfRow(
+                            label: _copy(
+                              locale,
+                              de: 'Werkstatt',
+                              it: 'Officina',
+                              en: 'Workshop',
+                              fr: 'Atelier',
+                            ),
+                            value: workshopLabel,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  pw.SizedBox(width: 14),
+                  pw.Expanded(
+                    child: _buildFirstPageCard(
+                      title: _copy(
+                        locale,
+                        de: 'Fahrzeugstatus',
+                        it: 'Stato veicolo',
+                        en: 'Vehicle status',
+                        fr: 'Etat du vehicule',
+                      ),
+                      groups: [
+                        [
+                          _PdfRow(
+                            label: _copy(
+                              locale,
+                              de: 'KM-Stand',
+                              it: 'KM attuali',
+                              en: 'Current mileage',
+                              fr: 'Kilometrage actuel',
+                            ),
+                            value: _currentKmValue(locale, photoGroups),
+                          ),
+                          _PdfRow(
+                            label: _copy(
+                              locale,
+                              de: 'Fahrbereit',
+                              it: 'Marciante',
+                              en: 'Drivable',
+                              fr: 'Peut rouler',
+                            ),
+                            value: _drivableValue(locale, request),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              value: _valueOrDash(request.customerEmail),
-            ),
-            _PdfRow(
-              label: _copy(
-                locale,
-                de: 'Kennzeichen',
-                it: 'Targa',
-                en: 'License plate',
-                fr: 'Plaque',
-              ),
-              value: _valueOrDash(request.licensePlate),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 12),
-        _buildSectionCard(
-          title: _copy(
-            locale,
-            de: 'Schaden',
-            it: 'Danno',
-            en: 'Damage',
-            fr: 'Dommage',
+            ],
           ),
-          rows: [
-            _PdfRow(
-              label: _copy(
-                locale,
-                de: 'Typ',
-                it: 'Tipo',
-                en: 'Type',
-                fr: 'Type',
-              ),
-              value: _requestTitle(request, locale),
-            ),
-            _PdfRow(
-              label: _copy(
-                locale,
-                de: 'Ort',
-                it: 'Localita',
-                en: 'Town',
-                fr: 'Localite',
-              ),
-              value: _valueOrDash(_damageTown(request)),
-            ),
-            _PdfRow(
-              label: _copy(
-                locale,
-                de: _isOtherDamageRequest(request)
-                    ? 'Problemtag'
-                    : 'Schadentag',
-                it: _isOtherDamageRequest(request)
-                    ? 'Data problema'
-                    : 'Data danno',
-                en: _isOtherDamageRequest(request)
-                    ? 'Problem date'
-                    : 'Damage date',
-                fr: _isOtherDamageRequest(request)
-                    ? 'Date du probleme'
-                    : 'Date du dommage',
-              ),
-              value: _valueOrDash(_damageDateLabel(request)),
-            ),
-            _PdfRow(
-              label: _copy(
-                locale,
-                de: _isOtherDamageRequest(request)
-                    ? 'Problemzeit'
-                    : 'Schadenzeit',
-                it: _isOtherDamageRequest(request)
-                    ? 'Ora problema'
-                    : 'Ora danno',
-                en: _isOtherDamageRequest(request)
-                    ? 'Problem time'
-                    : 'Damage time',
-                fr: _isOtherDamageRequest(request)
-                    ? 'Heure du probleme'
-                    : 'Heure du dommage',
-              ),
-              value: _valueOrDash(_damageTime(request)),
-            ),
-            if (_isOtherDamageRequest(request))
-              _PdfRow(
-                label: _copy(
-                  locale,
-                  de: 'Kategorie',
-                  it: 'Categoria',
-                  en: 'Category',
-                  fr: 'Categorie',
-                ),
-                value: _valueOrDash(_otherDamageCategoryLabel(
-                  locale,
-                  request.otherDamageCategory,
-                )),
-              ),
-            _PdfRow(
-              label: _copy(
-                locale,
-                de: 'Beschreibung',
-                it: 'Descrizione',
-                en: 'Description',
-                fr: 'Description',
-              ),
-              value: _valueOrDash(_damageDescription(request)),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 12),
-        _buildSectionCard(
-          title: _copy(
-            locale,
-            de: 'Termin',
-            it: 'Appuntamento',
-            en: 'Appointment',
-            fr: 'Rendez-vous',
-          ),
-          rows: [
-            _PdfRow(
-              label: _copy(
-                locale,
-                de: 'Tag',
-                it: 'Giorno',
-                en: 'Day',
-                fr: 'Jour',
-              ),
-              value: _formatDate(request.appointmentDate),
-            ),
-            _PdfRow(
-              label: _copy(
-                locale,
-                de: 'Uhrzeit',
-                it: 'Orario',
-                en: 'Time',
-                fr: 'Heure',
-              ),
-              value: _appointmentTime(request.appointmentTime),
-            ),
-            _PdfRow(
-              label: _copy(
-                locale,
-                de: 'Werkstatt',
-                it: 'Officina',
-                en: 'Workshop',
-                fr: 'Atelier',
-              ),
-              value: workshopLabel,
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 12),
-        _buildSectionCard(
-          title: _copy(
-            locale,
-            de: 'Fahrzeugstatus',
-            it: 'Stato veicolo',
-            en: 'Vehicle status',
-            fr: 'Etat du vehicule',
-          ),
-          rows: [
-            _PdfRow(
-              label: _copy(
-                locale,
-                de: 'KM-Stand',
-                it: 'KM attuali',
-                en: 'Current mileage',
-                fr: 'Kilometrage actuel',
-              ),
-              value: _currentKmValue(locale, photoGroups),
-            ),
-            _PdfRow(
-              label: _copy(
-                locale,
-                de: 'Fahrbereit',
-                it: 'Marciante',
-                en: 'Drivable',
-                fr: 'Peut rouler',
-              ),
-              value: _drivableValue(locale, request),
-            ),
-          ],
         ),
       ],
+    );
+  }
+
+  List<pw.Widget> _buildFirstPageDecorations() {
+    return [
+      pw.Positioned(
+        left: -18,
+        top: 22,
+        child: pw.Opacity(
+          opacity: 0.12,
+          child: pw.Transform.rotate(
+            angle: -0.18,
+            child: pw.Container(
+              width: 2,
+              height: 190,
+              color: _accentOrange,
+            ),
+          ),
+        ),
+      ),
+      pw.Positioned(
+        left: 6,
+        top: 44,
+        child: pw.Opacity(
+          opacity: 0.07,
+          child: pw.Transform.rotate(
+            angle: -0.10,
+            child: pw.Container(
+              width: 1.2,
+              height: 152,
+              color: _accentOrange,
+            ),
+          ),
+        ),
+      ),
+      pw.Positioned(
+        right: -16,
+        top: 14,
+        child: pw.Opacity(
+          opacity: 0.12,
+          child: pw.Transform.rotate(
+            angle: 0.20,
+            child: pw.Container(
+              width: 2,
+              height: 208,
+              color: _accentOrange,
+            ),
+          ),
+        ),
+      ),
+      pw.Positioned(
+        right: 8,
+        top: 58,
+        child: pw.Opacity(
+          opacity: 0.07,
+          child: pw.Transform.rotate(
+            angle: 0.12,
+            child: pw.Container(
+              width: 1.2,
+              height: 136,
+              color: _accentOrange,
+            ),
+          ),
+        ),
+      ),
+      pw.Positioned(
+        left: -10,
+        bottom: 42,
+        child: pw.Opacity(
+          opacity: 0.06,
+          child: pw.Transform.rotate(
+            angle: -0.08,
+            child: pw.Container(
+              width: 1.2,
+              height: 122,
+              color: _accentOrange,
+            ),
+          ),
+        ),
+      ),
+      pw.Positioned(
+        right: -8,
+        bottom: 36,
+        child: pw.Opacity(
+          opacity: 0.08,
+          child: pw.Transform.rotate(
+            angle: 0.10,
+            child: pw.Container(
+              width: 1.2,
+              height: 116,
+              color: _accentOrange,
+            ),
+          ),
+        ),
+      ),
+    ];
+  }
+
+  pw.Widget _buildFirstPageHeader({
+    required String locale,
+    required AppointmentRequest request,
+    required String createdAt,
+  }) {
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.fromLTRB(28, 24, 28, 22),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(28),
+        border: pw.Border.all(color: _borderColor, width: 1),
+        boxShadow: const [
+          pw.BoxShadow(
+            color: PdfColor(0, 0, 0, 0.035),
+            blurRadius: 12,
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
+        children: [
+          pw.Text(
+            'CrashForm Report',
+            textAlign: pw.TextAlign.center,
+            style: pw.TextStyle(
+              color: _textPrimary,
+              fontSize: 26,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+          pw.SizedBox(height: 8),
+          pw.Text(
+            '${_requestTitle(request, locale)} · ${_referenceNumber(request.id)}',
+            textAlign: pw.TextAlign.center,
+            style: const pw.TextStyle(
+              color: _textSecondary,
+              fontSize: 12.5,
+            ),
+          ),
+          pw.SizedBox(height: 14),
+          _badge(
+            label: _statusLabel(locale, request.requestStatus),
+            textColor: _statusColor(request.requestStatus),
+          ),
+          pw.SizedBox(height: 18),
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(
+                child: _buildFirstPageMetaBlock(
+                  label: _copy(
+                    locale,
+                    de: 'Erstellt am',
+                    it: 'Creato il',
+                    en: 'Created on',
+                    fr: 'Cree le',
+                  ),
+                  value: createdAt,
+                ),
+              ),
+              pw.SizedBox(width: 12),
+              pw.Expanded(
+                child: _buildFirstPageMetaBlock(
+                  label: _copy(
+                    locale,
+                    de: 'Referenznummer',
+                    it: 'Numero pratica',
+                    en: 'Reference number',
+                    fr: 'Numero de dossier',
+                  ),
+                  value: _referenceNumber(request.id),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildFirstPageCard({
+    required String title,
+    required List<List<_PdfRow>> groups,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.fromLTRB(20, 20, 20, 18),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(24),
+        border: pw.Border.all(color: _borderColor, width: 1),
+        boxShadow: const [
+          pw.BoxShadow(
+            color: PdfColor(0, 0, 0, 0.03),
+            blurRadius: 10,
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            title,
+            style: pw.TextStyle(
+              color: _textPrimary,
+              fontSize: 15,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+          pw.SizedBox(height: 14),
+          for (var i = 0; i < groups.length; i++) ...[
+            _buildFirstPageInfoGroup(group: groups[i]),
+            if (i != groups.length - 1) pw.SizedBox(height: 10),
+          ],
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildFirstPageMetaBlock({
+    required String label,
+    required String value,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: pw.BoxDecoration(
+        color: const PdfColor(0.9882, 0.9922, 0.9961),
+        borderRadius: pw.BorderRadius.circular(18),
+        border: pw.Border.all(color: _borderColor, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            label.toUpperCase(),
+            style: const pw.TextStyle(
+              color: _textSecondary,
+              fontSize: 8.5,
+            ),
+          ),
+          pw.SizedBox(height: 5),
+          pw.Text(
+            value,
+            style: pw.TextStyle(
+              color: _textPrimary,
+              fontSize: 11.5,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildFirstPageInfoGroup({required List<_PdfRow> group}) {
+    if (group.length == 1) {
+      return _buildFirstPageInfoCell(row: group.first);
+    }
+
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < group.length; i++) ...[
+          pw.Expanded(
+            child: _buildFirstPageInfoCell(row: group[i]),
+          ),
+          if (i != group.length - 1) pw.SizedBox(width: 10),
+        ],
+      ],
+    );
+  }
+
+  pw.Widget _buildFirstPageInfoCell({required _PdfRow row}) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: pw.BoxDecoration(
+        color: const PdfColor(0.9961, 0.9976, 1),
+        borderRadius: pw.BorderRadius.circular(18),
+        border: pw.Border.all(color: _borderColor, width: 0.8),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            row.label.toUpperCase(),
+            style: const pw.TextStyle(
+              color: _textSecondary,
+              fontSize: 8.2,
+            ),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            row.value,
+            style: pw.TextStyle(
+              color: _textPrimary,
+              fontSize: 12.8,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
