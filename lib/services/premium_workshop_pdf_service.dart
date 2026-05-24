@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:cid_digitale/models/appointment_request.dart';
 import 'package:cid_digitale/services/local_image_cache.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -22,11 +21,9 @@ class PremiumWorkshopPdfResult {
 
 class PremiumWorkshopPdfService {
   static const PdfColor _brandBlue = PdfColor(0.2941, 0.4823, 1.0);
-  static const PdfColor _brandBlueSoft = PdfColor(0.9529, 0.9725, 1.0);
   static const PdfColor _textPrimary = PdfColor(0.0667, 0.0941, 0.1529);
   static const PdfColor _textSecondary = PdfColor(0.4196, 0.4588, 0.5216);
-  static const PdfColor _borderColor = PdfColor(0.9098, 0.9255, 0.9490);
-  static const PdfColor _cardFill = PdfColor(0.9882, 0.9922, 1.0);
+  static const PdfColor _borderColor = PdfColor(0.8980, 0.9098, 0.9255);
   static const PdfColor _statusPending = PdfColor(0.9176, 0.3451, 0.0471);
   static const PdfColor _statusConfirmed = PdfColor(0.1451, 0.3882, 0.9216);
   static const PdfColor _statusInProgress = PdfColor(0.4863, 0.2275, 0.9333);
@@ -45,7 +42,6 @@ class PremiumWorkshopPdfService {
       author: 'CrashForm',
       subject: _requestTitle(request, locale),
     );
-    final logoImage = await _loadLogoImage();
     final photoGroups = _photoGroupsFor(request, locale);
     final imageRegistry = await _loadPhotoRegistry(photoGroups);
     final createdAt = _formatDateTime(request.createdAt);
@@ -68,7 +64,6 @@ class PremiumWorkshopPdfService {
             locale: locale,
             request: request,
             createdAt: createdAt,
-            logoImage: logoImage,
           ),
           pw.SizedBox(height: 18),
           pw.Row(
@@ -83,7 +78,6 @@ class PremiumWorkshopPdfService {
                     en: 'Customer',
                     fr: 'Client',
                   ),
-                  icon: 'A',
                   rows: [
                     _PdfRow(
                       label: _copy(
@@ -138,7 +132,6 @@ class PremiumWorkshopPdfService {
                     en: 'Damage',
                     fr: 'Dommage',
                   ),
-                  icon: 'B',
                   rows: [
                     _PdfRow(
                       label: _copy(
@@ -238,7 +231,6 @@ class PremiumWorkshopPdfService {
                     en: 'Appointment',
                     fr: 'Rendez-vous',
                   ),
-                  icon: 'C',
                   rows: [
                     _PdfRow(
                       label: _copy(
@@ -283,7 +275,6 @@ class PremiumWorkshopPdfService {
                     en: 'Vehicle status',
                     fr: 'Etat du vehicule',
                   ),
-                  icon: 'D',
                   rows: [
                     _PdfRow(
                       label: _copy(
@@ -335,7 +326,6 @@ class PremiumWorkshopPdfService {
     required String locale,
     required AppointmentRequest request,
     required String createdAt,
-    pw.MemoryImage? logoImage,
   }) {
     return pw.Container(
       padding: const pw.EdgeInsets.all(20),
@@ -347,29 +337,6 @@ class PremiumWorkshopPdfService {
       child: pw.Row(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Container(
-            width: 56,
-            height: 56,
-            decoration: pw.BoxDecoration(
-              color: _brandBlueSoft,
-              borderRadius: pw.BorderRadius.circular(18),
-            ),
-            alignment: pw.Alignment.center,
-            child: logoImage != null
-                ? pw.Padding(
-                    padding: const pw.EdgeInsets.all(8),
-                    child: pw.Image(logoImage, fit: pw.BoxFit.contain),
-                  )
-                : pw.Text(
-                    'CF',
-                    style: pw.TextStyle(
-                      color: _brandBlue,
-                      fontSize: 22,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-          ),
-          pw.SizedBox(width: 16),
           pw.Expanded(
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -405,7 +372,6 @@ class PremiumWorkshopPdfService {
             children: [
               _badge(
                 label: _statusLabel(locale, request.requestStatus),
-                fill: _statusFillColor(request.requestStatus),
                 textColor: _statusColor(request.requestStatus),
               ),
               pw.SizedBox(height: 12),
@@ -466,7 +432,6 @@ class PremiumWorkshopPdfService {
 
   pw.Widget _buildSectionCard({
     required String title,
-    required String icon,
     required List<_PdfRow> rows,
   }) {
     return pw.Container(
@@ -479,35 +444,13 @@ class PremiumWorkshopPdfService {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Row(
-            children: [
-              pw.Container(
-                width: 28,
-                height: 28,
-                decoration: pw.BoxDecoration(
-                  color: _brandBlueSoft,
-                  borderRadius: pw.BorderRadius.circular(10),
-                ),
-                alignment: pw.Alignment.center,
-                child: pw.Text(
-                  icon,
-                  style: pw.TextStyle(
-                    color: _brandBlue,
-                    fontSize: 12,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-              ),
-              pw.SizedBox(width: 10),
-              pw.Text(
-                title,
-                style: pw.TextStyle(
-                  color: _textPrimary,
-                  fontSize: 14,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-            ],
+          pw.Text(
+            title,
+            style: pw.TextStyle(
+              color: _textPrimary,
+              fontSize: 14,
+              fontWeight: pw.FontWeight.bold,
+            ),
           ),
           pw.SizedBox(height: 14),
           for (var i = 0; i < rows.length; i++) ...[
@@ -593,65 +536,22 @@ class PremiumWorkshopPdfService {
               ),
             ),
             pw.SizedBox(height: 8),
-            for (final row in _buildPhotoRows(
-              locale: locale,
-              group: group,
-              images: images,
-            )) ...[
-              row,
-              pw.SizedBox(height: 12),
+            for (var i = 0; i < group.sources.length; i++) ...[
+              _buildPhotoTile(
+                locale: locale,
+                title: _photoItemTitle(
+                  baseTitle: group.title,
+                  index: i,
+                  total: group.sources.length,
+                ),
+                image: images[group.sources[i]],
+              ),
+              if (i != group.sources.length - 1) pw.SizedBox(height: 12),
             ],
             if (group != availableGroups.last) pw.SizedBox(height: 8),
           ],
       ],
     );
-  }
-
-  List<pw.Widget> _buildPhotoRows({
-    required String locale,
-    required _PhotoGroup group,
-    required Map<String, pw.MemoryImage> images,
-  }) {
-    final rows = <pw.Widget>[];
-    for (var index = 0; index < group.sources.length; index += 2) {
-      final leftSource = group.sources[index];
-      final rightIndex = index + 1;
-      final rightSource =
-          rightIndex < group.sources.length ? group.sources[rightIndex] : null;
-      rows.add(
-        pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Expanded(
-              child: _buildPhotoTile(
-                locale: locale,
-                title: _photoItemTitle(
-                  baseTitle: group.title,
-                  index: index,
-                  total: group.sources.length,
-                ),
-                image: images[leftSource],
-              ),
-            ),
-            pw.SizedBox(width: 12),
-            pw.Expanded(
-              child: rightSource == null
-                  ? pw.SizedBox()
-                  : _buildPhotoTile(
-                      locale: locale,
-                      title: _photoItemTitle(
-                        baseTitle: group.title,
-                        index: rightIndex,
-                        total: group.sources.length,
-                      ),
-                      image: images[rightSource],
-                    ),
-            ),
-          ],
-        ),
-      );
-    }
-    return rows;
   }
 
   String _photoItemTitle({
@@ -691,11 +591,11 @@ class PremiumWorkshopPdfService {
             horizontalRadius: 14,
             verticalRadius: 14,
             child: pw.Container(
-              height: 180,
+              height: 220,
               width: double.infinity,
               padding: const pw.EdgeInsets.all(10),
               decoration: pw.BoxDecoration(
-                color: _cardFill,
+                color: PdfColors.white,
                 border: pw.Border.all(color: _borderColor, width: 1),
               ),
               child: image != null
@@ -703,7 +603,7 @@ class PremiumWorkshopPdfService {
                       child: pw.Image(
                         image,
                         fit: pw.BoxFit.contain,
-                        height: 160,
+                        height: 200,
                       ),
                     )
                   : pw.Center(
@@ -791,7 +691,6 @@ class PremiumWorkshopPdfService {
           pw.SizedBox(width: 16),
           _badge(
             label: _statusLabel(locale, request.requestStatus),
-            fill: _statusFillColor(request.requestStatus),
             textColor: _statusColor(request.requestStatus),
           ),
         ],
@@ -880,14 +779,14 @@ class PremiumWorkshopPdfService {
 
   pw.Widget _badge({
     required String label,
-    required PdfColor fill,
     required PdfColor textColor,
   }) {
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: pw.BoxDecoration(
-        color: fill,
+        color: PdfColors.white,
         borderRadius: pw.BorderRadius.circular(999),
+        border: pw.Border.all(color: textColor, width: 1),
       ),
       child: pw.Text(
         label,
@@ -898,15 +797,6 @@ class PremiumWorkshopPdfService {
         ),
       ),
     );
-  }
-
-  Future<pw.MemoryImage?> _loadLogoImage() async {
-    try {
-      final data = await rootBundle.load('assets/images/crashform_logo.png');
-      return pw.MemoryImage(data.buffer.asUint8List());
-    } catch (_) {
-      return null;
-    }
   }
 
   Future<Map<String, pw.MemoryImage>> _loadPhotoRegistry(
@@ -1778,22 +1668,6 @@ class PremiumWorkshopPdfService {
       case 'pending':
       default:
         return _statusPending;
-    }
-  }
-
-  PdfColor _statusFillColor(String status) {
-    switch (status) {
-      case 'confirmed':
-        return const PdfColor(0.9255, 0.9529, 1.0);
-      case 'in_progress':
-        return const PdfColor(0.9529, 0.9294, 1.0);
-      case 'completed':
-        return const PdfColor(0.9098, 0.9725, 0.9255);
-      case 'cancelled':
-        return const PdfColor(0.9922, 0.9294, 0.9294);
-      case 'pending':
-      default:
-        return const PdfColor(1.0, 0.9529, 0.9255);
     }
   }
 

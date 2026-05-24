@@ -4,7 +4,9 @@ import 'dart:io';
 
 import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:cid_digitale/models/appointment_request.dart';
+import 'package:cid_digitale/screens/workshop_pdf_preview_screen.dart';
 import 'package:cid_digitale/services/appointment_requests_service.dart';
+import 'package:cid_digitale/services/workshop_pdf_inline_preview.dart';
 import 'package:cid_digitale/services/local_image_cache.dart';
 import 'package:cid_digitale/services/premium_workshop_pdf_service.dart';
 import 'package:cid_digitale/services/workshop_pdf_file_helper.dart';
@@ -428,6 +430,13 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         fr: 'Telecharger PDF',
       );
 
+  String _pdfOpenLabel() => _copy(
+        de: 'PDF oeffnen',
+        it: 'Apri PDF',
+        en: 'Open PDF',
+        fr: 'Ouvrir PDF',
+      );
+
   String _pdfLoadingTitle() => _copy(
         de: 'PDF wird erstellt...',
         it: 'Creazione PDF...',
@@ -456,11 +465,25 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         fr: 'Le telechargement du PDF a echoue.',
       );
 
+  String _pdfOpenErrorText() => _copy(
+        de: 'PDF konnte nicht geoeffnet werden.',
+        it: 'Impossibile aprire il PDF.',
+        en: 'Unable to open the PDF.',
+        fr: 'Impossible d’ouvrir le PDF.',
+      );
+
   String _pdfUnavailableText() => _copy(
         de: 'PDF ist nur fuer Schadensanfragen verfuegbar.',
         it: 'Il PDF e disponibile solo per richieste danni.',
         en: 'PDF is only available for damage requests.',
         fr: 'Le PDF est disponible uniquement pour les demandes dommage.',
+      );
+
+  String _pdfSaveHintText() => _copy(
+        de: 'Zum Speichern des PDF: Teilen -> In Dateien sichern',
+        it: 'Per salvare il PDF: Condividi -> Salva su File',
+        en: 'To save the PDF: Share -> Save to Files',
+        fr: 'Pour enregistrer le PDF : Partager -> Enregistrer dans Fichiers',
       );
 
   String _workshopFallbackName() => _copy(
@@ -1191,49 +1214,31 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       _showSnackBar(_pdfUnavailableText());
       return;
     }
-
-    final preparedWindow =
-        kIsWeb ? preparePdfWindowWeb(title: _pdfPreviewLabel()) : null;
     setState(() => _pdfBusy = true);
     try {
       await Future<void>.delayed(const Duration(milliseconds: 16));
-      final pdf = await _premiumPdfService.generatePremiumWorkshopPdf(
-        request: request,
-        localeCode: _localizedRequestLocale(),
-        workshopName: _workshopFallbackName(),
-      );
-      if (!mounted) {
-        if (kIsWeb) {
-          await closePreparedPdfWindowWeb(preparedWindow);
-        }
-        return;
-      }
+      final pdf = await _generatePremiumPdf();
+      if (!mounted) return;
 
-      if (kIsWeb) {
-        await openPdfPreviewWeb(
-          bytes: pdf.bytes,
-          fileName: pdf.fileName,
-          preparedWindow: preparedWindow,
+      if (kIsWeb && supportsInlinePdfPreviewWeb() && !isIosSafariWeb()) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => WorkshopPdfPreviewScreen(
+              bytes: pdf.bytes,
+              fileName: pdf.fileName,
+              title: _pdfPreviewLabel(),
+            ),
+          ),
         );
         return;
       }
 
-      final file = await _writePdfFile(pdf.bytes, pdf.fileName);
-      final ok = await launchUrl(
-        Uri.file(file.path),
-        mode: LaunchMode.externalApplication,
+      await _openPdfResult(
+        pdf,
+        title: _pdfPreviewLabel(),
+        showSaveHintOnSafari: false,
       );
-      if (!ok) {
-        await Share.shareXFiles(
-          [XFile(file.path, mimeType: 'application/pdf', name: pdf.fileName)],
-          text: pdf.fileName,
-          subject: pdf.fileName,
-        );
-      }
     } catch (_) {
-      if (kIsWeb) {
-        await closePreparedPdfWindowWeb(preparedWindow);
-      }
       if (!mounted) return;
       _showSnackBar(_pdfPreviewErrorText());
     } finally {
@@ -1248,31 +1253,29 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       _showSnackBar(_pdfUnavailableText());
       return;
     }
-
-    final preparedWindow = kIsWeb && shouldOpenPdfInNewTabForDownloadWeb()
-        ? preparePdfWindowWeb(title: _pdfDownloadLabel())
-        : null;
     setState(() => _pdfBusy = true);
     try {
       await Future<void>.delayed(const Duration(milliseconds: 16));
-      final pdf = await _premiumPdfService.generatePremiumWorkshopPdf(
-        request: request,
-        localeCode: _localizedRequestLocale(),
-        workshopName: _workshopFallbackName(),
-      );
-      if (!mounted) {
-        if (kIsWeb) {
-          await closePreparedPdfWindowWeb(preparedWindow);
-        }
-        return;
-      }
+      final pdf = await _generatePremiumPdf();
+      if (!mounted) return;
 
       if (kIsWeb) {
-        await downloadPdfWeb(
-          bytes: pdf.bytes,
-          fileName: pdf.fileName,
-          preparedWindow: preparedWindow,
-        );
+        final preparedWindow = shouldOpenPdfInNewTabForDownloadWeb()
+            ? preparePdfWindowWeb(title: _pdfDownloadLabel())
+            : null;
+        try {
+          await downloadPdfWeb(
+            bytes: pdf.bytes,
+            fileName: pdf.fileName,
+            preparedWindow: preparedWindow,
+          );
+          if (shouldOpenPdfInNewTabForDownloadWeb()) {
+            _showSnackBar(_pdfSaveHintText());
+          }
+        } catch (_) {
+          await closePreparedPdfWindowWeb(preparedWindow);
+          rethrow;
+        }
         return;
       }
 
@@ -1283,15 +1286,83 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         subject: pdf.fileName,
       );
     } catch (_) {
-      if (kIsWeb) {
-        await closePreparedPdfWindowWeb(preparedWindow);
-      }
       if (!mounted) return;
       _showSnackBar(_pdfDownloadErrorText());
     } finally {
       if (mounted) {
         setState(() => _pdfBusy = false);
       }
+    }
+  }
+
+  Future<void> _openPremiumPdf() async {
+    if (!_supportsPremiumWorkshopPdf) {
+      _showSnackBar(_pdfUnavailableText());
+      return;
+    }
+
+    setState(() => _pdfBusy = true);
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+      final pdf = await _generatePremiumPdf();
+      if (!mounted) return;
+      await _openPdfResult(
+        pdf,
+        title: _pdfOpenLabel(),
+        showSaveHintOnSafari: true,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      _showSnackBar(_pdfOpenErrorText());
+    } finally {
+      if (mounted) {
+        setState(() => _pdfBusy = false);
+      }
+    }
+  }
+
+  Future<PremiumWorkshopPdfResult> _generatePremiumPdf() {
+    return _premiumPdfService.generatePremiumWorkshopPdf(
+      request: request,
+      localeCode: _localizedRequestLocale(),
+      workshopName: _workshopFallbackName(),
+    );
+  }
+
+  Future<void> _openPdfResult(
+    PremiumWorkshopPdfResult pdf, {
+    required String title,
+    required bool showSaveHintOnSafari,
+  }) async {
+    if (kIsWeb) {
+      final preparedWindow = preparePdfWindowWeb(title: title);
+      try {
+        await openPdfPreviewWeb(
+          bytes: pdf.bytes,
+          fileName: pdf.fileName,
+          preparedWindow: preparedWindow,
+        );
+        if (showSaveHintOnSafari && shouldOpenPdfInNewTabForDownloadWeb()) {
+          _showSnackBar(_pdfSaveHintText());
+        }
+      } catch (_) {
+        await closePreparedPdfWindowWeb(preparedWindow);
+        rethrow;
+      }
+      return;
+    }
+
+    final file = await _writePdfFile(pdf.bytes, pdf.fileName);
+    final ok = await launchUrl(
+      Uri.file(file.path),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!ok) {
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'application/pdf', name: pdf.fileName)],
+        text: pdf.fileName,
+        subject: pdf.fileName,
+      );
     }
   }
 
@@ -1810,6 +1881,15 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
               ],
             ),
             const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _pdfBusy ? null : _openPremiumPdf,
+                icon: const Icon(Icons.open_in_new_rounded),
+                label: Text(_pdfOpenLabel()),
+              ),
+            ),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
