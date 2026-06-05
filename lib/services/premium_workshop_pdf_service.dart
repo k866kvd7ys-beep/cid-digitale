@@ -334,7 +334,10 @@ class PremiumWorkshopPdfService {
                                   en: 'Workshop',
                                   fr: 'Atelier',
                                 ),
-                                value: workshopLabel,
+                                value: _appointmentWorkshopValue(
+                                  locale,
+                                  workshopLabel,
+                                ),
                               ),
                             ],
                           ),
@@ -1980,6 +1983,30 @@ class PremiumWorkshopPdfService {
       return _drivableAnswerLabel(locale, request.fullDamageDrivable);
     }
     return '-';
+  }
+
+  String _appointmentWorkshopValue(String locale, String? workshopLabel) {
+    final value = workshopLabel?.trim() ?? '';
+    if (value.isEmpty) return '-';
+
+    final syntheticFallbacks = <String>{
+      _copy(
+        locale,
+        de: 'CrashForm Partnerwerkstatt',
+        it: 'CrashForm Partnerwerkstatt',
+        en: 'CrashForm Partner Workshop',
+        fr: 'Atelier partenaire CrashForm',
+      ),
+      'CrashForm Partnerwerkstatt',
+      'CrashForm Partner Workshop',
+      'Atelier partenaire CrashForm',
+    };
+
+    if (syntheticFallbacks.contains(value)) {
+      return '-';
+    }
+
+    return value;
   }
 
   String _currentKmValue(String locale, List<_PhotoGroup> photoGroups) {
