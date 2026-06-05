@@ -3,7 +3,7 @@ const MANIFEST = 'flutter-app-manifest';
 const TEMP = 'flutter-temp-cache';
 const CACHE_NAME = 'flutter-app-cache';
 
-const RESOURCES = {"flutter_bootstrap.js": "546cbbb0c05820fca78fb796d8b3c61d",
+const RESOURCES = {"flutter_bootstrap.js": "707c831e189dbfe30fc4def99e056eca",
 "version.json": "888943b38089b79929d4fe1fadd39b0b",
 "index.html": "1b479eb7cd2b630529656f895428de9b",
 "/": "1b479eb7cd2b630529656f895428de9b",
@@ -26,8 +26,8 @@ const RESOURCES = {"flutter_bootstrap.js": "546cbbb0c05820fca78fb796d8b3c61d",
 "assets/AssetManifest.bin": "d9ecee56bd5785045fa803f6768b2d53",
 "assets/fonts/MaterialIcons-Regular.otf": "9137f8c5a3e7ea1dcf75dcbf44ac8295",
 "assets/assets/images/assets:images:tires:complete_wheel.jpg.PNG": "60048481e1d3a01b3429bf03260d873e",
-"assets/assets/images/tires/complete_wheel.jpg": "66e8ab3905bc5f75ea4636a120878209",
-"assets/assets/images/tires/tire_only.jpg": "b853bb40a20dd741196ab7abf4f43470",
+"assets/assets/images/tires/complete_wheel.jpg": "3bb51262de1760c9e7d5d3cc8b2718b9",
+"assets/assets/images/tires/tire_only.jpg": "003e9188a8f6afa6752e75a82300e6be",
 "assets/assets/images/tire_complete_wheel.png": "4e3534f702495706f2eeaedf24db06b9",
 "assets/assets/images/assets:images:tires:tire_only.jpg.JPG": "003e9188a8f6afa6752e75a82300e6be",
 "assets/assets/images/tire_only.png": "a7adb815a58c75886e872621402009ac",
