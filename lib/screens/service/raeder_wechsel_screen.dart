@@ -350,18 +350,19 @@ class _TireOptionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
+                borderRadius: BorderRadius.circular(24),
+                child: Image.asset(
+                  imagePath,
                   height: 260,
                   width: double.infinity,
-                  color: Colors.white,
-                  padding: const EdgeInsets.all(10),
-                  child: Image.asset(
-                    imagePath,
-                    fit: BoxFit.contain,
-                    width: double.infinity,
-                    height: 260,
-                  ),
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    debugPrint('Missing Reifenwechsel image: $imagePath');
+                    return const SizedBox(
+                      height: 260,
+                      width: double.infinity,
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 18),
