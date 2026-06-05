@@ -146,171 +146,148 @@ class PremiumWorkshopPdfService {
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Row(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Expanded(
-                          child: _buildFirstPageCard(
-                            title: _copy(
-                              locale,
-                              de: 'Kunde',
-                              it: 'Cliente',
-                              en: 'Customer',
-                              fr: 'Client',
-                            ),
-                            groups: [
-                              [
-                                _PdfRow(
-                                  label: _copy(
-                                    locale,
-                                    de: 'Name',
-                                    it: 'Nome',
-                                    en: 'Name',
-                                    fr: 'Nom',
-                                  ),
-                                  value: _valueOrDash(request.customerName),
-                                ),
-                                _PdfRow(
-                                  label: _copy(
-                                    locale,
-                                    de: 'Kennzeichen',
-                                    it: 'Targa',
-                                    en: 'License plate',
-                                    fr: 'Plaque',
-                                  ),
-                                  value: _valueOrDash(request.licensePlate),
-                                ),
-                              ],
-                              [
-                                _PdfRow(
-                                  label: _copy(
-                                    locale,
-                                    de: 'Telefon',
-                                    it: 'Telefono',
-                                    en: 'Phone',
-                                    fr: 'Telephone',
-                                  ),
-                                  value: _valueOrDash(request.customerPhone),
-                                ),
-                                _PdfRow(
-                                  label: _copy(
-                                    locale,
-                                    de: 'E-Mail',
-                                    it: 'E-Mail',
-                                    en: 'E-mail',
-                                    fr: 'E-mail',
-                                  ),
-                                  value: _valueOrDash(request.customerEmail),
-                                ),
-                              ],
-                            ],
+                    _buildFirstPageCard(
+                      title: _copy(
+                        locale,
+                        de: 'Kunde',
+                        it: 'Cliente',
+                        en: 'Customer',
+                        fr: 'Client',
+                      ),
+                      rows: [
+                        _PdfRow(
+                          label: _copy(
+                            locale,
+                            de: 'Name',
+                            it: 'Nome',
+                            en: 'Name',
+                            fr: 'Nom',
                           ),
+                          value: _valueOrDash(request.customerName),
                         ),
-                        pw.SizedBox(width: 14),
-                        pw.Expanded(
-                          child: _buildFirstPageCard(
-                            title: _copy(
-                              locale,
-                              de: 'Schaden',
-                              it: 'Danno',
-                              en: 'Damage',
-                              fr: 'Dommage',
-                            ),
-                            groups: [
-                              [
-                                _PdfRow(
-                                  label: _copy(
-                                    locale,
-                                    de: 'Typ',
-                                    it: 'Tipo',
-                                    en: 'Type',
-                                    fr: 'Type',
-                                  ),
-                                  value: _requestTitle(request, locale),
-                                ),
-                                _PdfRow(
-                                  label: _copy(
-                                    locale,
-                                    de: 'Ort',
-                                    it: 'Localita',
-                                    en: 'Town',
-                                    fr: 'Localite',
-                                  ),
-                                  value: _valueOrDash(_damageTown(request)),
-                                ),
-                              ],
-                              [
-                                _PdfRow(
-                                  label: _copy(
-                                    locale,
-                                    de: _isOtherDamageRequest(request)
-                                        ? 'Problemtag'
-                                        : 'Schadentag',
-                                    it: _isOtherDamageRequest(request)
-                                        ? 'Data problema'
-                                        : 'Data danno',
-                                    en: _isOtherDamageRequest(request)
-                                        ? 'Problem date'
-                                        : 'Damage date',
-                                    fr: _isOtherDamageRequest(request)
-                                        ? 'Date du probleme'
-                                        : 'Date du dommage',
-                                  ),
-                                  value:
-                                      _valueOrDash(_damageDateLabel(request)),
-                                ),
-                                _PdfRow(
-                                  label: _copy(
-                                    locale,
-                                    de: _isOtherDamageRequest(request)
-                                        ? 'Problemzeit'
-                                        : 'Schadenzeit',
-                                    it: _isOtherDamageRequest(request)
-                                        ? 'Ora problema'
-                                        : 'Ora danno',
-                                    en: _isOtherDamageRequest(request)
-                                        ? 'Problem time'
-                                        : 'Damage time',
-                                    fr: _isOtherDamageRequest(request)
-                                        ? 'Heure du probleme'
-                                        : 'Heure du dommage',
-                                  ),
-                                  value: _valueOrDash(_damageTime(request)),
-                                ),
-                              ],
-                              if (_isOtherDamageRequest(request))
-                                [
-                                  _PdfRow(
-                                    label: _copy(
-                                      locale,
-                                      de: 'Kategorie',
-                                      it: 'Categoria',
-                                      en: 'Category',
-                                      fr: 'Categorie',
-                                    ),
-                                    value: _valueOrDash(
-                                      _otherDamageCategoryLabel(
-                                        locale,
-                                        request.otherDamageCategory,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              [
-                                _PdfRow(
-                                  label: _copy(
-                                    locale,
-                                    de: 'Beschreibung',
-                                    it: 'Descrizione',
-                                    en: 'Description',
-                                    fr: 'Description',
-                                  ),
-                                  value:
-                                      _valueOrDash(_damageDescription(request)),
-                                ),
-                              ],
-                            ],
+                        _PdfRow(
+                          label: _copy(
+                            locale,
+                            de: 'Telefon',
+                            it: 'Telefono',
+                            en: 'Phone',
+                            fr: 'Telephone',
                           ),
+                          value: _valueOrDash(request.customerPhone),
+                        ),
+                        _PdfRow(
+                          label: _copy(
+                            locale,
+                            de: 'E-Mail',
+                            it: 'E-Mail',
+                            en: 'E-mail',
+                            fr: 'E-mail',
+                          ),
+                          value: _valueOrDash(request.customerEmail),
+                        ),
+                        _PdfRow(
+                          label: _copy(
+                            locale,
+                            de: 'Kennzeichen',
+                            it: 'Targa',
+                            en: 'License plate',
+                            fr: 'Plaque',
+                          ),
+                          value: _valueOrDash(request.licensePlate),
+                        ),
+                      ],
+                    ),
+                    pw.SizedBox(height: 14),
+                    _buildFirstPageCard(
+                      title: _copy(
+                        locale,
+                        de: 'Schaden',
+                        it: 'Danno',
+                        en: 'Damage',
+                        fr: 'Dommage',
+                      ),
+                      rows: [
+                        _PdfRow(
+                          label: _copy(
+                            locale,
+                            de: 'Typ',
+                            it: 'Tipo',
+                            en: 'Type',
+                            fr: 'Type',
+                          ),
+                          value: _requestTitle(request, locale),
+                        ),
+                        _PdfRow(
+                          label: _copy(
+                            locale,
+                            de: 'Ort',
+                            it: 'Localita',
+                            en: 'Town',
+                            fr: 'Localite',
+                          ),
+                          value: _valueOrDash(_damageTown(request)),
+                        ),
+                        _PdfRow(
+                          label: _copy(
+                            locale,
+                            de: _isOtherDamageRequest(request)
+                                ? 'Problemtag'
+                                : 'Schadentag',
+                            it: _isOtherDamageRequest(request)
+                                ? 'Data problema'
+                                : 'Data danno',
+                            en: _isOtherDamageRequest(request)
+                                ? 'Problem date'
+                                : 'Damage date',
+                            fr: _isOtherDamageRequest(request)
+                                ? 'Date du probleme'
+                                : 'Date du dommage',
+                          ),
+                          value: _valueOrDash(_damageDateLabel(request)),
+                        ),
+                        _PdfRow(
+                          label: _copy(
+                            locale,
+                            de: _isOtherDamageRequest(request)
+                                ? 'Problemzeit'
+                                : 'Schadenzeit',
+                            it: _isOtherDamageRequest(request)
+                                ? 'Ora problema'
+                                : 'Ora danno',
+                            en: _isOtherDamageRequest(request)
+                                ? 'Problem time'
+                                : 'Damage time',
+                            fr: _isOtherDamageRequest(request)
+                                ? 'Heure du probleme'
+                                : 'Heure du dommage',
+                          ),
+                          value: _valueOrDash(_damageTime(request)),
+                        ),
+                        if (_isOtherDamageRequest(request))
+                          _PdfRow(
+                            label: _copy(
+                              locale,
+                              de: 'Kategorie',
+                              it: 'Categoria',
+                              en: 'Category',
+                              fr: 'Categorie',
+                            ),
+                            value: _valueOrDash(
+                              _otherDamageCategoryLabel(
+                                locale,
+                                request.otherDamageCategory,
+                              ),
+                            ),
+                          ),
+                        _PdfRow(
+                          label: _copy(
+                            locale,
+                            de: 'Beschreibung',
+                            it: 'Descrizione',
+                            en: 'Description',
+                            fr: 'Description',
+                          ),
+                          value: _valueOrDash(_damageDescription(request)),
                         ),
                       ],
                     ),
@@ -327,42 +304,38 @@ class PremiumWorkshopPdfService {
                               en: 'Appointment',
                               fr: 'Rendez-vous',
                             ),
-                            groups: [
-                              [
-                                _PdfRow(
-                                  label: _copy(
-                                    locale,
-                                    de: 'Tag',
-                                    it: 'Giorno',
-                                    en: 'Day',
-                                    fr: 'Jour',
-                                  ),
-                                  value: _formatDate(request.appointmentDate),
+                            rows: [
+                              _PdfRow(
+                                label: _copy(
+                                  locale,
+                                  de: 'Tag',
+                                  it: 'Giorno',
+                                  en: 'Day',
+                                  fr: 'Jour',
                                 ),
-                                _PdfRow(
-                                  label: _copy(
-                                    locale,
-                                    de: 'Uhrzeit',
-                                    it: 'Orario',
-                                    en: 'Time',
-                                    fr: 'Heure',
-                                  ),
-                                  value:
-                                      _appointmentTime(request.appointmentTime),
+                                value: _formatDate(request.appointmentDate),
+                              ),
+                              _PdfRow(
+                                label: _copy(
+                                  locale,
+                                  de: 'Uhrzeit',
+                                  it: 'Orario',
+                                  en: 'Time',
+                                  fr: 'Heure',
                                 ),
-                              ],
-                              [
-                                _PdfRow(
-                                  label: _copy(
-                                    locale,
-                                    de: 'Werkstatt',
-                                    it: 'Officina',
-                                    en: 'Workshop',
-                                    fr: 'Atelier',
-                                  ),
-                                  value: workshopLabel,
+                                value:
+                                    _appointmentTime(request.appointmentTime),
+                              ),
+                              _PdfRow(
+                                label: _copy(
+                                  locale,
+                                  de: 'Werkstatt',
+                                  it: 'Officina',
+                                  en: 'Workshop',
+                                  fr: 'Atelier',
                                 ),
-                              ],
+                                value: workshopLabel,
+                              ),
                             ],
                           ),
                         ),
@@ -376,29 +349,27 @@ class PremiumWorkshopPdfService {
                               en: 'Vehicle status',
                               fr: 'Etat du vehicule',
                             ),
-                            groups: [
-                              [
-                                _PdfRow(
-                                  label: _copy(
-                                    locale,
-                                    de: 'KM-Stand',
-                                    it: 'KM attuali',
-                                    en: 'Current mileage',
-                                    fr: 'Kilometrage actuel',
-                                  ),
-                                  value: _currentKmValue(locale, photoGroups),
+                            rows: [
+                              _PdfRow(
+                                label: _copy(
+                                  locale,
+                                  de: 'KM-Stand',
+                                  it: 'KM attuali',
+                                  en: 'Current mileage',
+                                  fr: 'Kilometrage actuel',
                                 ),
-                                _PdfRow(
-                                  label: _copy(
-                                    locale,
-                                    de: 'Fahrbereit',
-                                    it: 'Marciante',
-                                    en: 'Drivable',
-                                    fr: 'Peut rouler',
-                                  ),
-                                  value: _drivableValue(locale, request),
+                                value: _currentKmValue(locale, photoGroups),
+                              ),
+                              _PdfRow(
+                                label: _copy(
+                                  locale,
+                                  de: 'Fahrbereit',
+                                  it: 'Marciante',
+                                  en: 'Drivable',
+                                  fr: 'Peut rouler',
                                 ),
-                              ],
+                                value: _drivableValue(locale, request),
+                              ),
                             ],
                           ),
                         ),
@@ -722,13 +693,13 @@ class PremiumWorkshopPdfService {
 
   pw.Widget _buildFirstPageCard({
     required String title,
-    required List<List<_PdfRow>> groups,
+    required List<_PdfRow> rows,
   }) {
     return pw.Container(
-      padding: const pw.EdgeInsets.fromLTRB(20, 20, 20, 18),
+      padding: const pw.EdgeInsets.all(18),
       decoration: pw.BoxDecoration(
         color: PdfColors.white,
-        borderRadius: pw.BorderRadius.circular(24),
+        borderRadius: pw.BorderRadius.circular(20),
         border: pw.Border.all(color: _borderColor, width: 1),
         boxShadow: const [
           pw.BoxShadow(
@@ -750,9 +721,9 @@ class PremiumWorkshopPdfService {
             ),
           ),
           pw.SizedBox(height: 14),
-          for (var i = 0; i < groups.length; i++) ...[
-            _buildFirstPageInfoGroup(group: groups[i]),
-            if (i != groups.length - 1) pw.SizedBox(height: 10),
+          for (var i = 0; i < rows.length; i++) ...[
+            _buildFirstPageInfoRow(row: rows[i]),
+            if (i != rows.length - 1) pw.SizedBox(height: 12),
           ],
         ],
       ),
@@ -794,53 +765,29 @@ class PremiumWorkshopPdfService {
     );
   }
 
-  pw.Widget _buildFirstPageInfoGroup({required List<_PdfRow> group}) {
-    if (group.length == 1) {
-      return _buildFirstPageInfoCell(row: group.first);
-    }
-
-    return pw.Row(
+  pw.Widget _buildFirstPageInfoRow({required _PdfRow row}) {
+    return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        for (var i = 0; i < group.length; i++) ...[
-          pw.Expanded(
-            child: _buildFirstPageInfoCell(row: group[i]),
+        pw.Text(
+          row.label.toUpperCase(),
+          style: const pw.TextStyle(
+            color: _textSecondary,
+            fontSize: 8.6,
           ),
-          if (i != group.length - 1) pw.SizedBox(width: 10),
-        ],
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text(
+          row.value,
+          softWrap: true,
+          style: pw.TextStyle(
+            color: _textPrimary,
+            fontSize: 12.8,
+            fontWeight: pw.FontWeight.bold,
+            lineSpacing: 1.15,
+          ),
+        ),
       ],
-    );
-  }
-
-  pw.Widget _buildFirstPageInfoCell({required _PdfRow row}) {
-    return pw.Container(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: pw.BoxDecoration(
-        color: PdfColors.white,
-        borderRadius: pw.BorderRadius.circular(18),
-        border: pw.Border.all(color: _borderColor, width: 0.8),
-      ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            row.label.toUpperCase(),
-            style: const pw.TextStyle(
-              color: _textSecondary,
-              fontSize: 8.2,
-            ),
-          ),
-          pw.SizedBox(height: 6),
-          pw.Text(
-            row.value,
-            style: pw.TextStyle(
-              color: _textPrimary,
-              fontSize: 12.8,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
