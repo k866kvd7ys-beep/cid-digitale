@@ -141,7 +141,7 @@ class PremiumWorkshopPdfService {
                 request: request,
                 generatedAt: generatedAt,
               ),
-              pw.SizedBox(height: 35),
+              pw.SizedBox(height: 18),
               _buildFirstPageCard(
                 title: _copy(
                   locale,
@@ -194,7 +194,7 @@ class PremiumWorkshopPdfService {
                   ),
                 ],
               ),
-              pw.SizedBox(height: 14),
+              pw.SizedBox(height: 10),
               _buildFirstPageCard(
                 title: _copy(
                   locale,
@@ -290,7 +290,7 @@ class PremiumWorkshopPdfService {
                   ),
                 ],
               ),
-              pw.SizedBox(height: 14),
+              pw.SizedBox(height: 10),
               _buildFirstPageCard(
                 title: _copy(
                   locale,
@@ -333,7 +333,7 @@ class PremiumWorkshopPdfService {
                   ),
                 ],
               ),
-              pw.SizedBox(height: 14),
+              pw.SizedBox(height: 10),
               _buildFirstPageCard(
                 title: _copy(
                   locale,
@@ -480,7 +480,7 @@ class PremiumWorkshopPdfService {
   }) {
     return pw.Container(
       width: double.infinity,
-      padding: const pw.EdgeInsets.fromLTRB(20, 18, 20, 16),
+      padding: const pw.EdgeInsets.fromLTRB(18, 14, 18, 12),
       decoration: pw.BoxDecoration(
         color: PdfColors.white,
         borderRadius: pw.BorderRadius.circular(28),
@@ -501,7 +501,7 @@ class PremiumWorkshopPdfService {
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 _buildCrashFormBrand(),
-                pw.SizedBox(height: 10),
+                pw.SizedBox(height: 8),
                 pw.Text(
                   'Digital Schaden Report',
                   style: const pw.TextStyle(
@@ -509,7 +509,7 @@ class PremiumWorkshopPdfService {
                     fontSize: 9.5,
                   ),
                 ),
-                pw.SizedBox(height: 5),
+                pw.SizedBox(height: 4),
                 pw.Text(
                   _requestTitle(request, locale),
                   style: pw.TextStyle(
@@ -531,7 +531,7 @@ class PremiumWorkshopPdfService {
                   label: _statusLabel(locale, request.requestStatus),
                   textColor: _accentOrange,
                 ),
-                pw.SizedBox(height: 10),
+                pw.SizedBox(height: 8),
                 _buildFirstPageMetaBlock(
                   label: _copy(
                     locale,
@@ -542,7 +542,7 @@ class PremiumWorkshopPdfService {
                   ),
                   value: _referenceNumber(request.id),
                 ),
-                pw.SizedBox(height: 8),
+                pw.SizedBox(height: 6),
                 _buildFirstPageMetaBlock(
                   label: _copy(
                     locale,
@@ -826,14 +826,14 @@ class PremiumWorkshopPdfService {
     required String generatedAt,
   }) {
     return pw.Container(
-      padding: const pw.EdgeInsets.only(top: 6),
+      padding: const pw.EdgeInsets.only(top: 4),
       child: pw.Column(
         children: [
           pw.Container(
             height: 1,
             color: const PdfColor(0.9686, 0.8745, 0.8157),
           ),
-          pw.SizedBox(height: 6),
+          pw.SizedBox(height: 4),
           pw.Row(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
@@ -1081,7 +1081,7 @@ class PremiumWorkshopPdfService {
               fontWeight: pw.FontWeight.bold,
             ),
           ),
-          pw.SizedBox(height: 14),
+          pw.SizedBox(height: 10),
           for (var i = 0; i < rows.length; i++) ...[
             _buildInfoRow(row: rows[i]),
             if (i != rows.length - 1) pw.SizedBox(height: 10),
@@ -1148,7 +1148,7 @@ class PremiumWorkshopPdfService {
               fontWeight: pw.FontWeight.bold,
             ),
           ),
-          pw.SizedBox(height: 8),
+          pw.SizedBox(height: 4),
           pw.Container(
             height: imageBoxHeight,
             width: double.infinity,

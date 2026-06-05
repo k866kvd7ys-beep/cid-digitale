@@ -71249,7 +71249,7 @@ $1(a4){var s,r,q,p,o,n,m,l,k,j,i,h,g,f=this,e=null,d="Description",c=f.a,b=f.b,a
 a3=A.jY(new A.jg(a3,a3,a3,a3),A.mF(28),B.b7f,B.ep)
 s=new A.iI(B.e3,1.4,B.dx)
 s=A.jY(new A.jg(s,s,s,s),A.mF(12),e,B.biJ)
-a3=A.eN(A.Nu(A.b([A.Jw(A.iL(A.b([A.Nu(A.b([A.eN(new A.Ot(B.m4,B.bpi,A.b([new A.j_(e,e,7.5,e,A.EL(-0.22,A.eN(e,B.e3,e,1.4,e,8.5))),new A.j_(e,e,11,e,A.eN(e,B.e3,e,1.6,e,12)),new A.j_(e,e,15.5,e,A.eN(e,e,A.jY(e,A.mF(4),e,B.e3),4.5,e,15.5)),new A.j_(6.5,e,e,6,A.eN(e,e,B.zj,3.3,e,3.3)),new A.j_(e,6.5,e,6,A.eN(e,e,B.zj,3.3,e,3.3))],a1)),e,s,30,e,30),new A.cp(10,e,e),A.Nu(A.b([A.c4("CRASH",e,e,A.em(e,B.eq,e,e,e,e,e,e,e,B.b4,e,e,20,e,B.bq,e,!0,e,e,e,e),e),A.c4("FORM",e,e,A.em(e,B.e3,e,e,e,e,e,e,e,B.b4,e,e,20,e,B.bq,e,!0,e,e,e,e),e)],a1),B.tG,B.T2)],a1),B.tG,B.T2),new A.cp(e,10,e),A.c4("Digital Schaden Report",e,e,B.bsQ,e),new A.cp(e,5,e),A.c4(c.zb(a,b),e,e,A.em(e,B.eq,e,e,e,e,e,e,e,B.b4,e,e,18,e,B.bq,e,!0,e,e,e,e),e)],a1),B.cw)),new A.cp(16,e,e),A.eN(A.iL(A.b([c.a37(c.a96(b,a.as),B.e3),new A.cp(e,10,e),c.a3l(c.c1(b,"Nummer","Reference number","Numero de dossier","Numero pratica"),c.KK(a.a)),new A.cp(e,8,e),c.a3l(c.c1(b,"PDF erstellt am","PDF generated on","PDF genere le","PDF generato il"),a0)],a1),B.tF),e,e,e,e,170)],a1),B.cw,B.j9),e,a3,e,B.a7M,1/0)
+a3=A.eN(A.Nu(A.b([A.Jw(A.iL(A.b([A.Nu(A.b([A.eN(new A.Ot(B.m4,B.bpi,A.b([new A.j_(e,e,7.5,e,A.EL(-0.22,A.eN(e,B.e3,e,1.4,e,8.5))),new A.j_(e,e,11,e,A.eN(e,B.e3,e,1.6,e,12)),new A.j_(e,e,15.5,e,A.eN(e,e,A.jY(e,A.mF(4),e,B.e3),4.5,e,15.5)),new A.j_(6.5,e,e,6,A.eN(e,e,B.zj,3.3,e,3.3)),new A.j_(e,6.5,e,6,A.eN(e,e,B.zj,3.3,e,3.3))],a1)),e,s,30,e,30),new A.cp(10,e,e),A.Nu(A.b([A.c4("CRASH",e,e,A.em(e,B.eq,e,e,e,e,e,e,e,B.b4,e,e,20,e,B.bq,e,!0,e,e,e,e),e),A.c4("FORM",e,e,A.em(e,B.e3,e,e,e,e,e,e,e,B.b4,e,e,20,e,B.bq,e,!0,e,e,e,e),e)],a1),B.tG,B.T2)],a1),B.tG,B.T2),new A.cp(e,8,e),A.c4("Digital Schaden Report",e,e,B.bsQ,e),new A.cp(e,4,e),A.c4(c.zb(a,b),e,e,A.em(e,B.eq,e,e,e,e,e,e,e,B.b4,e,e,18,e,B.bq,e,!0,e,e,e,e),e)],a1),B.cw)),new A.cp(16,e,e),A.eN(A.iL(A.b([c.a37(c.a96(b,a.as),B.e3),new A.cp(e,8,e),c.a3l(c.c1(b,"Nummer","Reference number","Numero de dossier","Numero pratica"),c.KK(a.a)),new A.cp(e,6,e),c.a3l(c.c1(b,"PDF erstellt am","PDF generated on","PDF genere le","PDF generato il"),a0)],a1),B.tF),e,e,e,e,170)],a1),B.cw,B.j9),e,a3,e,B.a7L,1/0)
 s=c.c1(b,"Kunde","Customer","Client","Cliente")
 r=t.ek
 s=c.IK(A.b([new A.i2(c.c1(b,"Name","Name","Nom","Nome"),c.r3(a.w),e),new A.i2(c.c1(b,"Telefon","Phone","Telephone","Telefono"),c.r3(a.x),e),new A.i2(c.c1(b,"E-Mail","E-mail","E-mail","E-Mail"),c.r3(a.y),2),new A.i2(c.c1(b,"Kennzeichen","License plate","Plaque","Targa"),c.r3(a.z),e)],r),s)
@@ -71281,7 +71281,7 @@ a0=A.Jw(A.c4(c.c1(b,"Generiert am","Generated on","Genere le","Generato il")+": 
 n=c.c1(b,"Seite","Page","Page","Pagina")
 m=a4.d.d
 m===$&&A.a()
-a2.push(A.eN(A.iL(A.b([a3,new A.cp(e,35,e),s,new A.cp(e,14,e),q,new A.cp(e,14,e),p,new A.cp(e,14,e),o,new A.cp(e,8,e),A.eN(A.iL(A.b([r,new A.cp(e,6,e),A.Nu(A.b([a,a0,A.Jw(A.c4(n+" "+(B.n.hW(m.cx.cx,a4.a)+1)+" "+c.c1(b,"von","of","sur","di")+" "+m.cx.cx.length,e,e,B.xV,B.bpU))],a1),B.cw,B.j9)],a1),B.tG),e,e,e,B.a7v,e)],a1),B.cw),e,e,e,B.a7X,e))
+a2.push(A.eN(A.iL(A.b([a3,new A.cp(e,18,e),s,new A.cp(e,10,e),q,new A.cp(e,10,e),p,new A.cp(e,10,e),o,new A.cp(e,8,e),A.eN(A.iL(A.b([r,new A.cp(e,4,e),A.Nu(A.b([a,a0,A.Jw(A.c4(n+" "+(B.n.hW(m.cx.cx,a4.a)+1)+" "+c.c1(b,"von","of","sur","di")+" "+m.cx.cx.length,e,e,B.xV,B.bpU))],a1),B.cw,B.j9)],a1),B.tG),e,e,e,B.a7u,e)],a1),B.cw),e,e,e,B.a7X,e))
 return new A.Ot(B.a05,B.bpj,a2)},
 $S:151}
 A.aKg.prototype={
@@ -71295,7 +71295,7 @@ r=A.jY(new A.jg(r,r,r,r),A.mF(16),o,B.ep)
 k=A.c4(k.a,o,o,A.em(o,B.eq,o,o,o,o,o,o,o,B.b4,o,o,11,o,B.bq,o,!0,o,o,o,o),o)
 q=new A.iI(B.ff,1,B.dx)
 q=A.jY(new A.jg(q,q,q,q),A.mF(12),o,B.ep)
-return A.iL(A.b([j,new A.cp(o,16,o),A.eN(A.iL(A.b([k,new A.cp(o,8,o),A.eN(l!=null?A.bnM(new A.C7(l,B.rX,1/0,540)):A.bnM(new A.LY(B.tY,A.c4(n.c1(m,"Foto nicht verfuegbar","Photo unavailable","Photo indisponible","Foto non disponibile"),o,o,B.bth,B.Z9))),o,q,560,B.tY,1/0)],s),B.cw),o,r,o,B.a7z,o)],s),B.cw)},
+return A.iL(A.b([j,new A.cp(o,16,o),A.eN(A.iL(A.b([k,new A.cp(o,4,o),A.eN(l!=null?A.bnM(new A.C7(l,B.rX,1/0,540)):A.bnM(new A.LY(B.tY,A.c4(n.c1(m,"Foto nicht verfuegbar","Photo unavailable","Photo indisponible","Foto non disponibile"),o,o,B.bth,B.Z9))),o,q,560,B.tY,1/0)],s),B.cw),o,r,o,B.a7z,o)],s),B.cw)},
 $S:151}
 A.aKh.prototype={
 $1(a){var s,r,q,p=null,o="QR code / reference",n=this.a,m=this.b,l=this.c,k=A.ht("dd.MM.yyyy HH:mm",p).e_(l.b.kT()),j=new A.iI(B.ff,1,B.dx)
@@ -78108,7 +78108,7 @@ q=n.d
 n=n.e
 p=o.f
 p===$&&A.a()
-return new A.aE(B.a7u,new A.PY(A.cT(A.aS(r),A.aP(r),A.c7(r),0,0,0,0),q,n,p,o.gaGq(),s,o.x),null)}},
+return new A.aE(B.a7v,new A.PY(A.cT(A.aS(r),A.aP(r),A.c7(r),0,0,0,0),q,n,p,o.gaGq(),s,o.x),null)}},
 M(a){var s,r,q,p,o,n,m,l=this,k=null,j=A.c6(a,B.b2)
 j=j==null?k:j.gcU()
 s=(j==null?B.aK:j).kz(0,3).bt(0,14)/14
@@ -80948,7 +80948,7 @@ M(a){var s=null,r=A.aD(a,B.eb,t.l).w.r.b+8
 return new A.aE(new A.ap(8,r,8,8),new A.jj(new A.a_X(this.c.ak(0,new A.t(8,r))),A.bU(A.fy(!1,B.ao,!0,B.a0N,A.ba(this.d,B.W,B.F,B.bc,0,B.U),B.cu,s,1,s,s,s,s,s,B.fV),s,222),s),s)}}
 A.BF.prototype={
 M(a){var s=null
-return A.bU(A.nD(!1,this.d,s,s,s,s,s,s,this.c,s,A.z5(B.jU,s,s,s,s,B.cr,s,s,B.cr,A.E(a).ax.a===B.bF?B.K:B.b_,s,B.box,B.a7L,s,B.ju,s,s,s,s,s)),s,1/0)}}
+return A.bU(A.nD(!1,this.d,s,s,s,s,s,s,this.c,s,A.z5(B.jU,s,s,s,s,B.cr,s,s,B.cr,A.E(a).ax.a===B.bF?B.K:B.b_,s,B.box,B.a7M,s,B.ju,s,s,s,s,s)),s,1/0)}}
 A.wn.prototype={
 M(a){var s,r,q,p,o,n,m,l,k,j,i,h,g,f=this,e=null
 A.E(a)
@@ -160640,9 +160640,9 @@ B.a7q=new A.ap(0,14,0,14)
 B.a7s=new A.ap(0,1,0,0)
 B.a7t=new A.ap(0,48,0,0)
 B.mZ=new A.ap(0,4,0,0)
-B.a7u=new A.ap(0,52,0,0)
+B.a7u=new A.ie(0,4,0,0)
+B.a7v=new A.ap(0,52,0,0)
 B.B7=new A.ap(0,5,0,5)
-B.a7v=new A.ie(0,6,0,0)
 B.B8=new A.ap(0,6,0,6)
 B.tX=new A.ap(0,8,0,0)
 B.iz=new A.ap(0,8,0,8)
@@ -160671,10 +160671,10 @@ B.a7H=new A.ap(16,18,16,18)
 B.a7I=new A.ap(16,24,16,24)
 B.a7J=new A.ap(16,4,16,4)
 B.a7K=new A.ap(16,8,16,8)
+B.a7L=new A.ie(18,14,18,12)
 B.n0=new A.ap(18,18,18,18)
 B.Bc=new A.ie(18,18,18,18)
-B.a7L=new A.ap(20,0,20,3)
-B.a7M=new A.ie(20,18,20,16)
+B.a7M=new A.ap(20,0,20,3)
 B.dX=new A.ap(20,20,20,20)
 B.a7N=new A.ie(20,20,20,20)
 B.a7O=new A.ap(22,22,22,22)
