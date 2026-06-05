@@ -351,36 +351,22 @@ class _TireOptionCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  color: const Color(0xFFF8FAFC),
-                  child: AspectRatio(
-                    aspectRatio: 1.14,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Image.asset(
-                        imagePath,
-                        fit: BoxFit.contain,
-                        alignment: Alignment.center,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                color: const Color(0xFFE5E7EB),
-                              ),
-                            ),
-                            alignment: Alignment.center,
-                            child: Icon(
-                              Icons.tire_repair_rounded,
-                              size: 46,
-                              color: accent.withOpacity(0.55),
-                            ),
-                          );
-                        },
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: 260,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 260,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F6FA),
+                        borderRadius: BorderRadius.circular(24),
                       ),
-                    ),
-                  ),
+                      child: const Icon(Icons.tire_repair, size: 56),
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 18),
