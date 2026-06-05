@@ -353,14 +353,18 @@ class _TireOptionCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
                 child: Image.asset(
                   imagePath,
-                  height: 260,
+                  height: 220,
                   width: double.infinity,
-                  fit: BoxFit.contain,
+                  fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
-                    debugPrint('Missing Reifenwechsel image: $imagePath');
-                    return const SizedBox(
-                      height: 260,
+                    debugPrint('ERRORE IMMAGINE: $imagePath');
+                    return Container(
+                      height: 220,
                       width: double.infinity,
+                      color: Colors.red,
+                      child: Center(
+                        child: Text('IMAGE NOT FOUND: $imagePath'),
+                      ),
                     );
                   },
                 ),
