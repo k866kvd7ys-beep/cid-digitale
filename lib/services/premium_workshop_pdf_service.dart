@@ -88,9 +88,11 @@ class PremiumWorkshopPdfService {
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.fromLTRB(28, 28, 28, 28),
           build: (context) => _buildPhotoPage(
+            context: context,
             locale: locale,
             request: request,
             entry: entry,
+            generatedAt: generatedAt,
           ),
         ),
       );
@@ -101,8 +103,10 @@ class PremiumWorkshopPdfService {
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.fromLTRB(28, 28, 28, 28),
         build: (context) => _buildQrPage(
+          context: context,
           locale: locale,
           request: request,
+          generatedAt: generatedAt,
         ),
       ),
     );
@@ -365,9 +369,8 @@ class PremiumWorkshopPdfService {
                 ],
               ),
               pw.SizedBox(height: 8),
-              _buildFirstPageFooter(
+              _buildDocumentFooter(
                 context: context,
-                locale: locale,
                 generatedAt: generatedAt,
               ),
             ],
@@ -499,16 +502,9 @@ class PremiumWorkshopPdfService {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                _buildCrashFormBrand(),
-                pw.SizedBox(height: 8),
-                pw.Text(
-                  'Digital Schaden Report',
-                  style: const pw.TextStyle(
-                    color: _textSecondary,
-                    fontSize: 9.5,
-                  ),
-                ),
-                pw.SizedBox(height: 4),
+                _buildDocumentHeader(
+                    practiceNumber: _referenceNumber(request.id)),
+                pw.SizedBox(height: 14),
                 pw.Text(
                   _requestTitle(request, locale),
                   style: pw.TextStyle(
@@ -517,46 +513,78 @@ class PremiumWorkshopPdfService {
                     fontWeight: pw.FontWeight.bold,
                   ),
                 ),
-              ],
-            ),
-          ),
-          pw.SizedBox(width: 16),
-          pw.Container(
-            width: 170,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.end,
-              children: [
-                _badge(
-                  label: _statusLabel(locale, request.requestStatus),
-                  textColor: _accentOrange,
-                ),
-                pw.SizedBox(height: 8),
-                _buildFirstPageMetaBlock(
-                  label: _copy(
-                    locale,
-                    de: 'Nummer',
-                    it: 'Numero pratica',
-                    en: 'Reference number',
-                    fr: 'Numero de dossier',
-                  ),
-                  value: _referenceNumber(request.id),
-                ),
-                pw.SizedBox(height: 6),
-                _buildFirstPageMetaBlock(
-                  label: _copy(
-                    locale,
-                    de: 'PDF erstellt am',
-                    it: 'PDF generato il',
-                    en: 'PDF generated on',
-                    fr: 'PDF genere le',
-                  ),
-                  value: generatedAt,
+                pw.SizedBox(height: 10),
+                pw.Row(
+                  children: [
+                    _buildDamageTypeBadge(locale: locale, request: request),
+                    pw.SizedBox(width: 8),
+                    _badge(
+                      label: _statusLabel(locale, request.requestStatus),
+                      textColor: _statusColor(request.requestStatus),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  pw.Widget _buildDocumentHeader({required String practiceNumber}) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Expanded(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  _buildCrashFormBrand(),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'Documentazione sinistri digitale',
+                    style: const pw.TextStyle(
+                      color: _textSecondary,
+                      fontSize: 9,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(width: 12),
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              children: [
+                pw.Text(
+                  'Pratica:',
+                  style: const pw.TextStyle(
+                    color: _textSecondary,
+                    fontSize: 8,
+                  ),
+                ),
+                pw.SizedBox(height: 2),
+                pw.Text(
+                  practiceNumber,
+                  style: pw.TextStyle(
+                    color: _textPrimary,
+                    fontSize: 11,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        pw.SizedBox(height: 10),
+        pw.Container(
+          height: 1,
+          color: const PdfColor(0.9686, 0.8745, 0.8157),
+        ),
+      ],
     );
   }
 
@@ -588,6 +616,20 @@ class PremiumWorkshopPdfService {
           ],
         ),
       ],
+    );
+  }
+
+  pw.Widget _buildDamageTypeBadge({
+    required String locale,
+    required AppointmentRequest request,
+  }) {
+    final fillColor = _damageTypeBadgeFillColor(request);
+    final textColor = _damageTypeBadgeTextColor(request);
+    return _badge(
+      label: _requestTitle(request, locale),
+      textColor: textColor,
+      fillColor: fillColor,
+      borderColor: fillColor,
     );
   }
 
@@ -769,41 +811,6 @@ class PremiumWorkshopPdfService {
     ];
   }
 
-  pw.Widget _buildFirstPageMetaBlock({
-    required String label,
-    required String value,
-  }) {
-    return pw.Container(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: pw.BoxDecoration(
-        color: PdfColors.white,
-        borderRadius: pw.BorderRadius.circular(18),
-        border: pw.Border.all(color: _borderColor, width: 1),
-      ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.end,
-        children: [
-          pw.Text(
-            label.toUpperCase(),
-            style: const pw.TextStyle(
-              color: _textSecondary,
-              fontSize: 7.8,
-            ),
-          ),
-          pw.SizedBox(height: 3),
-          pw.Text(
-            value,
-            style: pw.TextStyle(
-              color: _textPrimary,
-              fontSize: 10,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   pw.Widget _buildFirstPageInfoRow({required _PdfRow row}) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -842,9 +849,8 @@ class PremiumWorkshopPdfService {
     );
   }
 
-  pw.Widget _buildFirstPageFooter({
+  pw.Widget _buildDocumentFooter({
     required pw.Context context,
-    required String locale,
     required String generatedAt,
   }) {
     return pw.Container(
@@ -861,13 +867,7 @@ class PremiumWorkshopPdfService {
             children: [
               pw.Expanded(
                 child: pw.Text(
-                  _copy(
-                    locale,
-                    de: 'CrashForm - Professionelle Schadenaufnahme',
-                    it: 'CrashForm - Acquisizione danni professionale',
-                    en: 'CrashForm - Professional damage reporting',
-                    fr: 'CrashForm - Declaration de dommage professionnelle',
-                  ),
+                  'CrashForm - Acquisizione danni professionale',
                   style: const pw.TextStyle(
                     color: _textSecondary,
                     fontSize: 8,
@@ -876,13 +876,7 @@ class PremiumWorkshopPdfService {
               ),
               pw.Expanded(
                 child: pw.Text(
-                  '${_copy(
-                    locale,
-                    de: 'Generiert am',
-                    it: 'Generato il',
-                    en: 'Generated on',
-                    fr: 'Genere le',
-                  )}: $generatedAt',
+                  'Generato il: $generatedAt',
                   textAlign: pw.TextAlign.center,
                   style: const pw.TextStyle(
                     color: _textSecondary,
@@ -892,19 +886,7 @@ class PremiumWorkshopPdfService {
               ),
               pw.Expanded(
                 child: pw.Text(
-                  '${_copy(
-                    locale,
-                    de: 'Seite',
-                    it: 'Pagina',
-                    en: 'Page',
-                    fr: 'Page',
-                  )} ${context.pageNumber} ${_copy(
-                    locale,
-                    de: 'von',
-                    it: 'di',
-                    en: 'of',
-                    fr: 'sur',
-                  )} ${context.pagesCount}',
+                  'Pagina ${context.pageNumber} di ${context.pagesCount}',
                   textAlign: pw.TextAlign.right,
                   style: const pw.TextStyle(
                     color: _textSecondary,
@@ -920,162 +902,54 @@ class PremiumWorkshopPdfService {
   }
 
   pw.Widget _buildPhotoPage({
+    required pw.Context context,
     required String locale,
     required AppointmentRequest request,
     required _PhotoPageEntry entry,
+    required String generatedAt,
   }) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Container(
-          padding: const pw.EdgeInsets.all(18),
-          decoration: pw.BoxDecoration(
-            color: PdfColors.white,
-            borderRadius: pw.BorderRadius.circular(22),
-            border: pw.Border.all(color: _borderColor, width: 1),
-          ),
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(
-                _requestTitle(request, locale),
-                style: pw.TextStyle(
-                  color: _textPrimary,
-                  fontSize: 18,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-              pw.SizedBox(height: 6),
-              pw.Text(
-                _referenceNumber(request.id),
-                style: const pw.TextStyle(
-                  color: _textSecondary,
-                  fontSize: 11,
-                ),
-              ),
-            ],
+        _buildDocumentHeader(practiceNumber: _referenceNumber(request.id)),
+        pw.SizedBox(height: 16),
+        pw.Expanded(
+          child: _buildPhotoTile(
+            locale: locale,
+            title: entry.title,
+            image: entry.image,
+            imageBoxHeight: 500,
           ),
         ),
-        pw.SizedBox(height: 16),
-        _buildPhotoTile(
-          locale: locale,
-          title: entry.title,
-          image: entry.image,
-          imageBoxHeight: 560,
+        pw.SizedBox(height: 10),
+        _buildDocumentFooter(
+          context: context,
+          generatedAt: generatedAt,
         ),
       ],
     );
   }
 
   pw.Widget _buildQrPage({
+    required pw.Context context,
     required String locale,
     required AppointmentRequest request,
+    required String generatedAt,
   }) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        _buildHeader(
+        _buildDocumentHeader(practiceNumber: _referenceNumber(request.id)),
+        pw.SizedBox(height: 18),
+        _buildQrSection(
           locale: locale,
           request: request,
-          createdAt: _formatDateTime(request.createdAt),
+          generatedAt: generatedAt,
         ),
-        pw.SizedBox(height: 18),
-        _buildQrSection(locale: locale, request: request),
-      ],
-    );
-  }
-
-  pw.Widget _buildHeader({
-    required String locale,
-    required AppointmentRequest request,
-    required String createdAt,
-  }) {
-    return pw.Container(
-      padding: const pw.EdgeInsets.all(20),
-      decoration: pw.BoxDecoration(
-        color: PdfColors.white,
-        borderRadius: pw.BorderRadius.circular(24),
-        border: pw.Border.all(color: _borderColor, width: 1),
-      ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            _requestTitle(request, locale),
-            style: pw.TextStyle(
-              color: _textPrimary,
-              fontSize: 22,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
-          pw.SizedBox(height: 6),
-          pw.Text(
-            _copy(
-              locale,
-              de: 'Premium Werkstattanfrage',
-              it: 'Richiesta officina premium',
-              en: 'Premium workshop request',
-              fr: 'Demande atelier premium',
-            ),
-            style: const pw.TextStyle(
-              color: _textSecondary,
-              fontSize: 11,
-            ),
-          ),
-          pw.SizedBox(height: 12),
-          _badge(
-            label: _statusLabel(locale, request.requestStatus),
-            textColor: _statusColor(request.requestStatus),
-          ),
-          pw.SizedBox(height: 12),
-          _metaValue(
-            label: _copy(
-              locale,
-              de: 'Referenznummer',
-              it: 'Numero pratica',
-              en: 'Reference number',
-              fr: 'Numero de dossier',
-            ),
-            value: _referenceNumber(request.id),
-          ),
-          pw.SizedBox(height: 8),
-          _metaValue(
-            label: _copy(
-              locale,
-              de: 'Erstellt am',
-              it: 'Creato il',
-              en: 'Created on',
-              fr: 'Cree le',
-            ),
-            value: createdAt,
-          ),
-        ],
-      ),
-    );
-  }
-
-  pw.Widget _metaValue({
-    required String label,
-    required String value,
-  }) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.end,
-      children: [
-        pw.Text(
-          label.toUpperCase(),
-          style: const pw.TextStyle(
-            color: _textSecondary,
-            fontSize: 9,
-          ),
-        ),
-        pw.SizedBox(height: 2),
-        pw.Text(
-          value,
-          style: pw.TextStyle(
-            color: _textPrimary,
-            fontSize: 11,
-            fontWeight: pw.FontWeight.bold,
-          ),
+        pw.Spacer(),
+        _buildDocumentFooter(
+          context: context,
+          generatedAt: generatedAt,
         ),
       ],
     );
@@ -1225,10 +1099,11 @@ class PremiumWorkshopPdfService {
   pw.Widget _buildQrSection({
     required String locale,
     required AppointmentRequest request,
+    required String generatedAt,
   }) {
     final qrData = 'appointment-request:${request.id}';
     return pw.Container(
-      padding: const pw.EdgeInsets.all(18),
+      padding: const pw.EdgeInsets.all(22),
       decoration: pw.BoxDecoration(
         color: PdfColors.white,
         borderRadius: pw.BorderRadius.circular(22),
@@ -1237,32 +1112,17 @@ class PremiumWorkshopPdfService {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Container(
-            width: 120,
-            height: 120,
-            padding: const pw.EdgeInsets.all(10),
-            decoration: pw.BoxDecoration(
-              color: PdfColors.white,
-              borderRadius: pw.BorderRadius.circular(18),
-              border: pw.Border.all(color: _borderColor, width: 1),
-            ),
-            child: pw.BarcodeWidget(
-              barcode: pw.Barcode.qrCode(),
-              data: qrData,
-            ),
-          ),
-          pw.SizedBox(height: 14),
           pw.Text(
             _copy(
               locale,
-              de: 'QR-Code / Referenz',
-              it: 'QR code / riferimento',
-              en: 'QR code / reference',
-              fr: 'QR code / reference',
+              de: 'Verifikation der Anfrage',
+              it: 'Verifica pratica',
+              en: 'Claim verification',
+              fr: 'Verification du dossier',
             ),
             style: pw.TextStyle(
               color: _textPrimary,
-              fontSize: 14,
+              fontSize: 18,
               fontWeight: pw.FontWeight.bold,
             ),
           ),
@@ -1270,40 +1130,110 @@ class PremiumWorkshopPdfService {
           pw.Text(
             _copy(
               locale,
-              de: 'Der QR-Code enthaelt die Referenz dieser Anfrage.',
-              it: 'Il QR code contiene il riferimento di questa richiesta.',
-              en: 'The QR code contains this request reference.',
-              fr: 'Le QR code contient la reference de cette demande.',
+              de: 'Scannen Sie den QR-Code, um auf die Details der Anfrage zuzugreifen.',
+              it: 'Scansiona il QR per accedere ai dettagli della pratica.',
+              en: 'Scan the QR code to access the claim details.',
+              fr: 'Scannez le QR code pour acceder aux details du dossier.',
             ),
             style: const pw.TextStyle(
               color: _textSecondary,
               fontSize: 11,
             ),
           ),
-          pw.SizedBox(height: 10),
-          pw.Text(
-            request.id,
-            style: pw.TextStyle(
-              color: _textPrimary,
-              fontSize: 10,
-              fontWeight: pw.FontWeight.bold,
+          pw.SizedBox(height: 18),
+          pw.Center(
+            child: pw.Container(
+              width: 180,
+              height: 180,
+              padding: const pw.EdgeInsets.all(14),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.white,
+                borderRadius: pw.BorderRadius.circular(20),
+                border: pw.Border.all(color: _borderColor, width: 1),
+              ),
+              child: pw.BarcodeWidget(
+                barcode: pw.Barcode.qrCode(),
+                data: qrData,
+              ),
             ),
+          ),
+          pw.SizedBox(height: 18),
+          _buildQrMetaRow(
+            label: _copy(
+              locale,
+              de: 'Nummer',
+              it: 'Numero pratica',
+              en: 'Claim number',
+              fr: 'Numero du dossier',
+            ),
+            value: _referenceNumber(request.id),
+          ),
+          pw.SizedBox(height: 10),
+          _buildQrMetaRow(
+            label: _copy(
+              locale,
+              de: 'Generiert am',
+              it: 'Data generazione',
+              en: 'Generated on',
+              fr: 'Date de generation',
+            ),
+            value: generatedAt,
+          ),
+          pw.SizedBox(height: 10),
+          _buildQrMetaRow(
+            label: _copy(
+              locale,
+              de: 'Eindeutige Referenz',
+              it: 'Riferimento univoco',
+              en: 'Unique reference',
+              fr: 'Reference unique',
+            ),
+            value: request.id,
           ),
         ],
       ),
     );
   }
 
+  pw.Widget _buildQrMetaRow({
+    required String label,
+    required String value,
+  }) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          label.toUpperCase(),
+          style: const pw.TextStyle(
+            color: _textSecondary,
+            fontSize: 8.5,
+          ),
+        ),
+        pw.SizedBox(height: 3),
+        pw.Text(
+          value,
+          style: pw.TextStyle(
+            color: _textPrimary,
+            fontSize: 11.5,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
   pw.Widget _badge({
     required String label,
     required PdfColor textColor,
+    PdfColor? fillColor,
+    PdfColor? borderColor,
   }) {
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: pw.BoxDecoration(
-        color: PdfColors.white,
+        color: fillColor ?? PdfColors.white,
         borderRadius: pw.BorderRadius.circular(999),
-        border: pw.Border.all(color: textColor, width: 1),
+        border: pw.Border.all(color: borderColor ?? textColor, width: 1),
       ),
       child: pw.Text(
         label,
@@ -1314,6 +1244,32 @@ class PremiumWorkshopPdfService {
         ),
       ),
     );
+  }
+
+  PdfColor _damageTypeBadgeFillColor(AppointmentRequest request) {
+    if (_isGlassDamageRequest(request) || _isHailDamageRequest(request)) {
+      return const PdfColor(0.9137, 0.9569, 1);
+    }
+    if (_isComprehensiveDamageRequest(request)) {
+      return const PdfColor(1, 0.9216, 0.9216);
+    }
+    if (_isParkingDamageRequest(request) || _isMartenDamageRequest(request)) {
+      return const PdfColor(1, 0.9451, 0.8980);
+    }
+    return const PdfColor(0.9569, 0.9608, 0.9725);
+  }
+
+  PdfColor _damageTypeBadgeTextColor(AppointmentRequest request) {
+    if (_isGlassDamageRequest(request) || _isHailDamageRequest(request)) {
+      return const PdfColor(0.1216, 0.3216, 0.7569);
+    }
+    if (_isComprehensiveDamageRequest(request)) {
+      return const PdfColor(0.7569, 0.1765, 0.1765);
+    }
+    if (_isParkingDamageRequest(request) || _isMartenDamageRequest(request)) {
+      return _accentOrange;
+    }
+    return _textPrimary;
   }
 
   Future<Map<String, pw.MemoryImage>> _loadPhotoRegistry(
@@ -1862,6 +1818,11 @@ class PremiumWorkshopPdfService {
   bool _isHailDamageRequest(AppointmentRequest request) {
     return request.serviceType == 'damage_hail' ||
         request.damageType == 'damage_hail';
+  }
+
+  bool _isGlassDamageRequest(AppointmentRequest request) {
+    return request.serviceType == 'damage_glass' ||
+        request.damageType == 'damage_glass';
   }
 
   bool _isMartenDamageRequest(AppointmentRequest request) {
