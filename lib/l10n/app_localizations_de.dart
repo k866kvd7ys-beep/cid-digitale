@@ -73,16 +73,16 @@ class AppLocalizationsDe extends AppLocalizations {
   String get service_anmelden => 'Service anmelden';
 
   @override
-  String get raeder_wechsel => 'Räder wechsel';
+  String get raeder_wechsel => 'Reifenwechsel';
 
   @override
-  String get raeder_wechsel_title => 'Räder wechsel';
+  String get raeder_wechsel_title => 'Reifenwechsel';
 
   @override
-  String get raeder_wechsel_sommer => 'Räder wechsel Sommer';
+  String get raeder_wechsel_sommer => 'Sommerreifenwechsel';
 
   @override
-  String get raeder_wechsel_winter => 'Räder wechsel Winter';
+  String get raeder_wechsel_winter => 'Winterreifenwechsel';
 
   @override
   String get pick_slot => 'Termin auswählen';
@@ -177,7 +177,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get my_requests_filter_service => 'Service';
 
   @override
-  String get my_requests_filter_tires => 'Räder wechsel';
+  String get my_requests_filter_tires => 'Reifenwechsel';
 
   @override
   String get my_requests_filter_damage => 'Schaden';
@@ -186,7 +186,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get service_type_service => 'Service anmelden';
 
   @override
-  String get service_type_tires => 'Räder wechsel';
+  String get service_type_tires => 'Reifenwechsel';
 
   @override
   String get service_type_damage => 'Schaden';

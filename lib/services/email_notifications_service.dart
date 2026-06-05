@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/appointment_request.dart';
+import '../utils/tire_service_type_helper.dart';
 
 /// Centralized email notifications helper.
 /// Best-effort: failures are logged and never rethrown to callers.
@@ -40,7 +41,7 @@ class EmailNotificationsService {
       'recipient': request.customerEmail,
       'name': request.customerName,
       'plate': request.licensePlate,
-      'service': _mapServiceLabel(request.serviceType),
+      'service': _mapServiceLabel(request),
       'date': dateLabel,
       'time': timeLabel,
     };
@@ -53,8 +54,16 @@ class EmailNotificationsService {
     return DateFormat('HH:mm').format(parsed);
   }
 
-  String _mapServiceLabel(String serviceType) {
-    switch (serviceType) {
+  String _mapServiceLabel(AppointmentRequest request) {
+    if (isTireAppointmentService(request.serviceType)) {
+      return localizedTireServiceType(
+        tireLocaleFromString(request.locale),
+        tireServiceType: request.tireServiceType,
+        serviceType: request.serviceType,
+      );
+    }
+
+    switch (request.serviceType) {
       case 'raeder_sommer':
         return 'Räderwechsel Sommer';
       case 'raeder_winter':
@@ -64,7 +73,7 @@ class EmailNotificationsService {
       case 'damage_glass':
         return 'Glasschaden';
       default:
-        return serviceType;
+        return request.serviceType;
     }
   }
 }

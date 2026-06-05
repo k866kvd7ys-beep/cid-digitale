@@ -18,6 +18,7 @@ class AppointmentRequest {
     this.statusUpdatedAt,
     this.notes,
     this.damageType,
+    this.tireServiceType,
     this.locale,
     this.glassDamageTown,
     this.glassDamageDate,
@@ -91,6 +92,7 @@ class AppointmentRequest {
   final String? statusUpdatedAt;
   final String? notes;
   final String? damageType;
+  final String? tireServiceType;
   final String? locale;
   final String? glassDamageTown;
   final String? glassDamageDate;
@@ -367,6 +369,12 @@ class AppointmentRequest {
             parkingDamageExtraImages,
           ]);
     final extractedNotes = structuredNotes['text']?.toString();
+    final resolvedTireServiceType = (map['tireServiceType'] ??
+            map['tire_service_type'] ??
+            structuredNotes['tireServiceType'] ??
+            structuredNotes['tire_service_type'])
+        ?.toString()
+        .trim();
     final resolvedRequestStatus = (map['request_status'] ??
                 map['requestStatus'] ??
                 structuredNotes['requestStatus'] ??
@@ -407,6 +415,9 @@ class AppointmentRequest {
       notes: extractedNotes ??
           (structuredNotes.isEmpty ? map['notes'] as String? : null),
       damageType: (map['damage_type'] ?? map['damageType'])?.toString(),
+      tireServiceType: (resolvedTireServiceType?.isEmpty ?? true)
+          ? null
+          : resolvedTireServiceType,
       locale: (map['locale'] ?? map['languageCode'])?.toString(),
       glassDamageTown: (map['glassDamageTown'] ??
               map['glass_damage_town'] ??
@@ -552,6 +563,8 @@ class AppointmentRequest {
       'statusUpdatedAt': statusUpdatedAt,
       'notes': notes,
       'damage_type': damageType,
+      'tireServiceType': tireServiceType,
+      'tire_service_type': tireServiceType,
       'locale': locale,
       'glassDamageTown': glassDamageTown,
       'glassDamageDate': glassDamageDate,

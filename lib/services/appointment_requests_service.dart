@@ -285,6 +285,7 @@ class AppointmentRequestsService {
 
   Future<AppointmentRequest> createRequest({
     required String serviceType,
+    String? tireServiceType,
     DateTime? appointmentDate,
     String? appointmentTime,
     int durationMinutes = 60,
@@ -371,6 +372,7 @@ class AppointmentRequestsService {
         notes: notes,
         locale: locale,
         damageType: damageType,
+        tireServiceType: tireServiceType,
         requestStatus: normalizedRequestStatus,
         statusUpdatedAt: normalizedStatusUpdatedAt,
         glassDamageTown: glassDamageTown,
@@ -441,6 +443,7 @@ class AppointmentRequestsService {
         notes: notes,
         locale: locale,
         damageType: damageType,
+        tireServiceType: tireServiceType,
         requestStatus: normalizedRequestStatus,
         statusUpdatedAt: normalizedStatusUpdatedAt,
         glassDamageTown: glassDamageTown,
@@ -509,6 +512,7 @@ class AppointmentRequestsService {
           notes: notes,
           locale: locale,
           damageType: damageType,
+          tireServiceType: tireServiceType,
           requestStatus: normalizedRequestStatus,
           statusUpdatedAt: normalizedStatusUpdatedAt,
           glassDamageTown: glassDamageTown,
@@ -782,6 +786,7 @@ class AppointmentRequestsService {
       'status': normalizedStatus,
       'notes': _buildStructuredNotes(
         notes: existing.notes,
+        tireServiceType: existing.tireServiceType,
         requestStatus: normalizedStatus,
         statusUpdatedAt: updatedAt,
         glassDamageTown: existing.glassDamageTown,
@@ -898,6 +903,7 @@ class AppointmentRequestsService {
           notes: localRequest.notes,
           locale: localRequest.locale,
           damageType: localRequest.damageType,
+          tireServiceType: localRequest.tireServiceType,
           requestStatus: localRequest.requestStatus,
           statusUpdatedAt: localRequest.statusUpdatedAt ??
               DateTime.now().toUtc().toIso8601String(),
@@ -1031,6 +1037,7 @@ class AppointmentRequestsService {
     String? notes,
     String? locale,
     String? damageType,
+    String? tireServiceType,
     required String requestStatus,
     required String statusUpdatedAt,
     String? glassDamageTown,
@@ -1097,6 +1104,7 @@ class AppointmentRequestsService {
       'status': requestStatus,
       'notes': _buildStructuredNotes(
         notes: notes,
+        tireServiceType: tireServiceType,
         requestStatus: requestStatus,
         statusUpdatedAt: statusUpdatedAt,
         glassDamageTown: glassDamageTown,
@@ -1201,6 +1209,7 @@ class AppointmentRequestsService {
         .update({
           'notes': _buildStructuredNotes(
             notes: existing.notes,
+            tireServiceType: existing.tireServiceType,
             requestStatus: existing.requestStatus,
             statusUpdatedAt: existing.statusUpdatedAt,
             glassDamageTown: existing.glassDamageTown,
@@ -1267,6 +1276,7 @@ class AppointmentRequestsService {
 
   String? _buildStructuredNotes({
     String? notes,
+    String? tireServiceType,
     String? requestStatus,
     String? statusUpdatedAt,
     String? glassDamageTown,
@@ -1322,6 +1332,7 @@ class AppointmentRequestsService {
     List<String> parkingDamageExtraImages = const [],
   }) {
     final trimmedNotes = notes?.trim();
+    final trimmedTireServiceType = tireServiceType?.trim();
     final trimmedRequestStatus = requestStatus?.trim();
     final trimmedStatusUpdatedAt = statusUpdatedAt?.trim();
     final trimmedGlassTown = glassDamageTown?.trim();
@@ -1488,6 +1499,7 @@ class AppointmentRequestsService {
 
     final hasStructuredData = (trimmedGlassTown?.isNotEmpty ?? false) ||
         (trimmedGlassDate?.isNotEmpty ?? false) ||
+        (trimmedTireServiceType?.isNotEmpty ?? false) ||
         (trimmedRequestStatus?.isNotEmpty ?? false) ||
         (trimmedStatusUpdatedAt?.isNotEmpty ?? false) ||
         (trimmedHailTown?.isNotEmpty ?? false) ||
@@ -1549,6 +1561,10 @@ class AppointmentRequestsService {
 
     return jsonEncode({
       if (trimmedNotes?.isNotEmpty ?? false) 'text': trimmedNotes,
+      if (trimmedTireServiceType?.isNotEmpty ?? false)
+        'tire_service_type': trimmedTireServiceType,
+      if (trimmedTireServiceType?.isNotEmpty ?? false)
+        'tireServiceType': trimmedTireServiceType,
       if (trimmedRequestStatus?.isNotEmpty ?? false)
         'requestStatus': trimmedRequestStatus,
       if (trimmedStatusUpdatedAt?.isNotEmpty ?? false)
@@ -1984,6 +2000,7 @@ class AppointmentRequestsService {
 
   Future<AppointmentRequest> _queueOfflineRequest({
     required String serviceType,
+    String? tireServiceType,
     required DateTime appointmentDate,
     required String appointmentTime,
     required int durationMinutes,
@@ -2121,6 +2138,7 @@ class AppointmentRequestsService {
       statusUpdatedAt: statusUpdatedAt,
       notes: notes,
       damageType: damageType,
+      tireServiceType: tireServiceType,
       locale: locale,
       glassDamageTown: glassDamageTown,
       glassDamageDate: glassDamageDate,

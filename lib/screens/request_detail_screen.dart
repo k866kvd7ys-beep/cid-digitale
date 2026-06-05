@@ -7,6 +7,7 @@ import 'package:cid_digitale/models/appointment_request.dart';
 import 'package:cid_digitale/services/appointment_requests_service.dart';
 import 'package:cid_digitale/services/local_image_cache.dart';
 import 'package:cid_digitale/services/premium_workshop_pdf_service.dart';
+import 'package:cid_digitale/utils/tire_service_type_helper.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -56,6 +57,8 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       _isOtherDamageRequest ||
       _isParkingDamageRequest;
   bool get _supportsPremiumWorkshopPdf => _hasDamagePhotoSections;
+  bool get _isTireRequest => isTireAppointmentService(request.serviceType);
+  String get _tireLocaleCode => tireLocaleCode(context);
 
   String _copy({
     required String de,
@@ -81,6 +84,15 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         it: 'Foto',
         en: 'Photos',
         fr: 'Photos',
+      );
+
+  String get _tireServiceTypeFieldLabel =>
+      tireServiceSectionLabel(_tireLocaleCode);
+
+  String get _tireServiceTypeLabel => localizedTireServiceType(
+        _tireLocaleCode,
+        tireServiceType: request.tireServiceType,
+        serviceType: request.serviceType,
       );
 
   String get _vehicleDocumentPhotosTitle => _copy(
@@ -1952,6 +1964,11 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                           _statusCard(context),
                           const SizedBox(height: 16),
                           _row(l10n.service_type_service, serviceLabel()),
+                          if (_isTireRequest)
+                            _row(
+                              _tireServiceTypeFieldLabel,
+                              _tireServiceTypeLabel,
+                            ),
                           _row('Datum', dateLabel()),
                           _row('Uhrzeit', timeLabel()),
                           _row('Werkstatt', value('workshop_name')),

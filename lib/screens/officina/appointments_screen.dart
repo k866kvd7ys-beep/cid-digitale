@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cid_digitale/models/appointment_request.dart';
 import 'package:cid_digitale/services/appointment_requests_service.dart';
+import 'package:cid_digitale/utils/tire_service_type_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -69,6 +70,15 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           'cancelled' => 'Rendez-vous annule',
           _ => 'Demande envoyee',
         },
+      );
+
+  String get _localeCode => tireLocaleCode(context);
+
+  String _tireServiceLabel(AppointmentRequest request) =>
+      localizedTireServiceType(
+        _localeCode,
+        tireServiceType: request.tireServiceType,
+        serviceType: request.serviceType,
       );
 
   String _updatedSnackBar() => _copy(
@@ -259,9 +269,11 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      request.damageType?.isNotEmpty == true
-                          ? request.damageType!
-                          : request.serviceType,
+                      isTireAppointmentService(request.serviceType)
+                          ? _tireServiceLabel(request)
+                          : request.damageType?.isNotEmpty == true
+                              ? request.damageType!
+                              : request.serviceType,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context)
                                 .colorScheme
@@ -269,6 +281,19 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                 .withOpacity(0.70),
                           ),
                     ),
+                    if (isTireAppointmentService(request.serviceType)) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        '${tireServiceSectionLabel(_localeCode)}: ${_tireServiceLabel(request)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.82),
+                            ),
+                      ),
+                    ],
                     const SizedBox(height: 14),
                     DropdownButtonFormField<String>(
                       value:

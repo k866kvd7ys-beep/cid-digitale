@@ -175,7 +175,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get my_requests_filter_service => 'Service';
 
   @override
-  String get my_requests_filter_tires => 'Cambio ruote';
+  String get my_requests_filter_tires => 'Cambio gomme';
 
   @override
   String get my_requests_filter_damage => 'Danno';
@@ -184,7 +184,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get service_type_service => 'Service anmelden';
 
   @override
-  String get service_type_tires => 'Räder wechsel';
+  String get service_type_tires => 'Cambio gomme';
 
   @override
   String get service_type_damage => 'Schaden';

@@ -231,25 +231,25 @@ abstract class AppLocalizations {
   /// No description provided for @raeder_wechsel.
   ///
   /// In de, this message translates to:
-  /// **'Räder wechsel'**
+  /// **'Reifenwechsel'**
   String get raeder_wechsel;
 
   /// No description provided for @raeder_wechsel_title.
   ///
   /// In de, this message translates to:
-  /// **'Räder wechsel'**
+  /// **'Reifenwechsel'**
   String get raeder_wechsel_title;
 
   /// No description provided for @raeder_wechsel_sommer.
   ///
   /// In de, this message translates to:
-  /// **'Räder wechsel Sommer'**
+  /// **'Sommerreifenwechsel'**
   String get raeder_wechsel_sommer;
 
   /// No description provided for @raeder_wechsel_winter.
   ///
   /// In de, this message translates to:
-  /// **'Räder wechsel Winter'**
+  /// **'Winterreifenwechsel'**
   String get raeder_wechsel_winter;
 
   /// No description provided for @pick_slot.
@@ -435,7 +435,7 @@ abstract class AppLocalizations {
   /// No description provided for @my_requests_filter_tires.
   ///
   /// In de, this message translates to:
-  /// **'Räder wechsel'**
+  /// **'Reifenwechsel'**
   String get my_requests_filter_tires;
 
   /// No description provided for @my_requests_filter_damage.
@@ -453,7 +453,7 @@ abstract class AppLocalizations {
   /// No description provided for @service_type_tires.
   ///
   /// In de, this message translates to:
-  /// **'Räder wechsel'**
+  /// **'Reifenwechsel'**
   String get service_type_tires;
 
   /// No description provided for @service_type_damage.

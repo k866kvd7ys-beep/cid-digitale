@@ -6,6 +6,7 @@ import 'package:cid_digitale/models/appointment_request.dart';
 import 'package:cid_digitale/screens/my_requests_page.dart';
 import 'package:cid_digitale/services/appointment_requests_service.dart';
 import 'package:cid_digitale/services/local_image_cache.dart';
+import 'package:cid_digitale/utils/tire_service_type_helper.dart';
 import 'package:cid_digitale/widgets/damage_type_picker_sheet.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -62,12 +63,14 @@ class WorkshopSlotPickerScreen extends StatefulWidget {
   final String title;
   final String serviceType;
   final String? damageType;
+  final String? tireServiceType;
 
   const WorkshopSlotPickerScreen({
     super.key,
     required this.title,
     required this.serviceType,
     this.damageType,
+    this.tireServiceType,
   });
 
   @override
@@ -144,6 +147,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
       widget.serviceType == 'damage_comprehensive';
   bool get _isOtherDamage => widget.serviceType == 'damage_other';
   bool get _isParkingDamage => widget.serviceType == 'damage_parking';
+  bool get _isTireService => isTireAppointmentService(widget.serviceType);
   bool get _usesDamageDetailsForm =>
       _isGlassDamage ||
       _isHailDamage ||
@@ -241,6 +245,13 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
       );
 
   String _formHeaderTitle(BuildContext context) {
+    if (_isTireService) {
+      return localizedTireServiceType(
+        tireLocaleCode(context),
+        tireServiceType: widget.tireServiceType,
+        serviceType: widget.serviceType,
+      );
+    }
     if (_isComprehensiveDamage) {
       return AppLocalizations.of(context)!.damage_comprehensive;
     }
@@ -3478,22 +3489,11 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
         fr: 'Service / entretien',
       );
     }
-    if (widget.serviceType == 'raeder_sommer') {
-      return _copy(
-        context: context,
-        de: 'Raederwechsel Sommer',
-        it: 'Cambio gomme estive',
-        en: 'Summer tire change',
-        fr: 'Changement pneus ete',
-      );
-    }
-    if (widget.serviceType == 'raeder_winter') {
-      return _copy(
-        context: context,
-        de: 'Raederwechsel Winter',
-        it: 'Cambio gomme invernali',
-        en: 'Winter tire change',
-        fr: 'Changement pneus hiver',
+    if (_isTireService) {
+      return localizedTireServiceType(
+        tireLocaleCode(context),
+        tireServiceType: widget.tireServiceType,
+        serviceType: widget.serviceType,
       );
     }
     return widget.title;
@@ -4067,6 +4067,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
       final locale = Localizations.localeOf(context).languageCode;
       final request = await _appointmentService.createRequest(
         serviceType: widget.serviceType,
+        tireServiceType: widget.tireServiceType,
         damageType: widget.serviceType.startsWith('damage_')
             ? widget.serviceType
             : widget.damageType,

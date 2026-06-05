@@ -4,6 +4,7 @@ import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:cid_digitale/models/appointment_request.dart';
 import 'package:cid_digitale/screens/request_detail_screen.dart';
 import 'package:cid_digitale/services/appointment_requests_service.dart';
+import 'package:cid_digitale/utils/tire_service_type_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -259,7 +260,13 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
     }
     if (serviceType == 'service_anmelden') return l10n.service_type_service;
     if (serviceType == 'raeder_sommer' || serviceType == 'raeder_winter') {
-      return l10n.service_type_tires;
+      final locale = tireLocaleCode(context);
+      final detail = localizedTireServiceType(
+        locale,
+        tireServiceType: r.tireServiceType,
+        serviceType: serviceType,
+      );
+      return '${l10n.service_type_tires}: $detail';
     }
     return serviceType.isEmpty ? l10n.service_type_service : serviceType;
   }

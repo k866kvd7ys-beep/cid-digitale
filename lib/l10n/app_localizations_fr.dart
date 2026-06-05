@@ -81,10 +81,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get raeder_wechsel_title => 'Changement de pneus';
 
   @override
-  String get raeder_wechsel_sommer => 'Changement pneus été';
+  String get raeder_wechsel_sommer => 'Changement de pneus été';
 
   @override
-  String get raeder_wechsel_winter => 'Changement pneus hiver';
+  String get raeder_wechsel_winter => 'Changement de pneus hiver';
 
   @override
   String get pick_slot => 'Choisir un créneau';
@@ -179,7 +179,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get my_requests_filter_service => 'Service';
 
   @override
-  String get my_requests_filter_tires => 'Changement roues';
+  String get my_requests_filter_tires => 'Changement de pneus';
 
   @override
   String get my_requests_filter_damage => 'Dommage';
@@ -188,7 +188,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get service_type_service => 'Service anmelden';
 
   @override
-  String get service_type_tires => 'Räder wechsel';
+  String get service_type_tires => 'Changement de pneus';
 
   @override
   String get service_type_damage => 'Schaden';
