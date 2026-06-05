@@ -331,18 +331,17 @@ class PremiumWorkshopPdfService {
                     value: _appointmentWorkshopValue(locale, workshopLabel),
                     maxLines: 1,
                   ),
-                ],
-              ),
-              pw.SizedBox(height: 10),
-              _buildFirstPageCard(
-                title: _copy(
-                  locale,
-                  de: 'Fahrzeugstatus',
-                  it: 'Stato veicolo',
-                  en: 'Vehicle status',
-                  fr: 'Etat du vehicule',
-                ),
-                rows: [
+                  _PdfRow(
+                    label: _copy(
+                      locale,
+                      de: 'Fahrzeugstatus',
+                      it: 'Stato veicolo',
+                      en: 'Vehicle status',
+                      fr: 'Etat du vehicule',
+                    ),
+                    isSectionHeader: true,
+                    spacingBefore: 10,
+                  ),
                   _PdfRow(
                     label: _copy(
                       locale,
@@ -715,7 +714,7 @@ class PremiumWorkshopPdfService {
     if (columns <= 1) {
       return [
         for (var i = 0; i < rows.length; i++) ...[
-          _buildFirstPageInfoRow(row: rows[i]),
+          ..._buildFirstPageRowWidgets(row: rows[i]),
           if (i != rows.length - 1) pw.SizedBox(height: 6),
         ],
       ];
@@ -736,7 +735,10 @@ class PremiumWorkshopPdfService {
             for (var i = 0; i < columns; i++) ...[
               pw.Expanded(
                 child: i < buffer.length
-                    ? _buildFirstPageInfoRow(row: buffer[i])
+                    ? pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: _buildFirstPageRowWidgets(row: buffer[i]),
+                      )
                     : pw.SizedBox(),
               ),
               if (i != columns - 1) pw.SizedBox(width: 12),
@@ -756,6 +758,15 @@ class PremiumWorkshopPdfService {
 
     flushBuffer();
     return widgets;
+  }
+
+  List<pw.Widget> _buildFirstPageRowWidgets({required _PdfRow row}) {
+    return [
+      if (row.spacingBefore > 0) pw.SizedBox(height: row.spacingBefore),
+      row.isSectionHeader
+          ? _buildFirstPageSectionHeader(title: row.label)
+          : _buildFirstPageInfoRow(row: row),
+    ];
   }
 
   pw.Widget _buildFirstPageMetaBlock({
@@ -817,6 +828,17 @@ class PremiumWorkshopPdfService {
           ),
         ),
       ],
+    );
+  }
+
+  pw.Widget _buildFirstPageSectionHeader({required String title}) {
+    return pw.Text(
+      title.toUpperCase(),
+      style: pw.TextStyle(
+        color: _textPrimary,
+        fontSize: 11,
+        fontWeight: pw.FontWeight.bold,
+      ),
     );
   }
 
@@ -2258,13 +2280,17 @@ class PremiumWorkshopPdfService {
 class _PdfRow {
   const _PdfRow({
     required this.label,
-    required this.value,
+    this.value = '',
     this.maxLines,
+    this.isSectionHeader = false,
+    this.spacingBefore = 0,
   });
 
   final String label;
   final String value;
   final int? maxLines;
+  final bool isSectionHeader;
+  final double spacingBefore;
 }
 
 class _PhotoGroup {
