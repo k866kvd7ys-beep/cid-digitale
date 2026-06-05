@@ -469,12 +469,19 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       );
 
   String _localizedRequestLocale() {
+    final appLocale =
+        Localizations.localeOf(context).languageCode.toLowerCase();
+    if (appLocale.startsWith('it')) return 'it';
+    if (appLocale.startsWith('en')) return 'en';
+    if (appLocale.startsWith('fr')) return 'fr';
+    if (appLocale.startsWith('de')) return 'de';
+
     final raw = request.locale?.trim().toLowerCase() ?? '';
     if (raw.startsWith('it')) return 'it';
     if (raw.startsWith('en')) return 'en';
     if (raw.startsWith('fr')) return 'fr';
     if (raw.startsWith('de')) return 'de';
-    return Localizations.localeOf(context).languageCode;
+    return 'de';
   }
 
   String _glassDamageDateLabel() {

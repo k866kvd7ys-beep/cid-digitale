@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:cid_digitale/models/appointment_request.dart';
 import 'package:cid_digitale/services/local_image_cache.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -42,7 +41,6 @@ class PremiumWorkshopPdfService {
     );
     final photoGroups = _photoGroupsFor(request, locale);
     final imageRegistry = await _loadPhotoRegistry(photoGroups);
-    final brandLogo = await _loadBrandLogo();
     final generatedAt = _formatDateTime(DateTime.now());
     final workshopLabel = workshopName?.trim().isNotEmpty == true
         ? workshopName!.trim()
@@ -68,7 +66,6 @@ class PremiumWorkshopPdfService {
           context: context,
           locale: locale,
           request: request,
-          brandLogo: brandLogo,
           generatedAt: generatedAt,
           workshopLabel: workshopLabel,
           photoGroups: photoGroups,
@@ -86,7 +83,6 @@ class PremiumWorkshopPdfService {
             locale: locale,
             request: request,
             entry: entry,
-            brandLogo: brandLogo,
             generatedAt: generatedAt,
           ),
         ),
@@ -101,7 +97,6 @@ class PremiumWorkshopPdfService {
           context: context,
           locale: locale,
           request: request,
-          brandLogo: brandLogo,
           generatedAt: generatedAt,
         ),
       ),
@@ -118,7 +113,6 @@ class PremiumWorkshopPdfService {
     required pw.Context context,
     required String locale,
     required AppointmentRequest request,
-    required pw.MemoryImage? brandLogo,
     required String generatedAt,
     required String workshopLabel,
     required List<_PhotoGroup> photoGroups,
@@ -128,7 +122,6 @@ class PremiumWorkshopPdfService {
       children: [
         _buildDocumentHeader(
           locale: locale,
-          brandLogo: brandLogo,
           practiceNumber: _referenceNumber(request.id),
           generatedAt: generatedAt,
         ),
@@ -412,7 +405,6 @@ class PremiumWorkshopPdfService {
 
   pw.Widget _buildDocumentHeader({
     required String locale,
-    required pw.MemoryImage? brandLogo,
     required String practiceNumber,
     required String generatedAt,
   }) {
@@ -426,7 +418,7 @@ class PremiumWorkshopPdfService {
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  _buildCrashFormBrand(brandLogo: brandLogo),
+                  _buildCrashFormBrand(),
                   pw.SizedBox(height: 4),
                   pw.Text(
                     pdfT('digitalReport', locale),
@@ -479,36 +471,25 @@ class PremiumWorkshopPdfService {
     );
   }
 
-  pw.Widget _buildCrashFormBrand({required pw.MemoryImage? brandLogo}) {
-    if (brandLogo != null) {
-      return pw.Image(brandLogo, width: 154, fit: pw.BoxFit.contain);
-    }
-
+  pw.Widget _buildCrashFormBrand() {
     return pw.Row(
       mainAxisSize: pw.MainAxisSize.min,
       children: [
-        _buildCrashFormMark(),
-        pw.SizedBox(width: 10),
-        pw.Row(
-          mainAxisSize: pw.MainAxisSize.min,
-          children: [
-            pw.Text(
-              'CRASH',
-              style: pw.TextStyle(
-                color: _textPrimary,
-                fontSize: 20,
-                fontWeight: pw.FontWeight.bold,
-              ),
-            ),
-            pw.Text(
-              'FORM',
-              style: pw.TextStyle(
-                color: _accentOrange,
-                fontSize: 20,
-                fontWeight: pw.FontWeight.bold,
-              ),
-            ),
-          ],
+        pw.Text(
+          'CRASH',
+          style: pw.TextStyle(
+            color: _textPrimary,
+            fontSize: 20,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+        pw.Text(
+          'FORM',
+          style: pw.TextStyle(
+            color: _accentOrange,
+            fontSize: 20,
+            fontWeight: pw.FontWeight.bold,
+          ),
         ),
       ],
     );
@@ -525,73 +506,6 @@ class PremiumWorkshopPdfService {
       textColor: textColor,
       fillColor: fillColor,
       borderColor: fillColor,
-    );
-  }
-
-  pw.Widget _buildCrashFormMark() {
-    return pw.Container(
-      width: 30,
-      height: 30,
-      decoration: pw.BoxDecoration(
-        color: const PdfColor(1, 0.9765, 0.9608),
-        borderRadius: pw.BorderRadius.circular(12),
-        border: pw.Border.all(color: _accentOrange, width: 1.4),
-      ),
-      child: pw.Stack(
-        alignment: pw.Alignment.center,
-        children: [
-          pw.Positioned(
-            top: 7.5,
-            child: pw.Transform.rotate(
-              angle: -0.22,
-              child: pw.Container(
-                width: 8.5,
-                height: 1.4,
-                color: _accentOrange,
-              ),
-            ),
-          ),
-          pw.Positioned(
-            top: 11,
-            child: pw.Container(width: 12, height: 1.6, color: _accentOrange),
-          ),
-          pw.Positioned(
-            top: 15.5,
-            child: pw.Container(
-              width: 15.5,
-              height: 4.5,
-              decoration: pw.BoxDecoration(
-                color: _accentOrange,
-                borderRadius: pw.BorderRadius.circular(4),
-              ),
-            ),
-          ),
-          pw.Positioned(
-            left: 6.5,
-            bottom: 6,
-            child: pw.Container(
-              width: 3.3,
-              height: 3.3,
-              decoration: const pw.BoxDecoration(
-                color: PdfColors.white,
-                shape: pw.BoxShape.circle,
-              ),
-            ),
-          ),
-          pw.Positioned(
-            right: 6.5,
-            bottom: 6,
-            child: pw.Container(
-              width: 3.3,
-              height: 3.3,
-              decoration: const pw.BoxDecoration(
-                color: PdfColors.white,
-                shape: pw.BoxShape.circle,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -760,7 +674,6 @@ class PremiumWorkshopPdfService {
     required String locale,
     required AppointmentRequest request,
     required _PhotoPageEntry entry,
-    required pw.MemoryImage? brandLogo,
     required String generatedAt,
   }) {
     return pw.Column(
@@ -768,7 +681,6 @@ class PremiumWorkshopPdfService {
       children: [
         _buildDocumentHeader(
           locale: locale,
-          brandLogo: brandLogo,
           practiceNumber: _referenceNumber(request.id),
           generatedAt: generatedAt,
         ),
@@ -795,7 +707,6 @@ class PremiumWorkshopPdfService {
     required pw.Context context,
     required String locale,
     required AppointmentRequest request,
-    required pw.MemoryImage? brandLogo,
     required String generatedAt,
   }) {
     return pw.Column(
@@ -803,7 +714,6 @@ class PremiumWorkshopPdfService {
       children: [
         _buildDocumentHeader(
           locale: locale,
-          brandLogo: brandLogo,
           practiceNumber: _referenceNumber(request.id),
           generatedAt: generatedAt,
         ),
@@ -1075,15 +985,6 @@ class PremiumWorkshopPdfService {
       }),
     );
     return registry;
-  }
-
-  Future<pw.MemoryImage?> _loadBrandLogo() async {
-    try {
-      final bytes = await rootBundle.load('assets/images/crashform_logo.png');
-      return pw.MemoryImage(bytes.buffer.asUint8List());
-    } catch (_) {
-      return null;
-    }
   }
 
   Future<Uint8List?> _loadImageBytes(String source) async {
