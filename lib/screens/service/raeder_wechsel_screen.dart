@@ -160,7 +160,7 @@ class _TireTypeSelectionStep extends StatelessWidget {
         final cards = [
           Expanded(
             child: _TireOptionCard(
-              imagePath: 'assets/images/tire_complete_wheel.png',
+              imagePath: 'assets/images/tires/complete_wheel.jpg',
               title: tireOptionTitle(locale, completeType),
               description: tireOptionDescription(locale, completeType),
               accent:
@@ -170,7 +170,7 @@ class _TireTypeSelectionStep extends StatelessWidget {
           ),
           Expanded(
             child: _TireOptionCard(
-              imagePath: 'assets/images/tire_only.png',
+              imagePath: 'assets/images/tires/tire_only.jpg',
               title: tireOptionTitle(locale, tiresOnlyType),
               description: tireOptionDescription(locale, tiresOnlyType),
               accent:
@@ -361,6 +361,23 @@ class _TireOptionCard extends StatelessWidget {
                         imagePath,
                         fit: BoxFit.contain,
                         alignment: Alignment.center,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: const Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              Icons.tire_repair_rounded,
+                              size: 46,
+                              color: accent.withOpacity(0.55),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),

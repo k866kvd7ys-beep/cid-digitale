@@ -58,17 +58,17 @@ String tireSeasonTitle(String locale, {required bool summer}) => summer
 String tireSeasonCardTitle(String locale, {required bool summer}) => summer
     ? _copy(
         locale,
-        de: 'Sommerreifenwechsel',
+        de: 'Reifenwechsel Sommer',
         it: 'Cambio gomme estive',
         en: 'Summer Tire Change',
         fr: 'Changement de pneus été',
       )
     : _copy(
         locale,
-        de: 'Winterreifenwechsel',
+        de: 'Reifenwechsel Winter',
         it: 'Cambio gomme invernali',
         en: 'Winter Tire Change',
-        fr: 'Pneus hiver',
+        fr: 'Changement de pneus hiver',
       );
 
 String tireSeasonCardSubtitle(String locale, {required bool summer}) => summer
@@ -93,33 +93,33 @@ String tireOptionTitle(String locale, String tireServiceType) {
       return _copy(
         locale,
         de: 'Sommer-Kompletträder',
-        it: 'Cerchi completi estivi',
-        en: 'Summer Complete Wheels',
+        it: 'Ruote complete estive',
+        en: 'Summer complete wheels',
         fr: 'Roues complètes été',
       );
     case tireServiceSummerTiresOnly:
       return _copy(
         locale,
-        de: 'Nur Sommerreifen',
-        it: 'Solo pneumatici estivi',
-        en: 'Summer Tires Only',
-        fr: 'Pneus été uniquement',
+        de: 'Sommerreifen ohne Felgen',
+        it: 'Pneumatici estivi senza cerchi',
+        en: 'Summer tires without rims',
+        fr: 'Pneus été sans jantes',
       );
     case tireServiceWinterCompleteWheels:
       return _copy(
         locale,
         de: 'Winter-Kompletträder',
-        it: 'Cerchi completi invernali',
-        en: 'Winter Complete Wheels',
+        it: 'Ruote complete invernali',
+        en: 'Winter complete wheels',
         fr: 'Roues complètes hiver',
       );
     case tireServiceWinterTiresOnly:
       return _copy(
         locale,
-        de: 'Nur Winterreifen',
-        it: 'Solo pneumatici invernali',
-        en: 'Winter Tires Only',
-        fr: 'Pneus hiver uniquement',
+        de: 'Winterreifen ohne Felgen',
+        it: 'Pneumatici invernali senza cerchi',
+        en: 'Winter tires without rims',
+        fr: 'Pneus hiver sans jantes',
       );
     default:
       return '';
@@ -127,24 +127,48 @@ String tireOptionTitle(String locale, String tireServiceType) {
 }
 
 String tireOptionDescription(String locale, String tireServiceType) {
-  final isComplete = tireServiceType == tireServiceSummerCompleteWheels ||
-      tireServiceType == tireServiceWinterCompleteWheels;
-  if (isComplete) {
-    return _copy(
-      locale,
-      de: 'Austausch kompletter, bereits montierter Räder.',
-      it: 'Sostituzione ruote complete già montate.',
-      en: 'Replacement of complete wheels already mounted.',
-      fr: 'Remplacement de roues complètes déjà montées.',
-    );
+  switch (tireServiceType) {
+    case tireServiceSummerCompleteWheels:
+      return _copy(
+        locale,
+        de: 'Austausch kompletter Räder inklusive Felgen.',
+        it: 'Sostituzione ruote complete già montate.',
+        en: 'Replacement of complete wheels including rims.',
+        fr: 'Remplacement de roues complètes avec jantes.',
+      );
+    case tireServiceSummerTiresOnly:
+      return _copy(
+        locale,
+        de: 'Montage von Sommerreifen auf vorhandene Felgen.',
+        it: 'Montaggio di pneumatici estivi sui cerchi esistenti.',
+        en: 'Mounting summer tires on existing rims.',
+        fr: 'Montage de pneus été sur des jantes existantes.',
+      );
+    case tireServiceWinterCompleteWheels:
+      return _copy(
+        locale,
+        de: 'Austausch kompletter Winterräder inklusive Felgen.',
+        it: 'Sostituzione ruote complete invernali già montate.',
+        en: 'Replacement of complete winter wheels including rims.',
+        fr: 'Remplacement de roues complètes hiver avec jantes.',
+      );
+    case tireServiceWinterTiresOnly:
+      return _copy(
+        locale,
+        de: 'Montage von Winterreifen auf vorhandene Felgen.',
+        it: 'Montaggio di pneumatici invernali sui cerchi esistenti.',
+        en: 'Mounting winter tires on existing rims.',
+        fr: 'Montage de pneus hiver sur des jantes existantes.',
+      );
+    default:
+      return _copy(
+        locale,
+        de: 'Nur zur korrekten Terminbuchung bei der Werkstatt.',
+        it: 'Serve solo per prenotare il servizio corretto in officina.',
+        en: 'Only used to book the correct workshop service.',
+        fr: 'Utilisé uniquement pour réserver le bon service atelier.',
+      );
   }
-  return _copy(
-    locale,
-    de: 'Montage der Reifen auf die vorhandenen Felgen.',
-    it: 'Montaggio pneumatici sui cerchi esistenti.',
-    en: 'Mounting tires on the existing rims.',
-    fr: 'Montage des pneus sur les jantes existantes.',
-  );
 }
 
 String tireStepTitle(String locale, {required bool summer}) => summer

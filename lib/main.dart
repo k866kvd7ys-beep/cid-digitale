@@ -3156,31 +3156,45 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 12),
               LayoutBuilder(
                 builder: (context, constraints) {
+                  final stackedServices = constraints.maxWidth < 560;
                   const gap = 12.0;
                   final tileWidth = (constraints.maxWidth - gap) / 2;
                   return Column(
                     children: [
-                      Row(
-                        children: [
-                          SizedBox(
-                            width: tileWidth,
-                            child: _HomeServiceTile(
-                              icon: Icons.build,
-                              title: l10n.service_anmelden,
-                              onTap: () => _openServiceAnmelden(context),
+                      if (stackedServices) ...[
+                        _HomeServiceTile(
+                          icon: Icons.build,
+                          title: l10n.service_anmelden,
+                          onTap: () => _openServiceAnmelden(context),
+                        ),
+                        const SizedBox(height: 12),
+                        _HomeServiceTile(
+                          icon: Icons.tire_repair,
+                          title: l10n.raeder_wechsel,
+                          onTap: () => _openRaederWechsel(context),
+                        ),
+                      ] else
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: tileWidth,
+                              child: _HomeServiceTile(
+                                icon: Icons.build,
+                                title: l10n.service_anmelden,
+                                onTap: () => _openServiceAnmelden(context),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: gap),
-                          SizedBox(
-                            width: tileWidth,
-                            child: _HomeServiceTile(
-                              icon: Icons.tire_repair,
-                              title: l10n.raeder_wechsel,
-                              onTap: () => _openRaederWechsel(context),
+                            const SizedBox(width: gap),
+                            SizedBox(
+                              width: tileWidth,
+                              child: _HomeServiceTile(
+                                icon: Icons.tire_repair,
+                                title: l10n.raeder_wechsel,
+                                onTap: () => _openRaederWechsel(context),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
                       const SizedBox(height: 12),
                       _HomeServiceTile(
                         icon: Icons.car_crash,
