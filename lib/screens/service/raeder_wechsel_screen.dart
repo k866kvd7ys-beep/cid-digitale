@@ -3,11 +3,6 @@ import 'package:flutter/material.dart';
 
 import 'workshop_slot_picker_screen.dart';
 
-const _completeWheelImageUrl =
-    'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=1200&q=80';
-const _tireOnlyImageUrl =
-    'https://images.unsplash.com/photo-1606220838315-056192d5e927?auto=format&fit=crop&w=1200&q=80';
-
 class RaederWechselScreen extends StatefulWidget {
   const RaederWechselScreen({super.key});
 
@@ -165,7 +160,7 @@ class _TireTypeSelectionStep extends StatelessWidget {
         final cards = [
           Expanded(
             child: _TireOptionCard(
-              imageUrl: _completeWheelImageUrl,
+              imagePath: 'assets/images/tires/complete_wheel.jpg',
               title: tireOptionTitle(locale, completeType),
               description: tireOptionDescription(locale, completeType),
               accent:
@@ -175,7 +170,7 @@ class _TireTypeSelectionStep extends StatelessWidget {
           ),
           Expanded(
             child: _TireOptionCard(
-              imageUrl: _tireOnlyImageUrl,
+              imagePath: 'assets/images/tires/tire_only.jpg',
               title: tireOptionTitle(locale, tiresOnlyType),
               description: tireOptionDescription(locale, tiresOnlyType),
               accent:
@@ -317,14 +312,14 @@ class _SeasonChoiceCard extends StatelessWidget {
 
 class _TireOptionCard extends StatelessWidget {
   const _TireOptionCard({
-    required this.imageUrl,
+    required this.imagePath,
     required this.title,
     required this.description,
     required this.accent,
     required this.onTap,
   });
 
-  final String imageUrl;
+  final String imagePath;
   final String title;
   final String description;
   final Color accent;
@@ -356,26 +351,17 @@ class _TireOptionCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(20),
-                child: Image.network(
-                  imageUrl,
+                child: Container(
                   height: 260,
                   width: double.infinity,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      height: 260,
-                      alignment: Alignment.center,
-                      child: const CircularProgressIndicator(),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 260,
-                      alignment: Alignment.center,
-                      child: const Icon(Icons.tire_repair, size: 56),
-                    );
-                  },
+                  color: Colors.white,
+                  padding: const EdgeInsets.all(10),
+                  child: Image.asset(
+                    imagePath,
+                    fit: BoxFit.contain,
+                    width: double.infinity,
+                    height: 260,
+                  ),
                 ),
               ),
               const SizedBox(height: 18),
