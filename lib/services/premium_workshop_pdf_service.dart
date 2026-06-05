@@ -141,7 +141,7 @@ class PremiumWorkshopPdfService {
                 request: request,
                 generatedAt: generatedAt,
               ),
-              pw.SizedBox(height: 16),
+              pw.SizedBox(height: 12),
               pw.Expanded(
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -184,6 +184,7 @@ class PremiumWorkshopPdfService {
                             fr: 'E-mail',
                           ),
                           value: _valueOrDash(request.customerEmail),
+                          maxLines: 2,
                         ),
                         _PdfRow(
                           label: _copy(
@@ -196,8 +197,9 @@ class PremiumWorkshopPdfService {
                           value: _valueOrDash(request.licensePlate),
                         ),
                       ],
+                      columns: 2,
                     ),
-                    pw.SizedBox(height: 14),
+                    pw.SizedBox(height: 12),
                     _buildFirstPageCard(
                       title: _copy(
                         locale,
@@ -288,10 +290,13 @@ class PremiumWorkshopPdfService {
                             fr: 'Description',
                           ),
                           value: _valueOrDash(_damageDescription(request)),
+                          fullWidth: true,
+                          maxLines: 3,
                         ),
                       ],
+                      columns: 2,
                     ),
-                    pw.SizedBox(height: 14),
+                    pw.SizedBox(height: 12),
                     pw.Row(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
@@ -378,11 +383,10 @@ class PremiumWorkshopPdfService {
                         ),
                       ],
                     ),
-                    pw.Spacer(),
                   ],
                 ),
               ),
-              pw.SizedBox(height: 12),
+              pw.SizedBox(height: 8),
               _buildFirstPageFooter(
                 context: context,
                 locale: locale,
@@ -497,7 +501,7 @@ class PremiumWorkshopPdfService {
   }) {
     return pw.Container(
       width: double.infinity,
-      padding: const pw.EdgeInsets.fromLTRB(26, 24, 26, 22),
+      padding: const pw.EdgeInsets.fromLTRB(24, 20, 24, 18),
       decoration: pw.BoxDecoration(
         color: PdfColors.white,
         borderRadius: pw.BorderRadius.circular(28),
@@ -518,7 +522,7 @@ class PremiumWorkshopPdfService {
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 _buildCrashFormBrand(),
-                pw.SizedBox(height: 18),
+                pw.SizedBox(height: 14),
                 pw.Text(
                   'Digital Schaden Report',
                   style: const pw.TextStyle(
@@ -526,7 +530,7 @@ class PremiumWorkshopPdfService {
                     fontSize: 10.5,
                   ),
                 ),
-                pw.SizedBox(height: 8),
+                pw.SizedBox(height: 6),
                 pw.Text(
                   _requestTitle(request, locale),
                   style: pw.TextStyle(
@@ -697,7 +701,9 @@ class PremiumWorkshopPdfService {
   pw.Widget _buildFirstPageCard({
     required String title,
     required List<_PdfRow> rows,
+    int columns = 1,
   }) {
+    final resolvedColumns = columns < 1 ? 1 : columns;
     return pw.Container(
       padding: const pw.EdgeInsets.all(18),
       decoration: pw.BoxDecoration(
@@ -724,13 +730,76 @@ class PremiumWorkshopPdfService {
             ),
           ),
           pw.SizedBox(height: 14),
-          for (var i = 0; i < rows.length; i++) ...[
-            _buildFirstPageInfoRow(row: rows[i]),
-            if (i != rows.length - 1) pw.SizedBox(height: 12),
-          ],
+          ..._buildFirstPageCardRows(
+            rows: rows,
+            columns: resolvedColumns,
+          ),
         ],
       ),
     );
+  }
+
+  List<pw.Widget> _buildFirstPageCardRows({
+    required List<_PdfRow> rows,
+    required int columns,
+  }) {
+    if (rows.isEmpty) {
+      return const [];
+    }
+
+    if (columns <= 1) {
+      return [
+        for (var i = 0; i < rows.length; i++) ...[
+          _buildFirstPageInfoRow(row: rows[i]),
+          if (i != rows.length - 1) pw.SizedBox(height: 12),
+        ],
+      ];
+    }
+
+    final widgets = <pw.Widget>[];
+    final buffer = <_PdfRow>[];
+
+    void flushBuffer() {
+      if (buffer.isEmpty) return;
+      if (widgets.isNotEmpty) {
+        widgets.add(pw.SizedBox(height: 12));
+      }
+      widgets.add(
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < columns; i++) ...[
+              pw.Expanded(
+                child: i < buffer.length
+                    ? _buildFirstPageInfoRow(row: buffer[i])
+                    : pw.SizedBox(),
+              ),
+              if (i != columns - 1) pw.SizedBox(width: 18),
+            ],
+          ],
+        ),
+      );
+      buffer.clear();
+    }
+
+    for (final row in rows) {
+      if (row.fullWidth) {
+        flushBuffer();
+        if (widgets.isNotEmpty) {
+          widgets.add(pw.SizedBox(height: 12));
+        }
+        widgets.add(_buildFirstPageInfoRow(row: row));
+        continue;
+      }
+
+      buffer.add(row);
+      if (buffer.length == columns) {
+        flushBuffer();
+      }
+    }
+
+    flushBuffer();
+    return widgets;
   }
 
   pw.Widget _buildFirstPageMetaBlock({
@@ -783,6 +852,7 @@ class PremiumWorkshopPdfService {
         pw.Text(
           row.value,
           softWrap: true,
+          maxLines: row.maxLines,
           style: pw.TextStyle(
             color: _textPrimary,
             fontSize: 12.8,
@@ -1987,26 +2057,15 @@ class PremiumWorkshopPdfService {
 
   String _appointmentWorkshopValue(String locale, String? workshopLabel) {
     final value = workshopLabel?.trim() ?? '';
-    if (value.isEmpty) return '-';
+    if (value.isNotEmpty) return value;
 
-    final syntheticFallbacks = <String>{
-      _copy(
-        locale,
-        de: 'CrashForm Partnerwerkstatt',
-        it: 'CrashForm Partnerwerkstatt',
-        en: 'CrashForm Partner Workshop',
-        fr: 'Atelier partenaire CrashForm',
-      ),
-      'CrashForm Partnerwerkstatt',
-      'CrashForm Partner Workshop',
-      'Atelier partenaire CrashForm',
-    };
-
-    if (syntheticFallbacks.contains(value)) {
-      return '-';
-    }
-
-    return value;
+    return _copy(
+      locale,
+      de: 'CrashForm Partnerwerkstatt',
+      it: 'CrashForm Partnerwerkstatt',
+      en: 'CrashForm Partner Workshop',
+      fr: 'Atelier partenaire CrashForm',
+    );
   }
 
   String _currentKmValue(String locale, List<_PhotoGroup> photoGroups) {
@@ -2244,10 +2303,14 @@ class _PdfRow {
   const _PdfRow({
     required this.label,
     required this.value,
+    this.fullWidth = false,
+    this.maxLines,
   });
 
   final String label;
   final String value;
+  final bool fullWidth;
+  final int? maxLines;
 }
 
 class _PhotoGroup {
