@@ -247,6 +247,7 @@ class _SeasonChoiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    debugPrint('PATH REALE = $imagePath');
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(26),
@@ -349,6 +350,8 @@ class _TireOptionCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(imagePath),
+              const SizedBox(height: 10),
               ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: Image.asset(
