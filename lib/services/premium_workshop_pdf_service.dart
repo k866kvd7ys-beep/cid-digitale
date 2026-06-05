@@ -474,57 +474,34 @@ class PremiumWorkshopPdfService {
     required AppointmentRequest request,
     required String generatedAt,
   }) {
-    return pw.Container(
-      width: double.infinity,
-      padding: const pw.EdgeInsets.fromLTRB(18, 14, 18, 12),
-      decoration: pw.BoxDecoration(
-        color: PdfColors.white,
-        borderRadius: pw.BorderRadius.circular(28),
-        border: pw.Border.all(color: _borderColor, width: 1),
-        boxShadow: const [
-          pw.BoxShadow(
-            color: PdfColor(0, 0, 0, 0.035),
-            blurRadius: 12,
-            spreadRadius: 0,
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        _buildDocumentHeader(
+          practiceNumber: _referenceNumber(request.id),
+          generatedAt: generatedAt,
+        ),
+        pw.SizedBox(height: 12),
+        pw.Text(
+          _requestTitle(request, locale),
+          style: pw.TextStyle(
+            color: _textPrimary,
+            fontSize: 18,
+            fontWeight: pw.FontWeight.bold,
           ),
-        ],
-      ),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Expanded(
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                _buildDocumentHeader(
-                  practiceNumber: _referenceNumber(request.id),
-                  generatedAt: generatedAt,
-                ),
-                pw.SizedBox(height: 14),
-                pw.Text(
-                  _requestTitle(request, locale),
-                  style: pw.TextStyle(
-                    color: _textPrimary,
-                    fontSize: 18,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-                pw.SizedBox(height: 10),
-                pw.Row(
-                  children: [
-                    _buildDamageTypeBadge(locale: locale, request: request),
-                    pw.SizedBox(width: 8),
-                    _badge(
-                      label: _statusLabel(locale, request.requestStatus),
-                      textColor: _statusColor(request.requestStatus),
-                    ),
-                  ],
-                ),
-              ],
+        ),
+        pw.SizedBox(height: 8),
+        pw.Row(
+          children: [
+            _buildDamageTypeBadge(locale: locale, request: request),
+            pw.SizedBox(width: 8),
+            _badge(
+              label: _statusLabel(locale, request.requestStatus),
+              textColor: _statusColor(request.requestStatus),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 
