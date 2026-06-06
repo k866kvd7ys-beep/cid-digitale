@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 
 import 'workshop_slot_picker_screen.dart';
 
+const String _completeWheelImageUrl =
+    'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=1600&q=85';
+const String _tireOnlyImageUrl =
+    'https://images.unsplash.com/photo-1606220838315-056192d5e927?auto=format&fit=crop&w=1600&q=85';
+
 class RaederWechselScreen extends StatefulWidget {
   const RaederWechselScreen({super.key});
 
@@ -160,7 +165,7 @@ class _TireTypeSelectionStep extends StatelessWidget {
         final cards = [
           Expanded(
             child: _TireOptionCard(
-              imagePath: 'assets/images/tires/complete_wheel.png',
+              imageUrl: _completeWheelImageUrl,
               title: tireOptionTitle(locale, completeType),
               description: tireOptionDescription(locale, completeType),
               accent:
@@ -170,7 +175,7 @@ class _TireTypeSelectionStep extends StatelessWidget {
           ),
           Expanded(
             child: _TireOptionCard(
-              imagePath: 'assets/images/tires/tire_only.jpg',
+              imageUrl: _tireOnlyImageUrl,
               title: tireOptionTitle(locale, tiresOnlyType),
               description: tireOptionDescription(locale, tiresOnlyType),
               accent:
@@ -312,14 +317,14 @@ class _SeasonChoiceCard extends StatelessWidget {
 
 class _TireOptionCard extends StatelessWidget {
   const _TireOptionCard({
-    required this.imagePath,
+    required this.imageUrl,
     required this.title,
     required this.description,
     required this.accent,
     required this.onTap,
   });
 
-  final String imagePath;
+  final String imageUrl;
   final String title;
   final String description;
   final Color accent;
@@ -351,8 +356,8 @@ class _TireOptionCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(24),
-                child: Image.asset(
-                  imagePath,
+                child: Image.network(
+                  imageUrl,
                   height: 220,
                   width: double.infinity,
                   fit: BoxFit.cover,
