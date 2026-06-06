@@ -67720,12 +67720,12 @@ M(a){var s=A.D(a),r=this.d,q=r?"summer_complete_wheels":"winter_complete_wheels"
 return A.lJ(new A.bc0(this,q,r?"summer_tires_only":"winter_tires_only",s))}}
 A.bc0.prototype={
 $2(a,b){var s,r,q=this,p=null,o=q.a,n=o.c,m=q.b,l=A.bh7(n,m),k=A.bwD(n,m),j=o.d,i=j?B.tx:B.mH
-m=A.cf(new A.Uz("https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=1600&q=85",l,k,i,new A.bbZ(o,m),p),1)
+m=A.cf(new A.Uz("https://aphctrsvvhewukizgomu.supabase.co/storage/v1/object/public/app-assets/assets:images:tires:complete_wheel.jpg.PNG",l,k,i,new A.bbZ(o,m),p),1)
 i=q.c
 k=A.bh7(n,i)
 l=A.bwD(n,i)
 s=j?B.tx:B.mH
-r=[m,A.cf(new A.Uz("https://images.unsplash.com/photo-1606220838315-056192d5e927?auto=format&fit=crop&w=1600&q=85",k,l,s,new A.bc_(o,i),p),1)]
+r=[m,A.cf(new A.Uz("https://aphctrsvvhewukizgomu.supabase.co/storage/v1/object/public/app-assets/assets:images:tires:tire_only.jpg.JPG",k,l,s,new A.bc_(o,i),p),1)]
 o=A.a9W(B.aa3,A.N(A.fd(n,"Andere Saison w\xe4hlen","Choose another season","Choisir une autre saison","Scegli un'altra stagione"),p,p,p,p,p,p,p,p,p),o.e,p)
 m=j?A.fd(n,"Sommer-Service ausw\xe4hlen","Select the summer service","S\xe9lectionnez le service \xe9t\xe9","Seleziona il servizio estivo"):A.fd(n,"Winter-Service ausw\xe4hlen","Select the winter service","S\xe9lectionnez le service hiver","Seleziona il servizio invernale")
 l=q.d.ok

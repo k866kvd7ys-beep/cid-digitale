@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 
 import 'workshop_slot_picker_screen.dart';
 
-const String _completeWheelImageUrl =
-    'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=1600&q=85';
-const String _tireOnlyImageUrl =
-    'https://images.unsplash.com/photo-1606220838315-056192d5e927?auto=format&fit=crop&w=1600&q=85';
+const String completeWheelImageUrl =
+    'https://aphctrsvvhewukizgomu.supabase.co/storage/v1/object/public/app-assets/assets:images:tires:complete_wheel.jpg.PNG';
+const String tireOnlyImageUrl =
+    'https://aphctrsvvhewukizgomu.supabase.co/storage/v1/object/public/app-assets/assets:images:tires:tire_only.jpg.JPG';
 
 class RaederWechselScreen extends StatefulWidget {
   const RaederWechselScreen({super.key});
@@ -165,7 +165,7 @@ class _TireTypeSelectionStep extends StatelessWidget {
         final cards = [
           Expanded(
             child: _TireOptionCard(
-              imageUrl: _completeWheelImageUrl,
+              imageUrl: completeWheelImageUrl,
               title: tireOptionTitle(locale, completeType),
               description: tireOptionDescription(locale, completeType),
               accent:
@@ -175,7 +175,7 @@ class _TireTypeSelectionStep extends StatelessWidget {
           ),
           Expanded(
             child: _TireOptionCard(
-              imageUrl: _tireOnlyImageUrl,
+              imageUrl: tireOnlyImageUrl,
               title: tireOptionTitle(locale, tiresOnlyType),
               description: tireOptionDescription(locale, tiresOnlyType),
               accent:
