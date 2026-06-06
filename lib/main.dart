@@ -40,6 +40,7 @@ import 'qr/qr_payload.dart';
 import 'package:cid_digitale/widgets/damage_type_picker_sheet.dart';
 import 'package:cid_digitale/widgets/quick_action_tile.dart';
 import 'widgets/auth/auth_gate.dart';
+import 'screens/auth/login_page.dart';
 import 'web_share_helper.dart'
     show WebShareFile, shareFilesWeb, webUserAgent, webNavigatorShareAvailable;
 import 'screens/my_requests_page.dart';
@@ -1421,6 +1422,8 @@ Future<String?> getIndirizzoDaGps({Position? position}) async {
 /// ✅ LINGUA MANUALE
 
 const _supportedLangs = <String>['it', 'de', 'fr', 'en'];
+const _selectedLocaleKey = 'selected_locale';
+const _legacyLocaleKey = 'lang_preference';
 
 Locale _localeFromCode(String code) {
   if (_supportedLangs.contains(code)) return Locale(code);
@@ -1429,7 +1432,8 @@ Locale _localeFromCode(String code) {
 
 Future<Locale> caricaLinguaPreferita() async {
   final prefs = await SharedPreferences.getInstance();
-  final saved = prefs.getString('lang_preference');
+  final saved =
+      prefs.getString(_selectedLocaleKey) ?? prefs.getString(_legacyLocaleKey);
   if (saved != null && _supportedLangs.contains(saved)) {
     return Locale(saved);
   }
@@ -1444,7 +1448,8 @@ Future<Locale> caricaLinguaPreferita() async {
 
 Future<void> salvaLinguaPreferita(String code) async {
   final prefs = await SharedPreferences.getInstance();
-  await prefs.setString('lang_preference', code);
+  await prefs.setString(_selectedLocaleKey, code);
+  await prefs.setString(_legacyLocaleKey, code);
 }
 
 ValueNotifier<Locale> linguaSelezionata =
@@ -1510,7 +1515,7 @@ class _CidDigitaleAppState extends State<CidDigitaleApp>
         return MaterialApp(
           key: ValueKey('locale_${locale.languageCode}'),
           debugShowCheckedModeBanner: false,
-          locale: const Locale('de'),
+          locale: locale,
           supportedLocales: AppLocalizations.supportedLocales,
           localeListResolutionCallback: (locales, supported) {
             // Se abbiamo già scelto manualmente, usa quella scelta.
@@ -2845,6 +2850,24 @@ class _HomePageState extends State<HomePage> {
     await Navigator.of(context).pushNamed('/raeder_wechsel');
   }
 
+  Future<void> _exitHome() async {
+    try {
+      await Supabase.instance.client.auth.signOut();
+    } catch (e) {
+      debugPrint('Exit signOut skipped: $e');
+    }
+
+    if (!mounted) return;
+
+    final target =
+        kIsWeb ? const AuthGate(homeBuilder: _homeBuilder) : const LoginPage();
+
+    await Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => target),
+      (route) => false,
+    );
+  }
+
   Widget _quickActionChip({
     required BuildContext context,
     required IconData icon,
@@ -3086,6 +3109,19 @@ class _HomePageState extends State<HomePage> {
               PopupMenuItem(value: 'fr', child: Text('🇫🇷 Français')),
               PopupMenuItem(value: 'en', child: Text('🇬🇧 English')),
             ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: TextButton.icon(
+              onPressed: _exitHome,
+              icon: const Icon(Icons.exit_to_app_rounded, size: 18),
+              label: const Text('Exit'),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF111827),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              ),
+            ),
           ),
           IconButton(
             onPressed: _vaiAImpostazioni,
