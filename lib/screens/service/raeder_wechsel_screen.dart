@@ -360,7 +360,7 @@ class _TireOptionCard extends StatelessWidget {
                   imageUrl,
                   height: 220,
                   width: double.infinity,
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                 ),
               ),
               const SizedBox(height: 18),
