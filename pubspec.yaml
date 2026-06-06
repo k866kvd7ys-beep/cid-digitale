@@ -81,6 +81,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-    - assets/images/tires/complete_wheel.jpg
+    - assets/images/tires/complete_wheel.png
     - assets/images/tires/tire_only.jpg
     - assets/translations/

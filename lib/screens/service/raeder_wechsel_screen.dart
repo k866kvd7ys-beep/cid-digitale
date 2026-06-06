@@ -160,7 +160,7 @@ class _TireTypeSelectionStep extends StatelessWidget {
         final cards = [
           Expanded(
             child: _TireOptionCard(
-              imagePath: 'assets/images/tires/complete_wheel.jpg',
+              imagePath: 'assets/images/tires/complete_wheel.png',
               title: tireOptionTitle(locale, completeType),
               description: tireOptionDescription(locale, completeType),
               accent:
@@ -247,7 +247,6 @@ class _SeasonChoiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    debugPrint('PATH REALE = $imagePath');
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(26),
@@ -350,8 +349,6 @@ class _TireOptionCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(imagePath),
-              const SizedBox(height: 10),
               ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: Image.asset(
@@ -359,17 +356,6 @@ class _TireOptionCard extends StatelessWidget {
                   height: 220,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    debugPrint('ERRORE IMMAGINE: $imagePath');
-                    return Container(
-                      height: 220,
-                      width: double.infinity,
-                      color: Colors.red,
-                      child: Center(
-                        child: Text('IMAGE NOT FOUND: $imagePath'),
-                      ),
-                    );
-                  },
                 ),
               ),
               const SizedBox(height: 18),
