@@ -66,6 +66,7 @@ class WorkshopSlotPickerScreen extends StatefulWidget {
   final String? damageType;
   final String? tireServiceType;
   final String? serviceSelectionKey;
+  final String? cleaningProgram;
 
   const WorkshopSlotPickerScreen({
     super.key,
@@ -74,6 +75,7 @@ class WorkshopSlotPickerScreen extends StatefulWidget {
     this.damageType,
     this.tireServiceType,
     this.serviceSelectionKey,
+    this.cleaningProgram,
   });
 
   @override
@@ -4065,10 +4067,15 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
 
     try {
       final locale = Localizations.localeOf(context).languageCode;
+      final resolvedCleaningProgram =
+          widget.serviceSelectionKey == workshopServiceRepair
+              ? normalizeWorkshopCleaningProgram(widget.cleaningProgram)
+              : widget.cleaningProgram;
       final request = await _appointmentService.createRequest(
         serviceType: widget.serviceType,
         tireServiceType: widget.tireServiceType,
         serviceSelectionKey: widget.serviceSelectionKey,
+        cleaningProgram: resolvedCleaningProgram,
         damageType: widget.serviceType.startsWith('damage_')
             ? widget.serviceType
             : widget.damageType,

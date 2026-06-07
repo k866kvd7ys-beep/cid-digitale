@@ -20,6 +20,7 @@ class AppointmentRequest {
     this.damageType,
     this.tireServiceType,
     this.serviceSelectionKey,
+    this.cleaningProgram,
     this.locale,
     this.glassDamageTown,
     this.glassDamageDate,
@@ -95,6 +96,7 @@ class AppointmentRequest {
   final String? damageType;
   final String? tireServiceType;
   final String? serviceSelectionKey;
+  final String? cleaningProgram;
   final String? locale;
   final String? glassDamageTown;
   final String? glassDamageDate;
@@ -383,6 +385,12 @@ class AppointmentRequest {
             structuredNotes['service_selection_key'])
         ?.toString()
         .trim();
+    final resolvedCleaningProgram = (map['cleaningProgram'] ??
+            map['cleaning_program'] ??
+            structuredNotes['cleaningProgram'] ??
+            structuredNotes['cleaning_program'])
+        ?.toString()
+        .trim();
     final resolvedRequestStatus = (map['request_status'] ??
                 map['requestStatus'] ??
                 structuredNotes['requestStatus'] ??
@@ -429,6 +437,9 @@ class AppointmentRequest {
       serviceSelectionKey: (resolvedServiceSelectionKey?.isEmpty ?? true)
           ? null
           : resolvedServiceSelectionKey,
+      cleaningProgram: (resolvedCleaningProgram?.isEmpty ?? true)
+          ? null
+          : resolvedCleaningProgram,
       locale: (map['locale'] ?? map['languageCode'])?.toString(),
       glassDamageTown: (map['glassDamageTown'] ??
               map['glass_damage_town'] ??
@@ -578,6 +589,8 @@ class AppointmentRequest {
       'tire_service_type': tireServiceType,
       'serviceSelectionKey': serviceSelectionKey,
       'service_selection_key': serviceSelectionKey,
+      'cleaningProgram': cleaningProgram,
+      'cleaning_program': cleaningProgram,
       'locale': locale,
       'glassDamageTown': glassDamageTown,
       'glassDamageDate': glassDamageDate,

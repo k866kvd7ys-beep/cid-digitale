@@ -7,6 +7,9 @@ const String workshopServiceAlignment = 'vehicle_alignment';
 const String workshopServiceMfk = 'mfk_preparation';
 const String workshopServiceBattery = 'battery_check';
 const String workshopServiceFluids = 'fluid_level_check';
+const String workshopCleaningProgramBasis = 'basis';
+const String workshopCleaningProgramComfort = 'comfort';
+const String workshopCleaningProgramPremium = 'premium';
 
 const List<String> visibleWorkshopServiceKeys = <String>[
   workshopServiceRepair,
@@ -218,3 +221,35 @@ IconData workshopServiceIcon(String serviceKey) {
       return Icons.build_rounded;
   }
 }
+
+String normalizeWorkshopCleaningProgram(String? raw) {
+  switch ((raw ?? '').trim().toLowerCase()) {
+    case workshopCleaningProgramComfort:
+      return workshopCleaningProgramComfort;
+    case workshopCleaningProgramPremium:
+      return workshopCleaningProgramPremium;
+    case workshopCleaningProgramBasis:
+    default:
+      return workshopCleaningProgramBasis;
+  }
+}
+
+String workshopCleaningProgramLabel(String locale, String? program) {
+  switch (normalizeWorkshopCleaningProgram(program)) {
+    case workshopCleaningProgramComfort:
+      return 'Comfort';
+    case workshopCleaningProgramPremium:
+      return 'Premium';
+    case workshopCleaningProgramBasis:
+    default:
+      return 'Basis';
+  }
+}
+
+String workshopCleaningProgramFieldLabel(String locale) => _copy(
+      locale,
+      de: 'Reinigungsprogramm',
+      it: 'Programma pulizia',
+      en: 'Cleaning program',
+      fr: 'Programme de nettoyage',
+    );

@@ -101,6 +101,15 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         request.serviceSelectionKey,
       );
 
+  String get _cleaningProgramFieldLabel => workshopCleaningProgramFieldLabel(
+        normalizeWorkshopServiceLocale(request.locale),
+      );
+
+  String get _cleaningProgramLabel => workshopCleaningProgramLabel(
+        normalizeWorkshopServiceLocale(request.locale),
+        request.cleaningProgram,
+      );
+
   String get _vehicleDocumentPhotosTitle => _copy(
         de: 'Foto Fahrzeugausweis',
         it: 'Foto libretto',
@@ -1974,6 +1983,13 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                           _statusCard(context),
                           const SizedBox(height: 16),
                           _row(l10n.service_type_service, serviceLabel()),
+                          if (request.serviceType == 'service_anmelden' &&
+                              request.serviceSelectionKey ==
+                                  workshopServiceRepair)
+                            _row(
+                              _cleaningProgramFieldLabel,
+                              _cleaningProgramLabel,
+                            ),
                           if (_isTireRequest)
                             _row(
                               _tireServiceTypeFieldLabel,

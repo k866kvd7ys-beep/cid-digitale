@@ -287,6 +287,7 @@ class AppointmentRequestsService {
     required String serviceType,
     String? tireServiceType,
     String? serviceSelectionKey,
+    String? cleaningProgram,
     DateTime? appointmentDate,
     String? appointmentTime,
     int durationMinutes = 60,
@@ -375,6 +376,7 @@ class AppointmentRequestsService {
         damageType: damageType,
         tireServiceType: tireServiceType,
         serviceSelectionKey: serviceSelectionKey,
+        cleaningProgram: cleaningProgram,
         requestStatus: normalizedRequestStatus,
         statusUpdatedAt: normalizedStatusUpdatedAt,
         glassDamageTown: glassDamageTown,
@@ -447,6 +449,7 @@ class AppointmentRequestsService {
         damageType: damageType,
         tireServiceType: tireServiceType,
         serviceSelectionKey: serviceSelectionKey,
+        cleaningProgram: cleaningProgram,
         requestStatus: normalizedRequestStatus,
         statusUpdatedAt: normalizedStatusUpdatedAt,
         glassDamageTown: glassDamageTown,
@@ -517,6 +520,7 @@ class AppointmentRequestsService {
           damageType: damageType,
           tireServiceType: tireServiceType,
           serviceSelectionKey: serviceSelectionKey,
+          cleaningProgram: cleaningProgram,
           requestStatus: normalizedRequestStatus,
           statusUpdatedAt: normalizedStatusUpdatedAt,
           glassDamageTown: glassDamageTown,
@@ -909,6 +913,7 @@ class AppointmentRequestsService {
           damageType: localRequest.damageType,
           tireServiceType: localRequest.tireServiceType,
           serviceSelectionKey: localRequest.serviceSelectionKey,
+          cleaningProgram: localRequest.cleaningProgram,
           requestStatus: localRequest.requestStatus,
           statusUpdatedAt: localRequest.statusUpdatedAt ??
               DateTime.now().toUtc().toIso8601String(),
@@ -1044,6 +1049,7 @@ class AppointmentRequestsService {
     String? damageType,
     String? tireServiceType,
     String? serviceSelectionKey,
+    String? cleaningProgram,
     required String requestStatus,
     required String statusUpdatedAt,
     String? glassDamageTown,
@@ -1112,6 +1118,7 @@ class AppointmentRequestsService {
         notes: notes,
         tireServiceType: tireServiceType,
         serviceSelectionKey: serviceSelectionKey,
+        cleaningProgram: cleaningProgram,
         requestStatus: requestStatus,
         statusUpdatedAt: statusUpdatedAt,
         glassDamageTown: glassDamageTown,
@@ -1285,6 +1292,7 @@ class AppointmentRequestsService {
     String? notes,
     String? tireServiceType,
     String? serviceSelectionKey,
+    String? cleaningProgram,
     String? requestStatus,
     String? statusUpdatedAt,
     String? glassDamageTown,
@@ -1342,6 +1350,7 @@ class AppointmentRequestsService {
     final trimmedNotes = notes?.trim();
     final trimmedTireServiceType = tireServiceType?.trim();
     final trimmedServiceSelectionKey = serviceSelectionKey?.trim();
+    final trimmedCleaningProgram = cleaningProgram?.trim();
     final trimmedRequestStatus = requestStatus?.trim();
     final trimmedStatusUpdatedAt = statusUpdatedAt?.trim();
     final trimmedGlassTown = glassDamageTown?.trim();
@@ -1510,6 +1519,7 @@ class AppointmentRequestsService {
         (trimmedGlassDate?.isNotEmpty ?? false) ||
         (trimmedTireServiceType?.isNotEmpty ?? false) ||
         (trimmedServiceSelectionKey?.isNotEmpty ?? false) ||
+        (trimmedCleaningProgram?.isNotEmpty ?? false) ||
         (trimmedRequestStatus?.isNotEmpty ?? false) ||
         (trimmedStatusUpdatedAt?.isNotEmpty ?? false) ||
         (trimmedHailTown?.isNotEmpty ?? false) ||
@@ -1579,6 +1589,10 @@ class AppointmentRequestsService {
         'service_selection_key': trimmedServiceSelectionKey,
       if (trimmedServiceSelectionKey?.isNotEmpty ?? false)
         'serviceSelectionKey': trimmedServiceSelectionKey,
+      if (trimmedCleaningProgram?.isNotEmpty ?? false)
+        'cleaning_program': trimmedCleaningProgram,
+      if (trimmedCleaningProgram?.isNotEmpty ?? false)
+        'cleaningProgram': trimmedCleaningProgram,
       if (trimmedRequestStatus?.isNotEmpty ?? false)
         'requestStatus': trimmedRequestStatus,
       if (trimmedStatusUpdatedAt?.isNotEmpty ?? false)
@@ -2016,6 +2030,7 @@ class AppointmentRequestsService {
     required String serviceType,
     String? tireServiceType,
     String? serviceSelectionKey,
+    String? cleaningProgram,
     required DateTime appointmentDate,
     required String appointmentTime,
     required int durationMinutes,
@@ -2155,6 +2170,7 @@ class AppointmentRequestsService {
       damageType: damageType,
       tireServiceType: tireServiceType,
       serviceSelectionKey: serviceSelectionKey,
+      cleaningProgram: cleaningProgram,
       locale: locale,
       glassDamageTown: glassDamageTown,
       glassDamageDate: glassDamageDate,

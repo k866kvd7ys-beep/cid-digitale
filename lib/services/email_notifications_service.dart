@@ -37,14 +37,22 @@ class EmailNotificationsService {
   Map<String, dynamic> _buildPayload(AppointmentRequest request) {
     final dateLabel = DateFormat('dd.MM.yyyy').format(request.appointmentDate);
     final timeLabel = _formatTime(request.appointmentTime);
+    final locale = normalizeWorkshopServiceLocale(request.locale);
+    final cleaningProgram = _cleaningProgramLabel(request);
+    final serviceLabel = _mapServiceLabel(request);
 
     return {
       'recipient': request.customerEmail,
       'name': request.customerName,
       'plate': request.licensePlate,
-      'service': _mapServiceLabel(request),
+      'service': cleaningProgram == null
+          ? serviceLabel
+          : '$serviceLabel\n${workshopCleaningProgramFieldLabel(locale)}: $cleaningProgram',
       'date': dateLabel,
       'time': timeLabel,
+      if (cleaningProgram != null)
+        'cleaning_program_label': workshopCleaningProgramFieldLabel(locale),
+      if (cleaningProgram != null) 'cleaning_program': cleaningProgram,
     };
   }
 
@@ -81,5 +89,17 @@ class EmailNotificationsService {
       default:
         return request.serviceType;
     }
+  }
+
+  String? _cleaningProgramLabel(AppointmentRequest request) {
+    if (request.serviceType != 'service_anmelden' ||
+        request.serviceSelectionKey != workshopServiceRepair) {
+      return null;
+    }
+
+    return workshopCleaningProgramLabel(
+      normalizeWorkshopServiceLocale(request.locale),
+      request.cleaningProgram,
+    );
   }
 }
