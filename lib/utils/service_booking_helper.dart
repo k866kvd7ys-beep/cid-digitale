@@ -15,6 +15,8 @@ const String workshopInspectionDetailOilChange = 'oil_change_service';
 const String workshopCleaningPackageBronze = 'bronze';
 const String workshopCleaningPackageSilber = 'silber';
 const String workshopCleaningPackageGold = 'gold';
+const String workshopAdditionalServiceGlassRepair = 'scheibenreparatur';
+const String workshopAdditionalServiceTireChange = 'reifenwechsel';
 
 const List<String> visibleWorkshopServiceKeys = <String>[
   workshopServiceInspection,
@@ -332,11 +334,176 @@ String workshopInspectionBackLabel(String locale) => _copy(
 
 String workshopInspectionContinueLabel(String locale) => _copy(
       locale,
+      de: 'Weiter zur Terminbuchung',
+      it: 'Continua alla prenotazione',
+      en: 'Continue to appointment booking',
+      fr: 'Continuer vers la réservation',
+    );
+
+String workshopInspectionAddServiceLabel(String locale) => _copy(
+      locale,
       de: 'Leistung hinzufügen',
       it: 'Aggiungi prestazione',
       en: 'Add service',
       fr: 'Ajouter la prestation',
     );
+
+String workshopInspectionCleaningTitle(String locale) => _copy(
+      locale,
+      de: 'Fahrzeugreinigung',
+      it: 'Pulizia veicolo',
+      en: 'Vehicle cleaning',
+      fr: 'Nettoyage du véhicule',
+    );
+
+String workshopInspectionCleaningSubtitle(String locale) => _copy(
+      locale,
+      de: 'Wählen Sie Ihr Reinigungsprogramm',
+      it: 'Scegli il tuo programma di pulizia',
+      en: 'Choose your cleaning program',
+      fr: 'Choisissez votre programme de nettoyage',
+    );
+
+String workshopInspectionCleaningOptionSubtitle(
+  String locale,
+  String package,
+) {
+  switch (normalizeWorkshopCleaningPackage(package)) {
+    case workshopCleaningPackageSilber:
+      return _copy(
+        locale,
+        de: 'zusätzliche Innen- und Felgenreinigung',
+        it: 'pulizia interna e cerchi aggiuntiva',
+        en: 'additional interior and wheel cleaning',
+        fr: 'nettoyage supplémentaire intérieur et jantes',
+      );
+    case workshopCleaningPackageGold:
+      return _copy(
+        locale,
+        de: 'komplette Premium-Innenreinigung',
+        it: 'pulizia interna premium completa',
+        en: 'complete premium interior cleaning',
+        fr: 'nettoyage intérieur premium complet',
+      );
+    case workshopCleaningPackageBronze:
+    default:
+      return _copy(
+        locale,
+        de: 'inkl. Reinigung Bronze-Programm',
+        it: 'incl. programma pulizia Bronze',
+        en: 'incl. Bronze cleaning program',
+        fr: 'incl. programme de nettoyage Bronze',
+      );
+  }
+}
+
+String workshopInspectionCleaningOptionDetail(
+  String locale,
+  String package,
+) {
+  switch (normalizeWorkshopCleaningPackage(package)) {
+    case workshopCleaningPackageSilber:
+    case workshopCleaningPackageGold:
+      return _copy(
+        locale,
+        de: 'Supplement',
+        it: 'Supplemento',
+        en: 'Supplement',
+        fr: 'Supplément',
+      );
+    case workshopCleaningPackageBronze:
+    default:
+      return _copy(
+        locale,
+        de: 'im Service inklusive',
+        it: 'incluso nel servizio',
+        en: 'included in the service',
+        fr: 'inclus dans le service',
+      );
+  }
+}
+
+String workshopAdditionalServicesTitle(String locale) => _copy(
+      locale,
+      de: 'Weitere Leistungen hinzufügen',
+      it: 'Aggiungi altre prestazioni',
+      en: 'Add additional services',
+      fr: 'Ajouter d’autres prestations',
+    );
+
+String workshopAdditionalServicesFieldLabel(String locale) => _copy(
+      locale,
+      de: 'Zusätzliche Leistungen',
+      it: 'Prestazioni aggiuntive',
+      en: 'Additional services',
+      fr: 'Prestations supplémentaires',
+    );
+
+String workshopSelectionApplyLabel(String locale) => _copy(
+      locale,
+      de: 'Auswahl übernehmen',
+      it: 'Conferma selezione',
+      en: 'Apply selection',
+      fr: 'Valider la sélection',
+    );
+
+String workshopCancelLabel(String locale) => _copy(
+      locale,
+      de: 'Abbrechen',
+      it: 'Annulla',
+      en: 'Cancel',
+      fr: 'Annuler',
+    );
+
+List<String> workshopAdditionalServiceOptions() => const [
+      workshopServiceInspection,
+      workshopInspectionDetailOilChange,
+      workshopAdditionalServiceGlassRepair,
+      workshopServiceVehicleCheck,
+      workshopServiceClimate,
+      workshopServiceBattery,
+      workshopServiceAlignment,
+      workshopServiceFluids,
+      workshopAdditionalServiceTireChange,
+    ];
+
+String workshopAdditionalServiceLabel(String locale, String key) {
+  switch (key) {
+    case workshopServiceInspection:
+      return workshopServiceLabel(locale, workshopServiceInspection);
+    case workshopInspectionDetailOilChange:
+      return workshopInspectionDetailLabel(
+          locale, workshopInspectionDetailOilChange);
+    case workshopAdditionalServiceGlassRepair:
+      return _copy(
+        locale,
+        de: 'Scheibenreparatur',
+        it: 'Riparazione vetro',
+        en: 'Glass repair',
+        fr: 'Réparation de vitre',
+      );
+    case workshopServiceVehicleCheck:
+      return workshopServiceLabel(locale, workshopServiceVehicleCheck);
+    case workshopServiceClimate:
+      return workshopServiceLabel(locale, workshopServiceClimate);
+    case workshopServiceBattery:
+      return workshopServiceLabel(locale, workshopServiceBattery);
+    case workshopServiceAlignment:
+      return workshopServiceLabel(locale, workshopServiceAlignment);
+    case workshopServiceFluids:
+      return workshopServiceLabel(locale, workshopServiceFluids);
+    case workshopAdditionalServiceTireChange:
+      return _copy(
+        locale,
+        de: 'Reifenwechsel',
+        it: 'Cambio gomme',
+        en: 'Tire change',
+        fr: 'Changement de pneus',
+      );
+    default:
+      return key;
+  }
+}
 
 List<String> workshopInspectionPrimaryLines(String locale, String? detail) {
   switch (normalizeWorkshopInspectionDetail(detail)) {

@@ -68,6 +68,7 @@ class WorkshopSlotPickerScreen extends StatefulWidget {
   final String? serviceSelectionKey;
   final String? serviceDetail;
   final String? cleaningPackage;
+  final List<String> additionalServices;
 
   const WorkshopSlotPickerScreen({
     super.key,
@@ -78,6 +79,7 @@ class WorkshopSlotPickerScreen extends StatefulWidget {
     this.serviceSelectionKey,
     this.serviceDetail,
     this.cleaningPackage,
+    this.additionalServices = const [],
   });
 
   @override
@@ -4085,6 +4087,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
         serviceSelectionKey: widget.serviceSelectionKey,
         serviceDetail: widget.serviceDetail,
         cleaningPackage: resolvedCleaningPackage,
+        additionalServices: widget.additionalServices,
         damageType: widget.serviceType.startsWith('damage_')
             ? widget.serviceType
             : widget.damageType,

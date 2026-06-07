@@ -22,6 +22,7 @@ class AppointmentRequest {
     this.serviceSelectionKey,
     this.serviceDetail,
     this.cleaningPackage,
+    this.additionalServices = const [],
     this.locale,
     this.glassDamageTown,
     this.glassDamageDate,
@@ -99,6 +100,7 @@ class AppointmentRequest {
   final String? serviceSelectionKey;
   final String? serviceDetail;
   final String? cleaningPackage;
+  final List<String> additionalServices;
   final String? locale;
   final String? glassDamageTown;
   final String? glassDamageDate;
@@ -403,6 +405,12 @@ class AppointmentRequest {
             structuredNotes['cleaning_program'])
         ?.toString()
         .trim();
+    final resolvedAdditionalServices = _readStringList(
+      map['additionalServices'] ??
+          map['additional_services'] ??
+          structuredNotes['additionalServices'] ??
+          structuredNotes['additional_services'],
+    );
     final resolvedRequestStatus = (map['request_status'] ??
                 map['requestStatus'] ??
                 structuredNotes['requestStatus'] ??
@@ -455,6 +463,7 @@ class AppointmentRequest {
       cleaningPackage: (resolvedCleaningPackage?.isEmpty ?? true)
           ? null
           : resolvedCleaningPackage,
+      additionalServices: resolvedAdditionalServices,
       locale: (map['locale'] ?? map['languageCode'])?.toString(),
       glassDamageTown: (map['glassDamageTown'] ??
               map['glass_damage_town'] ??
@@ -608,6 +617,8 @@ class AppointmentRequest {
       'service_detail': serviceDetail,
       'cleaningPackage': cleaningPackage,
       'cleaning_package': cleaningPackage,
+      'additionalServices': additionalServices,
+      'additional_services': additionalServices,
       'locale': locale,
       'glassDamageTown': glassDamageTown,
       'glassDamageDate': glassDamageDate,

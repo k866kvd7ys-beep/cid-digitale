@@ -105,8 +105,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   }
 
   String? _cleaningPackageLabel(AppointmentRequest request) {
-    if (request.serviceType != 'service_anmelden' ||
-        request.serviceSelectionKey != workshopServiceRepair) {
+    final isRepairFlow = request.serviceType == 'service_anmelden' &&
+        request.serviceSelectionKey == workshopServiceRepair;
+    final isInspectionFlow = request.serviceType == workshopServiceInspection;
+    if (!isRepairFlow && !isInspectionFlow) {
       return null;
     }
 
@@ -125,6 +127,14 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       normalizeWorkshopServiceLocale(request.locale),
       request.serviceDetail,
     );
+  }
+
+  String? _additionalServicesLabel(AppointmentRequest request) {
+    if (request.additionalServices.isEmpty) return null;
+    final locale = normalizeWorkshopServiceLocale(request.locale);
+    return request.additionalServices
+        .map((service) => workshopAdditionalServiceLabel(locale, service))
+        .join(', ');
   }
 
   String _updatedSnackBar() => _copy(
@@ -380,6 +390,31 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                         const SizedBox(height: 6),
                         Text(
                           '${workshopInspectionSelectionFieldLabel(normalizeWorkshopServiceLocale(request.locale))}: ${_inspectionDetailLabel(request)!}',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.82),
+                                  ),
+                        ),
+                      ],
+                      const SizedBox(height: 6),
+                      Text(
+                        '${workshopCleaningPackageFieldLabel(normalizeWorkshopServiceLocale(request.locale))}: ${workshopCleaningPackageLabel(normalizeWorkshopServiceLocale(request.locale), request.cleaningPackage)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.82),
+                            ),
+                      ),
+                      if (_additionalServicesLabel(request) != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          '${workshopAdditionalServicesFieldLabel(normalizeWorkshopServiceLocale(request.locale))}: ${_additionalServicesLabel(request)!}',
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
                                     fontWeight: FontWeight.w600,

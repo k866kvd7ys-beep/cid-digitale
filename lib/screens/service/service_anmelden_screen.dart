@@ -15,6 +15,7 @@ class ServiceAnmeldenScreen extends StatelessWidget {
     String? serviceSelectionKey,
     String? serviceDetail,
     String? cleaningPackage,
+    List<String> additionalServices = const [],
   }) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -24,6 +25,7 @@ class ServiceAnmeldenScreen extends StatelessWidget {
           serviceSelectionKey: serviceSelectionKey,
           serviceDetail: serviceDetail,
           cleaningPackage: cleaningPackage,
+          additionalServices: additionalServices,
         ),
       ),
     );
@@ -77,7 +79,9 @@ class ServiceAnmeldenScreen extends StatelessWidget {
                     MaterialPageRoute(
                       builder: (_) => _ServiceInspectionScreen(
                         locale: locale,
-                        onContinue: (serviceDetail) => _openBooking(
+                        onContinueToBooking: (serviceDetail, cleaningPackage,
+                                additionalServices) =>
+                            _openBooking(
                           context,
                           workshopServiceLabel(
                             locale,
@@ -85,6 +89,8 @@ class ServiceAnmeldenScreen extends StatelessWidget {
                           ),
                           serviceType: workshopServiceInspection,
                           serviceDetail: serviceDetail,
+                          cleaningPackage: cleaningPackage,
+                          additionalServices: additionalServices,
                         ),
                       ),
                     ),
@@ -127,11 +133,15 @@ class ServiceAnmeldenScreen extends StatelessWidget {
 class _ServiceInspectionScreen extends StatefulWidget {
   const _ServiceInspectionScreen({
     required this.locale,
-    required this.onContinue,
+    required this.onContinueToBooking,
   });
 
   final String locale;
-  final ValueChanged<String> onContinue;
+  final void Function(
+    String serviceDetail,
+    String cleaningPackage,
+    List<String> additionalServices,
+  ) onContinueToBooking;
 
   @override
   State<_ServiceInspectionScreen> createState() =>
@@ -140,6 +150,8 @@ class _ServiceInspectionScreen extends StatefulWidget {
 
 class _ServiceInspectionScreenState extends State<_ServiceInspectionScreen> {
   String _selectedDetail = workshopInspectionDetail30000;
+  String _selectedCleaningPackage = workshopCleaningPackageBronze;
+  List<String> _selectedAdditionalServices = const [];
 
   List<_InspectionOptionData> _options() {
     return [
@@ -250,6 +262,98 @@ class _ServiceInspectionScreenState extends State<_ServiceInspectionScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
+                  Text(
+                    workshopInspectionCleaningTitle(widget.locale),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF111827),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    workshopInspectionCleaningSubtitle(widget.locale),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFF6B7280),
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isMobile = constraints.maxWidth < 900;
+                      final itemWidth = isMobile
+                          ? constraints.maxWidth
+                          : (constraints.maxWidth - 32) / 3;
+
+                      return Wrap(
+                        spacing: 16,
+                        runSpacing: 16,
+                        children: [
+                          _CleaningPackageOptionCard(
+                            width: itemWidth,
+                            title: 'Bronze',
+                            subtitle: workshopInspectionCleaningOptionSubtitle(
+                              widget.locale,
+                              workshopCleaningPackageBronze,
+                            ),
+                            detail: workshopInspectionCleaningOptionDetail(
+                              widget.locale,
+                              workshopCleaningPackageBronze,
+                            ),
+                            selected: _selectedCleaningPackage ==
+                                workshopCleaningPackageBronze,
+                            onTap: () {
+                              setState(() {
+                                _selectedCleaningPackage =
+                                    workshopCleaningPackageBronze;
+                              });
+                            },
+                          ),
+                          _CleaningPackageOptionCard(
+                            width: itemWidth,
+                            title: 'Silber',
+                            subtitle: workshopInspectionCleaningOptionSubtitle(
+                              widget.locale,
+                              workshopCleaningPackageSilber,
+                            ),
+                            detail: workshopInspectionCleaningOptionDetail(
+                              widget.locale,
+                              workshopCleaningPackageSilber,
+                            ),
+                            selected: _selectedCleaningPackage ==
+                                workshopCleaningPackageSilber,
+                            onTap: () {
+                              setState(() {
+                                _selectedCleaningPackage =
+                                    workshopCleaningPackageSilber;
+                              });
+                            },
+                          ),
+                          _CleaningPackageOptionCard(
+                            width: itemWidth,
+                            title: 'Gold',
+                            subtitle: workshopInspectionCleaningOptionSubtitle(
+                              widget.locale,
+                              workshopCleaningPackageGold,
+                            ),
+                            detail: workshopInspectionCleaningOptionDetail(
+                              widget.locale,
+                              workshopCleaningPackageGold,
+                            ),
+                            selected: _selectedCleaningPackage ==
+                                workshopCleaningPackageGold,
+                            onTap: () {
+                              setState(() {
+                                _selectedCleaningPackage =
+                                    workshopCleaningPackageGold;
+                              });
+                            },
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
                   Row(
                     children: [
                       Expanded(
@@ -269,23 +373,71 @@ class _ServiceInspectionScreenState extends State<_ServiceInspectionScreen> {
                       ),
                       const SizedBox(width: 14),
                       Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => widget.onContinue(_selectedDetail),
-                          style: ElevatedButton.styleFrom(
+                        child: OutlinedButton(
+                          onPressed: _openAdditionalServicesPicker,
+                          style: OutlinedButton.styleFrom(
                             minimumSize: const Size.fromHeight(56),
-                            backgroundColor: const Color(0xFF2563EB),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
+                            side: const BorderSide(
+                              color: Color(0xFF2563EB),
+                            ),
+                            foregroundColor: const Color(0xFF2563EB),
                           ),
                           child: Text(
-                            workshopInspectionContinueLabel(widget.locale),
+                            workshopInspectionAddServiceLabel(widget.locale),
                           ),
                         ),
                       ),
                     ],
+                  ),
+                  if (_selectedAdditionalServices.isNotEmpty) ...[
+                    const SizedBox(height: 18),
+                    Text(
+                      workshopAdditionalServicesFieldLabel(widget.locale),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ..._selectedAdditionalServices.map(
+                      (service) => Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          '- ${workshopAdditionalServiceLabel(widget.locale, service)}',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF4B5563),
+                            height: 1.45,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 58,
+                    child: ElevatedButton(
+                      onPressed: () => widget.onContinueToBooking(
+                        _selectedDetail,
+                        _selectedCleaningPackage,
+                        _selectedAdditionalServices,
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(56),
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        workshopInspectionContinueLabel(widget.locale),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -294,6 +446,112 @@ class _ServiceInspectionScreenState extends State<_ServiceInspectionScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _openAdditionalServicesPicker() async {
+    final tempSelection = List<String>.from(_selectedAdditionalServices);
+
+    final result = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        final theme = Theme.of(context);
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      workshopAdditionalServicesTitle(widget.locale),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.sizeOf(context).height * 0.5,
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: workshopAdditionalServiceOptions()
+                              .map(
+                                (service) => CheckboxListTile(
+                                  value: tempSelection.contains(service),
+                                  contentPadding: EdgeInsets.zero,
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  title: Text(
+                                    workshopAdditionalServiceLabel(
+                                      widget.locale,
+                                      service,
+                                    ),
+                                  ),
+                                  onChanged: (selected) {
+                                    setModalState(() {
+                                      if (selected == true) {
+                                        if (!tempSelection.contains(service)) {
+                                          tempSelection.add(service);
+                                        }
+                                      } else {
+                                        tempSelection.remove(service);
+                                      }
+                                    });
+                                  },
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: Text(workshopCancelLabel(widget.locale)),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.of(context)
+                                .pop(List<String>.from(tempSelection)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              workshopSelectionApplyLabel(widget.locale),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (result == null) return;
+    setState(() {
+      _selectedAdditionalServices = result;
+    });
   }
 }
 
@@ -880,6 +1138,92 @@ class _InspectionOptionCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CleaningPackageOptionCard extends StatelessWidget {
+  const _CleaningPackageOptionCard({
+    required this.width,
+    required this.title,
+    required this.subtitle,
+    required this.detail,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final double width;
+  final String title;
+  final String subtitle;
+  final String detail;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      width: width,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Ink(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: selected ? const Color(0xFFEFF6FF) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: selected
+                    ? const Color(0xFF2563EB)
+                    : const Color(0xFFE5E7EB),
+                width: selected ? 2 : 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF111827),
+                        ),
+                      ),
+                    ),
+                    if (selected)
+                      const Icon(
+                        Icons.check_circle,
+                        color: Color(0xFF2563EB),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF4B5563),
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  detail,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF6B7280),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

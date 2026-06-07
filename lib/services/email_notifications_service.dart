@@ -40,13 +40,16 @@ class EmailNotificationsService {
     final locale = normalizeWorkshopServiceLocale(request.locale);
     final cleaningPackage = _cleaningPackageLabel(request);
     final inspectionDetail = _inspectionDetailLabel(request);
+    final additionalServices = _additionalServiceLabels(request);
     final serviceLabel = _mapServiceLabel(request);
 
     return {
       'recipient': request.customerEmail,
       'name': request.customerName,
       'plate': request.licensePlate,
-      'service': cleaningPackage == null && inspectionDetail == null
+      'service': cleaningPackage == null &&
+              inspectionDetail == null &&
+              additionalServices.isEmpty
           ? serviceLabel
           : [
               serviceLabel,
@@ -54,6 +57,8 @@ class EmailNotificationsService {
                 '${workshopInspectionSelectionFieldLabel(locale)}: $inspectionDetail',
               if (cleaningPackage != null)
                 '${workshopCleaningPackageFieldLabel(locale)}: $cleaningPackage',
+              if (additionalServices.isNotEmpty)
+                '${workshopAdditionalServicesFieldLabel(locale)}:\n- ${additionalServices.join('\n- ')}',
             ].join('\n'),
       'date': dateLabel,
       'time': timeLabel,
@@ -63,6 +68,11 @@ class EmailNotificationsService {
       if (cleaningPackage != null)
         'cleaning_package_label': workshopCleaningPackageFieldLabel(locale),
       if (cleaningPackage != null) 'cleaning_package': cleaningPackage,
+      if (additionalServices.isNotEmpty)
+        'additional_services_label':
+            workshopAdditionalServicesFieldLabel(locale),
+      if (additionalServices.isNotEmpty)
+        'additional_services': additionalServices,
     };
   }
 
@@ -107,8 +117,10 @@ class EmailNotificationsService {
   }
 
   String? _cleaningPackageLabel(AppointmentRequest request) {
-    if (request.serviceType != 'service_anmelden' ||
-        request.serviceSelectionKey != workshopServiceRepair) {
+    final isRepairFlow = request.serviceType == 'service_anmelden' &&
+        request.serviceSelectionKey == workshopServiceRepair;
+    final isInspectionFlow = request.serviceType == workshopServiceInspection;
+    if (!isRepairFlow && !isInspectionFlow) {
       return null;
     }
 
@@ -127,5 +139,13 @@ class EmailNotificationsService {
       normalizeWorkshopServiceLocale(request.locale),
       request.serviceDetail,
     );
+  }
+
+  List<String> _additionalServiceLabels(AppointmentRequest request) {
+    if (request.additionalServices.isEmpty) return const [];
+    final locale = normalizeWorkshopServiceLocale(request.locale);
+    return request.additionalServices
+        .map((service) => workshopAdditionalServiceLabel(locale, service))
+        .toList();
   }
 }

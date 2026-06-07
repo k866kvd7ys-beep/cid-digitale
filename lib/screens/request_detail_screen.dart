@@ -114,6 +114,20 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
             )
           : '-';
 
+  String get _additionalServicesFieldLabel =>
+      workshopAdditionalServicesFieldLabel(
+        normalizeWorkshopServiceLocale(request.locale),
+      );
+
+  String get _additionalServicesLabel {
+    if (request.additionalServices.isEmpty) return '-';
+    final locale = normalizeWorkshopServiceLocale(request.locale);
+    return request.additionalServices
+        .map(
+            (service) => '- ${workshopAdditionalServiceLabel(locale, service)}')
+        .join('\n');
+  }
+
   String get _vehicleCleaningFieldLabel => workshopVehicleCleaningFieldLabel(
         normalizeWorkshopServiceLocale(request.locale),
       );
@@ -2010,6 +2024,23 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                             _row(
                               _serviceInspectionDetailFieldLabel,
                               _serviceInspectionDetailLabel,
+                            ),
+                          if (request.serviceType == workshopServiceInspection)
+                            _row(
+                              workshopCleaningPackageFieldLabel(
+                                normalizeWorkshopServiceLocale(request.locale),
+                              ),
+                              workshopCleaningPackageLabel(
+                                normalizeWorkshopServiceLocale(request.locale),
+                                request.cleaningPackage,
+                              ),
+                            ),
+                          if (request.serviceType ==
+                                  workshopServiceInspection &&
+                              request.additionalServices.isNotEmpty)
+                            _row(
+                              _additionalServicesFieldLabel,
+                              _additionalServicesLabel,
                             ),
                           if (request.serviceType == 'service_anmelden' &&
                               request.serviceSelectionKey ==

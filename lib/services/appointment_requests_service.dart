@@ -294,6 +294,7 @@ class AppointmentRequestsService {
     String? serviceSelectionKey,
     String? serviceDetail,
     String? cleaningPackage,
+    List<String> additionalServices = const [],
     DateTime? appointmentDate,
     String? appointmentTime,
     int durationMinutes = 60,
@@ -384,6 +385,7 @@ class AppointmentRequestsService {
         serviceSelectionKey: serviceSelectionKey,
         serviceDetail: serviceDetail,
         cleaningPackage: cleaningPackage,
+        additionalServices: additionalServices,
         requestStatus: normalizedRequestStatus,
         statusUpdatedAt: normalizedStatusUpdatedAt,
         glassDamageTown: glassDamageTown,
@@ -458,6 +460,7 @@ class AppointmentRequestsService {
         serviceSelectionKey: serviceSelectionKey,
         serviceDetail: serviceDetail,
         cleaningPackage: cleaningPackage,
+        additionalServices: additionalServices,
         requestStatus: normalizedRequestStatus,
         statusUpdatedAt: normalizedStatusUpdatedAt,
         glassDamageTown: glassDamageTown,
@@ -530,6 +533,7 @@ class AppointmentRequestsService {
           serviceSelectionKey: serviceSelectionKey,
           serviceDetail: serviceDetail,
           cleaningPackage: cleaningPackage,
+          additionalServices: additionalServices,
           requestStatus: normalizedRequestStatus,
           statusUpdatedAt: normalizedStatusUpdatedAt,
           glassDamageTown: glassDamageTown,
@@ -924,6 +928,7 @@ class AppointmentRequestsService {
           serviceSelectionKey: localRequest.serviceSelectionKey,
           serviceDetail: localRequest.serviceDetail,
           cleaningPackage: localRequest.cleaningPackage,
+          additionalServices: localRequest.additionalServices,
           requestStatus: localRequest.requestStatus,
           statusUpdatedAt: localRequest.statusUpdatedAt ??
               DateTime.now().toUtc().toIso8601String(),
@@ -1061,6 +1066,7 @@ class AppointmentRequestsService {
     String? serviceSelectionKey,
     String? serviceDetail,
     String? cleaningPackage,
+    List<String> additionalServices = const [],
     required String requestStatus,
     required String statusUpdatedAt,
     String? glassDamageTown,
@@ -1131,6 +1137,7 @@ class AppointmentRequestsService {
         serviceSelectionKey: serviceSelectionKey,
         serviceDetail: serviceDetail,
         cleaningPackage: cleaningPackage,
+        additionalServices: additionalServices,
         requestStatus: requestStatus,
         statusUpdatedAt: statusUpdatedAt,
         glassDamageTown: glassDamageTown,
@@ -1306,6 +1313,7 @@ class AppointmentRequestsService {
     String? serviceSelectionKey,
     String? serviceDetail,
     String? cleaningPackage,
+    List<String> additionalServices = const [],
     String? requestStatus,
     String? statusUpdatedAt,
     String? glassDamageTown,
@@ -1365,6 +1373,10 @@ class AppointmentRequestsService {
     final trimmedServiceSelectionKey = serviceSelectionKey?.trim();
     final trimmedServiceDetail = serviceDetail?.trim();
     final trimmedCleaningPackage = cleaningPackage?.trim();
+    final cleanedAdditionalServices = additionalServices
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
     final trimmedRequestStatus = requestStatus?.trim();
     final trimmedStatusUpdatedAt = statusUpdatedAt?.trim();
     final trimmedGlassTown = glassDamageTown?.trim();
@@ -1535,6 +1547,7 @@ class AppointmentRequestsService {
         (trimmedServiceSelectionKey?.isNotEmpty ?? false) ||
         (trimmedServiceDetail?.isNotEmpty ?? false) ||
         (trimmedCleaningPackage?.isNotEmpty ?? false) ||
+        cleanedAdditionalServices.isNotEmpty ||
         (trimmedRequestStatus?.isNotEmpty ?? false) ||
         (trimmedStatusUpdatedAt?.isNotEmpty ?? false) ||
         (trimmedHailTown?.isNotEmpty ?? false) ||
@@ -1612,6 +1625,10 @@ class AppointmentRequestsService {
         'cleaning_package': trimmedCleaningPackage,
       if (trimmedCleaningPackage?.isNotEmpty ?? false)
         'cleaningPackage': trimmedCleaningPackage,
+      if (cleanedAdditionalServices.isNotEmpty)
+        'additional_services': cleanedAdditionalServices,
+      if (cleanedAdditionalServices.isNotEmpty)
+        'additionalServices': cleanedAdditionalServices,
       if (trimmedRequestStatus?.isNotEmpty ?? false)
         'requestStatus': trimmedRequestStatus,
       if (trimmedStatusUpdatedAt?.isNotEmpty ?? false)
@@ -2051,6 +2068,7 @@ class AppointmentRequestsService {
     String? serviceSelectionKey,
     String? serviceDetail,
     String? cleaningPackage,
+    List<String> additionalServices = const [],
     required DateTime appointmentDate,
     required String appointmentTime,
     required int durationMinutes,
@@ -2192,6 +2210,7 @@ class AppointmentRequestsService {
       serviceSelectionKey: serviceSelectionKey,
       serviceDetail: serviceDetail,
       cleaningPackage: cleaningPackage,
+      additionalServices: additionalServices,
       locale: locale,
       glassDamageTown: glassDamageTown,
       glassDamageDate: glassDamageDate,
