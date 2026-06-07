@@ -3,11 +3,11 @@ const MANIFEST = 'flutter-app-manifest';
 const TEMP = 'flutter-temp-cache';
 const CACHE_NAME = 'flutter-app-cache';
 
-const RESOURCES = {"flutter_bootstrap.js": "316f481a8acca4d51235fb8e5d3e6810",
+const RESOURCES = {"flutter_bootstrap.js": "b5b70415b6dff22c73a6fa49d8927420",
 "version.json": "888943b38089b79929d4fe1fadd39b0b",
 "index.html": "1b479eb7cd2b630529656f895428de9b",
 "/": "1b479eb7cd2b630529656f895428de9b",
-"main.dart.js": "5b07e3d2f8fce3589fff9e566488d590",
+"main.dart.js": "de85a554b25d83672a3671af5cbac190",
 "flutter.js": "24bc71911b75b5f8135c949e27a2984e",
 "favicon.png": "5dcef449791fa27946b3d35ad8803796",
 "icons/Icon-192.png": "ac9a721a12bbc803b44f645561ecb1e1",
@@ -24,7 +24,7 @@ const RESOURCES = {"flutter_bootstrap.js": "316f481a8acca4d51235fb8e5d3e6810",
 "assets/shaders/ink_sparkle.frag": "ecc85a2e95f5e9f53123dcaf8cb9b6ce",
 "assets/shaders/stretch_effect.frag": "40d68efbbf360632f614c731219e95f0",
 "assets/AssetManifest.bin": "587d3a4f71962cdf81afee886e2463ab",
-"assets/fonts/MaterialIcons-Regular.otf": "5532dcb6819e8ea4657c90b59a5c5135",
+"assets/fonts/MaterialIcons-Regular.otf": "bb74d709fdc3d985c05ac453195fa661",
 "assets/assets/images/tires/complete_wheel.png": "60048481e1d3a01b3429bf03260d873e",
 "assets/assets/images/tires/tire_only.jpg": "003e9188a8f6afa6752e75a82300e6be",
 "assets/assets/images/tire_complete_wheel.png": "4e3534f702495706f2eeaedf24db06b9",
