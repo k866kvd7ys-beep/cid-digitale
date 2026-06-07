@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/supabase_config.dart';
 import '../models/appointment_request.dart';
+import '../utils/service_booking_helper.dart';
 import 'email_notifications_service.dart';
 import 'local_image_cache.dart';
 
@@ -237,7 +238,11 @@ class AppointmentRequestsService {
 
       switch (serviceFilter) {
         case 'service':
-          query = query.eq('service_type', 'service_anmelden');
+          query = query.filter(
+            'service_type',
+            'in',
+            '(service_anmelden,service_inspection)',
+          );
           break;
         case 'tires':
           query = query.filter(
@@ -287,6 +292,7 @@ class AppointmentRequestsService {
     required String serviceType,
     String? tireServiceType,
     String? serviceSelectionKey,
+    String? serviceDetail,
     String? cleaningPackage,
     DateTime? appointmentDate,
     String? appointmentTime,
@@ -376,6 +382,7 @@ class AppointmentRequestsService {
         damageType: damageType,
         tireServiceType: tireServiceType,
         serviceSelectionKey: serviceSelectionKey,
+        serviceDetail: serviceDetail,
         cleaningPackage: cleaningPackage,
         requestStatus: normalizedRequestStatus,
         statusUpdatedAt: normalizedStatusUpdatedAt,
@@ -449,6 +456,7 @@ class AppointmentRequestsService {
         damageType: damageType,
         tireServiceType: tireServiceType,
         serviceSelectionKey: serviceSelectionKey,
+        serviceDetail: serviceDetail,
         cleaningPackage: cleaningPackage,
         requestStatus: normalizedRequestStatus,
         statusUpdatedAt: normalizedStatusUpdatedAt,
@@ -520,6 +528,7 @@ class AppointmentRequestsService {
           damageType: damageType,
           tireServiceType: tireServiceType,
           serviceSelectionKey: serviceSelectionKey,
+          serviceDetail: serviceDetail,
           cleaningPackage: cleaningPackage,
           requestStatus: normalizedRequestStatus,
           statusUpdatedAt: normalizedStatusUpdatedAt,
@@ -913,6 +922,7 @@ class AppointmentRequestsService {
           damageType: localRequest.damageType,
           tireServiceType: localRequest.tireServiceType,
           serviceSelectionKey: localRequest.serviceSelectionKey,
+          serviceDetail: localRequest.serviceDetail,
           cleaningPackage: localRequest.cleaningPackage,
           requestStatus: localRequest.requestStatus,
           statusUpdatedAt: localRequest.statusUpdatedAt ??
@@ -1049,6 +1059,7 @@ class AppointmentRequestsService {
     String? damageType,
     String? tireServiceType,
     String? serviceSelectionKey,
+    String? serviceDetail,
     String? cleaningPackage,
     required String requestStatus,
     required String statusUpdatedAt,
@@ -1118,6 +1129,7 @@ class AppointmentRequestsService {
         notes: notes,
         tireServiceType: tireServiceType,
         serviceSelectionKey: serviceSelectionKey,
+        serviceDetail: serviceDetail,
         cleaningPackage: cleaningPackage,
         requestStatus: requestStatus,
         statusUpdatedAt: statusUpdatedAt,
@@ -1292,6 +1304,7 @@ class AppointmentRequestsService {
     String? notes,
     String? tireServiceType,
     String? serviceSelectionKey,
+    String? serviceDetail,
     String? cleaningPackage,
     String? requestStatus,
     String? statusUpdatedAt,
@@ -1350,6 +1363,7 @@ class AppointmentRequestsService {
     final trimmedNotes = notes?.trim();
     final trimmedTireServiceType = tireServiceType?.trim();
     final trimmedServiceSelectionKey = serviceSelectionKey?.trim();
+    final trimmedServiceDetail = serviceDetail?.trim();
     final trimmedCleaningPackage = cleaningPackage?.trim();
     final trimmedRequestStatus = requestStatus?.trim();
     final trimmedStatusUpdatedAt = statusUpdatedAt?.trim();
@@ -1519,6 +1533,7 @@ class AppointmentRequestsService {
         (trimmedGlassDate?.isNotEmpty ?? false) ||
         (trimmedTireServiceType?.isNotEmpty ?? false) ||
         (trimmedServiceSelectionKey?.isNotEmpty ?? false) ||
+        (trimmedServiceDetail?.isNotEmpty ?? false) ||
         (trimmedCleaningPackage?.isNotEmpty ?? false) ||
         (trimmedRequestStatus?.isNotEmpty ?? false) ||
         (trimmedStatusUpdatedAt?.isNotEmpty ?? false) ||
@@ -1589,6 +1604,10 @@ class AppointmentRequestsService {
         'service_selection_key': trimmedServiceSelectionKey,
       if (trimmedServiceSelectionKey?.isNotEmpty ?? false)
         'serviceSelectionKey': trimmedServiceSelectionKey,
+      if (trimmedServiceDetail?.isNotEmpty ?? false)
+        'service_detail': trimmedServiceDetail,
+      if (trimmedServiceDetail?.isNotEmpty ?? false)
+        'serviceDetail': trimmedServiceDetail,
       if (trimmedCleaningPackage?.isNotEmpty ?? false)
         'cleaning_package': trimmedCleaningPackage,
       if (trimmedCleaningPackage?.isNotEmpty ?? false)
@@ -2030,6 +2049,7 @@ class AppointmentRequestsService {
     required String serviceType,
     String? tireServiceType,
     String? serviceSelectionKey,
+    String? serviceDetail,
     String? cleaningPackage,
     required DateTime appointmentDate,
     required String appointmentTime,
@@ -2170,6 +2190,7 @@ class AppointmentRequestsService {
       damageType: damageType,
       tireServiceType: tireServiceType,
       serviceSelectionKey: serviceSelectionKey,
+      serviceDetail: serviceDetail,
       cleaningPackage: cleaningPackage,
       locale: locale,
       glassDamageTown: glassDamageTown,
@@ -2329,7 +2350,10 @@ class AppointmentRequestsService {
   }) {
     switch (serviceFilter) {
       case 'service':
-        if (request.serviceType != 'service_anmelden') return false;
+        if (request.serviceType != 'service_anmelden' &&
+            request.serviceType != workshopServiceInspection) {
+          return false;
+        }
         break;
       case 'tires':
         if (request.serviceType != 'raeder_sommer' &&

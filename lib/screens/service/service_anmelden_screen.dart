@@ -10,16 +10,19 @@ class ServiceAnmeldenScreen extends StatelessWidget {
 
   void _openBooking(
     BuildContext context,
-    String locale,
-    String serviceKey,
+    String title, {
+    required String serviceType,
+    String? serviceSelectionKey,
+    String? serviceDetail,
     String? cleaningPackage,
-  ) {
+  }) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => WorkshopSlotPickerScreen(
-          title: workshopServiceLabel(locale, serviceKey),
-          serviceType: 'service_anmelden',
-          serviceSelectionKey: serviceKey,
+          title: title,
+          serviceType: serviceType,
+          serviceSelectionKey: serviceSelectionKey,
+          serviceDetail: serviceDetail,
           cleaningPackage: cleaningPackage,
         ),
       ),
@@ -69,15 +72,19 @@ class ServiceAnmeldenScreen extends StatelessWidget {
               title: workshopServiceLabel(locale, serviceKey),
               description: workshopServiceDescription(locale, serviceKey),
               onTap: () {
-                if (serviceKey == workshopServiceRepair) {
+                if (serviceKey == workshopServiceInspection) {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => _ServiceRepairInfoScreen(
-                        onBookNow: (cleaningPackage) => _openBooking(
+                      builder: (_) => _ServiceInspectionScreen(
+                        locale: locale,
+                        onContinue: (serviceDetail) => _openBooking(
                           context,
-                          locale,
-                          serviceKey,
-                          cleaningPackage,
+                          workshopServiceLabel(
+                            locale,
+                            workshopServiceInspection,
+                          ),
+                          serviceType: workshopServiceInspection,
+                          serviceDetail: serviceDetail,
                         ),
                       ),
                     ),
@@ -85,10 +92,205 @@ class ServiceAnmeldenScreen extends StatelessWidget {
                   return;
                 }
 
-                _openBooking(context, locale, serviceKey, null);
+                if (serviceKey == workshopServiceRepair) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => _ServiceRepairInfoScreen(
+                        onBookNow: (cleaningPackage) => _openBooking(
+                          context,
+                          workshopServiceLabel(locale, serviceKey),
+                          serviceType: 'service_anmelden',
+                          serviceSelectionKey: serviceKey,
+                          cleaningPackage: cleaningPackage,
+                        ),
+                      ),
+                    ),
+                  );
+                  return;
+                }
+
+                _openBooking(
+                  context,
+                  workshopServiceLabel(locale, serviceKey),
+                  serviceType: 'service_anmelden',
+                  serviceSelectionKey: serviceKey,
+                );
               },
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _ServiceInspectionScreen extends StatefulWidget {
+  const _ServiceInspectionScreen({
+    required this.locale,
+    required this.onContinue,
+  });
+
+  final String locale;
+  final ValueChanged<String> onContinue;
+
+  @override
+  State<_ServiceInspectionScreen> createState() =>
+      _ServiceInspectionScreenState();
+}
+
+class _ServiceInspectionScreenState extends State<_ServiceInspectionScreen> {
+  String _selectedDetail = workshopInspectionDetail30000;
+
+  List<_InspectionOptionData> _options() {
+    return [
+      _InspectionOptionData(
+        value: workshopInspectionDetail30000,
+        primaryLines: workshopInspectionPrimaryLines(
+          widget.locale,
+          workshopInspectionDetail30000,
+        ),
+      ),
+      _InspectionOptionData(
+        value: workshopInspectionDetail60000,
+        primaryLines: workshopInspectionPrimaryLines(
+          widget.locale,
+          workshopInspectionDetail60000,
+        ),
+      ),
+      _InspectionOptionData(
+        value: workshopInspectionDetailOver60000,
+        primaryLines: workshopInspectionPrimaryLines(
+          widget.locale,
+          workshopInspectionDetailOver60000,
+        ),
+      ),
+      _InspectionOptionData(
+        value: workshopInspectionDetailOilChange,
+        primaryLines: workshopInspectionPrimaryLines(
+          widget.locale,
+          workshopInspectionDetailOilChange,
+        ),
+        secondaryLine: workshopInspectionSecondaryLine(
+          widget.locale,
+          workshopInspectionDetailOilChange,
+        ),
+      ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final options = _options();
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          workshopServiceLabel(widget.locale, workshopServiceInspection),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF111827),
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 960),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    workshopServiceLabel(
+                        widget.locale, workshopServiceInspection),
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF111827),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    workshopInspectionSubtitle(widget.locale),
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: const Color(0xFF6B7280),
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ...options.map(
+                    (option) => Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: _InspectionOptionCard(
+                        title: workshopInspectionDetailLabel(
+                          widget.locale,
+                          option.value,
+                        ),
+                        primaryLines: option.primaryLines,
+                        secondaryLine: option.secondaryLine,
+                        selected: _selectedDetail == option.value,
+                        onTap: () {
+                          setState(() {
+                            _selectedDetail = option.value;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    workshopInspectionAdditionalNote(widget.locale),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFF6B7280),
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(56),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            side: const BorderSide(color: Color(0xFFD1D5DB)),
+                          ),
+                          child: Text(
+                            workshopInspectionBackLabel(widget.locale),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => widget.onContinue(_selectedDetail),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(56),
+                            backgroundColor: const Color(0xFF2563EB),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: Text(
+                            workshopInspectionContinueLabel(widget.locale),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -564,6 +766,120 @@ class _CleaningProgramCard extends StatelessWidget {
                 ],
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InspectionOptionData {
+  const _InspectionOptionData({
+    required this.value,
+    required this.primaryLines,
+    this.secondaryLine,
+  });
+
+  final String value;
+  final List<String> primaryLines;
+  final String? secondaryLine;
+}
+
+class _InspectionOptionCard extends StatelessWidget {
+  const _InspectionOptionCard({
+    required this.title,
+    required this.primaryLines,
+    required this.selected,
+    required this.onTap,
+    this.secondaryLine,
+  });
+
+  final String title;
+  final List<String> primaryLines;
+  final String? secondaryLine;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFEFF6FF) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color:
+                  selected ? const Color(0xFF2563EB) : const Color(0xFFE5E7EB),
+              width: selected ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.035),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Icon(
+                  selected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off_outlined,
+                  color: selected
+                      ? const Color(0xFF2563EB)
+                      : const Color(0xFF94A3B8),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    for (final line in primaryLines) ...[
+                      Text(
+                        line,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF4B5563),
+                          height: 1.45,
+                        ),
+                      ),
+                      if (line != primaryLines.last) const SizedBox(height: 6),
+                    ],
+                    if (secondaryLine != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        secondaryLine!,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF2563EB),
+                          fontWeight: FontWeight.w700,
+                          height: 1.45,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),

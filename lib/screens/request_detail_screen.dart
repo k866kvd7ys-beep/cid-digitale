@@ -101,6 +101,19 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         request.serviceSelectionKey,
       );
 
+  String get _serviceInspectionDetailFieldLabel =>
+      workshopInspectionSelectionFieldLabel(
+        normalizeWorkshopServiceLocale(request.locale),
+      );
+
+  String get _serviceInspectionDetailLabel =>
+      (request.serviceDetail?.trim().isNotEmpty ?? false)
+          ? workshopInspectionDetailLabel(
+              normalizeWorkshopServiceLocale(request.locale),
+              request.serviceDetail,
+            )
+          : '-';
+
   String get _vehicleCleaningFieldLabel => workshopVehicleCleaningFieldLabel(
         normalizeWorkshopServiceLocale(request.locale),
       );
@@ -1956,6 +1969,12 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
             ? _serviceSelectionLabel
             : l10n.service_type_service;
       }
+      if (serviceType == workshopServiceInspection) {
+        return workshopServiceLabel(
+          normalizeWorkshopServiceLocale(request.locale),
+          workshopServiceInspection,
+        );
+      }
       if (serviceType == 'raeder_sommer' || serviceType == 'raeder_winter') {
         return l10n.service_type_tires;
       }
@@ -1987,6 +2006,11 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                           _statusCard(context),
                           const SizedBox(height: 16),
                           _row(l10n.service_type_service, serviceLabel()),
+                          if (request.serviceType == workshopServiceInspection)
+                            _row(
+                              _serviceInspectionDetailFieldLabel,
+                              _serviceInspectionDetailLabel,
+                            ),
                           if (request.serviceType == 'service_anmelden' &&
                               request.serviceSelectionKey ==
                                   workshopServiceRepair)

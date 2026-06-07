@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+const String workshopServiceInspection = 'service_inspection';
 const String workshopServiceRepair = 'service_repair';
 const String workshopServiceVehicleCheck = 'vehicle_check';
 const String workshopServiceClimate = 'climate_service';
@@ -7,11 +8,16 @@ const String workshopServiceAlignment = 'vehicle_alignment';
 const String workshopServiceMfk = 'mfk_preparation';
 const String workshopServiceBattery = 'battery_check';
 const String workshopServiceFluids = 'fluid_level_check';
+const String workshopInspectionDetail30000 = 'service_30000';
+const String workshopInspectionDetail60000 = 'service_60000';
+const String workshopInspectionDetailOver60000 = 'service_over_60000';
+const String workshopInspectionDetailOilChange = 'oil_change_service';
 const String workshopCleaningPackageBronze = 'bronze';
 const String workshopCleaningPackageSilber = 'silber';
 const String workshopCleaningPackageGold = 'gold';
 
 const List<String> visibleWorkshopServiceKeys = <String>[
+  workshopServiceInspection,
   workshopServiceRepair,
   workshopServiceVehicleCheck,
   workshopServiceClimate,
@@ -71,6 +77,14 @@ String workshopServiceSelectionSubtitle(String locale) => _copy(
 
 String workshopServiceLabel(String locale, String? serviceKey) {
   switch (serviceKey) {
+    case workshopServiceInspection:
+      return _copy(
+        locale,
+        de: 'Service/Inspektion',
+        it: 'Service/Ispezione',
+        en: 'Service/Inspection',
+        fr: 'Service/Inspection',
+      );
     case workshopServiceRepair:
       return _copy(
         locale,
@@ -140,6 +154,14 @@ String workshopServiceLabel(String locale, String? serviceKey) {
 
 String workshopServiceDescription(String locale, String serviceKey) {
   switch (serviceKey) {
+    case workshopServiceInspection:
+      return _copy(
+        locale,
+        de: 'Service nach Kilometerstand, Ölwechselservice',
+        it: 'Service in base al chilometraggio, servizio cambio olio',
+        en: 'Service by mileage, oil change service',
+        fr: 'Service selon le kilométrage, service vidange',
+      );
     case workshopServiceRepair:
       return _copy(
         locale,
@@ -203,6 +225,8 @@ String workshopServiceDescription(String locale, String serviceKey) {
 
 IconData workshopServiceIcon(String serviceKey) {
   switch (serviceKey) {
+    case workshopServiceInspection:
+      return Icons.handyman_outlined;
     case workshopServiceRepair:
       return Icons.build_circle_outlined;
     case workshopServiceVehicleCheck:
@@ -220,6 +244,201 @@ IconData workshopServiceIcon(String serviceKey) {
     default:
       return Icons.build_rounded;
   }
+}
+
+String normalizeWorkshopInspectionDetail(String? raw) {
+  switch ((raw ?? '').trim().toLowerCase()) {
+    case workshopInspectionDetail60000:
+      return workshopInspectionDetail60000;
+    case workshopInspectionDetailOver60000:
+      return workshopInspectionDetailOver60000;
+    case workshopInspectionDetailOilChange:
+      return workshopInspectionDetailOilChange;
+    case workshopInspectionDetail30000:
+    default:
+      return workshopInspectionDetail30000;
+  }
+}
+
+String workshopInspectionSubtitle(String locale) => _copy(
+      locale,
+      de: 'Bitte wählen Sie den Service aus, der zum Kilometerstand Ihres Fahrzeugs passt.',
+      it: 'Seleziona il servizio adatto al chilometraggio del tuo veicolo.',
+      en: 'Please choose the service that matches your vehicle mileage.',
+      fr: 'Veuillez choisir le service correspondant au kilométrage de votre véhicule.',
+    );
+
+String workshopInspectionDetailLabel(String locale, String? detail) {
+  switch (normalizeWorkshopInspectionDetail(detail)) {
+    case workshopInspectionDetail60000:
+      return _copy(
+        locale,
+        de: "Service 60'000 km",
+        it: 'Service 60.000 km',
+        en: 'Service 60,000 km',
+        fr: 'Service 60 000 km',
+      );
+    case workshopInspectionDetailOver60000:
+      return _copy(
+        locale,
+        de: "Service über 60'000 km",
+        it: 'Service oltre 60.000 km',
+        en: 'Service over 60,000 km',
+        fr: 'Service au-delà de 60 000 km',
+      );
+    case workshopInspectionDetailOilChange:
+      return _copy(
+        locale,
+        de: 'Ölwechselservice',
+        it: 'Servizio cambio olio',
+        en: 'Oil change service',
+        fr: 'Service vidange',
+      );
+    case workshopInspectionDetail30000:
+    default:
+      return _copy(
+        locale,
+        de: "Service 30'000 km",
+        it: 'Service 30.000 km',
+        en: 'Service 30,000 km',
+        fr: 'Service 30 000 km',
+      );
+  }
+}
+
+String workshopInspectionSelectionFieldLabel(String locale) => _copy(
+      locale,
+      de: 'Auswahl',
+      it: 'Selezione',
+      en: 'Selection',
+      fr: 'Sélection',
+    );
+
+String workshopInspectionAdditionalNote(String locale) => _copy(
+      locale,
+      de: 'Zusätzliche Wünsche bitte im Anschluss als Anmerkung hinzufügen.',
+      it: 'Eventuali richieste aggiuntive possono essere aggiunte successivamente come nota.',
+      en: 'Please add any additional requests afterwards as a note.',
+      fr: 'Veuillez ajouter ensuite toute demande supplémentaire comme remarque.',
+    );
+
+String workshopInspectionBackLabel(String locale) => _copy(
+      locale,
+      de: 'Zurück',
+      it: 'Indietro',
+      en: 'Back',
+      fr: 'Retour',
+    );
+
+String workshopInspectionContinueLabel(String locale) => _copy(
+      locale,
+      de: 'Leistung hinzufügen',
+      it: 'Aggiungi prestazione',
+      en: 'Add service',
+      fr: 'Ajouter la prestation',
+    );
+
+List<String> workshopInspectionPrimaryLines(String locale, String? detail) {
+  switch (normalizeWorkshopInspectionDetail(detail)) {
+    case workshopInspectionDetail60000:
+      return [
+        _copy(
+          locale,
+          de: "KM-Stand zwischen 30'000 - 60'000 km",
+          it: 'Chilometraggio compreso tra 30.000 e 60.000 km',
+          en: 'Mileage between 30,000 and 60,000 km',
+          fr: 'Kilométrage entre 30 000 et 60 000 km',
+        ),
+        _copy(
+          locale,
+          de: 'inkl. Ölservice (bei Fälligkeit)',
+          it: 'incl. servizio olio (se dovuto)',
+          en: 'incl. oil service (if due)',
+          fr: 'incl. service d’huile (si nécessaire)',
+        ),
+        _copy(
+          locale,
+          de: 'inkl. Reinigung Bronze-Programm',
+          it: 'incl. pulizia programma Bronze',
+          en: 'incl. Bronze cleaning program',
+          fr: 'incl. programme de nettoyage Bronze',
+        ),
+      ];
+    case workshopInspectionDetailOver60000:
+      return [
+        _copy(
+          locale,
+          de: "KM-Stand ist über 60'000 km",
+          it: 'Il chilometraggio è superiore a 60.000 km',
+          en: 'Mileage is over 60,000 km',
+          fr: 'Le kilométrage est supérieur à 60 000 km',
+        ),
+        _copy(
+          locale,
+          de: 'inkl. Ölservice (bei Fälligkeit)',
+          it: 'incl. servizio olio (se dovuto)',
+          en: 'incl. oil service (if due)',
+          fr: 'incl. service d’huile (si nécessaire)',
+        ),
+        _copy(
+          locale,
+          de: 'inkl. Reinigung Bronze-Programm',
+          it: 'incl. pulizia programma Bronze',
+          en: 'incl. Bronze cleaning program',
+          fr: 'incl. programme de nettoyage Bronze',
+        ),
+      ];
+    case workshopInspectionDetailOilChange:
+      return [
+        _copy(
+          locale,
+          de: 'Damit der Motor möglichst lange reibungslos läuft, ist ein regelmässiger Ölwechselservice notwendig. Dabei wird das Altöl abgelassen, fachgerecht entsorgt und durch frisches Motorenöl aufgefüllt. Ebenfalls wird der Ölfilter und die Dichtung ersetzt.',
+          it: 'Per far funzionare il motore il più a lungo possibile senza problemi, è necessario un regolare servizio cambio olio. L’olio esausto viene scaricato, smaltito correttamente e sostituito con olio motore nuovo. Inoltre vengono sostituiti il filtro dell’olio e la guarnizione.',
+          en: 'To keep the engine running smoothly for as long as possible, a regular oil change service is necessary. The used oil is drained, disposed of properly and replaced with fresh engine oil. The oil filter and gasket are also replaced.',
+          fr: 'Pour que le moteur fonctionne le plus longtemps possible sans problème, un service de vidange régulier est nécessaire. L’huile usagée est vidangée, éliminée correctement et remplacée par de l’huile moteur neuve. Le filtre à huile et le joint sont également remplacés.',
+        ),
+      ];
+    case workshopInspectionDetail30000:
+    default:
+      return [
+        _copy(
+          locale,
+          de: "KM-Stand zwischen 0 - 30'000 km",
+          it: 'Chilometraggio compreso tra 0 e 30.000 km',
+          en: 'Mileage between 0 and 30,000 km',
+          fr: 'Kilométrage entre 0 et 30 000 km',
+        ),
+        _copy(
+          locale,
+          de: 'inkl. Ölservice (bei Fälligkeit)',
+          it: 'incl. servizio olio (se dovuto)',
+          en: 'incl. oil service (if due)',
+          fr: 'incl. service d’huile (si nécessaire)',
+        ),
+        _copy(
+          locale,
+          de: 'inkl. Reinigung Bronze-Programm',
+          it: 'incl. pulizia programma Bronze',
+          en: 'incl. Bronze cleaning program',
+          fr: 'incl. programme de nettoyage Bronze',
+        ),
+      ];
+  }
+}
+
+String? workshopInspectionSecondaryLine(String locale, String? detail) {
+  if (normalizeWorkshopInspectionDetail(detail) !=
+      workshopInspectionDetailOilChange) {
+    return null;
+  }
+
+  return _copy(
+    locale,
+    de: 'inkl. Reinigung Bronze-Programm',
+    it: 'incl. pulizia programma Bronze',
+    en: 'incl. Bronze cleaning program',
+    fr: 'incl. programme de nettoyage Bronze',
+  );
 }
 
 String normalizeWorkshopCleaningPackage(String? raw) {

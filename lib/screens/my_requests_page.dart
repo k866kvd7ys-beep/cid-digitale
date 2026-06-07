@@ -259,6 +259,15 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
     if (serviceType.startsWith('damage_')) {
       return '${l10n.service_type_damage}: ${_damageLabel(l10n, damageType)}';
     }
+    if (serviceType == workshopServiceInspection) {
+      final locale = normalizeWorkshopServiceLocale(r.locale);
+      final baseLabel = workshopServiceLabel(locale, workshopServiceInspection);
+      if (r.serviceDetail?.trim().isNotEmpty != true) {
+        return '${l10n.service_type_service}: $baseLabel';
+      }
+      final detail = workshopInspectionDetailLabel(locale, r.serviceDetail);
+      return '${l10n.service_type_service}: $baseLabel • ${workshopInspectionSelectionFieldLabel(locale)}: $detail';
+    }
     if (serviceType == 'service_anmelden') {
       final detail = workshopServiceLabel(
         normalizeWorkshopServiceLocale(r.locale),

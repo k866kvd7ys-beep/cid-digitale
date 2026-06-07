@@ -86,6 +86,12 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     if (isTireAppointmentService(request.serviceType)) {
       return _tireServiceLabel(request);
     }
+    if (request.serviceType == workshopServiceInspection) {
+      return workshopServiceLabel(
+        normalizeWorkshopServiceLocale(request.locale),
+        workshopServiceInspection,
+      );
+    }
     if (request.serviceType == 'service_anmelden' &&
         request.serviceSelectionKey?.trim().isNotEmpty == true) {
       return workshopServiceLabel(
@@ -107,6 +113,17 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     return workshopCleaningPackageLabel(
       normalizeWorkshopServiceLocale(request.locale),
       request.cleaningPackage,
+    );
+  }
+
+  String? _inspectionDetailLabel(AppointmentRequest request) {
+    if (request.serviceType != workshopServiceInspection ||
+        request.serviceDetail?.trim().isNotEmpty != true) {
+      return null;
+    }
+    return workshopInspectionDetailLabel(
+      normalizeWorkshopServiceLocale(request.locale),
+      request.serviceDetail,
     );
   }
 
@@ -336,6 +353,33 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                         const SizedBox(height: 6),
                         Text(
                           '${workshopVehicleCleaningFieldLabel(normalizeWorkshopServiceLocale(request.locale))}: ${workshopPackageShortLabel(normalizeWorkshopServiceLocale(request.locale))}: ${_cleaningPackageLabel(request)!}',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.82),
+                                  ),
+                        ),
+                      ],
+                    ] else if (request.serviceType ==
+                        workshopServiceInspection) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        '${_copy(de: 'Service', it: 'Servizio', en: 'Service', fr: 'Service')}: ${_serviceLabel(request)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.82),
+                            ),
+                      ),
+                      if (_inspectionDetailLabel(request) != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          '${workshopInspectionSelectionFieldLabel(normalizeWorkshopServiceLocale(request.locale))}: ${_inspectionDetailLabel(request)!}',
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
                                     fontWeight: FontWeight.w600,

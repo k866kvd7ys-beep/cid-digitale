@@ -39,17 +39,27 @@ class EmailNotificationsService {
     final timeLabel = _formatTime(request.appointmentTime);
     final locale = normalizeWorkshopServiceLocale(request.locale);
     final cleaningPackage = _cleaningPackageLabel(request);
+    final inspectionDetail = _inspectionDetailLabel(request);
     final serviceLabel = _mapServiceLabel(request);
 
     return {
       'recipient': request.customerEmail,
       'name': request.customerName,
       'plate': request.licensePlate,
-      'service': cleaningPackage == null
+      'service': cleaningPackage == null && inspectionDetail == null
           ? serviceLabel
-          : '$serviceLabel\n${workshopCleaningPackageFieldLabel(locale)}: $cleaningPackage',
+          : [
+              serviceLabel,
+              if (inspectionDetail != null)
+                '${workshopInspectionSelectionFieldLabel(locale)}: $inspectionDetail',
+              if (cleaningPackage != null)
+                '${workshopCleaningPackageFieldLabel(locale)}: $cleaningPackage',
+            ].join('\n'),
       'date': dateLabel,
       'time': timeLabel,
+      if (inspectionDetail != null)
+        'service_detail_label': workshopInspectionSelectionFieldLabel(locale),
+      if (inspectionDetail != null) 'service_detail': inspectionDetail,
       if (cleaningPackage != null)
         'cleaning_package_label': workshopCleaningPackageFieldLabel(locale),
       if (cleaningPackage != null) 'cleaning_package': cleaningPackage,
@@ -84,6 +94,11 @@ class EmailNotificationsService {
                 request.serviceSelectionKey,
               )
             : 'Service';
+      case workshopServiceInspection:
+        return workshopServiceLabel(
+          normalizeWorkshopServiceLocale(request.locale),
+          workshopServiceInspection,
+        );
       case 'damage_glass':
         return 'Glasschaden';
       default:
@@ -100,6 +115,17 @@ class EmailNotificationsService {
     return workshopCleaningPackageLabel(
       normalizeWorkshopServiceLocale(request.locale),
       request.cleaningPackage,
+    );
+  }
+
+  String? _inspectionDetailLabel(AppointmentRequest request) {
+    if (request.serviceType != workshopServiceInspection ||
+        request.serviceDetail?.trim().isNotEmpty != true) {
+      return null;
+    }
+    return workshopInspectionDetailLabel(
+      normalizeWorkshopServiceLocale(request.locale),
+      request.serviceDetail,
     );
   }
 }

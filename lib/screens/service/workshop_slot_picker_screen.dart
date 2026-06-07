@@ -66,6 +66,7 @@ class WorkshopSlotPickerScreen extends StatefulWidget {
   final String? damageType;
   final String? tireServiceType;
   final String? serviceSelectionKey;
+  final String? serviceDetail;
   final String? cleaningPackage;
 
   const WorkshopSlotPickerScreen({
@@ -75,6 +76,7 @@ class WorkshopSlotPickerScreen extends StatefulWidget {
     this.damageType,
     this.tireServiceType,
     this.serviceSelectionKey,
+    this.serviceDetail,
     this.cleaningPackage,
   });
 
@@ -3491,6 +3493,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
         widget.serviceSelectionKey,
       );
     }
+    if (widget.serviceType == workshopServiceInspection) {
+      return workshopServiceLabel(
+        Localizations.localeOf(context).languageCode,
+        workshopServiceInspection,
+      );
+    }
     if (_isTireService) {
       return localizedTireServiceType(
         tireLocaleCode(context),
@@ -4075,6 +4083,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
         serviceType: widget.serviceType,
         tireServiceType: widget.tireServiceType,
         serviceSelectionKey: widget.serviceSelectionKey,
+        serviceDetail: widget.serviceDetail,
         cleaningPackage: resolvedCleaningPackage,
         damageType: widget.serviceType.startsWith('damage_')
             ? widget.serviceType
