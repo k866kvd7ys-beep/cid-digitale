@@ -145,106 +145,125 @@ class _ServiceRepairInfoScreen extends StatelessWidget {
         ),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Was beinhaltet ein Autoservice bei uns',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF111827),
-                  height: 1.2,
-                ),
-              ),
-              const SizedBox(height: 22),
-              Expanded(
-                child: GridView.builder(
-                  itemCount: _items.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 0.92,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final crossAxisCount = constraints.maxWidth >= 900 ? 3 : 2;
+            final horizontalPadding =
+                constraints.maxWidth >= 1100 ? 48.0 : 20.0;
+            final gridAspectRatio = crossAxisCount == 3 ? 0.95 : 0.88;
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                  horizontalPadding, 12, horizontalPadding, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 760),
+                    child: Text(
+                      'Was beinhaltet ein Autoservice bei uns',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF111827),
+                        height: 1.2,
+                      ),
+                    ),
                   ),
-                  itemBuilder: (context, index) {
-                    final item = _items[index];
-                    return Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: const Color(0xFFEAEAEA),
-                          width: 1,
+                  const SizedBox(height: 34),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _items.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: 30,
+                      crossAxisSpacing: 34,
+                      childAspectRatio: gridAspectRatio,
+                    ),
+                    itemBuilder: (context, index) {
+                      final item = _items[index];
+                      return _ServiceRepairInfoTile(item: item);
+                    },
+                  ),
+                  const SizedBox(height: 26),
+                  Text(
+                    '🚘 Bei jedem Service ist ein Reinigung für Ihr Fahrzeug bereits inklusive Programm 1 basis',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: const Color(0xFF4B5563),
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 58,
+                    child: ElevatedButton(
+                      onPressed: onBookNow,
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
-                            blurRadius: 20,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            item.icon,
-                            color: const Color(0xFF1E3A8A),
-                            size: 36,
-                          ),
-                          const SizedBox(height: 18),
-                          Text(
-                            item.title,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF111827),
-                              height: 1.25,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            item.subtitle,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFF6B7280),
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        'Termin buchen',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                height: 58,
-                child: ElevatedButton(
-                  onPressed: onBookNow,
-                  style: ElevatedButton.styleFrom(
-                    elevation: 0,
-                    backgroundColor: const Color(0xFF2563EB),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
                     ),
                   ),
-                  child: Text(
-                    'Termin buchen',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
+    );
+  }
+}
+
+class _ServiceRepairInfoTile extends StatelessWidget {
+  const _ServiceRepairInfoTile({required this.item});
+
+  final _ServiceRepairInfoItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(
+          item.icon,
+          color: const Color(0xFF1E3A8A),
+          size: 36,
+        ),
+        const SizedBox(height: 18),
+        Text(
+          item.title,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF111827),
+            height: 1.28,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          item.subtitle,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: const Color(0xFF6B7280),
+            height: 1.45,
+          ),
+        ),
+      ],
     );
   }
 }
