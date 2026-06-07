@@ -96,32 +96,32 @@ class _ServiceRepairInfoScreen extends StatelessWidget {
 
   static const List<_ServiceRepairInfoItem> _items = [
     _ServiceRepairInfoItem(
-      icon: Icons.search,
+      icon: Icons.search_outlined,
       title: 'Außenbereich,\nMotor und\nUnterboden',
       subtitle: 'Sichtkontrolle',
     ),
     _ServiceRepairInfoItem(
-      icon: Icons.opacity,
+      icon: Icons.opacity_outlined,
       title: 'Flüssigkeiten',
       subtitle: 'Kontrolle, Ölwechsel (wenn fällig)',
     ),
     _ServiceRepairInfoItem(
-      icon: Icons.fact_check,
+      icon: Icons.fact_check_outlined,
       title: 'Bremsen und\nStossdämpfer',
       subtitle: 'Kontrolle und Messung auf dem Prüfstand (bei Bedarf)',
     ),
     _ServiceRepairInfoItem(
-      icon: Icons.lightbulb_outline,
+      icon: Icons.highlight_outlined,
       title: 'Beleuchtung',
       subtitle: 'Funktionskontrolle und Einstellung',
     ),
     _ServiceRepairInfoItem(
-      icon: Icons.car_repair,
+      icon: Icons.car_repair_outlined,
       title: 'Karosserie,\nFahrwerk,\nAufhängung',
       subtitle: 'Sichtkontrolle',
     ),
     _ServiceRepairInfoItem(
-      icon: Icons.settings,
+      icon: Icons.settings_outlined,
       title: 'Mechanik,\nGetriebe,\nMotor,\nAbgasanlage',
       subtitle: 'Sichtkontrolle',
     ),
@@ -147,76 +147,107 @@ class _ServiceRepairInfoScreen extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final crossAxisCount = constraints.maxWidth >= 900 ? 3 : 2;
-            final horizontalPadding =
-                constraints.maxWidth >= 1100 ? 48.0 : 20.0;
-            final gridAspectRatio = crossAxisCount == 3 ? 0.95 : 0.88;
+            final isDesktop = constraints.maxWidth >= 960;
+            final crossAxisCount = isDesktop ? 3 : 2;
+            final outerPadding = isDesktop ? 28.0 : 16.0;
+            final containerPadding = isDesktop ? 40.0 : 24.0;
+            final gridSpacingX = isDesktop ? 60.0 : 24.0;
+            final gridSpacingY = isDesktop ? 50.0 : 30.0;
+            final mainAxisExtent = isDesktop ? 182.0 : 208.0;
 
             return SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
-                  horizontalPadding, 12, horizontalPadding, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 760),
-                    child: Text(
-                      'Was beinhaltet ein Autoservice bei uns',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF111827),
-                        height: 1.2,
+                outerPadding,
+                16,
+                outerPadding,
+                24,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1100),
+                  child: Container(
+                    padding: EdgeInsets.all(containerPadding),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: const Color(0xFFEAEAEA),
+                        width: 1,
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 34),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _items.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      mainAxisSpacing: 30,
-                      crossAxisSpacing: 34,
-                      childAspectRatio: gridAspectRatio,
-                    ),
-                    itemBuilder: (context, index) {
-                      final item = _items[index];
-                      return _ServiceRepairInfoTile(item: item);
-                    },
-                  ),
-                  const SizedBox(height: 26),
-                  Text(
-                    '🚘 Bei jedem Service ist ein Reinigung für Ihr Fahrzeug bereits inklusive Programm 1 basis',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: const Color(0xFF4B5563),
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 58,
-                    child: ElevatedButton(
-                      onPressed: onBookNow,
-                      style: ElevatedButton.styleFrom(
-                        elevation: 0,
-                        backgroundColor: const Color(0xFF2563EB),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 20,
+                          offset: const Offset(0, 6),
                         ),
-                      ),
-                      child: Text(
-                        'Termin buchen',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 760),
+                          child: Text(
+                            'Was beinhaltet ein Autoservice bei uns',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF111827),
+                              height: 1.2,
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 34),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _items.length,
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: crossAxisCount,
+                            crossAxisSpacing: gridSpacingX,
+                            mainAxisSpacing: gridSpacingY,
+                            mainAxisExtent: mainAxisExtent,
+                          ),
+                          itemBuilder: (context, index) {
+                            final item = _items[index];
+                            return _ServiceRepairInfoTile(item: item);
+                          },
+                        ),
+                        const SizedBox(height: 40),
+                        Text(
+                          '🚘 Bei jedem Service ist ein Reinigung für Ihr Fahrzeug bereits inklusive Programm 1 basis',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: const Color(0xFF4B5563),
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 58,
+                          child: ElevatedButton(
+                            onPressed: onBookNow,
+                            style: ElevatedButton.styleFrom(
+                              elevation: 0,
+                              backgroundColor: const Color(0xFF2563EB),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
+                            child: Text(
+                              'Termin buchen',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
             );
           },
@@ -241,24 +272,26 @@ class _ServiceRepairInfoTile extends StatelessWidget {
       children: [
         Icon(
           item.icon,
-          color: const Color(0xFF1E3A8A),
-          size: 36,
+          color: const Color(0xFF334155),
+          size: 40,
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         Text(
           item.title,
           textAlign: TextAlign.center,
           style: theme.textTheme.titleMedium?.copyWith(
+            fontSize: 18,
             fontWeight: FontWeight.w700,
             color: const Color(0xFF111827),
             height: 1.28,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Text(
           item.subtitle,
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 14,
             color: const Color(0xFF6B7280),
             height: 1.45,
           ),
