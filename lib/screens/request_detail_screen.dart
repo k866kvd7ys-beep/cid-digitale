@@ -101,13 +101,17 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         request.serviceSelectionKey,
       );
 
-  String get _cleaningProgramFieldLabel => workshopCleaningProgramFieldLabel(
+  String get _vehicleCleaningFieldLabel => workshopVehicleCleaningFieldLabel(
         normalizeWorkshopServiceLocale(request.locale),
       );
 
-  String get _cleaningProgramLabel => workshopCleaningProgramLabel(
+  String get _packageShortLabel => workshopPackageShortLabel(
         normalizeWorkshopServiceLocale(request.locale),
-        request.cleaningProgram,
+      );
+
+  String get _cleaningPackageLabel => workshopCleaningPackageLabel(
+        normalizeWorkshopServiceLocale(request.locale),
+        request.cleaningPackage,
       );
 
   String get _vehicleDocumentPhotosTitle => _copy(
@@ -1987,8 +1991,8 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                               request.serviceSelectionKey ==
                                   workshopServiceRepair)
                             _row(
-                              _cleaningProgramFieldLabel,
-                              _cleaningProgramLabel,
+                              _vehicleCleaningFieldLabel,
+                              '$_packageShortLabel: $_cleaningPackageLabel',
                             ),
                           if (_isTireRequest)
                             _row(

@@ -98,6 +98,18 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         : request.serviceType;
   }
 
+  String? _cleaningPackageLabel(AppointmentRequest request) {
+    if (request.serviceType != 'service_anmelden' ||
+        request.serviceSelectionKey != workshopServiceRepair) {
+      return null;
+    }
+
+    return workshopCleaningPackageLabel(
+      normalizeWorkshopServiceLocale(request.locale),
+      request.cleaningPackage,
+    );
+  }
+
   String _updatedSnackBar() => _copy(
         de: 'Anfragestatus aktualisiert',
         it: 'Stato richiesta aggiornato',
@@ -320,6 +332,20 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                   .withOpacity(0.82),
                             ),
                       ),
+                      if (_cleaningPackageLabel(request) != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          '${workshopVehicleCleaningFieldLabel(normalizeWorkshopServiceLocale(request.locale))}: ${workshopPackageShortLabel(normalizeWorkshopServiceLocale(request.locale))}: ${_cleaningPackageLabel(request)!}',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.82),
+                                  ),
+                        ),
+                      ],
                     ],
                     const SizedBox(height: 14),
                     DropdownButtonFormField<String>(

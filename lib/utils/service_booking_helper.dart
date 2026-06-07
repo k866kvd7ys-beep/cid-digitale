@@ -7,9 +7,9 @@ const String workshopServiceAlignment = 'vehicle_alignment';
 const String workshopServiceMfk = 'mfk_preparation';
 const String workshopServiceBattery = 'battery_check';
 const String workshopServiceFluids = 'fluid_level_check';
-const String workshopCleaningProgramBasis = 'basis';
-const String workshopCleaningProgramComfort = 'comfort';
-const String workshopCleaningProgramPremium = 'premium';
+const String workshopCleaningPackageBronze = 'bronze';
+const String workshopCleaningPackageSilber = 'silber';
+const String workshopCleaningPackageGold = 'gold';
 
 const List<String> visibleWorkshopServiceKeys = <String>[
   workshopServiceRepair,
@@ -222,34 +222,53 @@ IconData workshopServiceIcon(String serviceKey) {
   }
 }
 
-String normalizeWorkshopCleaningProgram(String? raw) {
+String normalizeWorkshopCleaningPackage(String? raw) {
   switch ((raw ?? '').trim().toLowerCase()) {
-    case workshopCleaningProgramComfort:
-      return workshopCleaningProgramComfort;
-    case workshopCleaningProgramPremium:
-      return workshopCleaningProgramPremium;
-    case workshopCleaningProgramBasis:
+    case workshopCleaningPackageSilber:
+    case 'comfort':
+      return workshopCleaningPackageSilber;
+    case workshopCleaningPackageGold:
+    case 'premium':
+      return workshopCleaningPackageGold;
+    case workshopCleaningPackageBronze:
+    case 'basis':
     default:
-      return workshopCleaningProgramBasis;
+      return workshopCleaningPackageBronze;
   }
 }
 
-String workshopCleaningProgramLabel(String locale, String? program) {
-  switch (normalizeWorkshopCleaningProgram(program)) {
-    case workshopCleaningProgramComfort:
-      return 'Comfort';
-    case workshopCleaningProgramPremium:
-      return 'Premium';
-    case workshopCleaningProgramBasis:
+String workshopCleaningPackageLabel(String locale, String? program) {
+  switch (normalizeWorkshopCleaningPackage(program)) {
+    case workshopCleaningPackageSilber:
+      return 'Silber';
+    case workshopCleaningPackageGold:
+      return 'Gold';
+    case workshopCleaningPackageBronze:
     default:
-      return 'Basis';
+      return 'Bronze';
   }
 }
 
-String workshopCleaningProgramFieldLabel(String locale) => _copy(
+String workshopCleaningPackageFieldLabel(String locale) => _copy(
       locale,
-      de: 'Reinigungsprogramm',
-      it: 'Programma pulizia',
-      en: 'Cleaning program',
-      fr: 'Programme de nettoyage',
+      de: 'Reinigungspaket',
+      it: 'Pacchetto pulizia',
+      en: 'Cleaning package',
+      fr: 'Forfait nettoyage',
+    );
+
+String workshopVehicleCleaningFieldLabel(String locale) => _copy(
+      locale,
+      de: 'Fahrzeugreinigung',
+      it: 'Pulizia veicolo',
+      en: 'Vehicle cleaning',
+      fr: 'Nettoyage du véhicule',
+    );
+
+String workshopPackageShortLabel(String locale) => _copy(
+      locale,
+      de: 'Paket',
+      it: 'Pacchetto',
+      en: 'Package',
+      fr: 'Forfait',
     );

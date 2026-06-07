@@ -38,21 +38,21 @@ class EmailNotificationsService {
     final dateLabel = DateFormat('dd.MM.yyyy').format(request.appointmentDate);
     final timeLabel = _formatTime(request.appointmentTime);
     final locale = normalizeWorkshopServiceLocale(request.locale);
-    final cleaningProgram = _cleaningProgramLabel(request);
+    final cleaningPackage = _cleaningPackageLabel(request);
     final serviceLabel = _mapServiceLabel(request);
 
     return {
       'recipient': request.customerEmail,
       'name': request.customerName,
       'plate': request.licensePlate,
-      'service': cleaningProgram == null
+      'service': cleaningPackage == null
           ? serviceLabel
-          : '$serviceLabel\n${workshopCleaningProgramFieldLabel(locale)}: $cleaningProgram',
+          : '$serviceLabel\n${workshopCleaningPackageFieldLabel(locale)}: $cleaningPackage',
       'date': dateLabel,
       'time': timeLabel,
-      if (cleaningProgram != null)
-        'cleaning_program_label': workshopCleaningProgramFieldLabel(locale),
-      if (cleaningProgram != null) 'cleaning_program': cleaningProgram,
+      if (cleaningPackage != null)
+        'cleaning_package_label': workshopCleaningPackageFieldLabel(locale),
+      if (cleaningPackage != null) 'cleaning_package': cleaningPackage,
     };
   }
 
@@ -91,15 +91,15 @@ class EmailNotificationsService {
     }
   }
 
-  String? _cleaningProgramLabel(AppointmentRequest request) {
+  String? _cleaningPackageLabel(AppointmentRequest request) {
     if (request.serviceType != 'service_anmelden' ||
         request.serviceSelectionKey != workshopServiceRepair) {
       return null;
     }
 
-    return workshopCleaningProgramLabel(
+    return workshopCleaningPackageLabel(
       normalizeWorkshopServiceLocale(request.locale),
-      request.cleaningProgram,
+      request.cleaningPackage,
     );
   }
 }

@@ -12,7 +12,7 @@ class ServiceAnmeldenScreen extends StatelessWidget {
     BuildContext context,
     String locale,
     String serviceKey,
-    String? cleaningProgram,
+    String? cleaningPackage,
   ) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -20,7 +20,7 @@ class ServiceAnmeldenScreen extends StatelessWidget {
           title: workshopServiceLabel(locale, serviceKey),
           serviceType: 'service_anmelden',
           serviceSelectionKey: serviceKey,
-          cleaningProgram: cleaningProgram,
+          cleaningPackage: cleaningPackage,
         ),
       ),
     );
@@ -73,11 +73,11 @@ class ServiceAnmeldenScreen extends StatelessWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => _ServiceRepairInfoScreen(
-                        onBookNow: (cleaningProgram) => _openBooking(
+                        onBookNow: (cleaningPackage) => _openBooking(
                           context,
                           locale,
                           serviceKey,
-                          cleaningProgram,
+                          cleaningPackage,
                         ),
                       ),
                     ),
@@ -106,7 +106,7 @@ class _ServiceRepairInfoScreen extends StatefulWidget {
 }
 
 class _ServiceRepairInfoScreenState extends State<_ServiceRepairInfoScreen> {
-  String _selectedCleaningProgram = workshopCleaningProgramBasis;
+  String _selectedCleaningPackage = workshopCleaningPackageBronze;
 
   static const List<_ServiceRepairInfoItem> _items = [
     _ServiceRepairInfoItem(
@@ -229,14 +229,6 @@ class _ServiceRepairInfoScreenState extends State<_ServiceRepairInfoScreen> {
                         ),
                         const SizedBox(height: 40),
                         Text(
-                          '🚘 Bei jedem Service ist ein Reinigung für Ihr Fahrzeug bereits inklusive Programm 1 basis',
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: const Color(0xFF4B5563),
-                            height: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-                        Text(
                           'Fahrzeugreinigung',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w700,
@@ -245,7 +237,7 @@ class _ServiceRepairInfoScreenState extends State<_ServiceRepairInfoScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Wählen Sie das gewünschte Reinigungsprogramm',
+                          'Wählen Sie das gewünschte Reinigungspaket',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: const Color(0xFF6B7280),
                             height: 1.45,
@@ -266,59 +258,70 @@ class _ServiceRepairInfoScreenState extends State<_ServiceRepairInfoScreen> {
                                 _CleaningProgramCard(
                                   width: itemWidth,
                                   icon: Icons.local_car_wash_outlined,
-                                  title: 'PROGRAMM 1 BASIS',
+                                  title: 'Bronze',
+                                  subtitle: 'Im Service inklusive',
                                   bullets: const [
-                                    'bereits im Service inklusive',
-                                    'schnelle Aussenreinigung',
-                                    'Basis-Innenraumreinigung',
+                                    'Standard-Aussenwäsche',
+                                    'Armaturenbrett und Display reinigen',
+                                    'Fussraum vorne saugen',
+                                    'Front- und Seitenscheiben aussen reinigen',
+                                    'Schweller vorne reinigen',
                                   ],
-                                  badgeText: 'Inklusive',
+                                  badgeText: 'Im Service kostenlos',
                                   badgeColor: const Color(0xFF16A34A),
-                                  selected: _selectedCleaningProgram ==
-                                      workshopCleaningProgramBasis,
+                                  selected: _selectedCleaningPackage ==
+                                      workshopCleaningPackageBronze,
                                   onTap: () {
                                     setState(() {
-                                      _selectedCleaningProgram =
-                                          workshopCleaningProgramBasis;
+                                      _selectedCleaningPackage =
+                                          workshopCleaningPackageBronze;
                                     });
                                   },
                                 ),
                                 _CleaningProgramCard(
                                   width: itemWidth,
                                   icon: Icons.auto_awesome_outlined,
-                                  title: 'PROGRAMM 2 COMFORT',
+                                  title: 'Silber',
+                                  subtitle: 'Zusätzlich zu Bronze',
                                   bullets: const [
-                                    'vollständige Aussenwäsche',
-                                    'komplette Innenraumreinigung',
-                                    'Innenfenster reinigen',
-                                    'Cockpit reinigen',
+                                    'Felgenreinigung',
+                                    'Reifenpflege mit Reifenglanz',
+                                    'Frontscheibe innen reinigen',
+                                    'Seitenscheiben innen reinigen',
+                                    'Innenraum komplett saugen',
                                   ],
-                                  selected: _selectedCleaningProgram ==
-                                      workshopCleaningProgramComfort,
+                                  badgeText: 'Premium Reinigung',
+                                  badgeColor: const Color(0xFF2563EB),
+                                  selected: _selectedCleaningPackage ==
+                                      workshopCleaningPackageSilber,
                                   onTap: () {
                                     setState(() {
-                                      _selectedCleaningProgram =
-                                          workshopCleaningProgramComfort;
+                                      _selectedCleaningPackage =
+                                          workshopCleaningPackageSilber;
                                     });
                                   },
                                 ),
                                 _CleaningProgramCard(
                                   width: itemWidth,
                                   icon: Icons.workspace_premium_outlined,
-                                  title: 'PROGRAMM 3 PREMIUM',
+                                  title: 'Gold',
+                                  subtitle: 'Zusätzlich zu Silber',
                                   bullets: const [
-                                    'alles aus Programm 2',
-                                    'Pflege der Innenkunststoffe',
-                                    'schnelle Karosseriepolitur',
-                                    'Innenraumduft',
-                                    'Felgenreinigung',
+                                    'Komplette Innenreinigung',
+                                    'Erweiterte Premiumwäsche',
+                                    'Reinigung aller Türfalze',
+                                    'Reinigung aller Innenablagen',
+                                    'Reinigung sämtlicher Innenfenster',
+                                    'Professionelles Finish',
                                   ],
-                                  selected: _selectedCleaningProgram ==
-                                      workshopCleaningProgramPremium,
+                                  badgeText: 'Maximale Pflege',
+                                  badgeColor: const Color(0xFFF59E0B),
+                                  selected: _selectedCleaningPackage ==
+                                      workshopCleaningPackageGold,
                                   onTap: () {
                                     setState(() {
-                                      _selectedCleaningProgram =
-                                          workshopCleaningProgramPremium;
+                                      _selectedCleaningPackage =
+                                          workshopCleaningPackageGold;
                                     });
                                   },
                                 ),
@@ -332,7 +335,7 @@ class _ServiceRepairInfoScreenState extends State<_ServiceRepairInfoScreen> {
                           height: 58,
                           child: ElevatedButton(
                             onPressed: () =>
-                                widget.onBookNow(_selectedCleaningProgram),
+                                widget.onBookNow(_selectedCleaningPackage),
                             style: ElevatedButton.styleFrom(
                               elevation: 0,
                               backgroundColor: const Color(0xFF2563EB),
@@ -342,7 +345,7 @@ class _ServiceRepairInfoScreenState extends State<_ServiceRepairInfoScreen> {
                               ),
                             ),
                             child: Text(
-                              'Termin buchen',
+                              'Reinigung buchen',
                               style: theme.textTheme.titleMedium?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w700,
@@ -412,6 +415,7 @@ class _CleaningProgramCard extends StatelessWidget {
     required this.width,
     required this.icon,
     required this.title,
+    required this.subtitle,
     required this.bullets,
     required this.selected,
     required this.onTap,
@@ -422,6 +426,7 @@ class _CleaningProgramCard extends StatelessWidget {
   final double width;
   final IconData icon;
   final String title;
+  final String subtitle;
   final List<String> bullets;
   final bool selected;
   final VoidCallback onTap;
@@ -442,7 +447,7 @@ class _CleaningProgramCard extends StatelessWidget {
           child: Ink(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: selected ? const Color(0xFFEFF6FF) : Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: selected
@@ -477,6 +482,22 @@ class _CleaningProgramCard extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
+                    if (selected)
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF2563EB),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    if (selected && badgeText != null)
+                      const SizedBox(width: 10),
                     if (badgeText != null)
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -504,6 +525,14 @@ class _CleaningProgramCard extends StatelessWidget {
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF111827),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF6B7280),
+                    height: 1.4,
                   ),
                 ),
                 const SizedBox(height: 12),
