@@ -28,6 +28,7 @@ import 'ocr_utils.dart';
 import 'scanner_libretto_page.dart';
 import 'config/supabase_config.dart';
 import 'screens/officina/appointments_screen.dart';
+import 'screens/service/service_anmelden_screen.dart';
 import 'screens/service/raeder_wechsel_screen.dart';
 import 'screens/service/workshop_slot_picker_screen.dart';
 import 'services/supabase_service.dart';
@@ -1545,10 +1546,7 @@ class _CidDigitaleAppState extends State<CidDigitaleApp>
             ),
           ),
           routes: {
-            '/service_anmelden': (_) => const WorkshopSlotPickerScreen(
-                  title: 'Service anmelden',
-                  serviceType: 'service_anmelden',
-                ),
+            '/service_anmelden': (_) => const ServiceAnmeldenScreen(),
             '/raeder_wechsel': (_) => const RaederWechselScreen(),
           },
           home: const AuthGate(
@@ -2836,14 +2834,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _openServiceAnmelden(BuildContext context) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const WorkshopSlotPickerScreen(
-          title: 'Service anmelden',
-          serviceType: 'service_anmelden',
-        ),
-      ),
-    );
+    await Navigator.of(context).pushNamed('/service_anmelden');
   }
 
   Future<void> _openRaederWechsel(BuildContext context) async {

@@ -7,6 +7,7 @@ import 'package:cid_digitale/models/appointment_request.dart';
 import 'package:cid_digitale/services/appointment_requests_service.dart';
 import 'package:cid_digitale/services/local_image_cache.dart';
 import 'package:cid_digitale/services/premium_workshop_pdf_service.dart';
+import 'package:cid_digitale/utils/service_booking_helper.dart';
 import 'package:cid_digitale/utils/tire_service_type_helper.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -93,6 +94,11 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         _tireLocaleCode,
         tireServiceType: request.tireServiceType,
         serviceType: request.serviceType,
+      );
+
+  String get _serviceSelectionLabel => workshopServiceLabel(
+        normalizeWorkshopServiceLocale(request.locale),
+        request.serviceSelectionKey,
       );
 
   String get _vehicleDocumentPhotosTitle => _copy(
@@ -1932,7 +1938,11 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
             return l10n.service_type_damage;
         }
       }
-      if (serviceType == 'service_anmelden') return l10n.service_type_service;
+      if (serviceType == 'service_anmelden') {
+        return request.serviceSelectionKey?.trim().isNotEmpty == true
+            ? _serviceSelectionLabel
+            : l10n.service_type_service;
+      }
       if (serviceType == 'raeder_sommer' || serviceType == 'raeder_winter') {
         return l10n.service_type_tires;
       }

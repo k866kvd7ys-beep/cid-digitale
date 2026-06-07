@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/appointment_request.dart';
+import '../utils/service_booking_helper.dart';
 import '../utils/tire_service_type_helper.dart';
 
 /// Centralized email notifications helper.
@@ -69,7 +70,12 @@ class EmailNotificationsService {
       case 'raeder_winter':
         return 'Räderwechsel Winter';
       case 'service_anmelden':
-        return 'Service';
+        return request.serviceSelectionKey?.trim().isNotEmpty == true
+            ? workshopServiceLabel(
+                normalizeWorkshopServiceLocale(request.locale),
+                request.serviceSelectionKey,
+              )
+            : 'Service';
       case 'damage_glass':
         return 'Glasschaden';
       default:

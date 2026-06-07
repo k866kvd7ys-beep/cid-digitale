@@ -6,6 +6,7 @@ import 'package:cid_digitale/models/appointment_request.dart';
 import 'package:cid_digitale/screens/my_requests_page.dart';
 import 'package:cid_digitale/services/appointment_requests_service.dart';
 import 'package:cid_digitale/services/local_image_cache.dart';
+import 'package:cid_digitale/utils/service_booking_helper.dart';
 import 'package:cid_digitale/utils/tire_service_type_helper.dart';
 import 'package:cid_digitale/widgets/damage_type_picker_sheet.dart';
 import 'package:flutter/foundation.dart';
@@ -64,6 +65,7 @@ class WorkshopSlotPickerScreen extends StatefulWidget {
   final String serviceType;
   final String? damageType;
   final String? tireServiceType;
+  final String? serviceSelectionKey;
 
   const WorkshopSlotPickerScreen({
     super.key,
@@ -71,6 +73,7 @@ class WorkshopSlotPickerScreen extends StatefulWidget {
     required this.serviceType,
     this.damageType,
     this.tireServiceType,
+    this.serviceSelectionKey,
   });
 
   @override
@@ -3481,12 +3484,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
       );
     }
     if (widget.serviceType == 'service_anmelden') {
-      return _copy(
-        context: context,
-        de: 'Service / Wartung',
-        it: 'Service / manutenzione',
-        en: 'Service / maintenance',
-        fr: 'Service / entretien',
+      return workshopServiceLabel(
+        Localizations.localeOf(context).languageCode,
+        widget.serviceSelectionKey,
       );
     }
     if (_isTireService) {
@@ -4068,6 +4068,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
       final request = await _appointmentService.createRequest(
         serviceType: widget.serviceType,
         tireServiceType: widget.tireServiceType,
+        serviceSelectionKey: widget.serviceSelectionKey,
         damageType: widget.serviceType.startsWith('damage_')
             ? widget.serviceType
             : widget.damageType,

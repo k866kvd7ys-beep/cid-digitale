@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cid_digitale/models/appointment_request.dart';
 import 'package:cid_digitale/services/appointment_requests_service.dart';
+import 'package:cid_digitale/utils/service_booking_helper.dart';
 import 'package:cid_digitale/utils/tire_service_type_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -80,6 +81,22 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         tireServiceType: request.tireServiceType,
         serviceType: request.serviceType,
       );
+
+  String _serviceLabel(AppointmentRequest request) {
+    if (isTireAppointmentService(request.serviceType)) {
+      return _tireServiceLabel(request);
+    }
+    if (request.serviceType == 'service_anmelden' &&
+        request.serviceSelectionKey?.trim().isNotEmpty == true) {
+      return workshopServiceLabel(
+        normalizeWorkshopServiceLocale(request.locale),
+        request.serviceSelectionKey,
+      );
+    }
+    return request.damageType?.isNotEmpty == true
+        ? request.damageType!
+        : request.serviceType;
+  }
 
   String _updatedSnackBar() => _copy(
         de: 'Anfragestatus aktualisiert',
@@ -269,11 +286,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      isTireAppointmentService(request.serviceType)
-                          ? _tireServiceLabel(request)
-                          : request.damageType?.isNotEmpty == true
-                              ? request.damageType!
-                              : request.serviceType,
+                      _serviceLabel(request),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context)
                                 .colorScheme
@@ -285,6 +298,20 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                       const SizedBox(height: 6),
                       Text(
                         '${tireServiceSectionLabel(_localeCode)}: ${_tireServiceLabel(request)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.82),
+                            ),
+                      ),
+                    ] else if (request.serviceType == 'service_anmelden' &&
+                        request.serviceSelectionKey?.trim().isNotEmpty ==
+                            true) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        '${_copy(de: 'Service', it: 'Servizio', en: 'Service', fr: 'Service')}: ${_serviceLabel(request)}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: Theme.of(context)

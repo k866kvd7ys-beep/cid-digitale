@@ -19,6 +19,7 @@ class AppointmentRequest {
     this.notes,
     this.damageType,
     this.tireServiceType,
+    this.serviceSelectionKey,
     this.locale,
     this.glassDamageTown,
     this.glassDamageDate,
@@ -93,6 +94,7 @@ class AppointmentRequest {
   final String? notes;
   final String? damageType;
   final String? tireServiceType;
+  final String? serviceSelectionKey;
   final String? locale;
   final String? glassDamageTown;
   final String? glassDamageDate;
@@ -375,6 +377,12 @@ class AppointmentRequest {
             structuredNotes['tire_service_type'])
         ?.toString()
         .trim();
+    final resolvedServiceSelectionKey = (map['serviceSelectionKey'] ??
+            map['service_selection_key'] ??
+            structuredNotes['serviceSelectionKey'] ??
+            structuredNotes['service_selection_key'])
+        ?.toString()
+        .trim();
     final resolvedRequestStatus = (map['request_status'] ??
                 map['requestStatus'] ??
                 structuredNotes['requestStatus'] ??
@@ -418,6 +426,9 @@ class AppointmentRequest {
       tireServiceType: (resolvedTireServiceType?.isEmpty ?? true)
           ? null
           : resolvedTireServiceType,
+      serviceSelectionKey: (resolvedServiceSelectionKey?.isEmpty ?? true)
+          ? null
+          : resolvedServiceSelectionKey,
       locale: (map['locale'] ?? map['languageCode'])?.toString(),
       glassDamageTown: (map['glassDamageTown'] ??
               map['glass_damage_town'] ??
@@ -565,6 +576,8 @@ class AppointmentRequest {
       'damage_type': damageType,
       'tireServiceType': tireServiceType,
       'tire_service_type': tireServiceType,
+      'serviceSelectionKey': serviceSelectionKey,
+      'service_selection_key': serviceSelectionKey,
       'locale': locale,
       'glassDamageTown': glassDamageTown,
       'glassDamageDate': glassDamageDate,
