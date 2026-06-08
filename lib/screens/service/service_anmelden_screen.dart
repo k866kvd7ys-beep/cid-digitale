@@ -289,17 +289,23 @@ class _ServiceInspectionScreenState extends State<_ServiceInspectionScreen> {
                         spacing: 16,
                         runSpacing: 16,
                         children: [
-                          _CleaningPackageOptionCard(
+                          _CleaningProgramCard(
                             width: itemWidth,
+                            icon: Icons.local_car_wash_outlined,
                             title: 'Bronze',
-                            subtitle: workshopInspectionCleaningOptionSubtitle(
+                            subtitle: workshopCleaningPackageSubtitle(
                               widget.locale,
                               workshopCleaningPackageBronze,
                             ),
-                            detail: workshopInspectionCleaningOptionDetail(
+                            bullets: workshopCleaningPackageBullets(
                               widget.locale,
                               workshopCleaningPackageBronze,
                             ),
+                            badgeText: workshopCleaningPackageBadge(
+                              widget.locale,
+                              workshopCleaningPackageBronze,
+                            ),
+                            badgeColor: const Color(0xFF16A34A),
                             selected: _selectedCleaningPackage ==
                                 workshopCleaningPackageBronze,
                             onTap: () {
@@ -309,17 +315,23 @@ class _ServiceInspectionScreenState extends State<_ServiceInspectionScreen> {
                               });
                             },
                           ),
-                          _CleaningPackageOptionCard(
+                          _CleaningProgramCard(
                             width: itemWidth,
+                            icon: Icons.auto_awesome_outlined,
                             title: 'Silber',
-                            subtitle: workshopInspectionCleaningOptionSubtitle(
+                            subtitle: workshopCleaningPackageSubtitle(
                               widget.locale,
                               workshopCleaningPackageSilber,
                             ),
-                            detail: workshopInspectionCleaningOptionDetail(
+                            bullets: workshopCleaningPackageBullets(
                               widget.locale,
                               workshopCleaningPackageSilber,
                             ),
+                            badgeText: workshopCleaningPackageBadge(
+                              widget.locale,
+                              workshopCleaningPackageSilber,
+                            ),
+                            badgeColor: const Color(0xFF2563EB),
                             selected: _selectedCleaningPackage ==
                                 workshopCleaningPackageSilber,
                             onTap: () {
@@ -329,17 +341,23 @@ class _ServiceInspectionScreenState extends State<_ServiceInspectionScreen> {
                               });
                             },
                           ),
-                          _CleaningPackageOptionCard(
+                          _CleaningProgramCard(
                             width: itemWidth,
+                            icon: Icons.workspace_premium_outlined,
                             title: 'Gold',
-                            subtitle: workshopInspectionCleaningOptionSubtitle(
+                            subtitle: workshopCleaningPackageSubtitle(
                               widget.locale,
                               workshopCleaningPackageGold,
                             ),
-                            detail: workshopInspectionCleaningOptionDetail(
+                            bullets: workshopCleaningPackageBullets(
                               widget.locale,
                               workshopCleaningPackageGold,
                             ),
+                            badgeText: workshopCleaningPackageBadge(
+                              widget.locale,
+                              workshopCleaningPackageGold,
+                            ),
+                            badgeColor: const Color(0xFFF59E0B),
                             selected: _selectedCleaningPackage ==
                                 workshopCleaningPackageGold,
                             onTap: () {
@@ -1138,92 +1156,6 @@ class _InspectionOptionCard extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CleaningPackageOptionCard extends StatelessWidget {
-  const _CleaningPackageOptionCard({
-    required this.width,
-    required this.title,
-    required this.subtitle,
-    required this.detail,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final double width;
-  final String title;
-  final String subtitle;
-  final String detail;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SizedBox(
-      width: width,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Ink(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: selected ? const Color(0xFFEFF6FF) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: selected
-                    ? const Color(0xFF2563EB)
-                    : const Color(0xFFE5E7EB),
-                width: selected ? 2 : 1,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF111827),
-                        ),
-                      ),
-                    ),
-                    if (selected)
-                      const Icon(
-                        Icons.check_circle,
-                        color: Color(0xFF2563EB),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  subtitle,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF4B5563),
-                    height: 1.45,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  detail,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF6B7280),
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ),

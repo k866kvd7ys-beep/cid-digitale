@@ -17,6 +17,12 @@ const String workshopCleaningPackageSilber = 'silber';
 const String workshopCleaningPackageGold = 'gold';
 const String workshopAdditionalServiceGlassRepair = 'scheibenreparatur';
 const String workshopAdditionalServiceTireChange = 'reifenwechsel';
+const String workshopAdditionalServiceSeasonalTireChange =
+    'reifenwechsel_sommer_winter';
+const String workshopAdditionalServiceCollisionDamage = 'kollisionsschaden';
+const String workshopAdditionalServiceParkingDamage = 'parkschaden';
+const String workshopAdditionalServiceGlassDamage = 'glasschaden';
+const String workshopAdditionalServiceRimRepair = 'felgen_reparieren';
 
 const List<String> visibleWorkshopServiceKeys = <String>[
   workshopServiceInspection,
@@ -456,32 +462,19 @@ String workshopCancelLabel(String locale) => _copy(
     );
 
 List<String> workshopAdditionalServiceOptions() => const [
-      workshopServiceInspection,
-      workshopInspectionDetailOilChange,
-      workshopAdditionalServiceGlassRepair,
       workshopServiceVehicleCheck,
       workshopServiceClimate,
       workshopServiceBattery,
       workshopServiceAlignment,
-      workshopServiceFluids,
-      workshopAdditionalServiceTireChange,
+      workshopAdditionalServiceSeasonalTireChange,
+      workshopAdditionalServiceCollisionDamage,
+      workshopAdditionalServiceParkingDamage,
+      workshopAdditionalServiceGlassDamage,
+      workshopAdditionalServiceRimRepair,
     ];
 
 String workshopAdditionalServiceLabel(String locale, String key) {
   switch (key) {
-    case workshopServiceInspection:
-      return workshopServiceLabel(locale, workshopServiceInspection);
-    case workshopInspectionDetailOilChange:
-      return workshopInspectionDetailLabel(
-          locale, workshopInspectionDetailOilChange);
-    case workshopAdditionalServiceGlassRepair:
-      return _copy(
-        locale,
-        de: 'Scheibenreparatur',
-        it: 'Riparazione vetro',
-        en: 'Glass repair',
-        fr: 'Réparation de vitre',
-      );
     case workshopServiceVehicleCheck:
       return workshopServiceLabel(locale, workshopServiceVehicleCheck);
     case workshopServiceClimate:
@@ -490,8 +483,46 @@ String workshopAdditionalServiceLabel(String locale, String key) {
       return workshopServiceLabel(locale, workshopServiceBattery);
     case workshopServiceAlignment:
       return workshopServiceLabel(locale, workshopServiceAlignment);
-    case workshopServiceFluids:
-      return workshopServiceLabel(locale, workshopServiceFluids);
+    case workshopAdditionalServiceSeasonalTireChange:
+      return _copy(
+        locale,
+        de: 'Reifenwechsel Sommer oder Winter',
+        it: 'Cambio gomme estive o invernali',
+        en: 'Summer or winter tire change',
+        fr: 'Changement de pneus été ou hiver',
+      );
+    case workshopAdditionalServiceCollisionDamage:
+      return _copy(
+        locale,
+        de: 'Kollisionsschaden',
+        it: 'Danno da collisione',
+        en: 'Collision damage',
+        fr: 'Dommage de collision',
+      );
+    case workshopAdditionalServiceParkingDamage:
+      return _copy(
+        locale,
+        de: 'Parkschaden',
+        it: 'Danno da parcheggio',
+        en: 'Parking damage',
+        fr: 'Dommage de stationnement',
+      );
+    case workshopAdditionalServiceGlassDamage:
+      return _copy(
+        locale,
+        de: 'Glasschaden',
+        it: 'Danno vetro',
+        en: 'Glass damage',
+        fr: 'Dommage vitrage',
+      );
+    case workshopAdditionalServiceRimRepair:
+      return _copy(
+        locale,
+        de: 'Felgen reparieren',
+        it: 'Riparazione cerchi',
+        en: 'Rim repair',
+        fr: 'Réparation des jantes',
+      );
     case workshopAdditionalServiceTireChange:
       return _copy(
         locale,
@@ -642,6 +673,200 @@ String workshopCleaningPackageFieldLabel(String locale) => _copy(
       en: 'Cleaning package',
       fr: 'Forfait nettoyage',
     );
+
+String workshopCleaningPackageSubtitle(String locale, String? program) {
+  switch (normalizeWorkshopCleaningPackage(program)) {
+    case workshopCleaningPackageSilber:
+      return _copy(
+        locale,
+        de: 'Zusätzlich zu Bronze',
+        it: 'In aggiunta a Bronze',
+        en: 'In addition to Bronze',
+        fr: 'En plus de Bronze',
+      );
+    case workshopCleaningPackageGold:
+      return _copy(
+        locale,
+        de: 'Zusätzlich zu Silber',
+        it: 'In aggiunta a Silber',
+        en: 'In addition to Silber',
+        fr: 'En plus de Silber',
+      );
+    case workshopCleaningPackageBronze:
+    default:
+      return _copy(
+        locale,
+        de: 'Im Service inklusive',
+        it: 'Incluso nel servizio',
+        en: 'Included in the service',
+        fr: 'Inclus dans le service',
+      );
+  }
+}
+
+String workshopCleaningPackageBadge(String locale, String? program) {
+  switch (normalizeWorkshopCleaningPackage(program)) {
+    case workshopCleaningPackageSilber:
+      return _copy(
+        locale,
+        de: 'Premium Reinigung',
+        it: 'Pulizia premium',
+        en: 'Premium cleaning',
+        fr: 'Nettoyage premium',
+      );
+    case workshopCleaningPackageGold:
+      return _copy(
+        locale,
+        de: 'Maximale Pflege',
+        it: 'Massima cura',
+        en: 'Maximum care',
+        fr: 'Soin maximal',
+      );
+    case workshopCleaningPackageBronze:
+    default:
+      return _copy(
+        locale,
+        de: 'Im Service kostenlos',
+        it: 'Gratuito nel servizio',
+        en: 'Free with service',
+        fr: 'Inclus dans le service',
+      );
+  }
+}
+
+List<String> workshopCleaningPackageBullets(String locale, String? program) {
+  switch (normalizeWorkshopCleaningPackage(program)) {
+    case workshopCleaningPackageSilber:
+      return [
+        _copy(
+          locale,
+          de: 'Felgenreinigung',
+          it: 'Pulizia cerchi',
+          en: 'Wheel cleaning',
+          fr: 'Nettoyage des jantes',
+        ),
+        _copy(
+          locale,
+          de: 'Reifenpflege mit Reifenglanz',
+          it: 'Trattamento pneumatici con effetto lucido',
+          en: 'Tire care with tire shine',
+          fr: 'Entretien des pneus avec effet brillant',
+        ),
+        _copy(
+          locale,
+          de: 'Frontscheibe innen reinigen',
+          it: 'Pulizia interna parabrezza',
+          en: 'Clean windshield inside',
+          fr: 'Nettoyage intérieur du pare-brise',
+        ),
+        _copy(
+          locale,
+          de: 'Seitenscheiben vorne innen reinigen',
+          it: 'Pulizia interna vetri laterali anteriori',
+          en: 'Clean front side windows inside',
+          fr: 'Nettoyage intérieur des vitres latérales avant',
+        ),
+        _copy(
+          locale,
+          de: 'Innenraum komplett saugen',
+          it: 'Aspirazione completa abitacolo',
+          en: 'Vacuum complete interior',
+          fr: 'Aspiration complète de l’habitacle',
+        ),
+        _copy(
+          locale,
+          de: 'Alle Sitze saugen',
+          it: 'Aspirazione di tutti i sedili',
+          en: 'Vacuum all seats',
+          fr: 'Aspiration de tous les sièges',
+        ),
+      ];
+    case workshopCleaningPackageGold:
+      return [
+        _copy(
+          locale,
+          de: 'Komplette Innenreinigung',
+          it: 'Pulizia completa interna',
+          en: 'Complete interior cleaning',
+          fr: 'Nettoyage complet intérieur',
+        ),
+        _copy(
+          locale,
+          de: 'Erweiterte Premiumwäsche',
+          it: 'Lavaggio premium esteso',
+          en: 'Extended premium wash',
+          fr: 'Lavage premium étendu',
+        ),
+        _copy(
+          locale,
+          de: 'Reinigung aller Türfalze',
+          it: 'Pulizia di tutte le battute porta',
+          en: 'Cleaning of all door jambs',
+          fr: 'Nettoyage de tous les seuils de porte',
+        ),
+        _copy(
+          locale,
+          de: 'Reinigung aller Innenablagen',
+          it: 'Pulizia di tutti i vani interni',
+          en: 'Cleaning of all interior compartments',
+          fr: 'Nettoyage de tous les rangements intérieurs',
+        ),
+        _copy(
+          locale,
+          de: 'Reinigung sämtlicher Innenfenster',
+          it: 'Pulizia di tutti i vetri interni',
+          en: 'Cleaning of all interior windows',
+          fr: 'Nettoyage de toutes les vitres intérieures',
+        ),
+        _copy(
+          locale,
+          de: 'Professionelles Finish',
+          it: 'Finitura professionale',
+          en: 'Professional finish',
+          fr: 'Finition professionnelle',
+        ),
+      ];
+    case workshopCleaningPackageBronze:
+    default:
+      return [
+        _copy(
+          locale,
+          de: 'Standard-Aussenwäsche',
+          it: 'Lavaggio esterno standard',
+          en: 'Standard exterior wash',
+          fr: 'Lavage extérieur standard',
+        ),
+        _copy(
+          locale,
+          de: 'Armaturenbrett und Display reinigen',
+          it: 'Pulizia cruscotto e display',
+          en: 'Clean dashboard and display',
+          fr: 'Nettoyage tableau de bord et écran',
+        ),
+        _copy(
+          locale,
+          de: 'Fussraum vorne saugen',
+          it: 'Aspirazione vano piedi anteriore',
+          en: 'Vacuum front footwell',
+          fr: 'Aspiration de l’espace avant pour les pieds',
+        ),
+        _copy(
+          locale,
+          de: 'Front- und Seitenscheiben aussen reinigen',
+          it: 'Pulizia esterna parabrezza e vetri laterali',
+          en: 'Clean windshield and side windows outside',
+          fr: 'Nettoyage extérieur pare-brise et vitres latérales',
+        ),
+        _copy(
+          locale,
+          de: 'Schweller vorne reinigen',
+          it: 'Pulizia soglie anteriori',
+          en: 'Clean front sills',
+          fr: 'Nettoyage des seuils avant',
+        ),
+      ];
+  }
+}
 
 String workshopVehicleCleaningFieldLabel(String locale) => _copy(
       locale,
