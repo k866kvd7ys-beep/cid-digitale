@@ -1527,14 +1527,17 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final width = MediaQuery.sizeOf(context).width;
+    final isMobile = width < 720;
+    final isTablet = width >= 720 && width < 1100;
     final crossAxisCount = width >= 1100
         ? 3
-        : width >= 720
+        : isTablet
             ? 2
             : 1;
     const crossSpacing = 16.0;
-    const mainSpacing = 8.0;
-    final contentWidth = width >= 1100 ? 1040.0 : 960.0;
+    final mainSpacing = isMobile ? 14.0 : 12.0;
+    final contentWidth = width >= 1100 ? 1120.0 : 980.0;
+    final items = _items();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -1551,7 +1554,7 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
+          padding: EdgeInsets.fromLTRB(20, isMobile ? 8 : 10, 20, 16),
           child: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: contentWidth),
@@ -1560,9 +1563,9 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
                 children: [
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 16,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 18 : 22,
+                      vertical: isMobile ? 16 : 18,
                     ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FAFC),
@@ -1575,11 +1578,13 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
                         Text(
                           workshopServiceLabel(locale, workshopServiceMfk),
                           style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w800,
+                            fontSize: isMobile ? 31 : 28,
+                            height: 1.05,
                             color: const Color(0xFF111827),
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        SizedBox(height: isMobile ? 4 : 6),
                         Text(
                           _serviceFlowCopy(
                             locale,
@@ -1589,32 +1594,49 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
                             fr: 'La préparation au contrôle des véhicules automobiles comprend les points suivants :',
                           ),
                           style: theme.textTheme.bodyLarge?.copyWith(
+                            fontSize: isMobile ? 18.5 : 17,
                             color: const Color(0xFF6B7280),
-                            height: 1.45,
+                            height: 1.35,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _items().length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: crossSpacing,
-                      mainAxisSpacing: mainSpacing,
-                      mainAxisExtent: crossAxisCount == 1 ? 204 : 196,
+                  SizedBox(height: isMobile ? 18 : 16),
+                  if (isMobile)
+                    Column(
+                      children: [
+                        for (var i = 0; i < items.length; i++) ...[
+                          _MfkInfoCard(
+                            item: items[i],
+                            isMobile: true,
+                          ),
+                          if (i != items.length - 1) const SizedBox(height: 14),
+                        ],
+                      ],
+                    )
+                  else
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: items.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: crossSpacing,
+                        mainAxisSpacing: mainSpacing,
+                        mainAxisExtent: isTablet ? 208 : 214,
+                      ),
+                      itemBuilder: (context, index) {
+                        return _MfkInfoCard(
+                          item: items[index],
+                          isMobile: false,
+                        );
+                      },
                     ),
-                    itemBuilder: (context, index) {
-                      return _MfkInfoCard(item: _items()[index]);
-                    },
-                  ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: isMobile ? 18 : 16),
                   SizedBox(
                     width: double.infinity,
-                    height: 62,
+                    height: isMobile ? 60 : 62,
                     child: ElevatedButton(
                       onPressed: onBookNow,
                       style: ElevatedButton.styleFrom(
@@ -1623,7 +1645,7 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
                         backgroundColor: const Color(0xFF2563EB),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(22),
+                          borderRadius: BorderRadius.circular(20),
                         ),
                       ),
                       child: Text(
@@ -1636,7 +1658,7 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
                         ),
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: Colors.white,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
@@ -1851,9 +1873,13 @@ class _MfkInfoItem {
 }
 
 class _MfkInfoCard extends StatefulWidget {
-  const _MfkInfoCard({required this.item});
+  const _MfkInfoCard({
+    required this.item,
+    required this.isMobile,
+  });
 
   final _MfkInfoItem item;
+  final bool isMobile;
 
   @override
   State<_MfkInfoCard> createState() => _MfkInfoCardState();
@@ -1866,6 +1892,7 @@ class _MfkInfoCardState extends State<_MfkInfoCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final item = widget.item;
+    final isMobile = widget.isMobile;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -1873,7 +1900,7 @@ class _MfkInfoCardState extends State<_MfkInfoCard> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(isMobile ? 18 : 20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
@@ -1896,41 +1923,43 @@ class _MfkInfoCardState extends State<_MfkInfoCard> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 60,
-              height: 60,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
                 color: const Color(0xFFEFF6FF),
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
                 item.icon,
                 color: const Color(0xFF1D4ED8),
-                size: 32,
+                size: 31,
               ),
             ),
             const SizedBox(height: 10),
             Text(
               item.title,
               style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                fontSize: isMobile ? 21.5 : 19.5,
+                height: 1.08,
                 color: const Color(0xFF111827),
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             ...item.lines.map(
               (line) => Padding(
-                padding: const EdgeInsets.only(bottom: 5),
+                padding: const EdgeInsets.only(bottom: 6),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Padding(
-                      padding: EdgeInsets.only(top: 4),
+                      padding: EdgeInsets.only(top: 2),
                       child: Icon(
                         Icons.check_rounded,
-                        size: 15,
+                        size: 16,
                         color: Color(0xFF2563EB),
                       ),
                     ),
@@ -1940,7 +1969,8 @@ class _MfkInfoCardState extends State<_MfkInfoCard> {
                         line,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: const Color(0xFF6B7280),
-                          height: 1.32,
+                          fontSize: isMobile ? 16.5 : 15.2,
+                          height: 1.28,
                         ),
                       ),
                     ),
