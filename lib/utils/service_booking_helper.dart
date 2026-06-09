@@ -122,10 +122,10 @@ String workshopServiceLabel(String locale, String? serviceKey) {
     case workshopServiceAlignment:
       return _copy(
         locale,
-        de: 'Fahrzeugvermessung',
-        it: 'Assetto veicolo',
-        en: 'Vehicle alignment',
-        fr: 'Géométrie du véhicule',
+        de: 'Fahrzeugvermessung ab CHF 195.-',
+        it: 'Geometria ruote da CHF 195.-',
+        en: 'Wheel alignment from CHF 195.-',
+        fr: 'Géométrie des roues dès CHF 195.-',
       );
     case workshopServiceMfk:
       return _copy(
@@ -199,10 +199,10 @@ String workshopServiceDescription(String locale, String serviceKey) {
     case workshopServiceAlignment:
       return _copy(
         locale,
-        de: 'Präzise Vermessung für Spur und Fahrverhalten.',
-        it: 'Controllo assetto per geometria e guida precisa.',
-        en: 'Precise alignment check for steering and handling.',
-        fr: 'Contrôle précis de la géométrie et du comportement routier.',
+        de: 'Vermessung der kompletten Lenkgeometrie',
+        it: 'Controllo completo della geometria dello sterzo',
+        en: 'Complete steering geometry measurement',
+        fr: 'Contrôle complet de la géométrie de direction',
       );
     case workshopServiceMfk:
       return _copy(

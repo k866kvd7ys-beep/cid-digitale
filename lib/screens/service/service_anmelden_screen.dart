@@ -170,6 +170,23 @@ class ServiceAnmeldenScreen extends StatelessWidget {
                   return;
                 }
 
+                if (serviceKey == workshopServiceAlignment) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => _VehicleAlignmentInfoScreen(
+                        locale: locale,
+                        onBookNow: () => _openBooking(
+                          context,
+                          workshopServiceLabel(locale, serviceKey),
+                          serviceType: 'service_anmelden',
+                          serviceSelectionKey: serviceKey,
+                        ),
+                      ),
+                    ),
+                  );
+                  return;
+                }
+
                 _openBooking(
                   context,
                   workshopServiceLabel(locale, serviceKey),
@@ -897,6 +914,7 @@ class _ClimateServiceScreenState extends State<_ClimateServiceScreen> {
                       widget.locale,
                       workshopClimateDetailStandard,
                     ),
+                    priceLabel: 'CHF 98.-',
                     bullets: [
                       _serviceFlowCopy(
                         widget.locale,
@@ -920,13 +938,6 @@ class _ClimateServiceScreenState extends State<_ClimateServiceScreen> {
                         fr: 'Contrôle du filtre à pollen et remplacement éventuel (matériel non inclus)',
                       ),
                     ],
-                    linkLabel: _serviceFlowCopy(
-                      widget.locale,
-                      de: 'Hier mehr erfahren',
-                      it: 'Scopri di più',
-                      en: 'Learn more here',
-                      fr: 'En savoir plus ici',
-                    ),
                     selected: _selectedDetail == workshopClimateDetailStandard,
                     onTap: () {
                       setState(() {
@@ -940,6 +951,7 @@ class _ClimateServiceScreenState extends State<_ClimateServiceScreen> {
                       widget.locale,
                       workshopClimateDetailPlus,
                     ),
+                    priceLabel: 'CHF 195.-',
                     description: _serviceFlowCopy(
                       widget.locale,
                       de: 'Der Klimaservice Plus umfasst zusätzlich zum normalen Klimaservice:',
@@ -970,13 +982,6 @@ class _ClimateServiceScreenState extends State<_ClimateServiceScreen> {
                         fr: 'Recharge du fluide frigorigène (si nécessaire)',
                       ),
                     ],
-                    linkLabel: _serviceFlowCopy(
-                      widget.locale,
-                      de: 'Hier mehr erfahren',
-                      it: 'Scopri di più',
-                      en: 'Learn more here',
-                      fr: 'En savoir plus ici',
-                    ),
                     selected: _selectedDetail == workshopClimateDetailPlus,
                     onTap: () {
                       setState(() {
@@ -1014,6 +1019,206 @@ class _ClimateServiceScreenState extends State<_ClimateServiceScreen> {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VehicleAlignmentInfoScreen extends StatelessWidget {
+  const _VehicleAlignmentInfoScreen({
+    required this.locale,
+    required this.onBookNow,
+  });
+
+  final String locale;
+  final VoidCallback onBookNow;
+
+  List<String> _benefits() {
+    return [
+      _serviceFlowCopy(
+        locale,
+        de: 'Vermeidung von frühzeitigem Verschleiss der Reifen',
+        it: 'Prevenzione dell’usura prematura degli pneumatici',
+        en: 'Prevention of premature tyre wear',
+        fr: 'Prévention de l’usure prématurée des pneus',
+      ),
+      _serviceFlowCopy(
+        locale,
+        de: 'Korrektes Brems- und Lenkverhalten',
+        it: 'Comportamento corretto in frenata e sterzata',
+        en: 'Correct braking and steering behaviour',
+        fr: 'Comportement correct au freinage et à la direction',
+      ),
+      _serviceFlowCopy(
+        locale,
+        de: 'Weniger Kraftstoffverbrauch',
+        it: 'Minore consumo di carburante',
+        en: 'Lower fuel consumption',
+        fr: 'Réduction de la consommation de carburant',
+      ),
+      _serviceFlowCopy(
+        locale,
+        de: 'Sicherheit einer korrekten Einstellung',
+        it: 'Sicurezza di una regolazione corretta',
+        en: 'Safety through correct adjustment',
+        fr: 'Sécurité d’un réglage correct',
+      ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          workshopServiceLabel(locale, workshopServiceAlignment),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF111827),
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 860),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFEAEAEA)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      workshopServiceLabel(locale, workshopServiceAlignment),
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _serviceFlowCopy(
+                        locale,
+                        de: 'Vermessung der kompletten Lenkgeometrie',
+                        it: 'Controllo completo della geometria dello sterzo',
+                        en: 'Complete steering geometry measurement',
+                        fr: 'Contrôle complet de la géométrie de direction',
+                      ),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: const Color(0xFF6B7280),
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      _serviceFlowCopy(
+                        locale,
+                        de: 'Ihre Vorteile:',
+                        it: 'I vantaggi:',
+                        en: 'Your benefits:',
+                        fr: 'Vos avantages :',
+                      ),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ..._benefits().map(
+                      (line) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.only(top: 8),
+                              child: Icon(
+                                Icons.circle,
+                                size: 8,
+                                color: Color(0xFF2563EB),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                line,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: const Color(0xFF4B5563),
+                                  height: 1.45,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _serviceFlowCopy(
+                        locale,
+                        de: 'Bei Abweichungen muss die Einstellung der Lenkgeometrie gegen gesonderte Verrechnung durchgeführt werden.',
+                        it: 'In caso di deviazioni, la regolazione della geometria dello sterzo verrà eseguita con addebito separato.',
+                        en: 'In case of deviations, steering geometry adjustment will be carried out and charged separately.',
+                        fr: 'En cas d’écarts, le réglage de la géométrie de direction sera effectué avec facturation séparée.',
+                      ),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF6B7280),
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 58,
+                      child: ElevatedButton(
+                        onPressed: onBookNow,
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: const Color(0xFF2563EB),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        child: Text(
+                          _serviceFlowCopy(
+                            locale,
+                            de: 'Termin buchen',
+                            it: 'Prenota appuntamento',
+                            en: 'Book appointment',
+                            fr: 'Réserver un rendez-vous',
+                          ),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1084,17 +1289,17 @@ class _ServiceInfoBulletTile extends StatelessWidget {
 class _ClimateDetailCard extends StatelessWidget {
   const _ClimateDetailCard({
     required this.title,
+    required this.priceLabel,
     required this.bullets,
-    required this.linkLabel,
     required this.selected,
     required this.onTap,
     this.description,
   });
 
   final String title;
+  final String priceLabel;
   final String? description;
   final List<String> bullets;
-  final String linkLabel;
   final bool selected;
   final VoidCallback onTap;
 
@@ -1157,6 +1362,22 @@ class _ClimateDetailCard extends StatelessWidget {
                   ),
                 ),
               ],
+              const SizedBox(height: 10),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  priceLabel,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: const Color(0xFF1D4ED8),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
               const SizedBox(height: 14),
               ...bullets.map(
                 (line) => Padding(
@@ -1184,15 +1405,6 @@ class _ClimateDetailCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                linkLabel,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF2563EB),
-                  fontWeight: FontWeight.w600,
-                  decoration: TextDecoration.underline,
                 ),
               ),
             ],
