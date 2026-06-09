@@ -1533,7 +1533,7 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
             ? 2
             : 1;
     const crossSpacing = 16.0;
-    const mainSpacing = 16.0;
+    const mainSpacing = 8.0;
     final contentWidth = width >= 1100 ? 1040.0 : 960.0;
 
     return Scaffold(
@@ -1551,35 +1551,52 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
           child: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: contentWidth),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    workshopServiceLabel(locale, workshopServiceMfk),
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF111827),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          workshopServiceLabel(locale, workshopServiceMfk),
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF111827),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _serviceFlowCopy(
+                            locale,
+                            de: 'Die Vorbereitung für die Motorfahrzeugkontrolle beinhaltet folgende Punkte:',
+                            it: 'La preparazione per il controllo dei veicoli a motore comprende i seguenti punti:',
+                            en: 'Preparation for the motor vehicle inspection includes the following points:',
+                            fr: 'La préparation au contrôle des véhicules automobiles comprend les points suivants :',
+                          ),
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: const Color(0xFF6B7280),
+                            height: 1.45,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _serviceFlowCopy(
-                      locale,
-                      de: 'Die Vorbereitung für die Motorfahrzeugkontrolle beinhaltet folgende Punkte:',
-                      it: 'La preparazione per il controllo dei veicoli a motore comprende i seguenti punti:',
-                      en: 'Preparation for the motor vehicle inspection includes the following points:',
-                      fr: 'La préparation au contrôle des véhicules automobiles comprend les points suivants :',
-                    ),
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: const Color(0xFF6B7280),
-                      height: 1.45,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 14),
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -1588,24 +1605,25 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: crossSpacing,
                       mainAxisSpacing: mainSpacing,
-                      mainAxisExtent: crossAxisCount == 1 ? 240 : 260,
+                      mainAxisExtent: crossAxisCount == 1 ? 204 : 196,
                     ),
                     itemBuilder: (context, index) {
                       return _MfkInfoCard(item: _items()[index]);
                     },
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 14),
                   SizedBox(
                     width: double.infinity,
-                    height: 58,
+                    height: 62,
                     child: ElevatedButton(
                       onPressed: onBookNow,
                       style: ElevatedButton.styleFrom(
-                        elevation: 0,
+                        elevation: 4,
+                        shadowColor: Colors.black.withOpacity(0.14),
                         backgroundColor: const Color(0xFF2563EB),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(22),
                         ),
                       ),
                       child: Text(
@@ -1832,83 +1850,106 @@ class _MfkInfoItem {
   final List<String> lines;
 }
 
-class _MfkInfoCard extends StatelessWidget {
+class _MfkInfoCard extends StatefulWidget {
   const _MfkInfoCard({required this.item});
 
   final _MfkInfoItem item;
 
   @override
+  State<_MfkInfoCard> createState() => _MfkInfoCardState();
+}
+
+class _MfkInfoCardState extends State<_MfkInfoCard> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final item = widget.item;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFEAEAEA)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: _hovered ? const Color(0xFFBFDBFE) : const Color(0xFFEAEAEA),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(_hovered ? 0.08 : 0.04),
+              blurRadius: _hovered ? 24 : 18,
+              offset: Offset(0, _hovered ? 10 : 6),
             ),
-            child: Icon(
-              item.icon,
-              color: const Color(0xFF1D4ED8),
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            item.title,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF111827),
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...item.lines.map(
-            (line) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(top: 7),
-                    child: Icon(
-                      Icons.circle,
-                      size: 7,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      line,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF6B7280),
-                        height: 1.45,
-                      ),
-                    ),
-                  ),
-                ],
+            if (_hovered)
+              BoxShadow(
+                color: const Color(0xFF2563EB).withOpacity(0.06),
+                blurRadius: 18,
+                offset: const Offset(0, 4),
+              ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Icon(
+                item.icon,
+                color: const Color(0xFF1D4ED8),
+                size: 32,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+            Text(
+              item.title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+                color: const Color(0xFF111827),
+              ),
+            ),
+            const SizedBox(height: 6),
+            ...item.lines.map(
+              (line) => Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: Icon(
+                        Icons.check_rounded,
+                        size: 15,
+                        color: Color(0xFF2563EB),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        line,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF6B7280),
+                          height: 1.32,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
