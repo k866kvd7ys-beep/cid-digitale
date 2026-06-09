@@ -187,6 +187,23 @@ class ServiceAnmeldenScreen extends StatelessWidget {
                   return;
                 }
 
+                if (serviceKey == workshopServiceMfk) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => _MfkPreparationInfoScreen(
+                        locale: locale,
+                        onBookNow: () => _openBooking(
+                          context,
+                          workshopServiceLabel(locale, serviceKey),
+                          serviceType: 'service_anmelden',
+                          serviceSelectionKey: serviceKey,
+                        ),
+                      ),
+                    ),
+                  );
+                  return;
+                }
+
                 _openBooking(
                   context,
                   workshopServiceLabel(locale, serviceKey),
@@ -1228,6 +1245,394 @@ class _VehicleAlignmentInfoScreen extends StatelessWidget {
   }
 }
 
+class _MfkPreparationInfoScreen extends StatelessWidget {
+  const _MfkPreparationInfoScreen({
+    required this.locale,
+    required this.onBookNow,
+  });
+
+  final String locale;
+  final VoidCallback onBookNow;
+
+  List<_MfkInfoItem> _items() {
+    return [
+      _MfkInfoItem(
+        icon: Icons.cleaning_services_outlined,
+        title: _serviceFlowCopy(
+          locale,
+          de: 'MFK-Reinigung',
+          it: 'Pulizia MFK',
+          en: 'MFK cleaning',
+          fr: 'Nettoyage MFK',
+        ),
+        lines: [
+          _serviceFlowCopy(
+            locale,
+            de: 'Motor- und Chassisreinigung',
+            it: 'Pulizia motore e telaio',
+            en: 'Engine and chassis cleaning',
+            fr: 'Nettoyage moteur et châssis',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Maschinenwäsche aussen',
+            it: 'Lavaggio esterno automatico',
+            en: 'Exterior machine wash',
+            fr: 'Lavage extérieur en machine',
+          ),
+        ],
+      ),
+      _MfkInfoItem(
+        icon: Icons.tire_repair_outlined,
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Räder, Aufhängung, Lenkung',
+          it: 'Ruote, sospensioni, sterzo',
+          en: 'Wheels, suspension, steering',
+          fr: 'Roues, suspension, direction',
+        ),
+        lines: [
+          _serviceFlowCopy(
+            locale,
+            de: 'Korrekte Bereifung',
+            it: 'Pneumatici corretti',
+            en: 'Correct tires',
+            fr: 'Pneumatiques conformes',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Spiel',
+            it: 'Giochi',
+            en: 'Play',
+            fr: 'Jeu',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Zustand von Gummis',
+            it: 'Stato di gommini',
+            en: 'Condition of rubber parts',
+            fr: 'État des caoutchoucs',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Manschetten usw.',
+            it: 'Cuffie ecc.',
+            en: 'Boots etc.',
+            fr: 'Soufflets, etc.',
+          ),
+        ],
+      ),
+      _MfkInfoItem(
+        icon: Icons.precision_manufacturing_outlined,
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Motor, Kraftübertragung',
+          it: 'Motore, trasmissione',
+          en: 'Engine, power transmission',
+          fr: 'Moteur, transmission',
+        ),
+        lines: [
+          _serviceFlowCopy(
+            locale,
+            de: 'Dichtheit',
+            it: 'Tenuta',
+            en: 'Leak tightness',
+            fr: 'Étanchéité',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Funktion',
+            it: 'Funzionamento',
+            en: 'Function',
+            fr: 'Fonctionnement',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Geräusche',
+            it: 'Rumori',
+            en: 'Noises',
+            fr: 'Bruits',
+          ),
+        ],
+      ),
+      _MfkInfoItem(
+        icon: Icons.car_crash_outlined,
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Bremsen',
+          it: 'Freni',
+          en: 'Brakes',
+          fr: 'Freins',
+        ),
+        lines: [
+          _serviceFlowCopy(
+            locale,
+            de: 'Kontrolle auf Bremsprüfstand',
+            it: 'Controllo al banco freni',
+            en: 'Check on brake test bench',
+            fr: 'Contrôle au banc de freinage',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Sichtkontrolle',
+            it: 'Controllo visivo',
+            en: 'Visual inspection',
+            fr: 'Contrôle visuel',
+          ),
+        ],
+      ),
+      _MfkInfoItem(
+        icon: Icons.directions_car_outlined,
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Aufbau inkl. Glas',
+          it: 'Carrozzeria incl. vetri',
+          en: 'Body incl. glass',
+          fr: 'Carrosserie incl. vitrages',
+        ),
+        lines: [
+          _serviceFlowCopy(
+            locale,
+            de: 'Funktion',
+            it: 'Funzionamento',
+            en: 'Function',
+            fr: 'Fonctionnement',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Spiel',
+            it: 'Giochi',
+            en: 'Play',
+            fr: 'Jeu',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Rost',
+            it: 'Ruggine',
+            en: 'Rust',
+            fr: 'Rouille',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Beschädigungen usw.',
+            it: 'Danni ecc.',
+            en: 'Damage etc.',
+            fr: 'Dommages, etc.',
+          ),
+        ],
+      ),
+      _MfkInfoItem(
+        icon: Icons.lightbulb_outline,
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Elektrische Anlage, Beleuchtung',
+          it: 'Impianto elettrico, illuminazione',
+          en: 'Electrical system, lighting',
+          fr: 'Installation électrique, éclairage',
+        ),
+        lines: [
+          _serviceFlowCopy(
+            locale,
+            de: 'Funktion',
+            it: 'Funzionamento',
+            en: 'Function',
+            fr: 'Fonctionnement',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Einstellung',
+            it: 'Regolazione',
+            en: 'Adjustment',
+            fr: 'Réglage',
+          ),
+        ],
+      ),
+      _MfkInfoItem(
+        icon: Icons.health_and_safety_outlined,
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Sicherheitssysteme',
+          it: 'Sistemi di sicurezza',
+          en: 'Safety systems',
+          fr: 'Systèmes de sécurité',
+        ),
+        lines: [
+          _serviceFlowCopy(
+            locale,
+            de: 'Gurten',
+            it: 'Cinture',
+            en: 'Seat belts',
+            fr: 'Ceintures',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Airbag',
+            it: 'Airbag',
+            en: 'Airbag',
+            fr: 'Airbag',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'usw.',
+            it: 'ecc.',
+            en: 'etc.',
+            fr: 'etc.',
+          ),
+        ],
+      ),
+      _MfkInfoItem(
+        icon: Icons.description_outlined,
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Dokumente, Identifikation',
+          it: 'Documenti, identificazione',
+          en: 'Documents, identification',
+          fr: 'Documents, identification',
+        ),
+        lines: [
+          _serviceFlowCopy(
+            locale,
+            de: 'Kennzeichen',
+            it: 'Targa',
+            en: 'License plate',
+            fr: 'Plaque d’immatriculation',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Fahrzeugpapiere',
+            it: 'Documenti del veicolo',
+            en: 'Vehicle documents',
+            fr: 'Documents du véhicule',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Beiblätter',
+            it: 'Documenti supplementari',
+            en: 'Supplementary sheets',
+            fr: 'Documents complémentaires',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Fahrgestellnummer',
+            it: 'Numero di telaio',
+            en: 'Chassis number',
+            fr: 'Numéro de châssis',
+          ),
+        ],
+      ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final width = MediaQuery.sizeOf(context).width;
+    final crossAxisCount = width >= 1100
+        ? 3
+        : width >= 720
+            ? 2
+            : 1;
+    const crossSpacing = 16.0;
+    const mainSpacing = 16.0;
+    final contentWidth = width >= 1100 ? 1040.0 : 960.0;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          workshopServiceLabel(locale, workshopServiceMfk),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF111827),
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: contentWidth),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    workshopServiceLabel(locale, workshopServiceMfk),
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF111827),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _serviceFlowCopy(
+                      locale,
+                      de: 'Die Vorbereitung für die Motorfahrzeugkontrolle beinhaltet folgende Punkte:',
+                      it: 'La preparazione per il controllo dei veicoli a motore comprende i seguenti punti:',
+                      en: 'Preparation for the motor vehicle inspection includes the following points:',
+                      fr: 'La préparation au contrôle des véhicules automobiles comprend les points suivants :',
+                    ),
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: const Color(0xFF6B7280),
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _items().length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: crossSpacing,
+                      mainAxisSpacing: mainSpacing,
+                      mainAxisExtent: crossAxisCount == 1 ? 240 : 260,
+                    ),
+                    itemBuilder: (context, index) {
+                      return _MfkInfoCard(item: _items()[index]);
+                    },
+                  ),
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 58,
+                    child: ElevatedButton(
+                      onPressed: onBookNow,
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                      child: Text(
+                        _serviceFlowCopy(
+                          locale,
+                          de: 'Termin buchen',
+                          it: 'Prenota appuntamento',
+                          en: 'Book appointment',
+                          fr: 'Réserver un rendez-vous',
+                        ),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ServiceInfoBullet {
   const _ServiceInfoBullet({
     required this.title,
@@ -1410,6 +1815,100 @@ class _ClimateDetailCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _MfkInfoItem {
+  const _MfkInfoItem({
+    required this.icon,
+    required this.title,
+    required this.lines,
+  });
+
+  final IconData icon;
+  final String title;
+  final List<String> lines;
+}
+
+class _MfkInfoCard extends StatelessWidget {
+  const _MfkInfoCard({required this.item});
+
+  final _MfkInfoItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFEAEAEA)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              item.icon,
+              color: const Color(0xFF1D4ED8),
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            item.title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF111827),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...item.lines.map(
+            (line) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 7),
+                    child: Icon(
+                      Icons.circle,
+                      size: 7,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      line,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFF6B7280),
+                        height: 1.45,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
