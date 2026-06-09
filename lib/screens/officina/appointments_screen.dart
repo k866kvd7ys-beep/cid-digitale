@@ -118,14 +118,12 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     );
   }
 
-  String? _inspectionDetailLabel(AppointmentRequest request) {
-    if (request.serviceType != workshopServiceInspection ||
-        request.serviceDetail?.trim().isNotEmpty != true) {
-      return null;
-    }
-    return workshopInspectionDetailLabel(
+  String? _serviceDetailLabel(AppointmentRequest request) {
+    return workshopServiceDetailLabel(
       normalizeWorkshopServiceLocale(request.locale),
-      request.serviceDetail,
+      serviceType: request.serviceType,
+      serviceSelectionKey: request.serviceSelectionKey,
+      serviceDetail: request.serviceDetail,
     );
   }
 
@@ -373,6 +371,22 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                   ),
                         ),
                       ],
+                      if (request.serviceSelectionKey ==
+                              workshopServiceClimate &&
+                          _serviceDetailLabel(request) != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          '${workshopInspectionSelectionFieldLabel(normalizeWorkshopServiceLocale(request.locale))}: ${_serviceDetailLabel(request)!}',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.82),
+                                  ),
+                        ),
+                      ],
                     ] else if (request.serviceType ==
                         workshopServiceInspection) ...[
                       const SizedBox(height: 6),
@@ -386,10 +400,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                   .withOpacity(0.82),
                             ),
                       ),
-                      if (_inspectionDetailLabel(request) != null) ...[
+                      if (_serviceDetailLabel(request) != null) ...[
                         const SizedBox(height: 6),
                         Text(
-                          '${workshopInspectionSelectionFieldLabel(normalizeWorkshopServiceLocale(request.locale))}: ${_inspectionDetailLabel(request)!}',
+                          '${workshopInspectionSelectionFieldLabel(normalizeWorkshopServiceLocale(request.locale))}: ${_serviceDetailLabel(request)!}',
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
                                     fontWeight: FontWeight.w600,

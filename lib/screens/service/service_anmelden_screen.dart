@@ -2,6 +2,26 @@ import 'package:cid_digitale/screens/service/workshop_slot_picker_screen.dart';
 import 'package:cid_digitale/utils/service_booking_helper.dart';
 import 'package:flutter/material.dart';
 
+String _serviceFlowCopy(
+  String locale, {
+  required String de,
+  required String it,
+  required String en,
+  required String fr,
+}) {
+  switch (normalizeWorkshopServiceLocale(locale)) {
+    case 'it':
+      return it;
+    case 'en':
+      return en;
+    case 'fr':
+      return fr;
+    case 'de':
+    default:
+      return de;
+  }
+}
+
 class ServiceAnmeldenScreen extends StatelessWidget {
   const ServiceAnmeldenScreen({super.key});
 
@@ -108,6 +128,41 @@ class ServiceAnmeldenScreen extends StatelessWidget {
                           serviceType: 'service_anmelden',
                           serviceSelectionKey: serviceKey,
                           cleaningPackage: cleaningPackage,
+                        ),
+                      ),
+                    ),
+                  );
+                  return;
+                }
+
+                if (serviceKey == workshopServiceVehicleCheck) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => _VehicleCheckInfoScreen(
+                        locale: locale,
+                        onBookNow: () => _openBooking(
+                          context,
+                          workshopServiceLabel(locale, serviceKey),
+                          serviceType: 'service_anmelden',
+                          serviceSelectionKey: serviceKey,
+                        ),
+                      ),
+                    ),
+                  );
+                  return;
+                }
+
+                if (serviceKey == workshopServiceClimate) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => _ClimateServiceScreen(
+                        locale: locale,
+                        onBookNow: (serviceDetail) => _openBooking(
+                          context,
+                          workshopServiceLabel(locale, serviceKey),
+                          serviceType: 'service_anmelden',
+                          serviceSelectionKey: serviceKey,
+                          serviceDetail: serviceDetail,
                         ),
                       ),
                     ),
@@ -570,6 +625,581 @@ class _ServiceInspectionScreenState extends State<_ServiceInspectionScreen> {
     setState(() {
       _selectedAdditionalServices = result;
     });
+  }
+}
+
+class _VehicleCheckInfoScreen extends StatelessWidget {
+  const _VehicleCheckInfoScreen({
+    required this.locale,
+    required this.onBookNow,
+  });
+
+  final String locale;
+  final VoidCallback onBookNow;
+
+  List<_ServiceInfoBullet> _bullets() {
+    return [
+      _ServiceInfoBullet(
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Innenraum',
+          it: 'Abitacolo',
+          en: 'Interior',
+          fr: 'Habitacle',
+        ),
+        detail: _serviceFlowCopy(
+          locale,
+          de: '(u. a. Kontrolleuchten, Heizung, Gebläse, Klimaanlage)',
+          it: '(tra cui spie di controllo, riscaldamento, ventilazione, climatizzazione)',
+          en: '(including warning lights, heating, blower, air conditioning)',
+          fr: '(notamment voyants, chauffage, ventilation, climatisation)',
+        ),
+      ),
+      _ServiceInfoBullet(
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Motorraum',
+          it: 'Vano motore',
+          en: 'Engine bay',
+          fr: 'Compartiment moteur',
+        ),
+        detail: _serviceFlowCopy(
+          locale,
+          de: '(u. a. Batterie, Motorölstand)',
+          it: '(tra cui batteria, livello olio motore)',
+          en: '(including battery, engine oil level)',
+          fr: '(notamment batterie, niveau d’huile moteur)',
+        ),
+      ),
+      _ServiceInfoBullet(
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Fahrzeugunterseite',
+          it: 'Sottoscocca',
+          en: 'Vehicle underside',
+          fr: 'Partie inférieure du véhicule',
+        ),
+        detail: _serviceFlowCopy(
+          locale,
+          de: '(u. a. Auspuff, Bremsen, Fahrwerk)',
+          it: '(tra cui scarico, freni, assetto)',
+          en: '(including exhaust, brakes, suspension)',
+          fr: '(notamment échappement, freins, train roulant)',
+        ),
+      ),
+      _ServiceInfoBullet(
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Bereifung',
+          it: 'Pneumatici',
+          en: 'Tires',
+          fr: 'Pneumatiques',
+        ),
+        detail: _serviceFlowCopy(
+          locale,
+          de: '(u. a. Profiltiefe, Luftdruck)',
+          it: '(tra cui profondità battistrada, pressione)',
+          en: '(including tread depth, tire pressure)',
+          fr: '(notamment profondeur du profil, pression)',
+        ),
+      ),
+      _ServiceInfoBullet(
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Karosserie',
+          it: 'Carrozzeria',
+          en: 'Bodywork',
+          fr: 'Carrosserie',
+        ),
+        detail: _serviceFlowCopy(
+          locale,
+          de: '(u. a. Steinschlag, Windschutzscheibe, Wischerblätter)',
+          it: '(tra cui scheggiature, parabrezza, tergicristalli)',
+          en: '(including stone chips, windshield, wiper blades)',
+          fr: '(notamment impacts, pare-brise, balais d’essuie-glace)',
+        ),
+      ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          workshopServiceLabel(locale, workshopServiceVehicleCheck),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF111827),
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 860),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFEAEAEA)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _serviceFlowCopy(
+                        locale,
+                        de: 'Fahrzeug-Check',
+                        it: 'Check veicolo',
+                        en: 'Vehicle check',
+                        fr: 'Contrôle véhicule',
+                      ),
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _serviceFlowCopy(
+                        locale,
+                        de: 'Der Fahrzeug-Check für CHF 59.- umfasst folgende Kontrollen:',
+                        it: 'Il check veicolo da CHF 59.- comprende i seguenti controlli:',
+                        en: 'The vehicle check for CHF 59.- includes the following inspections:',
+                        fr: 'Le contrôle véhicule à CHF 59.- comprend les contrôles suivants :',
+                      ),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: const Color(0xFF6B7280),
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    ..._bullets().map(
+                      (bullet) => Padding(
+                        padding: const EdgeInsets.only(bottom: 18),
+                        child: _ServiceInfoBulletTile(bullet: bullet),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _serviceFlowCopy(
+                        locale,
+                        de: 'Hier mehr erfahren',
+                        it: 'Scopri di più',
+                        en: 'Learn more here',
+                        fr: 'En savoir plus ici',
+                      ),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF2563EB),
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 58,
+                      child: ElevatedButton(
+                        onPressed: onBookNow,
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: const Color(0xFF2563EB),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        child: Text(
+                          _serviceFlowCopy(
+                            locale,
+                            de: 'Termin buchen',
+                            it: 'Prenota appuntamento',
+                            en: 'Book appointment',
+                            fr: 'Réserver un rendez-vous',
+                          ),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ClimateServiceScreen extends StatefulWidget {
+  const _ClimateServiceScreen({
+    required this.locale,
+    required this.onBookNow,
+  });
+
+  final String locale;
+  final ValueChanged<String> onBookNow;
+
+  @override
+  State<_ClimateServiceScreen> createState() => _ClimateServiceScreenState();
+}
+
+class _ClimateServiceScreenState extends State<_ClimateServiceScreen> {
+  String _selectedDetail = workshopClimateDetailStandard;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          workshopServiceLabel(widget.locale, workshopServiceClimate),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF111827),
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 960),
+              child: Column(
+                children: [
+                  _ClimateDetailCard(
+                    title: workshopClimateDetailLabel(
+                      widget.locale,
+                      workshopClimateDetailStandard,
+                    ),
+                    bullets: [
+                      _serviceFlowCopy(
+                        widget.locale,
+                        de: 'Funktionskontrolle der Klimaanlage',
+                        it: 'Controllo funzionale dell’impianto climatizzazione',
+                        en: 'Functional check of the air conditioning system',
+                        fr: 'Contrôle du fonctionnement de la climatisation',
+                      ),
+                      _serviceFlowCopy(
+                        widget.locale,
+                        de: 'Reinigung des Verdampfers',
+                        it: 'Pulizia dell’evaporatore',
+                        en: 'Cleaning of the evaporator',
+                        fr: 'Nettoyage de l’évaporateur',
+                      ),
+                      _serviceFlowCopy(
+                        widget.locale,
+                        de: 'Pollenfilter prüfen und eventuell ersetzen (Material nicht eingeschlossen)',
+                        it: 'Controllo del filtro antipolline ed eventuale sostituzione (materiale non incluso)',
+                        en: 'Check pollen filter and replace if necessary (material not included)',
+                        fr: 'Contrôle du filtre à pollen et remplacement éventuel (matériel non inclus)',
+                      ),
+                    ],
+                    linkLabel: _serviceFlowCopy(
+                      widget.locale,
+                      de: 'Hier mehr erfahren',
+                      it: 'Scopri di più',
+                      en: 'Learn more here',
+                      fr: 'En savoir plus ici',
+                    ),
+                    selected: _selectedDetail == workshopClimateDetailStandard,
+                    onTap: () {
+                      setState(() {
+                        _selectedDetail = workshopClimateDetailStandard;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _ClimateDetailCard(
+                    title: workshopClimateDetailLabel(
+                      widget.locale,
+                      workshopClimateDetailPlus,
+                    ),
+                    description: _serviceFlowCopy(
+                      widget.locale,
+                      de: 'Der Klimaservice Plus umfasst zusätzlich zum normalen Klimaservice:',
+                      it: 'Il servizio clima Plus comprende inoltre, rispetto al normale servizio clima:',
+                      en: 'In addition to the standard A/C service, the A/C Service Plus includes:',
+                      fr: 'En plus du service climatisation standard, le service climatisation Plus comprend :',
+                    ),
+                    bullets: [
+                      _serviceFlowCopy(
+                        widget.locale,
+                        de: 'Druckkontrolle im Kältemittelkreislauf',
+                        it: 'Controllo della pressione nel circuito del refrigerante',
+                        en: 'Pressure check in the refrigerant circuit',
+                        fr: 'Contrôle de pression du circuit de réfrigérant',
+                      ),
+                      _serviceFlowCopy(
+                        widget.locale,
+                        de: 'Evakuierung und Reinigung',
+                        it: 'Evacuazione e pulizia',
+                        en: 'Evacuation and cleaning',
+                        fr: 'Évacuation et nettoyage',
+                      ),
+                      _serviceFlowCopy(
+                        widget.locale,
+                        de: 'Nachfüllen des Kältemittels (wenn nötig)',
+                        it: 'Ricarica del refrigerante (se necessario)',
+                        en: 'Refill refrigerant (if necessary)',
+                        fr: 'Recharge du fluide frigorigène (si nécessaire)',
+                      ),
+                    ],
+                    linkLabel: _serviceFlowCopy(
+                      widget.locale,
+                      de: 'Hier mehr erfahren',
+                      it: 'Scopri di più',
+                      en: 'Learn more here',
+                      fr: 'En savoir plus ici',
+                    ),
+                    selected: _selectedDetail == workshopClimateDetailPlus,
+                    onTap: () {
+                      setState(() {
+                        _selectedDetail = workshopClimateDetailPlus;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 58,
+                    child: ElevatedButton(
+                      onPressed: () => widget.onBookNow(_selectedDetail),
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                      child: Text(
+                        _serviceFlowCopy(
+                          widget.locale,
+                          de: 'Termin buchen',
+                          it: 'Prenota appuntamento',
+                          en: 'Book appointment',
+                          fr: 'Réserver un rendez-vous',
+                        ),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ServiceInfoBullet {
+  const _ServiceInfoBullet({
+    required this.title,
+    required this.detail,
+  });
+
+  final String title;
+  final String detail;
+}
+
+class _ServiceInfoBulletTile extends StatelessWidget {
+  const _ServiceInfoBulletTile({required this.bullet});
+
+  final _ServiceInfoBullet bullet;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(top: 8),
+          child: Icon(
+            Icons.circle,
+            size: 8,
+            color: Color(0xFF2563EB),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                bullet.title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF111827),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                bullet.detail,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF6B7280),
+                  height: 1.45,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ClimateDetailCard extends StatelessWidget {
+  const _ClimateDetailCard({
+    required this.title,
+    required this.bullets,
+    required this.linkLabel,
+    required this.selected,
+    required this.onTap,
+    this.description,
+  });
+
+  final String title;
+  final String? description;
+  final List<String> bullets;
+  final String linkLabel;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: onTap,
+        child: Ink(
+          width: double.infinity,
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFEFF6FF) : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color:
+                  selected ? const Color(0xFF2563EB) : const Color(0xFFEAEAEA),
+              width: selected ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                  ),
+                  if (selected)
+                    const Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF2563EB),
+                    ),
+                ],
+              ),
+              if (description != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  description!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF4B5563),
+                    height: 1.45,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 14),
+              ...bullets.map(
+                (line) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Icon(
+                          Icons.circle,
+                          size: 7,
+                          color: Color(0xFF2563EB),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          line,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF4B5563),
+                            height: 1.45,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                linkLabel,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF2563EB),
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

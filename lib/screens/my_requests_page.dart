@@ -269,13 +269,21 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
       return '${l10n.service_type_service}: $baseLabel • ${workshopInspectionSelectionFieldLabel(locale)}: $detail';
     }
     if (serviceType == 'service_anmelden') {
-      final detail = workshopServiceLabel(
-        normalizeWorkshopServiceLocale(r.locale),
-        r.serviceSelectionKey,
+      final locale = normalizeWorkshopServiceLocale(r.locale);
+      final detail = workshopServiceLabel(locale, r.serviceSelectionKey);
+      final selection = workshopServiceDetailLabel(
+        locale,
+        serviceType: r.serviceType,
+        serviceSelectionKey: r.serviceSelectionKey,
+        serviceDetail: r.serviceDetail,
       );
-      return r.serviceSelectionKey?.trim().isNotEmpty == true
-          ? '${l10n.service_type_service}: $detail'
-          : l10n.service_type_service;
+      if (r.serviceSelectionKey?.trim().isNotEmpty != true) {
+        return l10n.service_type_service;
+      }
+      if (selection == null) {
+        return '${l10n.service_type_service}: $detail';
+      }
+      return '${l10n.service_type_service}: $detail • ${workshopInspectionSelectionFieldLabel(locale)}: $selection';
     }
     if (serviceType == 'raeder_sommer' || serviceType == 'raeder_winter') {
       final locale = tireLocaleCode(context);

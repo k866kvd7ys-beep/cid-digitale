@@ -106,13 +106,14 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         normalizeWorkshopServiceLocale(request.locale),
       );
 
-  String get _serviceInspectionDetailLabel =>
-      (request.serviceDetail?.trim().isNotEmpty ?? false)
-          ? workshopInspectionDetailLabel(
-              normalizeWorkshopServiceLocale(request.locale),
-              request.serviceDetail,
-            )
-          : '-';
+  String get _serviceDetailLabel =>
+      workshopServiceDetailLabel(
+        normalizeWorkshopServiceLocale(request.locale),
+        serviceType: request.serviceType,
+        serviceSelectionKey: request.serviceSelectionKey,
+        serviceDetail: request.serviceDetail,
+      ) ??
+      '-';
 
   String get _additionalServicesFieldLabel =>
       workshopAdditionalServicesFieldLabel(
@@ -2020,10 +2021,14 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                           _statusCard(context),
                           const SizedBox(height: 16),
                           _row(l10n.service_type_service, serviceLabel()),
-                          if (request.serviceType == workshopServiceInspection)
+                          if (request.serviceType ==
+                                  workshopServiceInspection ||
+                              (request.serviceType == 'service_anmelden' &&
+                                  request.serviceSelectionKey ==
+                                      workshopServiceClimate))
                             _row(
                               _serviceInspectionDetailFieldLabel,
-                              _serviceInspectionDetailLabel,
+                              _serviceDetailLabel,
                             ),
                           if (request.serviceType == workshopServiceInspection)
                             _row(

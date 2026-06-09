@@ -12,6 +12,8 @@ const String workshopInspectionDetail30000 = 'service_30000';
 const String workshopInspectionDetail60000 = 'service_60000';
 const String workshopInspectionDetailOver60000 = 'service_over_60000';
 const String workshopInspectionDetailOilChange = 'oil_change_service';
+const String workshopClimateDetailStandard = 'climate_service_standard';
+const String workshopClimateDetailPlus = 'climate_service_plus';
 const String workshopCleaningPackageBronze = 'bronze';
 const String workshopCleaningPackageSilber = 'silber';
 const String workshopCleaningPackageGold = 'gold';
@@ -321,6 +323,59 @@ String workshopInspectionSelectionFieldLabel(String locale) => _copy(
       en: 'Selection',
       fr: 'Sélection',
     );
+
+String normalizeWorkshopClimateDetail(String? raw) {
+  switch ((raw ?? '').trim().toLowerCase()) {
+    case workshopClimateDetailPlus:
+      return workshopClimateDetailPlus;
+    case workshopClimateDetailStandard:
+    default:
+      return workshopClimateDetailStandard;
+  }
+}
+
+String workshopClimateDetailLabel(String locale, String? detail) {
+  switch (normalizeWorkshopClimateDetail(detail)) {
+    case workshopClimateDetailPlus:
+      return _copy(
+        locale,
+        de: 'Klima-Service Plus',
+        it: 'Servizio clima Plus',
+        en: 'A/C Service Plus',
+        fr: 'Service climatisation Plus',
+      );
+    case workshopClimateDetailStandard:
+    default:
+      return _copy(
+        locale,
+        de: 'Klima-Service',
+        it: 'Servizio clima',
+        en: 'A/C Service',
+        fr: 'Service climatisation',
+      );
+  }
+}
+
+String? workshopServiceDetailLabel(
+  String locale, {
+  String? serviceType,
+  String? serviceSelectionKey,
+  String? serviceDetail,
+}) {
+  if (serviceDetail?.trim().isNotEmpty != true) {
+    return null;
+  }
+
+  if (serviceType == workshopServiceInspection) {
+    return workshopInspectionDetailLabel(locale, serviceDetail);
+  }
+
+  if (serviceSelectionKey == workshopServiceClimate) {
+    return workshopClimateDetailLabel(locale, serviceDetail);
+  }
+
+  return null;
+}
 
 String workshopInspectionAdditionalNote(String locale) => _copy(
       locale,

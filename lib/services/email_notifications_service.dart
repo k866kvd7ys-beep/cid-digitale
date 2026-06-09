@@ -39,7 +39,7 @@ class EmailNotificationsService {
     final timeLabel = _formatTime(request.appointmentTime);
     final locale = normalizeWorkshopServiceLocale(request.locale);
     final cleaningPackage = _cleaningPackageLabel(request);
-    final inspectionDetail = _inspectionDetailLabel(request);
+    final serviceDetail = _serviceDetailLabel(request);
     final additionalServices = _additionalServiceLabels(request);
     final serviceLabel = _mapServiceLabel(request);
 
@@ -48,13 +48,13 @@ class EmailNotificationsService {
       'name': request.customerName,
       'plate': request.licensePlate,
       'service': cleaningPackage == null &&
-              inspectionDetail == null &&
+              serviceDetail == null &&
               additionalServices.isEmpty
           ? serviceLabel
           : [
               serviceLabel,
-              if (inspectionDetail != null)
-                '${workshopInspectionSelectionFieldLabel(locale)}: $inspectionDetail',
+              if (serviceDetail != null)
+                '${workshopInspectionSelectionFieldLabel(locale)}: $serviceDetail',
               if (cleaningPackage != null)
                 '${workshopCleaningPackageFieldLabel(locale)}: $cleaningPackage',
               if (additionalServices.isNotEmpty)
@@ -62,9 +62,9 @@ class EmailNotificationsService {
             ].join('\n'),
       'date': dateLabel,
       'time': timeLabel,
-      if (inspectionDetail != null)
+      if (serviceDetail != null)
         'service_detail_label': workshopInspectionSelectionFieldLabel(locale),
-      if (inspectionDetail != null) 'service_detail': inspectionDetail,
+      if (serviceDetail != null) 'service_detail': serviceDetail,
       if (cleaningPackage != null)
         'cleaning_package_label': workshopCleaningPackageFieldLabel(locale),
       if (cleaningPackage != null) 'cleaning_package': cleaningPackage,
@@ -130,14 +130,12 @@ class EmailNotificationsService {
     );
   }
 
-  String? _inspectionDetailLabel(AppointmentRequest request) {
-    if (request.serviceType != workshopServiceInspection ||
-        request.serviceDetail?.trim().isNotEmpty != true) {
-      return null;
-    }
-    return workshopInspectionDetailLabel(
+  String? _serviceDetailLabel(AppointmentRequest request) {
+    return workshopServiceDetailLabel(
       normalizeWorkshopServiceLocale(request.locale),
-      request.serviceDetail,
+      serviceType: request.serviceType,
+      serviceSelectionKey: request.serviceSelectionKey,
+      serviceDetail: request.serviceDetail,
     );
   }
 
