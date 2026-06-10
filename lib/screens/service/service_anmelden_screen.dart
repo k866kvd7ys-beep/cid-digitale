@@ -1527,15 +1527,11 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final width = MediaQuery.sizeOf(context).width;
-    final isMobile = width < 720;
-    final isTablet = width >= 720 && width < 1100;
-    final crossAxisCount = width >= 1100
-        ? 3
-        : isTablet
-            ? 2
-            : 1;
-    const crossSpacing = 16.0;
-    final mainSpacing = isMobile ? 14.0 : 12.0;
+    final isPhone = width < 600;
+    final isTablet = width >= 600 && width < 1100;
+    final crossAxisCount = width >= 1100 ? 3 : 2;
+    final crossSpacing = isPhone ? 10.0 : 16.0;
+    final mainSpacing = isPhone ? 10.0 : 12.0;
     final contentWidth = width >= 1100 ? 1120.0 : 980.0;
     final items = _items();
 
@@ -1554,98 +1550,113 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(20, isMobile ? 8 : 10, 20, 16),
+          padding: EdgeInsets.fromLTRB(16, isPhone ? 6 : 10, 16, 14),
           child: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: contentWidth),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isMobile ? 18 : 22,
-                      vertical: isMobile ? 16 : 18,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: const Color(0xFFE5E7EB)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          workshopServiceLabel(locale, workshopServiceMfk),
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            fontSize: isMobile ? 31 : 28,
-                            height: 1.05,
-                            color: const Color(0xFF111827),
-                          ),
+                  if (isPhone)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        _serviceFlowCopy(
+                          locale,
+                          de: 'Die Vorbereitung für die Motorfahrzeugkontrolle beinhaltet folgende Punkte:',
+                          it: 'La preparazione per il controllo dei veicoli a motore comprende i seguenti punti:',
+                          en: 'Preparation for the motor vehicle inspection includes the following points:',
+                          fr: 'La préparation au contrôle des véhicules automobiles comprend les points suivants :',
                         ),
-                        SizedBox(height: isMobile ? 4 : 6),
-                        Text(
-                          _serviceFlowCopy(
-                            locale,
-                            de: 'Die Vorbereitung für die Motorfahrzeugkontrolle beinhaltet folgende Punkte:',
-                            it: 'La preparazione per il controllo dei veicoli a motore comprende i seguenti punti:',
-                            en: 'Preparation for the motor vehicle inspection includes the following points:',
-                            fr: 'La préparation au contrôle des véhicules automobiles comprend les points suivants :',
-                          ),
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            fontSize: isMobile ? 18.5 : 17,
-                            color: const Color(0xFF6B7280),
-                            height: 1.35,
-                          ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 12,
+                          color: const Color(0xFF6B7280),
+                          height: 1.25,
                         ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: isMobile ? 18 : 16),
-                  if (isMobile)
-                    Column(
-                      children: [
-                        for (var i = 0; i < items.length; i++) ...[
-                          _MfkInfoCard(
-                            item: items[i],
-                            isMobile: true,
-                          ),
-                          if (i != items.length - 1) const SizedBox(height: 14),
-                        ],
-                      ],
+                      ),
                     )
                   else
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: items.length,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: crossSpacing,
-                        mainAxisSpacing: mainSpacing,
-                        mainAxisExtent: isTablet ? 208 : 214,
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 22,
+                        vertical: 18,
                       ),
-                      itemBuilder: (context, index) {
-                        return _MfkInfoCard(
-                          item: items[index],
-                          isMobile: false,
-                        );
-                      },
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            workshopServiceLabel(locale, workshopServiceMfk),
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              fontSize: isTablet ? 27 : 28,
+                              height: 1.05,
+                              color: const Color(0xFF111827),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _serviceFlowCopy(
+                              locale,
+                              de: 'Die Vorbereitung für die Motorfahrzeugkontrolle beinhaltet folgende Punkte:',
+                              it: 'La preparazione per il controllo dei veicoli a motore comprende i seguenti punti:',
+                              en: 'Preparation for the motor vehicle inspection includes the following points:',
+                              fr: 'La préparation au contrôle des véhicules automobiles comprend les points suivants :',
+                            ),
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontSize: 17,
+                              color: const Color(0xFF6B7280),
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  SizedBox(height: isMobile ? 18 : 16),
+                  SizedBox(height: isPhone ? 10 : 16),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: items.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: crossSpacing,
+                      mainAxisSpacing: mainSpacing,
+                      mainAxisExtent: isPhone
+                          ? 164
+                          : isTablet
+                              ? 208
+                              : 214,
+                    ),
+                    itemBuilder: (context, index) {
+                      return _MfkInfoCard(
+                        item: items[index],
+                        isCompactPhone: isPhone,
+                      );
+                    },
+                  ),
+                  SizedBox(height: isPhone ? 12 : 16),
                   SizedBox(
                     width: double.infinity,
-                    height: isMobile ? 60 : 62,
+                    height: isPhone ? 52 : 62,
                     child: ElevatedButton(
                       onPressed: onBookNow,
                       style: ElevatedButton.styleFrom(
-                        elevation: 4,
-                        shadowColor: Colors.black.withOpacity(0.14),
+                        elevation: isPhone ? 1 : 4,
+                        shadowColor: Colors.black.withOpacity(
+                          isPhone ? 0.08 : 0.14,
+                        ),
                         backgroundColor: const Color(0xFF2563EB),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius:
+                              BorderRadius.circular(isPhone ? 16 : 20),
                         ),
                       ),
                       child: Text(
@@ -1659,6 +1670,7 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
+                          fontSize: isPhone ? 15 : null,
                         ),
                       ),
                     ),
@@ -1875,11 +1887,11 @@ class _MfkInfoItem {
 class _MfkInfoCard extends StatefulWidget {
   const _MfkInfoCard({
     required this.item,
-    required this.isMobile,
+    required this.isCompactPhone,
   });
 
   final _MfkInfoItem item;
-  final bool isMobile;
+  final bool isCompactPhone;
 
   @override
   State<_MfkInfoCard> createState() => _MfkInfoCardState();
@@ -1892,7 +1904,7 @@ class _MfkInfoCardState extends State<_MfkInfoCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final item = widget.item;
-    final isMobile = widget.isMobile;
+    final isCompactPhone = widget.isCompactPhone;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -1900,10 +1912,10 @@ class _MfkInfoCardState extends State<_MfkInfoCard> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
-        padding: EdgeInsets.all(isMobile ? 18 : 20),
+        padding: EdgeInsets.all(isCompactPhone ? 11 : 20),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(isCompactPhone ? 16 : 22),
           border: Border.all(
             color: _hovered ? const Color(0xFFBFDBFE) : const Color(0xFFEAEAEA),
           ),
@@ -1925,52 +1937,89 @@ class _MfkInfoCardState extends State<_MfkInfoCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
-                borderRadius: BorderRadius.circular(16),
+            if (isCompactPhone)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      item.icon,
+                      color: const Color(0xFF1D4ED8),
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14.5,
+                        height: 1.08,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else ...[
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  item.icon,
+                  color: const Color(0xFF1D4ED8),
+                  size: 31,
+                ),
               ),
-              child: Icon(
-                item.icon,
-                color: const Color(0xFF1D4ED8),
-                size: 31,
+              const SizedBox(height: 10),
+              Text(
+                item.title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 19.5,
+                  height: 1.08,
+                  color: const Color(0xFF111827),
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              item.title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                fontSize: isMobile ? 21.5 : 19.5,
-                height: 1.08,
-                color: const Color(0xFF111827),
-              ),
-            ),
-            const SizedBox(height: 8),
+            ],
+            SizedBox(height: isCompactPhone ? 6 : 8),
             ...item.lines.map(
               (line) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
+                padding: EdgeInsets.only(bottom: isCompactPhone ? 3 : 6),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.only(top: 2),
+                    Padding(
+                      padding: EdgeInsets.only(top: isCompactPhone ? 1.5 : 2),
                       child: Icon(
                         Icons.check_rounded,
-                        size: 16,
+                        size: isCompactPhone ? 13 : 16,
                         color: Color(0xFF2563EB),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: isCompactPhone ? 6 : 8),
                     Expanded(
                       child: Text(
                         line,
+                        maxLines: isCompactPhone ? 1 : null,
+                        overflow: isCompactPhone ? TextOverflow.ellipsis : null,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: const Color(0xFF6B7280),
-                          fontSize: isMobile ? 16.5 : 15.2,
-                          height: 1.28,
+                          fontSize: isCompactPhone ? 11.6 : 15.2,
+                          height: isCompactPhone ? 1.15 : 1.28,
                         ),
                       ),
                     ),
