@@ -1,7 +1,7 @@
 import 'package:cid_digitale/utils/tire_service_type_helper.dart';
 import 'package:flutter/material.dart';
 
-import 'workshop_slot_picker_screen.dart';
+import 'workshop_selector_screen.dart';
 
 const String completeWheelImageUrl =
     'https://aphctrsvvhewukizgomu.supabase.co/storage/v1/object/public/app-assets/assets:images:tires:complete_wheel.jpg.PNG';
@@ -68,14 +68,11 @@ class _RaederWechselScreenState extends State<RaederWechselScreen> {
     final summer = isSummerTireServiceType(tireServiceType);
     final serviceType = summer ? 'raeder_sommer' : 'raeder_winter';
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => WorkshopSlotPickerScreen(
-          title: tireOptionTitle(_locale, tireServiceType),
-          serviceType: serviceType,
-          tireServiceType: tireServiceType,
-        ),
-      ),
+    openWorkshopSelectionStep(
+      context,
+      title: tireOptionTitle(_locale, tireServiceType),
+      serviceType: serviceType,
+      tireServiceType: tireServiceType,
     );
   }
 }

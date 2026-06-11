@@ -13,6 +13,12 @@ class AppointmentRequest {
     this.customerPhone,
     this.customerEmail,
     this.licensePlate,
+    this.garageId,
+    this.garageName,
+    this.garageEmail,
+    this.garagePhone,
+    this.garageAddress,
+    this.garageCity,
     required this.status,
     this.requestStatus = 'pending',
     this.statusUpdatedAt,
@@ -91,6 +97,12 @@ class AppointmentRequest {
   final String? customerPhone;
   final String? customerEmail;
   final String? licensePlate;
+  final String? garageId;
+  final String? garageName;
+  final String? garageEmail;
+  final String? garagePhone;
+  final String? garageAddress;
+  final String? garageCity;
   final String status;
   final String requestStatus;
   final String? statusUpdatedAt;
@@ -422,6 +434,54 @@ class AppointmentRequest {
             map['statusUpdatedAt'] ??
             structuredNotes['statusUpdatedAt'])
         ?.toString();
+    final resolvedGarageId = (map['garageId'] ??
+            map['garage_id'] ??
+            map['workshop_id'] ??
+            structuredNotes['garageId'] ??
+            structuredNotes['garage_id'] ??
+            structuredNotes['workshop_id'])
+        ?.toString()
+        .trim();
+    final resolvedGarageName = (map['garageName'] ??
+            map['garage_name'] ??
+            map['workshop_name'] ??
+            structuredNotes['garageName'] ??
+            structuredNotes['garage_name'] ??
+            structuredNotes['workshop_name'])
+        ?.toString()
+        .trim();
+    final resolvedGarageEmail = (map['garageEmail'] ??
+            map['garage_email'] ??
+            map['workshop_email'] ??
+            structuredNotes['garageEmail'] ??
+            structuredNotes['garage_email'] ??
+            structuredNotes['workshop_email'])
+        ?.toString()
+        .trim();
+    final resolvedGaragePhone = (map['garagePhone'] ??
+            map['garage_phone'] ??
+            map['workshop_phone'] ??
+            structuredNotes['garagePhone'] ??
+            structuredNotes['garage_phone'] ??
+            structuredNotes['workshop_phone'])
+        ?.toString()
+        .trim();
+    final resolvedGarageAddress = (map['garageAddress'] ??
+            map['garage_address'] ??
+            map['workshop_address'] ??
+            structuredNotes['garageAddress'] ??
+            structuredNotes['garage_address'] ??
+            structuredNotes['workshop_address'])
+        ?.toString()
+        .trim();
+    final resolvedGarageCity = (map['garageCity'] ??
+            map['garage_city'] ??
+            map['workshop_city'] ??
+            structuredNotes['garageCity'] ??
+            structuredNotes['garage_city'] ??
+            structuredNotes['workshop_city'])
+        ?.toString()
+        .trim();
 
     return AppointmentRequest(
       id: (map['id'] ?? '').toString(),
@@ -442,6 +502,18 @@ class AppointmentRequest {
           map['customer_email'] ??
           map['customerEmail']) as String?,
       licensePlate: (map['license_plate'] ?? map['licensePlate']) as String?,
+      garageId: (resolvedGarageId?.isEmpty ?? true) ? null : resolvedGarageId,
+      garageName:
+          (resolvedGarageName?.isEmpty ?? true) ? null : resolvedGarageName,
+      garageEmail:
+          (resolvedGarageEmail?.isEmpty ?? true) ? null : resolvedGarageEmail,
+      garagePhone:
+          (resolvedGaragePhone?.isEmpty ?? true) ? null : resolvedGaragePhone,
+      garageAddress: (resolvedGarageAddress?.isEmpty ?? true)
+          ? null
+          : resolvedGarageAddress,
+      garageCity:
+          (resolvedGarageCity?.isEmpty ?? true) ? null : resolvedGarageCity,
       status: (map['status'] ?? 'pending').toString(),
       requestStatus:
           resolvedRequestStatus.isEmpty ? 'pending' : resolvedRequestStatus,
@@ -604,6 +676,23 @@ class AppointmentRequest {
       'phone': customerPhone,
       'email': customerEmail,
       'license_plate': licensePlate,
+      'garageId': garageId,
+      'garage_id': garageId,
+      'garageName': garageName,
+      'garage_name': garageName,
+      'garageEmail': garageEmail,
+      'garage_email': garageEmail,
+      'garagePhone': garagePhone,
+      'garage_phone': garagePhone,
+      'garageAddress': garageAddress,
+      'garage_address': garageAddress,
+      'garageCity': garageCity,
+      'garage_city': garageCity,
+      'workshop_name': garageName,
+      'workshop_email': garageEmail,
+      'workshop_phone': garagePhone,
+      'workshop_address': garageAddress,
+      'workshop_city': garageCity,
       'status': status,
       'requestStatus': requestStatus,
       'statusUpdatedAt': statusUpdatedAt,

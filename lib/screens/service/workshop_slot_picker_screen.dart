@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:cid_digitale/l10n/app_localizations.dart';
+import 'package:cid_digitale/models/workshop_model.dart';
 import 'package:cid_digitale/models/appointment_request.dart';
 import 'package:cid_digitale/screens/my_requests_page.dart';
 import 'package:cid_digitale/services/appointment_requests_service.dart';
@@ -63,6 +64,7 @@ class _SummaryPhotoCountData {
 class WorkshopSlotPickerScreen extends StatefulWidget {
   final String title;
   final String serviceType;
+  final WorkshopModel? selectedWorkshop;
   final String? damageType;
   final String? tireServiceType;
   final String? serviceSelectionKey;
@@ -74,6 +76,7 @@ class WorkshopSlotPickerScreen extends StatefulWidget {
     super.key,
     required this.title,
     required this.serviceType,
+    this.selectedWorkshop,
     this.damageType,
     this.tireServiceType,
     this.serviceSelectionKey,
@@ -3511,13 +3514,24 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
     return widget.title;
   }
 
-  String _selectedWorkshopName(BuildContext context) => _copy(
+  String _selectedWorkshopName(BuildContext context) {
+    final workshop = widget.selectedWorkshop;
+    if (workshop == null) {
+      return _copy(
         context: context,
         de: 'CrashForm Partnerwerkstatt',
         it: 'Officina partner CrashForm',
         en: 'CrashForm partner workshop',
         fr: 'Atelier partenaire CrashForm',
       );
+    }
+
+    return [
+      workshop.name.trim(),
+      workshop.address.trim(),
+      workshop.city.trim(),
+    ].where((line) => line.isNotEmpty).join('\n');
+  }
 
   String _summaryValue(String? value) {
     final trimmed = value?.trim() ?? '';
@@ -4098,6 +4112,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
         phone: _phoneCtrl.text.trim(),
         email: _emailCtrl.text.trim(),
         licensePlate: _plateCtrl.text.trim(),
+        garageId: widget.selectedWorkshop?.id,
+        garageName: widget.selectedWorkshop?.name,
+        garageEmail: widget.selectedWorkshop?.email,
+        garagePhone: widget.selectedWorkshop?.phone,
+        garageAddress: widget.selectedWorkshop?.address,
+        garageCity: widget.selectedWorkshop?.city,
         notes: null,
         locale: locale,
         glassDamageTown: _isGlassDamage ? _glassTownCtrl.text.trim() : null,
@@ -4911,6 +4931,31 @@ class _ClientRequestSuccessScreenState
     return compact.substring(0, 10);
   }
 
+  WorkshopModel? _selectedWorkshopFromRequest() {
+    final request = widget.request;
+    final lines = [
+      request.garageName?.trim() ?? '',
+      request.garageAddress?.trim() ?? '',
+      request.garageCity?.trim() ?? '',
+    ].where((line) => line.isNotEmpty).toList();
+    if (lines.isEmpty) {
+      return null;
+    }
+
+    return WorkshopModel(
+      id: request.garageId?.trim().isNotEmpty == true
+          ? request.garageId!.trim()
+          : 'selected-workshop',
+      name: request.garageName?.trim() ?? '',
+      email: request.garageEmail?.trim() ?? '',
+      phone: request.garagePhone?.trim() ?? '',
+      address: request.garageAddress?.trim() ?? '',
+      city: request.garageCity?.trim() ?? '',
+      rating: 0,
+      isOpen: true,
+    );
+  }
+
   IconData _damageIconFor(DamageType type) {
     switch (type) {
       case DamageType.glass:
@@ -5011,6 +5056,7 @@ class _ClientRequestSuccessScreenState
           title: title,
           serviceType: _damageServiceType(selected),
           damageType: selected.name,
+          selectedWorkshop: _selectedWorkshopFromRequest(),
         ),
       ),
     );

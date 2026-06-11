@@ -42,6 +42,8 @@ class EmailNotificationsService {
     final serviceDetail = _serviceDetailLabel(request);
     final additionalServices = _additionalServiceLabels(request);
     final serviceLabel = _mapServiceLabel(request);
+    final workshopLabel = _workshopLabel(request);
+    final workshopFieldLabel = _workshopFieldLabel(locale);
 
     return {
       'recipient': request.customerEmail,
@@ -59,9 +61,22 @@ class EmailNotificationsService {
                 '${workshopCleaningPackageFieldLabel(locale)}: $cleaningPackage',
               if (additionalServices.isNotEmpty)
                 '${workshopAdditionalServicesFieldLabel(locale)}:\n- ${additionalServices.join('\n- ')}',
+              if (workshopLabel != null) '$workshopFieldLabel:\n$workshopLabel',
             ].join('\n'),
       'date': dateLabel,
       'time': timeLabel,
+      if (workshopLabel != null) 'selected_workshop_label': workshopFieldLabel,
+      if (workshopLabel != null) 'selected_workshop': workshopLabel,
+      if ((request.garageName?.trim().isNotEmpty ?? false))
+        'selected_workshop_name': request.garageName!.trim(),
+      if ((request.garageAddress?.trim().isNotEmpty ?? false))
+        'selected_workshop_address': request.garageAddress!.trim(),
+      if ((request.garageCity?.trim().isNotEmpty ?? false))
+        'selected_workshop_city': request.garageCity!.trim(),
+      if ((request.garageEmail?.trim().isNotEmpty ?? false))
+        'selected_workshop_email': request.garageEmail!.trim(),
+      if ((request.garagePhone?.trim().isNotEmpty ?? false))
+        'selected_workshop_phone': request.garagePhone!.trim(),
       if (serviceDetail != null)
         'service_detail_label': workshopInspectionSelectionFieldLabel(locale),
       if (serviceDetail != null) 'service_detail': serviceDetail,
@@ -145,5 +160,33 @@ class EmailNotificationsService {
     return request.additionalServices
         .map((service) => workshopAdditionalServiceLabel(locale, service))
         .toList();
+  }
+
+  String _workshopFieldLabel(String locale) {
+    switch (locale) {
+      case 'it':
+        return 'Officina selezionata';
+      case 'en':
+        return 'Selected workshop';
+      case 'fr':
+        return 'Atelier sélectionné';
+      case 'de':
+      default:
+        return 'Ausgewählte Werkstatt';
+    }
+  }
+
+  String? _workshopLabel(AppointmentRequest request) {
+    final lines = [
+      request.garageName?.trim() ?? '',
+      request.garageAddress?.trim() ?? '',
+      request.garageCity?.trim() ?? '',
+    ].where((line) => line.isNotEmpty).toList();
+
+    if (lines.isEmpty) {
+      return null;
+    }
+
+    return lines.join('\n');
   }
 }

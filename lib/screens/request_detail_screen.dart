@@ -527,6 +527,27 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         fr: 'Atelier partenaire CrashForm',
       );
 
+  String _workshopFieldLabel() => _copy(
+        de: 'Werkstatt',
+        it: 'Officina',
+        en: 'Workshop',
+        fr: 'Atelier',
+      );
+
+  String _selectedWorkshopDetailValue() {
+    final lines = [
+      request.garageName?.trim() ?? '',
+      request.garageAddress?.trim() ?? '',
+      request.garageCity?.trim() ?? '',
+    ].where((line) => line.isNotEmpty).toList();
+
+    if (lines.isEmpty) {
+      return _workshopFallbackName();
+    }
+
+    return lines.join('\n');
+  }
+
   String _localizedRequestLocale() {
     final appLocale =
         Localizations.localeOf(context).languageCode.toLowerCase();
@@ -1276,7 +1297,9 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     return _premiumPdfService.generatePremiumWorkshopPdf(
       request: request,
       localeCode: _localizedRequestLocale(),
-      workshopName: _workshopFallbackName(),
+      workshopName: request.garageName?.trim().isNotEmpty == true
+          ? request.garageName!.trim()
+          : _workshopFallbackName(),
     );
   }
 
@@ -2061,7 +2084,8 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                             ),
                           _row('Datum', dateLabel()),
                           _row('Uhrzeit', timeLabel()),
-                          _row('Werkstatt', value('workshop_name')),
+                          _row(_workshopFieldLabel(),
+                              _selectedWorkshopDetailValue()),
                           _row(l10n.license_plate_label,
                               request.licensePlate ?? ''),
                           _row('Name', request.customerName ?? ''),

@@ -302,6 +302,12 @@ class AppointmentRequestsService {
     String? phone,
     String? email,
     String? licensePlate,
+    String? garageId,
+    String? garageName,
+    String? garageEmail,
+    String? garagePhone,
+    String? garageAddress,
+    String? garageCity,
     String? notes,
     String? locale,
     String? damageType,
@@ -378,6 +384,12 @@ class AppointmentRequestsService {
         phone: phone,
         email: email,
         licensePlate: licensePlate,
+        garageId: garageId,
+        garageName: garageName,
+        garageEmail: garageEmail,
+        garagePhone: garagePhone,
+        garageAddress: garageAddress,
+        garageCity: garageCity,
         notes: notes,
         locale: locale,
         damageType: damageType,
@@ -453,6 +465,12 @@ class AppointmentRequestsService {
         phone: phone,
         email: email,
         licensePlate: licensePlate,
+        garageId: garageId,
+        garageName: garageName,
+        garageEmail: garageEmail,
+        garagePhone: garagePhone,
+        garageAddress: garageAddress,
+        garageCity: garageCity,
         notes: notes,
         locale: locale,
         damageType: damageType,
@@ -526,6 +544,12 @@ class AppointmentRequestsService {
           phone: phone,
           email: email,
           licensePlate: licensePlate,
+          garageId: garageId,
+          garageName: garageName,
+          garageEmail: garageEmail,
+          garagePhone: garagePhone,
+          garageAddress: garageAddress,
+          garageCity: garageCity,
           notes: notes,
           locale: locale,
           damageType: damageType,
@@ -808,6 +832,12 @@ class AppointmentRequestsService {
       'notes': _buildStructuredNotes(
         notes: existing.notes,
         tireServiceType: existing.tireServiceType,
+        garageId: existing.garageId,
+        garageName: existing.garageName,
+        garageEmail: existing.garageEmail,
+        garagePhone: existing.garagePhone,
+        garageAddress: existing.garageAddress,
+        garageCity: existing.garageCity,
         requestStatus: normalizedStatus,
         statusUpdatedAt: updatedAt,
         glassDamageTown: existing.glassDamageTown,
@@ -921,6 +951,12 @@ class AppointmentRequestsService {
           phone: localRequest.customerPhone,
           email: localRequest.customerEmail,
           licensePlate: localRequest.licensePlate,
+          garageId: localRequest.garageId,
+          garageName: localRequest.garageName,
+          garageEmail: localRequest.garageEmail,
+          garagePhone: localRequest.garagePhone,
+          garageAddress: localRequest.garageAddress,
+          garageCity: localRequest.garageCity,
           notes: localRequest.notes,
           locale: localRequest.locale,
           damageType: localRequest.damageType,
@@ -1059,6 +1095,12 @@ class AppointmentRequestsService {
     String? phone,
     String? email,
     String? licensePlate,
+    String? garageId,
+    String? garageName,
+    String? garageEmail,
+    String? garagePhone,
+    String? garageAddress,
+    String? garageCity,
     String? notes,
     String? locale,
     String? damageType,
@@ -1134,6 +1176,12 @@ class AppointmentRequestsService {
       'notes': _buildStructuredNotes(
         notes: notes,
         tireServiceType: tireServiceType,
+        garageId: garageId,
+        garageName: garageName,
+        garageEmail: garageEmail,
+        garagePhone: garagePhone,
+        garageAddress: garageAddress,
+        garageCity: garageCity,
         serviceSelectionKey: serviceSelectionKey,
         serviceDetail: serviceDetail,
         cleaningPackage: cleaningPackage,
@@ -1243,6 +1291,12 @@ class AppointmentRequestsService {
           'notes': _buildStructuredNotes(
             notes: existing.notes,
             tireServiceType: existing.tireServiceType,
+            garageId: existing.garageId,
+            garageName: existing.garageName,
+            garageEmail: existing.garageEmail,
+            garagePhone: existing.garagePhone,
+            garageAddress: existing.garageAddress,
+            garageCity: existing.garageCity,
             requestStatus: existing.requestStatus,
             statusUpdatedAt: existing.statusUpdatedAt,
             glassDamageTown: existing.glassDamageTown,
@@ -1310,6 +1364,12 @@ class AppointmentRequestsService {
   String? _buildStructuredNotes({
     String? notes,
     String? tireServiceType,
+    String? garageId,
+    String? garageName,
+    String? garageEmail,
+    String? garagePhone,
+    String? garageAddress,
+    String? garageCity,
     String? serviceSelectionKey,
     String? serviceDetail,
     String? cleaningPackage,
@@ -1370,6 +1430,12 @@ class AppointmentRequestsService {
   }) {
     final trimmedNotes = notes?.trim();
     final trimmedTireServiceType = tireServiceType?.trim();
+    final trimmedGarageId = garageId?.trim();
+    final trimmedGarageName = garageName?.trim();
+    final trimmedGarageEmail = garageEmail?.trim();
+    final trimmedGaragePhone = garagePhone?.trim();
+    final trimmedGarageAddress = garageAddress?.trim();
+    final trimmedGarageCity = garageCity?.trim();
     final trimmedServiceSelectionKey = serviceSelectionKey?.trim();
     final trimmedServiceDetail = serviceDetail?.trim();
     final trimmedCleaningPackage = cleaningPackage?.trim();
@@ -1544,6 +1610,12 @@ class AppointmentRequestsService {
     final hasStructuredData = (trimmedGlassTown?.isNotEmpty ?? false) ||
         (trimmedGlassDate?.isNotEmpty ?? false) ||
         (trimmedTireServiceType?.isNotEmpty ?? false) ||
+        (trimmedGarageId?.isNotEmpty ?? false) ||
+        (trimmedGarageName?.isNotEmpty ?? false) ||
+        (trimmedGarageEmail?.isNotEmpty ?? false) ||
+        (trimmedGaragePhone?.isNotEmpty ?? false) ||
+        (trimmedGarageAddress?.isNotEmpty ?? false) ||
+        (trimmedGarageCity?.isNotEmpty ?? false) ||
         (trimmedServiceSelectionKey?.isNotEmpty ?? false) ||
         (trimmedServiceDetail?.isNotEmpty ?? false) ||
         (trimmedCleaningPackage?.isNotEmpty ?? false) ||
@@ -1613,6 +1685,38 @@ class AppointmentRequestsService {
         'tire_service_type': trimmedTireServiceType,
       if (trimmedTireServiceType?.isNotEmpty ?? false)
         'tireServiceType': trimmedTireServiceType,
+      if (trimmedGarageId?.isNotEmpty ?? false) 'garage_id': trimmedGarageId,
+      if (trimmedGarageId?.isNotEmpty ?? false) 'garageId': trimmedGarageId,
+      if (trimmedGarageName?.isNotEmpty ?? false)
+        'garage_name': trimmedGarageName,
+      if (trimmedGarageName?.isNotEmpty ?? false)
+        'garageName': trimmedGarageName,
+      if (trimmedGarageName?.isNotEmpty ?? false)
+        'workshop_name': trimmedGarageName,
+      if (trimmedGarageEmail?.isNotEmpty ?? false)
+        'garage_email': trimmedGarageEmail,
+      if (trimmedGarageEmail?.isNotEmpty ?? false)
+        'garageEmail': trimmedGarageEmail,
+      if (trimmedGarageEmail?.isNotEmpty ?? false)
+        'workshop_email': trimmedGarageEmail,
+      if (trimmedGaragePhone?.isNotEmpty ?? false)
+        'garage_phone': trimmedGaragePhone,
+      if (trimmedGaragePhone?.isNotEmpty ?? false)
+        'garagePhone': trimmedGaragePhone,
+      if (trimmedGaragePhone?.isNotEmpty ?? false)
+        'workshop_phone': trimmedGaragePhone,
+      if (trimmedGarageAddress?.isNotEmpty ?? false)
+        'garage_address': trimmedGarageAddress,
+      if (trimmedGarageAddress?.isNotEmpty ?? false)
+        'garageAddress': trimmedGarageAddress,
+      if (trimmedGarageAddress?.isNotEmpty ?? false)
+        'workshop_address': trimmedGarageAddress,
+      if (trimmedGarageCity?.isNotEmpty ?? false)
+        'garage_city': trimmedGarageCity,
+      if (trimmedGarageCity?.isNotEmpty ?? false)
+        'garageCity': trimmedGarageCity,
+      if (trimmedGarageCity?.isNotEmpty ?? false)
+        'workshop_city': trimmedGarageCity,
       if (trimmedServiceSelectionKey?.isNotEmpty ?? false)
         'service_selection_key': trimmedServiceSelectionKey,
       if (trimmedServiceSelectionKey?.isNotEmpty ?? false)
@@ -2076,6 +2180,12 @@ class AppointmentRequestsService {
     String? phone,
     String? email,
     String? licensePlate,
+    String? garageId,
+    String? garageName,
+    String? garageEmail,
+    String? garagePhone,
+    String? garageAddress,
+    String? garageCity,
     String? notes,
     String? locale,
     String? damageType,
@@ -2201,6 +2311,12 @@ class AppointmentRequestsService {
       customerPhone: phone,
       customerEmail: email,
       licensePlate: licensePlate,
+      garageId: garageId,
+      garageName: garageName,
+      garageEmail: garageEmail,
+      garagePhone: garagePhone,
+      garageAddress: garageAddress,
+      garageCity: garageCity,
       status: 'pending_sync',
       requestStatus: requestStatus,
       statusUpdatedAt: statusUpdatedAt,

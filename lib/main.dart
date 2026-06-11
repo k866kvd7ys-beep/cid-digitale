@@ -29,7 +29,7 @@ import 'config/supabase_config.dart';
 import 'screens/officina/appointments_screen.dart';
 import 'screens/service/service_anmelden_screen.dart';
 import 'screens/service/raeder_wechsel_screen.dart';
-import 'screens/service/workshop_slot_picker_screen.dart';
+import 'screens/service/workshop_selector_screen.dart';
 import 'services/supabase_service.dart';
 import 'services/appointment_requests_service.dart';
 import 'services/incidents_sync_service.dart';
@@ -2875,14 +2875,11 @@ class _HomePageState extends State<HomePage> {
     final title =
         '${l10n.damage_type_title} - ${_damageLabel(l10n, damageType)}';
 
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => WorkshopSlotPickerScreen(
-          title: title,
-          serviceType: serviceType,
-          damageType: damageType.name,
-        ),
-      ),
+    await openWorkshopSelectionStep(
+      context,
+      title: title,
+      serviceType: serviceType,
+      damageType: damageType.name,
     );
     _refreshHomeData();
   }

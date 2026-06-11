@@ -1,4 +1,4 @@
-import 'package:cid_digitale/screens/service/workshop_slot_picker_screen.dart';
+import 'package:cid_digitale/screens/service/workshop_selector_screen.dart';
 import 'package:cid_digitale/utils/service_booking_helper.dart';
 import 'package:flutter/material.dart';
 
@@ -37,17 +37,14 @@ class ServiceAnmeldenScreen extends StatelessWidget {
     String? cleaningPackage,
     List<String> additionalServices = const [],
   }) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => WorkshopSlotPickerScreen(
-          title: title,
-          serviceType: serviceType,
-          serviceSelectionKey: serviceSelectionKey,
-          serviceDetail: serviceDetail,
-          cleaningPackage: cleaningPackage,
-          additionalServices: additionalServices,
-        ),
-      ),
+    openWorkshopSelectionStep(
+      context,
+      title: title,
+      serviceType: serviceType,
+      serviceSelectionKey: serviceSelectionKey,
+      serviceDetail: serviceDetail,
+      cleaningPackage: cleaningPackage,
+      additionalServices: additionalServices,
     );
   }
 
