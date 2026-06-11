@@ -18,7 +18,6 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -39,7 +38,6 @@ import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'qr/qr_payload.dart';
 import 'package:cid_digitale/widgets/damage_type_picker_sheet.dart';
-import 'package:cid_digitale/widgets/quick_action_tile.dart';
 import 'widgets/auth/auth_gate.dart';
 import 'screens/auth/login_page.dart';
 import 'web_share_helper.dart'
@@ -47,7 +45,6 @@ import 'web_share_helper.dart'
 import 'screens/my_requests_page.dart';
 import 'package:crypto/crypto.dart';
 import 'web_ocr_stub.dart' if (dart.library.html) 'web_ocr_html.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NominatimSuggestion {
   final String displayName;
@@ -2672,6 +2669,37 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  static const Color _homeBackground = Color(0xFFF8FAFC);
+  static const Color _homeGradientTop = Color(0xFFEEF6FF);
+  static const Color _homePrimary = Color(0xFF2563EB);
+  static const Color _homeLightBlue = Color(0xFFEFF6FF);
+  static const Color _homeTextDark = Color(0xFF111827);
+  static const Color _homeTextGray = Color(0xFF6B7280);
+  static const Color _homeBorder = Color(0xFFE5E7EB);
+
+  final AppointmentRequestsService _appointmentRequestsService =
+      AppointmentRequestsService();
+  late Future<int?> _openRequestsCountFuture;
+
+  String _copy({
+    required String it,
+    required String de,
+    required String fr,
+    required String en,
+  }) {
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'it':
+        return it;
+      case 'fr':
+        return fr;
+      case 'en':
+        return en;
+      case 'de':
+      default:
+        return de;
+    }
+  }
+
   String _damageOtherLabel(BuildContext context) {
     switch (Localizations.localeOf(context).languageCode) {
       case 'it':
@@ -2720,6 +2748,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _openRequestsCountFuture = _loadOpenRequestsCount();
     incidentiRevision.addListener(_onIncidentiRevision);
     unawaited(PendingSyncManager.trigger());
   }
@@ -2735,12 +2764,33 @@ class _HomePageState extends State<HomePage> {
     setState(() {});
   }
 
+  Future<int?> _loadOpenRequestsCount() async {
+    try {
+      final requests = await _appointmentRequestsService.fetchMyRequests();
+      return requests
+          .where((request) =>
+              request.requestStatus != 'completed' &&
+              request.requestStatus != 'cancelled')
+          .length;
+    } catch (e) {
+      debugPrint('open requests count unavailable: $e');
+      return null;
+    }
+  }
+
+  void _refreshHomeData() {
+    if (!mounted) return;
+    setState(() {
+      _openRequestsCountFuture = _loadOpenRequestsCount();
+    });
+  }
+
   void _vaiANuovoIncidente() async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const NuovaPraticaIncidentePage()),
     );
     await caricaIncidenti();
-    setState(() {});
+    _refreshHomeData();
   }
 
   void _vaiAImpostazioni() async {
@@ -2814,15 +2864,18 @@ class _HomePageState extends State<HomePage> {
 
     if (selected == null) return;
 
-    _openCalendarSameLogic(selected, l10n);
+    await _openCalendarSameLogic(selected, l10n);
   }
 
-  void _openCalendarSameLogic(DamageType damageType, AppLocalizations l10n) {
+  Future<void> _openCalendarSameLogic(
+    DamageType damageType,
+    AppLocalizations l10n,
+  ) async {
     final serviceType = _damageServiceType(damageType);
     final title =
         '${l10n.damage_type_title} - ${_damageLabel(l10n, damageType)}';
 
-    Navigator.of(context).push(
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => WorkshopSlotPickerScreen(
           title: title,
@@ -2831,14 +2884,28 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+    _refreshHomeData();
   }
 
   Future<void> _openServiceAnmelden(BuildContext context) async {
     await Navigator.of(context).pushNamed('/service_anmelden');
+    _refreshHomeData();
   }
 
   Future<void> _openRaederWechsel(BuildContext context) async {
     await Navigator.of(context).pushNamed('/raeder_wechsel');
+    _refreshHomeData();
+  }
+
+  Future<void> _openMyRequests() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const MyRequestsPage(
+          incidentsTab: StoricoPage(embedOnlyBody: true),
+        ),
+      ),
+    );
+    _refreshHomeData();
   }
 
   Future<void> _exitHome() async {
@@ -2859,39 +2926,414 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _quickActionChip({
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
+  String _openRequestsBadgeLabel(int count) {
+    return _copy(
+      it: '$count aperte',
+      de: '$count offen',
+      fr: '$count ouvertes',
+      en: '$count open',
+    );
+  }
+
+  Widget _topBarShell({
+    required Widget child,
+    EdgeInsetsGeometry padding = EdgeInsets.zero,
   }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: const Color(0xFF2D2D2D).withOpacity(0.25),
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.90),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _homeBorder),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withOpacity(0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
-          color: Colors.white.withOpacity(0.35),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildHeader(String subtitle) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Wrap(
+          alignment: WrapAlignment.end,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            Icon(icon, size: 18, color: const Color(0xFF2B4B6B)),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+            _topBarShell(
+              child: PopupMenuButton<String>(
+                icon: const Icon(
+                  Icons.language_rounded,
+                  size: 20,
+                  color: _homeTextDark,
+                ),
+                tooltip: 'Language',
+                onSelected: (value) {
+                  switch (value) {
+                    case 'it':
+                      linguaSelezionata.value = const Locale('it');
+                      unawaited(salvaLinguaPreferita('it'));
+                      break;
+                    case 'de':
+                      linguaSelezionata.value = const Locale('de');
+                      unawaited(salvaLinguaPreferita('de'));
+                      break;
+                    case 'fr':
+                      linguaSelezionata.value = const Locale('fr');
+                      unawaited(salvaLinguaPreferita('fr'));
+                      break;
+                    case 'en':
+                      linguaSelezionata.value = const Locale('en');
+                      unawaited(salvaLinguaPreferita('en'));
+                      break;
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: 'it', child: Text('🇮🇹 Italiano')),
+                  PopupMenuItem(value: 'de', child: Text('🇩🇪 Deutsch')),
+                  PopupMenuItem(value: 'fr', child: Text('🇫🇷 Français')),
+                  PopupMenuItem(value: 'en', child: Text('🇬🇧 English')),
+                ],
+              ),
+            ),
+            _topBarShell(
+              child: TextButton.icon(
+                onPressed: _exitHome,
+                icon: const Icon(
+                  Icons.exit_to_app_rounded,
+                  size: 18,
+                  color: _homeTextDark,
+                ),
+                label: const Text(
+                  'Exit',
+                  style: TextStyle(
+                    color: _homeTextDark,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(0, 42),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ),
+            _topBarShell(
+              child: IconButton(
+                onPressed: _vaiAImpostazioni,
+                icon: const Icon(Icons.settings, color: _homeTextDark),
+                tooltip: tr(context, 'home_settings_tooltip'),
               ),
             ),
           ],
         ),
+        const SizedBox(height: 18),
+        Text(
+          'CID Digitale',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: _homeTextDark,
+                letterSpacing: -0.8,
+              ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: _homeTextGray,
+                fontWeight: FontWeight.w500,
+              ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeroCard({
+    required String title,
+    required String subtitle,
+  }) {
+    return _HomeSurfaceCard(
+      radius: 28,
+      padding: const EdgeInsets.all(24),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final horizontal = constraints.maxWidth >= 720;
+          final logo = Container(
+            width: horizontal ? 134 : 120,
+            height: horizontal ? 134 : 120,
+            decoration: BoxDecoration(
+              color: _homeLightBlue,
+              borderRadius: BorderRadius.circular(28),
+            ),
+            padding: const EdgeInsets.all(18),
+            child: Image.asset(
+              'assets/images/crashform_logo.png',
+              fit: BoxFit.contain,
+            ),
+          );
+
+          final copy = Column(
+            crossAxisAlignment: horizontal
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                textAlign: horizontal ? TextAlign.left : TextAlign.center,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: _homeTextDark,
+                      letterSpacing: -0.6,
+                    ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                subtitle,
+                textAlign: horizontal ? TextAlign.left : TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: _homeTextGray,
+                      height: 1.45,
+                    ),
+              ),
+            ],
+          );
+
+          if (!horizontal) {
+            return Column(
+              children: [
+                logo,
+                const SizedBox(height: 18),
+                copy,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              logo,
+              const SizedBox(width: 24),
+              Expanded(child: copy),
+            ],
+          );
+        },
       ),
+    );
+  }
+
+  Widget _buildPrimaryIncidentButton(String label) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: _homePrimary.withOpacity(0.24),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: _vaiANuovoIncidente,
+        icon: const Icon(Icons.add_circle_outline_rounded, size: 22),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _homePrimary,
+          foregroundColor: Colors.white,
+          minimumSize: const Size.fromHeight(60),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMyRequestsCard(AppLocalizations l10n, String subtitle) {
+    return FutureBuilder<int?>(
+      future: _openRequestsCountFuture,
+      builder: (context, snapshot) {
+        final count = snapshot.data;
+        return _HomeActionCard(
+          icon: Icons.inventory_2_rounded,
+          iconColor: _homePrimary,
+          iconBackgroundColor: _homeLightBlue,
+          title: l10n.my_requests_title,
+          subtitle: subtitle,
+          badgeLabel: count == null ? null : _openRequestsBadgeLabel(count),
+          onTap: _openMyRequests,
+        );
+      },
+    );
+  }
+
+  Widget _buildWorkshopServices(
+    AppLocalizations l10n,
+    String servicesSubtitle,
+    String mostRequestedBadge,
+    String seasonalBadge,
+    String quickHelpBadge,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _HomeSectionHeader(
+          title: l10n.workshop_services_title,
+          subtitle: servicesSubtitle,
+        ),
+        const SizedBox(height: 14),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth >= 780;
+            if (!wide) {
+              return Column(
+                children: [
+                  _HomeServiceTile(
+                    icon: Icons.calendar_month_rounded,
+                    title: l10n.service_anmelden,
+                    badgeLabel: mostRequestedBadge,
+                    onTap: () => _openServiceAnmelden(context),
+                  ),
+                  const SizedBox(height: 14),
+                  _HomeServiceTile(
+                    icon: Icons.tire_repair_rounded,
+                    title: l10n.raeder_wechsel,
+                    badgeLabel: seasonalBadge,
+                    onTap: () => _openRaederWechsel(context),
+                  ),
+                  const SizedBox(height: 14),
+                  _HomeServiceTile(
+                    icon: Icons.car_crash_rounded,
+                    title: l10n.damage_type_title,
+                    badgeLabel: quickHelpBadge,
+                    onTap: () => _openDamageTypePicker(context),
+                  ),
+                ],
+              );
+            }
+
+            return Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _HomeServiceTile(
+                        icon: Icons.calendar_month_rounded,
+                        title: l10n.service_anmelden,
+                        badgeLabel: mostRequestedBadge,
+                        onTap: () => _openServiceAnmelden(context),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _HomeServiceTile(
+                        icon: Icons.tire_repair_rounded,
+                        title: l10n.raeder_wechsel,
+                        badgeLabel: seasonalBadge,
+                        onTap: () => _openRaederWechsel(context),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _HomeServiceTile(
+                  icon: Icons.car_crash_rounded,
+                  title: l10n.damage_type_title,
+                  badgeLabel: quickHelpBadge,
+                  onTap: () => _openDamageTypePicker(context),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickActions(
+    String title,
+    String callWorkshopLabel,
+    String findNearbyLabel,
+    String emergencyLabel,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _HomeSectionHeader(title: title),
+        const SizedBox(height: 14),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = constraints.maxWidth >= 960
+                ? 3
+                : constraints.maxWidth >= 620
+                    ? 2
+                    : 1;
+            const gap = 12.0;
+            final itemWidth = columns == 1
+                ? constraints.maxWidth
+                : (constraints.maxWidth - (gap * (columns - 1))) / columns;
+
+            return Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: [
+                SizedBox(
+                  width: itemWidth,
+                  child: _HomeQuickActionPill(
+                    icon: Icons.phone_in_talk_rounded,
+                    label: callWorkshopLabel,
+                    onTap: _chiamaCarrozzeria,
+                  ),
+                ),
+                SizedBox(
+                  width: itemWidth,
+                  child: _HomeQuickActionPill(
+                    icon: Icons.location_on_outlined,
+                    label: findNearbyLabel,
+                    onTap: () {
+                      _apriUrl(
+                        Uri.parse(
+                          'https://www.google.com/maps/search/?api=1&query=carrozzeria+vicino+a+me',
+                        ),
+                        'Impossibile aprire Google Maps.',
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(
+                  width: itemWidth,
+                  child: _HomeQuickActionPill(
+                    icon: Icons.emergency_rounded,
+                    label: emergencyLabel,
+                    emergency: true,
+                    onTap: _mostraEmergenze,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -3066,214 +3508,149 @@ class _HomePageState extends State<HomePage> {
       );
     }
     final l10n = AppLocalizations.of(context)!;
+    final headerSubtitle = _copy(
+      it: 'Gestione intelligente degli incidenti',
+      de: 'Intelligente Schadenverwaltung',
+      fr: 'Gestion intelligente des sinistres',
+      en: 'Intelligent accident management',
+    );
+    final heroTitle = _copy(
+      it: 'Benvenuto nel tuo CID Digitale',
+      de: 'Willkommen in deinem digitalen Unfallbericht',
+      fr: 'Bienvenue dans votre constat numérique',
+      en: 'Welcome to your digital accident report',
+    );
+    final heroSubtitle = _copy(
+      it: 'Gestisci incidenti, richieste e servizi officina in modo rapido e sicuro.',
+      de: 'Verwalte Unfälle, Anfragen und Werkstattservices schnell und sicher.',
+      fr: 'Gérez les accidents, demandes et services d’atelier rapidement et en toute sécurité.',
+      en: 'Manage accidents, requests and workshop services quickly and securely.',
+    );
+    final requestsSubtitle = _copy(
+      it: 'Controlla lo stato delle tue pratiche',
+      de: 'Status deiner Anfragen prüfen',
+      fr: 'Consultez l’état de vos demandes',
+      en: 'Check the status of your requests',
+    );
+    final servicesSubtitle = _copy(
+      it: 'Prenota rapidamente gli interventi disponibili.',
+      de: 'Buche verfügbare Werkstattservices schnell.',
+      fr: 'Réservez rapidement les services disponibles.',
+      en: 'Quickly book available workshop services.',
+    );
+    final mostRequestedBadge = _copy(
+      it: 'Più richiesto',
+      de: 'Häufig gefragt',
+      fr: 'Le plus demandé',
+      en: 'Most requested',
+    );
+    final seasonalBadge = _copy(
+      it: 'Stagionale',
+      de: 'Saisonal',
+      fr: 'Saisonnier',
+      en: 'Seasonal',
+    );
+    final quickHelpBadge = _copy(
+      it: 'Guida rapida',
+      de: 'Schnelle Hilfe',
+      fr: 'Aide rapide',
+      en: 'Quick help',
+    );
+    final callWorkshopLabel = _copy(
+      it: 'Chiama la mia carrozzeria',
+      de: 'Meine Werkstatt anrufen',
+      fr: 'Appeler mon atelier',
+      en: 'Call my workshop',
+    );
+    final findNearbyLabel = _copy(
+      it: 'Trova carrozzeria nei dintorni',
+      de: 'Werkstatt in der Nähe finden',
+      fr: 'Trouver un atelier à proximité',
+      en: 'Find a nearby workshop',
+    );
+    final emergencyLabel = _copy(
+      it: 'Chiama numeri di emergenza',
+      de: 'Notrufnummern anrufen',
+      fr: 'Appeler les numéros d’urgence',
+      en: 'Call emergency numbers',
+    );
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final horizontalPadding = screenWidth >= 900 ? 24.0 : 20.0;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(tr(context, 'home_title')),
-        centerTitle: true,
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.language),
-            onSelected: (value) {
-              switch (value) {
-                case 'it':
-                  linguaSelezionata.value = const Locale('it');
-                  unawaited(salvaLinguaPreferita('it'));
-                  break;
-                case 'de':
-                  linguaSelezionata.value = const Locale('de');
-                  unawaited(salvaLinguaPreferita('de'));
-                  break;
-                case 'fr':
-                  linguaSelezionata.value = const Locale('fr');
-                  unawaited(salvaLinguaPreferita('fr'));
-                  break;
-                case 'en':
-                  linguaSelezionata.value = const Locale('en');
-                  unawaited(salvaLinguaPreferita('en'));
-                  break;
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: 'it', child: Text('🇮🇹 Italiano')),
-              PopupMenuItem(value: 'de', child: Text('🇩🇪 Deutsch')),
-              PopupMenuItem(value: 'fr', child: Text('🇫🇷 Français')),
-              PopupMenuItem(value: 'en', child: Text('🇬🇧 English')),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: TextButton.icon(
-              onPressed: _exitHome,
-              icon: const Icon(Icons.exit_to_app_rounded, size: 18),
-              label: const Text('Exit'),
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF111827),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              ),
+      backgroundColor: _homeBackground,
+      body: SafeArea(
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [_homeGradientTop, _homeBackground],
             ),
           ),
-          IconButton(
-            onPressed: _vaiAImpostazioni,
-            icon: const Icon(Icons.settings),
-            tooltip: tr(context, 'home_settings_tooltip'),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Stack(
             children: [
-              const SizedBox(height: 12),
-              Image.asset(
-                'assets/images/crashform_logo.png',
-                height: 120,
-                width: 120,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                tr(context, 'home_subtitle'),
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(color: Colors.black87),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _vaiANuovoIncidente,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(52),
-                  shape: const StadiumBorder(),
-                ),
-                child: Text(
-                  tr(context, 'home_new_incident'),
-                  style: const TextStyle(color: Colors.black),
+              const Positioned(
+                top: -72,
+                right: -42,
+                child: _HomeBackgroundOrb(
+                  size: 220,
+                  color: Color(0xFFDCEBFF),
                 ),
               ),
-              const SizedBox(height: 12),
-              _PremiumActionButton(
-                icon: Icons.inbox_outlined,
-                label: l10n.my_requests_title,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const MyRequestsPage(
-                        incidentsTab: StoricoPage(embedOnlyBody: true),
-                      ),
+              const Positioned(
+                top: 320,
+                left: -84,
+                child: _HomeBackgroundOrb(
+                  size: 180,
+                  color: Color(0xFFE8F2FF),
+                ),
+              ),
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1040),
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalPadding,
+                      18,
+                      horizontalPadding,
+                      28,
                     ),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  l10n.workshop_services_title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildHeader(headerSubtitle),
+                        const SizedBox(height: 22),
+                        _buildHeroCard(
+                          title: heroTitle,
+                          subtitle: heroSubtitle,
+                        ),
+                        const SizedBox(height: 18),
+                        _buildPrimaryIncidentButton(
+                          tr(context, 'home_new_incident'),
+                        ),
+                        const SizedBox(height: 18),
+                        _buildMyRequestsCard(l10n, requestsSubtitle),
+                        const SizedBox(height: 22),
+                        _buildWorkshopServices(
+                          l10n,
+                          servicesSubtitle,
+                          mostRequestedBadge,
+                          seasonalBadge,
+                          quickHelpBadge,
+                        ),
+                        const SizedBox(height: 22),
+                        _buildQuickActions(
+                          l10n.quick_actions_title,
+                          callWorkshopLabel,
+                          findNearbyLabel,
+                          emergencyLabel,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final stackedServices = constraints.maxWidth < 560;
-                  const gap = 12.0;
-                  final tileWidth = (constraints.maxWidth - gap) / 2;
-                  return Column(
-                    children: [
-                      if (stackedServices) ...[
-                        _HomeServiceTile(
-                          icon: Icons.build,
-                          title: l10n.service_anmelden,
-                          onTap: () => _openServiceAnmelden(context),
-                        ),
-                        const SizedBox(height: 12),
-                        _HomeServiceTile(
-                          icon: Icons.tire_repair,
-                          title: l10n.raeder_wechsel,
-                          onTap: () => _openRaederWechsel(context),
-                        ),
-                      ] else
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: tileWidth,
-                              child: _HomeServiceTile(
-                                icon: Icons.build,
-                                title: l10n.service_anmelden,
-                                onTap: () => _openServiceAnmelden(context),
-                              ),
-                            ),
-                            const SizedBox(width: gap),
-                            SizedBox(
-                              width: tileWidth,
-                              child: _HomeServiceTile(
-                                icon: Icons.tire_repair,
-                                title: l10n.raeder_wechsel,
-                                onTap: () => _openRaederWechsel(context),
-                              ),
-                            ),
-                          ],
-                        ),
-                      const SizedBox(height: 12),
-                      _HomeServiceTile(
-                        icon: Icons.car_crash,
-                        title: l10n.damage_type_title,
-                        onTap: () => _openDamageTypePicker(context),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 20),
-              const Divider(height: 1),
-              const SizedBox(height: 12),
-              Text(
-                l10n.quick_actions_title,
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                alignment: WrapAlignment.center,
-                children: [
-                  _quickActionChip(
-                    context: context,
-                    icon: Icons.phone,
-                    label: tx(context, 'Chiama la mia carrozzeria'),
-                    onTap: _chiamaCarrozzeria,
-                  ),
-                  _quickActionChip(
-                    context: context,
-                    icon: Icons.place,
-                    label: tx(context, 'Trova carrozzeria e i dintorni'),
-                    onTap: () {
-                      _apriUrl(
-                        Uri.parse(
-                          'https://www.google.com/maps/search/?api=1&query=carrozzeria+vicino+a+me',
-                        ),
-                        'Impossibile aprire Google Maps.',
-                      );
-                    },
-                  ),
-                  _quickActionChip(
-                    context: context,
-                    icon: Icons.emergency,
-                    label: tx(context, 'Chiama numeri di emergenza'),
-                    onTap: _mostraEmergenze,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -3282,130 +3659,393 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class _PremiumActionButton extends StatelessWidget {
-  final VoidCallback onTap;
-  final IconData icon;
-  final String label;
+class _HomeBackgroundOrb extends StatelessWidget {
+  final double size;
+  final Color color;
 
-  const _PremiumActionButton({
-    required this.onTap,
-    required this.icon,
-    required this.label,
-    super.key,
+  const _HomeBackgroundOrb({
+    required this.size,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface.withOpacity(0.30),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: theme.dividerColor.withOpacity(0.35),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: theme.colorScheme.primary.withOpacity(0.12),
-                ),
-                child: Icon(icon, color: theme.colorScheme.primary),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  label,
-                  style: theme.textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ),
-              Icon(Icons.chevron_right,
-                  color: theme.colorScheme.onSurface.withOpacity(0.55)),
-            ],
-          ),
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color.withOpacity(0.75),
         ),
       ),
     );
   }
 }
 
-class _HomeServiceTile extends StatelessWidget {
+class _HomeSurfaceCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final double radius;
+  final VoidCallback? onTap;
+
+  const _HomeSurfaceCard({
+    required this.child,
+    this.padding = const EdgeInsets.all(20),
+    this.radius = 24,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withOpacity(0.05),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: child,
+    );
+
+    if (onTap == null) {
+      return content;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(radius),
+        onTap: onTap,
+        child: content,
+      ),
+    );
+  }
+}
+
+class _HomeSectionHeader extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+
+  const _HomeSectionHeader({
+    required this.title,
+    this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final titleStyle = Theme.of(context).textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: const Color(0xFF111827),
+        );
+    final subtitleStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: const Color(0xFF6B7280),
+          height: 1.45,
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: titleStyle),
+        if (subtitle != null) ...[
+          const SizedBox(height: 6),
+          Text(subtitle!, style: subtitleStyle),
+        ],
+      ],
+    );
+  }
+}
+
+class _HomeActionCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBackgroundColor;
+  final String title;
+  final String subtitle;
+  final String? badgeLabel;
+  final VoidCallback onTap;
+
+  const _HomeActionCard({
+    required this.icon,
+    required this.iconColor,
+    required this.iconBackgroundColor,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.badgeLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _HomeSurfaceCard(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: iconBackgroundColor,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Icon(icon, color: iconColor, size: 26),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF111827),
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF6B7280),
+                        height: 1.35,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          if (badgeLabel != null) ...[
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                badgeLabel!,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: const Color(0xFF2563EB),
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+            ),
+          ],
+          const SizedBox(width: 10),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: Color(0xFF94A3B8),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeServiceTile extends StatefulWidget {
   final IconData icon;
   final String title;
+  final String badgeLabel;
   final VoidCallback onTap;
 
   const _HomeServiceTile({
     required this.icon,
     required this.title,
+    required this.badgeLabel,
     required this.onTap,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
+  State<_HomeServiceTile> createState() => _HomeServiceTileState();
+}
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          height: 74,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface.withOpacity(0.55),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: theme.dividerColor.withOpacity(0.25),
-              width: 1,
+class _HomeServiceTileState extends State<_HomeServiceTile> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        transform: Matrix4.identity()..translate(0.0, _hovered ? -2.0 : 0.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          boxShadow: [
+            BoxShadow(
+              color:
+                  const Color(0xFF0F172A).withOpacity(_hovered ? 0.09 : 0.04),
+              blurRadius: _hovered ? 24 : 18,
+              offset: Offset(0, _hovered ? 12 : 8),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: widget.onTap,
+            child: Container(
+              height: 94,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      widget.icon,
+                      size: 24,
+                      color: const Color(0xFF2563EB),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          widget.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF111827),
+                                  ),
+                        ),
+                        const SizedBox(height: 7),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: const Color(0xFFE5E7EB),
+                            ),
+                          ),
+                          child: Text(
+                            widget.badgeLabel,
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelMedium
+                                ?.copyWith(
+                                  color: const Color(0xFF6B7280),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Color(0xFF94A3B8),
+                  ),
+                ],
+              ),
             ),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: primary.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  icon,
-                  size: 22,
-                  color: primary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeQuickActionPill extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool emergency;
+
+  const _HomeQuickActionPill({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.emergency = false,
+  });
+
+  @override
+  State<_HomeQuickActionPill> createState() => _HomeQuickActionPillState();
+}
+
+class _HomeQuickActionPillState extends State<_HomeQuickActionPill> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor =
+        widget.emergency ? const Color(0xFFF1C7C7) : const Color(0xFFE5E7EB);
+    final iconColor =
+        widget.emergency ? const Color(0xFFB42318) : const Color(0xFF2563EB);
+    final backgroundColor =
+        widget.emergency ? const Color(0xFFFFFBFB) : Colors.white;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        transform: Matrix4.identity()..translate(0.0, _hovered ? -1.0 : 0.0),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: borderColor),
+          boxShadow: [
+            BoxShadow(
+              color:
+                  const Color(0xFF0F172A).withOpacity(_hovered ? 0.08 : 0.03),
+              blurRadius: _hovered ? 18 : 14,
+              offset: Offset(0, _hovered ? 10 : 6),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: widget.onTap,
+            child: Container(
+              height: 50,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                children: [
+                  Icon(widget.icon, size: 20, color: iconColor),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      widget.label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF111827),
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Icon(
-                Icons.chevron_right,
-                color: theme.iconTheme.color?.withOpacity(0.6),
-              ),
-            ],
+            ),
           ),
         ),
       ),
