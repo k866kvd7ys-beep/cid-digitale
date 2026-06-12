@@ -17,6 +17,8 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import 'workshop_selector_screen.dart';
+
 class _GlassDamageImageDraft {
   const _GlassDamageImageDraft({
     required this.category,
@@ -222,22 +224,6 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
         it: 'Sono supportati solo PNG, JPG, JPEG e GIF.',
         en: 'Only PNG, JPG, JPEG and GIF are supported.',
         fr: 'Seuls PNG, JPG, JPEG et GIF sont pris en charge.',
-      );
-
-  String _snackSuccess(BuildContext context, String slotLabel) => _copy(
-        context: context,
-        de: '✅ Termin gesendet ($slotLabel)',
-        it: '✅ Appuntamento inviato ($slotLabel)',
-        en: '✅ Appointment sent ($slotLabel)',
-        fr: '✅ Rendez-vous envoyé ($slotLabel)',
-      );
-
-  String _snackOfflineQueued(BuildContext context) => _copy(
-        context: context,
-        de: 'Anfrage offline gespeichert. Sie wird automatisch synchronisiert.',
-        it: 'Richiesta salvata offline. Verrà sincronizzata automaticamente.',
-        en: 'Request saved offline. It will sync automatically.',
-        fr: 'Demande enregistrée hors ligne. Elle sera synchronisée automatiquement.',
       );
 
   String _snackSendError(BuildContext context, Object error) => _copy(
@@ -5052,11 +5038,11 @@ class _ClientRequestSuccessScreenState
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => WorkshopSlotPickerScreen(
+        builder: (_) => WorkshopSelectorScreen(
           title: title,
           serviceType: _damageServiceType(selected),
           damageType: selected.name,
-          selectedWorkshop: _selectedWorkshopFromRequest(),
+          preselectedWorkshop: _selectedWorkshopFromRequest(),
         ),
       ),
     );
