@@ -18,6 +18,8 @@ const List<WorkshopModel> _mockWorkshops = [
     city: '6900 Lugano',
     rating: 4.9,
     isOpen: true,
+    latitude: 46.0050,
+    longitude: 8.9516,
   ),
   WorkshopModel(
     id: 'autocentro-ticino',
@@ -28,6 +30,8 @@ const List<WorkshopModel> _mockWorkshops = [
     city: '6500 Bellinzona',
     rating: 4.8,
     isOpen: true,
+    latitude: 46.1957,
+    longitude: 9.0238,
   ),
   WorkshopModel(
     id: 'officine-mendrisio',
@@ -38,6 +42,8 @@ const List<WorkshopModel> _mockWorkshops = [
     city: '6850 Mendrisio',
     rating: 4.7,
     isOpen: false,
+    latitude: 45.8721,
+    longitude: 8.9851,
   ),
   WorkshopModel(
     id: 'carrosserie-lac',
@@ -48,5 +54,7 @@ const List<WorkshopModel> _mockWorkshops = [
     city: '1820 Montreux',
     rating: 4.9,
     isOpen: true,
+    latitude: 46.4329,
+    longitude: 6.9103,
   ),
 ];

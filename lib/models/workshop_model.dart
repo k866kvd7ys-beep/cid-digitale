@@ -8,6 +8,8 @@ class WorkshopModel {
     required this.city,
     required this.rating,
     required this.isOpen,
+    this.latitude,
+    this.longitude,
   });
 
   final String id;
@@ -18,6 +20,10 @@ class WorkshopModel {
   final String city;
   final double rating;
   final bool isOpen;
+  final double? latitude;
+  final double? longitude;
+
+  bool get hasCoordinates => latitude != null && longitude != null;
 
   String get locationLabel => [
         address.trim(),
