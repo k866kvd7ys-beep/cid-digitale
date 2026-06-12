@@ -4933,12 +4933,12 @@ class _ClientRequestSuccessScreenState
           ? request.garageId!.trim()
           : 'selected-workshop',
       name: request.garageName?.trim() ?? '',
-      email: request.garageEmail?.trim() ?? '',
-      phone: request.garagePhone?.trim() ?? '',
+      email: request.garageEmail?.trim(),
+      phone: request.garagePhone?.trim(),
       address: request.garageAddress?.trim() ?? '',
       city: request.garageCity?.trim() ?? '',
-      rating: 0,
-      isOpen: true,
+      rating: null,
+      isOpen: null,
     );
   }
 

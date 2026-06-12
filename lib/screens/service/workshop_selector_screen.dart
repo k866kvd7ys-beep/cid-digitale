@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cid_digitale/models/workshop_model.dart';
+import 'package:cid_digitale/services/places_workshop_search_service.dart';
 import 'package:cid_digitale/services/workshop_catalog_service.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -74,14 +75,23 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
   static const Color _border = Color(0xFFDCE7F5);
 
   final WorkshopCatalogService _catalogService = WorkshopCatalogService();
+  final PlacesWorkshopSearchService _placesService =
+      PlacesWorkshopSearchService();
   final TextEditingController _searchController = TextEditingController();
 
-  late Future<List<WorkshopModel>> _workshopsFuture;
-  List<WorkshopModel> _loadedWorkshops = const [];
-  Map<String, double> _distanceMetersByWorkshopId = const {};
-  String _query = '';
+  Timer? _searchDebounce;
+  List<WorkshopModel> _catalogWorkshops = const [];
+  List<WorkshopModel> _nearbyRemoteWorkshops = const [];
+  List<WorkshopModel> _textRemoteWorkshops = const [];
   WorkshopModel? _selectedWorkshop;
+  Position? _currentPosition;
+
+  String _query = '';
+  bool _isLoadingCatalog = true;
   bool _isResolvingLocation = false;
+  bool _isSearchingNearby = false;
+  bool _isSearchingText = false;
+  bool _didRunNearbySearch = false;
 
   String _copy({
     required String it,
@@ -101,6 +111,8 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
         return de;
     }
   }
+
+  String get _localeCode => Localizations.localeOf(context).languageCode;
 
   String get _screenTitle => _copy(
         it: 'Scegli la tua officina',
@@ -135,6 +147,27 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
         de: 'Aktueller Standort konnte nicht ermittelt werden.',
         fr: 'Impossible d\'obtenir la position actuelle.',
         en: 'Unable to get your current location.',
+      );
+
+  String get _searchingNearbyLabel => _copy(
+        it: 'Ricerca officine vicino a te...',
+        de: 'Werkstätten in deiner Nähe werden gesucht...',
+        fr: 'Recherche d\'ateliers près de vous...',
+        en: 'Searching workshops near you...',
+      );
+
+  String get _searchingTextLabel => _copy(
+        it: 'Ricerca officine...',
+        de: 'Werkstätten werden gesucht...',
+        fr: 'Recherche d\'ateliers...',
+        en: 'Searching workshops...',
+      );
+
+  String get _noNearbyResultsLabel => _copy(
+        it: 'Nessuna officina trovata entro 50 km. Prova a cercare per città o nome officina.',
+        de: 'Keine Werkstatt innerhalb von 50 km gefunden. Suche stattdessen nach Stadt oder Werkstattname.',
+        fr: 'Aucun atelier trouvé dans un rayon de 50 km. Essayez une recherche par ville ou nom d\'atelier.',
+        en: 'No workshop found within 50 km. Try searching by city or workshop name.',
       );
 
   String get _openLabel => _copy(
@@ -193,35 +226,98 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
         en: 'Select a workshop to choose date and time.',
       );
 
-  Future<List<WorkshopModel>> _loadWorkshops() async {
-    final workshops = await _catalogService.fetchWorkshops();
-    _loadedWorkshops = workshops;
-    return workshops;
-  }
-
   @override
   void initState() {
     super.initState();
     _selectedWorkshop = widget.preselectedWorkshop;
-    _workshopsFuture = _loadWorkshops();
-    _searchController.addListener(() {
-      setState(() {
-        _query = _searchController.text;
-      });
-    });
+    _searchController.addListener(_handleSearchChanged);
+    _loadCatalog();
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _searchDebounce?.cancel();
+    _searchController
+      ..removeListener(_handleSearchChanged)
+      ..dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCatalog() async {
+    final workshops = await _catalogService.fetchWorkshops();
+    if (!mounted) return;
+
+    setState(() {
+      _catalogWorkshops = _withDistance(workshops, _currentPosition);
+      _isLoadingCatalog = false;
+    });
+  }
+
+  void _handleSearchChanged() {
+    final nextQuery = _searchController.text;
+    _searchDebounce?.cancel();
+
+    setState(() {
+      _query = nextQuery;
+    });
+
+    final trimmedQuery = nextQuery.trim();
+    if (trimmedQuery.isEmpty) {
+      setState(() {
+        _textRemoteWorkshops = const [];
+        _isSearchingText = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearchingText = true;
+    });
+
+    _searchDebounce = Timer(const Duration(milliseconds: 420), () {
+      _searchRemoteByText(trimmedQuery);
+    });
+  }
+
+  Future<void> _searchRemoteByText(String query) async {
+    if (!_placesService.isConfigured) {
+      if (!mounted || _query.trim() != query) return;
+      setState(() {
+        _textRemoteWorkshops = const [];
+        _isSearchingText = false;
+      });
+      return;
+    }
+
+    final results = await _placesService.searchWorkshopsByText(
+      query: query,
+      locale: _localeCode,
+      latitude: _currentPosition?.latitude,
+      longitude: _currentPosition?.longitude,
+    );
+
+    if (!mounted || _query.trim() != query) return;
+
+    setState(() {
+      _textRemoteWorkshops = results;
+      _isSearchingText = false;
+    });
   }
 
   Future<void> _handleUseLocation() async {
     if (_isResolvingLocation) return;
 
+    _searchDebounce?.cancel();
+    if (_query.trim().isNotEmpty) {
+      _searchController.clear();
+    }
+
     setState(() {
       _isResolvingLocation = true;
+      _isSearchingNearby = true;
+      _didRunNearbySearch = false;
+      _textRemoteWorkshops = const [];
+      _isSearchingText = false;
     });
 
     try {
@@ -230,6 +326,7 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
         if (!mounted) return;
         setState(() {
           _isResolvingLocation = false;
+          _isSearchingNearby = false;
         });
         return;
       }
@@ -244,6 +341,7 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
         if (!mounted) return;
         setState(() {
           _isResolvingLocation = false;
+          _isSearchingNearby = false;
         });
         _showLocationErrorSnack();
         return;
@@ -253,44 +351,60 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
         desiredAccuracy: LocationAccuracy.high,
       ).timeout(const Duration(seconds: 10));
 
-      if (!mounted) return;
+      final localWithDistance = _withDistance(_catalogWorkshops, position);
+      final nearbyResults = _placesService.isConfigured
+          ? await _placesService.searchNearbyWorkshops(
+              latitude: position.latitude,
+              longitude: position.longitude,
+              locale: _localeCode,
+            )
+          : const <WorkshopModel>[];
 
-      final distanceMap = _buildDistanceMap(position);
+      if (!mounted) return;
       setState(() {
+        _currentPosition = position;
+        _catalogWorkshops = localWithDistance;
+        _nearbyRemoteWorkshops = nearbyResults;
+        _didRunNearbySearch = true;
         _isResolvingLocation = false;
-        if (distanceMap.isNotEmpty) {
-          _distanceMetersByWorkshopId = distanceMap;
-        }
+        _isSearchingNearby = false;
       });
     } on TimeoutException {
       if (!mounted) return;
       setState(() {
         _isResolvingLocation = false;
+        _isSearchingNearby = false;
       });
       _showLocationErrorSnack();
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _isResolvingLocation = false;
+        _isSearchingNearby = false;
       });
       _showLocationErrorSnack();
     }
   }
 
-  Map<String, double> _buildDistanceMap(Position position) {
-    final distances = <String, double>{};
+  List<WorkshopModel> _withDistance(
+    List<WorkshopModel> workshops,
+    Position? position,
+  ) {
+    return workshops.map((workshop) {
+      if (position == null || !workshop.hasCoordinates) {
+        return workshop.copyWith(clearDistanceKm: true);
+      }
 
-    for (final workshop in _loadedWorkshops) {
-      if (!workshop.hasCoordinates) continue;
-      distances[workshop.id] = Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
-        workshop.latitude!,
-        workshop.longitude!,
-      );
-    }
+      final distanceKm = Geolocator.distanceBetween(
+            position.latitude,
+            position.longitude,
+            workshop.latitude!,
+            workshop.longitude!,
+          ) /
+          1000;
 
-    return distances;
+      return workshop.copyWith(distanceKm: distanceKm);
+    }).toList(growable: false);
   }
 
   void _showLocationErrorSnack() {
@@ -360,64 +474,125 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
     );
   }
 
-  List<WorkshopModel> _visibleWorkshops(List<WorkshopModel> workshops) {
-    final filtered = workshops
-        .where((workshop) => workshop.matchesQuery(_query))
-        .toList(growable: true);
+  List<WorkshopModel> _visibleWorkshops() {
+    final localMatches = _query.trim().isEmpty
+        ? _catalogWorkshops
+        : _catalogWorkshops
+            .where((workshop) => workshop.matchesQuery(_query))
+            .toList(growable: false);
 
-    if (_distanceMetersByWorkshopId.isEmpty) {
-      return filtered;
+    final remoteMatches =
+        _query.trim().isEmpty ? _nearbyRemoteWorkshops : _textRemoteWorkshops;
+
+    final merged = <String, WorkshopModel>{};
+    for (final workshop in [...remoteMatches, ...localMatches]) {
+      final key = _mergeKey(workshop);
+      final existing = merged[key];
+      merged[key] = existing == null
+          ? workshop
+          : _mergeWorkshopRecords(existing, workshop);
     }
 
-    final originalIndex = <String, int>{
-      for (var index = 0; index < filtered.length; index++)
-        filtered[index].id: index,
-    };
-
-    filtered.sort((left, right) {
-      final leftDistance = _distanceMetersByWorkshopId[left.id];
-      final rightDistance = _distanceMetersByWorkshopId[right.id];
-
-      if (leftDistance == null && rightDistance == null) {
-        return originalIndex[left.id]!.compareTo(originalIndex[right.id]!);
+    final results = merged.values.toList(growable: false);
+    results.sort((left, right) {
+      final leftDistance = left.distanceKm;
+      final rightDistance = right.distanceKm;
+      if (leftDistance != null && rightDistance != null) {
+        final distanceCompare = leftDistance.compareTo(rightDistance);
+        if (distanceCompare != 0) return distanceCompare;
+      } else if (leftDistance != null) {
+        return -1;
+      } else if (rightDistance != null) {
+        return 1;
       }
-      if (leftDistance == null) return 1;
-      if (rightDistance == null) return -1;
 
-      final comparison = leftDistance.compareTo(rightDistance);
-      if (comparison != 0) return comparison;
+      final leftRating = left.rating;
+      final rightRating = right.rating;
+      if (leftRating != null && rightRating != null) {
+        final ratingCompare = rightRating.compareTo(leftRating);
+        if (ratingCompare != 0) return ratingCompare;
+      } else if (leftRating != null) {
+        return -1;
+      } else if (rightRating != null) {
+        return 1;
+      }
 
-      return originalIndex[left.id]!.compareTo(originalIndex[right.id]!);
+      return left.name.toLowerCase().compareTo(right.name.toLowerCase());
     });
 
-    return filtered;
+    return results;
+  }
+
+  WorkshopModel _mergeWorkshopRecords(
+    WorkshopModel primary,
+    WorkshopModel secondary,
+  ) {
+    final preferredDistance =
+        switch ((primary.distanceKm, secondary.distanceKm)) {
+      (final double left, final double right) => left < right ? left : right,
+      (final double left, null) => left,
+      (null, final double right) => right,
+      _ => null,
+    };
+
+    return primary.copyWith(
+      email: primary.hasEmail ? primary.email : secondary.email,
+      phone: primary.hasPhone ? primary.phone : secondary.phone,
+      address: primary.address.trim().isNotEmpty
+          ? primary.address
+          : secondary.address,
+      city: primary.city.trim().isNotEmpty ? primary.city : secondary.city,
+      rating: primary.rating ?? secondary.rating,
+      isOpen: primary.isOpen ?? secondary.isOpen,
+      latitude: primary.latitude ?? secondary.latitude,
+      longitude: primary.longitude ?? secondary.longitude,
+      distanceKm: preferredDistance,
+    );
+  }
+
+  String _mergeKey(WorkshopModel workshop) {
+    final normalizedName = workshop.name.trim().toLowerCase();
+    final normalizedAddress = workshop.address.trim().toLowerCase();
+    if (normalizedName.isNotEmpty && normalizedAddress.isNotEmpty) {
+      return '$normalizedName|$normalizedAddress';
+    }
+    return workshop.id.trim().toLowerCase();
   }
 
   String? _distanceLabelFor(WorkshopModel workshop) {
-    final meters = _distanceMetersByWorkshopId[workshop.id];
-    if (meters == null) {
+    final distanceKm = workshop.distanceKm;
+    if (distanceKm == null) {
       return null;
     }
 
-    final locale = Localizations.localeOf(context).languageCode;
+    final meters = distanceKm * 1000;
     if (meters < 1000) {
-      final metersLabel = NumberFormat.decimalPattern(locale).format(
+      final metersLabel = NumberFormat.decimalPattern(_localeCode).format(
         meters.round(),
       );
       return '$metersLabel m';
     }
 
-    final km = meters / 1000;
-    final decimalDigits = km >= 10 ? 0 : 1;
+    final decimalDigits = distanceKm >= 10 ? 0 : 1;
     final kmLabel = NumberFormat.decimalPatternDigits(
-      locale: locale,
+      locale: _localeCode,
       decimalDigits: decimalDigits,
-    ).format(km);
+    ).format(distanceKm);
     return '$kmLabel km';
   }
 
+  bool get _showNoNearbyResultNotice =>
+      _didRunNearbySearch &&
+      !_isSearchingNearby &&
+      _query.trim().isEmpty &&
+      _currentPosition != null &&
+      _placesService.isConfigured &&
+      _nearbyRemoteWorkshops.isEmpty;
+
   @override
   Widget build(BuildContext context) {
+    final workshops = _visibleWorkshops();
+
     return Scaffold(
       backgroundColor: _background,
       appBar: AppBar(
@@ -539,78 +714,72 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
                   ],
                 ),
               ),
-              child: FutureBuilder<List<WorkshopModel>>(
-                future: _workshopsFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
+              child: _isLoadingCatalog
+                  ? const Center(
                       child: CircularProgressIndicator(color: _primary),
-                    );
-                  }
-
-                  final workshops = _visibleWorkshops(
-                    snapshot.data ?? _loadedWorkshops,
-                  );
-
-                  return ListView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 136),
-                    children: [
-                      _HeaderCard(
-                        title: _screenTitle,
-                        subtitle: _screenSubtitle,
-                        searchField: _SearchField(
-                          controller: _searchController,
-                          hintText: _searchPlaceholder,
-                        ),
-                        locationButton: OutlinedButton.icon(
-                          onPressed:
-                              _isResolvingLocation ? null : _handleUseLocation,
-                          icon: _isResolvingLocation
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.1,
-                                    color: _primary,
-                                  ),
-                                )
-                              : Icon(
-                                  _distanceMetersByWorkshopId.isNotEmpty
-                                      ? Icons.near_me_rounded
-                                      : Icons.my_location_rounded,
-                                  size: 18,
-                                ),
-                          label: Text(
-                            _useLocationLabel,
-                            style: const TextStyle(fontWeight: FontWeight.w700),
+                    )
+                  : ListView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 136),
+                      children: [
+                        _HeaderCard(
+                          title: _screenTitle,
+                          subtitle: _screenSubtitle,
+                          searchField: _SearchField(
+                            controller: _searchController,
+                            hintText: _searchPlaceholder,
                           ),
-                          style: ButtonStyle(
-                            minimumSize: const WidgetStatePropertyAll(
-                              Size.fromHeight(50),
-                            ),
-                            foregroundColor:
-                                const WidgetStatePropertyAll(_primary),
-                            backgroundColor:
-                                const WidgetStatePropertyAll(Colors.white),
-                            elevation: const WidgetStatePropertyAll(0),
-                            side: WidgetStateProperty.resolveWith((states) {
-                              if (_distanceMetersByWorkshopId.isNotEmpty) {
-                                return const BorderSide(
-                                  color: Color(0xFF93C5FD),
-                                );
-                              }
-                              return const BorderSide(
-                                color: Color(0xFFD6E4FF),
-                              );
-                            }),
-                            shape: WidgetStatePropertyAll(
-                              RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                          locationButton: OutlinedButton.icon(
+                            onPressed: _isResolvingLocation
+                                ? null
+                                : _handleUseLocation,
+                            icon: _isResolvingLocation
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.1,
+                                      color: _primary,
+                                    ),
+                                  )
+                                : Icon(
+                                    _currentPosition != null
+                                        ? Icons.near_me_rounded
+                                        : Icons.my_location_rounded,
+                                    size: 18,
+                                  ),
+                            label: Text(
+                              _useLocationLabel,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                            overlayColor: WidgetStateProperty.resolveWith(
-                              (states) {
+                            style: ButtonStyle(
+                              minimumSize: const WidgetStatePropertyAll(
+                                Size.fromHeight(50),
+                              ),
+                              foregroundColor:
+                                  const WidgetStatePropertyAll(_primary),
+                              backgroundColor:
+                                  const WidgetStatePropertyAll(Colors.white),
+                              elevation: const WidgetStatePropertyAll(0),
+                              side: WidgetStateProperty.resolveWith((states) {
+                                if (_currentPosition != null) {
+                                  return const BorderSide(
+                                    color: Color(0xFF93C5FD),
+                                  );
+                                }
+                                return const BorderSide(
+                                  color: Color(0xFFD6E4FF),
+                                );
+                              }),
+                              shape: WidgetStatePropertyAll(
+                                RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              overlayColor:
+                                  WidgetStateProperty.resolveWith((states) {
                                 if (states.contains(WidgetState.pressed)) {
                                   return _primary.withValues(alpha: 0.10);
                                 }
@@ -618,41 +787,87 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
                                   return _primary.withValues(alpha: 0.06);
                                 }
                                 return null;
-                              },
+                              }),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 18),
-                      if (workshops.isEmpty)
-                        _EmptyStateCard(
-                          title: _emptyTitle,
-                          subtitle: _emptySubtitle,
-                        )
-                      else
-                        ...workshops.map(
-                          (workshop) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _WorkshopOptionCard(
-                              workshop: workshop,
-                              distanceLabel: _distanceLabelFor(workshop),
-                              selected: workshop.id == _selectedWorkshop?.id,
-                              openLabel: _openLabel,
-                              closedLabel: _closedLabel,
-                              selectLabel: _selectLabel,
-                              selectedLabel: _selectedLabel,
-                              onSelect: () {
-                                setState(() {
-                                  _selectedWorkshop = workshop;
-                                });
-                              },
+                        const SizedBox(height: 18),
+                        if (_isSearchingNearby)
+                          _NoticeCard(
+                            icon: Icons.radar_rounded,
+                            title: _searchingNearbyLabel,
+                            accent: const Color(0xFFDBEAFE),
+                            iconColor: _primary,
+                            trailing: const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: _primary,
+                              ),
                             ),
                           ),
-                        ),
-                    ],
-                  );
-                },
-              ),
+                        if (_isSearchingText && !_isSearchingNearby)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: _NoticeCard(
+                              icon: Icons.travel_explore_rounded,
+                              title: _searchingTextLabel,
+                              accent: const Color(0xFFEFF6FF),
+                              iconColor: _primary,
+                              trailing: const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: _primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (_showNoNearbyResultNotice)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: _NoticeCard(
+                              icon: Icons.location_searching_rounded,
+                              title: _noNearbyResultsLabel,
+                              accent: const Color(0xFFFFF7ED),
+                              iconColor: const Color(0xFFF59E0B),
+                            ),
+                          ),
+                        if (_isSearchingNearby ||
+                            _isSearchingText ||
+                            _showNoNearbyResultNotice)
+                          const SizedBox(height: 14),
+                        if (workshops.isEmpty)
+                          _EmptyStateCard(
+                            title: _emptyTitle,
+                            subtitle: _showNoNearbyResultNotice
+                                ? _noNearbyResultsLabel
+                                : _emptySubtitle,
+                          )
+                        else
+                          ...workshops.map(
+                            (workshop) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _WorkshopOptionCard(
+                                workshop: workshop,
+                                distanceLabel: _distanceLabelFor(workshop),
+                                selected: workshop.id == _selectedWorkshop?.id,
+                                openLabel: _openLabel,
+                                closedLabel: _closedLabel,
+                                selectLabel: _selectLabel,
+                                selectedLabel: _selectedLabel,
+                                onSelect: () {
+                                  setState(() {
+                                    _selectedWorkshop = workshop;
+                                  });
+                                },
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
             ),
           ),
         ],
@@ -804,6 +1019,16 @@ class _SearchField extends StatelessWidget {
             size: 20,
             color: Color(0xFF64748B),
           ),
+          suffixIcon: controller.text.trim().isEmpty
+              ? null
+              : IconButton(
+                  onPressed: controller.clear,
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
           filled: true,
           fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(
@@ -830,6 +1055,62 @@ class _SearchField extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _NoticeCard extends StatelessWidget {
+  const _NoticeCard({
+    required this.icon,
+    required this.title,
+    required this.accent,
+    required this.iconColor,
+    this.trailing,
+  });
+
+  final IconData icon;
+  final String title;
+  final Color accent;
+  final Color iconColor;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFDCE7F5)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF334155),
+                    fontWeight: FontWeight.w700,
+                    height: 1.35,
+                  ),
+            ),
+          ),
+          if (trailing != null) ...[
+            const SizedBox(width: 12),
+            trailing!,
+          ],
+        ],
       ),
     );
   }
@@ -875,6 +1156,7 @@ class _EmptyStateCard extends StatelessWidget {
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: const Color(0xFF6B7280),
+                  height: 1.4,
                 ),
           ),
         ],
@@ -974,12 +1256,14 @@ class _WorkshopOptionCardState extends State<_WorkshopOptionCard> {
                                 ),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        _WorkshopStatusBadge(
-                          isOpen: widget.workshop.isOpen,
-                          openLabel: widget.openLabel,
-                          closedLabel: widget.closedLabel,
-                        ),
+                        if (widget.workshop.isOpen != null) ...[
+                          const SizedBox(width: 12),
+                          _WorkshopStatusBadge(
+                            isOpen: widget.workshop.isOpen!,
+                            openLabel: widget.openLabel,
+                            closedLabel: widget.closedLabel,
+                          ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -987,16 +1271,20 @@ class _WorkshopOptionCardState extends State<_WorkshopOptionCard> {
                       icon: Icons.location_on_outlined,
                       text: widget.workshop.locationLabel,
                     ),
-                    const SizedBox(height: 8),
-                    _WorkshopInfoRow(
-                      icon: Icons.phone_outlined,
-                      text: widget.workshop.phone,
-                    ),
-                    const SizedBox(height: 8),
-                    _WorkshopInfoRow(
-                      icon: Icons.alternate_email_rounded,
-                      text: widget.workshop.email,
-                    ),
+                    if (widget.workshop.hasPhone) ...[
+                      const SizedBox(height: 8),
+                      _WorkshopInfoRow(
+                        icon: Icons.phone_outlined,
+                        text: widget.workshop.phone!.trim(),
+                      ),
+                    ],
+                    if (widget.workshop.hasEmail) ...[
+                      const SizedBox(height: 8),
+                      _WorkshopInfoRow(
+                        icon: Icons.alternate_email_rounded,
+                        text: widget.workshop.email!.trim(),
+                      ),
+                    ],
                     const SizedBox(height: 14),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -1006,13 +1294,15 @@ class _WorkshopOptionCardState extends State<_WorkshopOptionCard> {
                             spacing: 8,
                             runSpacing: 8,
                             children: [
-                              _WorkshopMetricPill(
-                                icon: Icons.star_rounded,
-                                iconColor: const Color(0xFFF59E0B),
-                                text: widget.workshop.rating.toStringAsFixed(1),
-                                textColor: const Color(0xFF92400E),
-                                backgroundColor: const Color(0xFFFFF7ED),
-                              ),
+                              if (widget.workshop.rating != null)
+                                _WorkshopMetricPill(
+                                  icon: Icons.star_rounded,
+                                  iconColor: const Color(0xFFF59E0B),
+                                  text: widget.workshop.rating!
+                                      .toStringAsFixed(1),
+                                  textColor: const Color(0xFF92400E),
+                                  backgroundColor: const Color(0xFFFFF7ED),
+                                ),
                               if (widget.distanceLabel != null)
                                 _WorkshopMetricPill(
                                   icon: Icons.near_me_rounded,
