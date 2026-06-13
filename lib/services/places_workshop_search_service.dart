@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cid_digitale/config/google_places_api_key.dart';
 import 'package:cid_digitale/models/workshop_model.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -11,12 +12,8 @@ class PlacesWorkshopSearchService {
   })  : _client = client,
         _apiKeyOverride = apiKey;
 
-  // TODO: configure the API key with --dart-define=PLACES_API_KEY=...
-  static const String placesApiKey = String.fromEnvironment('PLACES_API_KEY');
-  static const String googlePlacesApiKey =
-      String.fromEnvironment('GOOGLE_PLACES_API_KEY');
-  static const String googleMapsApiKey =
-      String.fromEnvironment('GOOGLE_MAPS_API_KEY');
+  // TODO: pass the key at runtime with:
+  // flutter run --dart-define=GOOGLE_PLACES_API_KEY=YOUR_KEY
 
   static const List<int> _nearbyRadiusMeters = [
     10000,
@@ -38,9 +35,7 @@ class PlacesWorkshopSearchService {
   String get _apiKey {
     final override = _apiKeyOverride?.trim() ?? '';
     if (override.isNotEmpty) return override;
-    if (placesApiKey.trim().isNotEmpty) return placesApiKey.trim();
-    if (googlePlacesApiKey.trim().isNotEmpty) return googlePlacesApiKey.trim();
-    return googleMapsApiKey.trim();
+    return kGooglePlacesApiKey.trim();
   }
 
   bool get isConfigured => _apiKey.isNotEmpty;
