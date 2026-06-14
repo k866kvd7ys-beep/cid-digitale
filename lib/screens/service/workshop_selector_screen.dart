@@ -4,6 +4,7 @@ import 'package:cid_digitale/models/workshop_model.dart';
 import 'package:cid_digitale/services/places_workshop_search_service.dart';
 import 'package:cid_digitale/services/workshop_catalog_service.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 
@@ -170,6 +171,20 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
         en: 'No workshop found within 50 km. Try searching by city or workshop name.',
       );
 
+  String get _placesUnavailableNotice => _copy(
+        it: 'Ricerca officine temporaneamente non disponibile. Verifica configurazione Google Places.',
+        de: 'Die Werkstattsuche ist vorübergehend nicht verfügbar. Bitte prüfe die Google-Places-Konfiguration.',
+        fr: 'La recherche d\'ateliers est temporairement indisponible. Vérifiez la configuration Google Places.',
+        en: 'Workshop search is temporarily unavailable. Check the Google Places configuration.',
+      );
+
+  String get _placesUnavailableEmptyState => _copy(
+        it: 'Ricerca officine temporaneamente non disponibile. Verifica configurazione Google Places.',
+        de: 'Die Werkstattsuche ist vorübergehend nicht verfügbar. Bitte prüfe die Google-Places-Konfiguration.',
+        fr: 'La recherche d\'ateliers est temporairement indisponible. Vérifiez la configuration Google Places.',
+        en: 'Workshop search is temporarily unavailable. Check the Google Places configuration.',
+      );
+
   String get _openLabel => _copy(
         it: 'Aperto',
         de: 'Geöffnet',
@@ -271,6 +286,7 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
     }
 
     setState(() {
+      _placesService.clearLastIssue();
       _isSearchingText = true;
     });
 
@@ -280,15 +296,6 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
   }
 
   Future<void> _searchRemoteByText(String query) async {
-    if (!_placesService.isConfigured) {
-      if (!mounted || _query.trim() != query) return;
-      setState(() {
-        _textRemoteWorkshops = const [];
-        _isSearchingText = false;
-      });
-      return;
-    }
-
     final results = await _placesService.searchWorkshopsByText(
       query: query,
       locale: _localeCode,
@@ -313,6 +320,7 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
     }
 
     setState(() {
+      _placesService.clearLastIssue();
       _isResolvingLocation = true;
       _isSearchingNearby = true;
       _didRunNearbySearch = false;
@@ -352,13 +360,13 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
       ).timeout(const Duration(seconds: 10));
 
       final localWithDistance = _withDistance(_catalogWorkshops, position);
-      final nearbyResults = _placesService.isConfigured
-          ? await _placesService.searchNearbyWorkshops(
-              latitude: position.latitude,
-              longitude: position.longitude,
-              locale: _localeCode,
-            )
-          : const <WorkshopModel>[];
+      final cityHint = await _resolveCityHint(position);
+      final nearbyResults = await _placesService.searchNearbyWorkshops(
+        latitude: position.latitude,
+        longitude: position.longitude,
+        locale: _localeCode,
+        cityHint: cityHint,
+      );
 
       if (!mounted) return;
       setState(() {
@@ -384,6 +392,34 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
       });
       _showLocationErrorSnack();
     }
+  }
+
+  Future<String?> _resolveCityHint(Position position) async {
+    try {
+      final placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      for (final placemark in placemarks) {
+        final candidates = [
+          placemark.locality,
+          placemark.subAdministrativeArea,
+          placemark.administrativeArea,
+        ];
+
+        for (final candidate in candidates) {
+          final trimmed = candidate?.trim() ?? '';
+          if (trimmed.isNotEmpty) {
+            return trimmed;
+          }
+        }
+      }
+    } catch (_) {
+      // Reverse geocoding is only a fallback hint for text search.
+    }
+
+    return null;
   }
 
   List<WorkshopModel> _withDistance(
@@ -587,7 +623,12 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
       _query.trim().isEmpty &&
       _currentPosition != null &&
       _placesService.isConfigured &&
+      _placesService.lastIssue == null &&
       _nearbyRemoteWorkshops.isEmpty;
+
+  bool get _showPlacesUnavailableNotice =>
+      _placesService.lastIssue != null &&
+      (_query.trim().isNotEmpty || _didRunNearbySearch);
 
   @override
   Widget build(BuildContext context) {
@@ -835,16 +876,29 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
                               iconColor: const Color(0xFFF59E0B),
                             ),
                           ),
+                        if (_showPlacesUnavailableNotice)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: _NoticeCard(
+                              icon: Icons.sync_problem_rounded,
+                              title: _placesUnavailableNotice,
+                              accent: const Color(0xFFFFF7ED),
+                              iconColor: const Color(0xFFF59E0B),
+                            ),
+                          ),
                         if (_isSearchingNearby ||
                             _isSearchingText ||
-                            _showNoNearbyResultNotice)
+                            _showNoNearbyResultNotice ||
+                            _showPlacesUnavailableNotice)
                           const SizedBox(height: 14),
                         if (workshops.isEmpty)
                           _EmptyStateCard(
                             title: _emptyTitle,
                             subtitle: _showNoNearbyResultNotice
                                 ? _noNearbyResultsLabel
-                                : _emptySubtitle,
+                                : _showPlacesUnavailableNotice
+                                    ? _placesUnavailableEmptyState
+                                    : _emptySubtitle,
                           )
                         else
                           ...workshops.map(
