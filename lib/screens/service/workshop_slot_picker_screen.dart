@@ -4284,6 +4284,14 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
         _isAppointmentSelectionMissing;
     final formHeaderTitle = _formHeaderTitle(context);
     final formHeaderSubtitle = _formHeaderSubtitle(context);
+    final viewportSize = MediaQuery.sizeOf(context);
+    final compactCalendarLayout = viewportSize.height <= 760;
+    final calendarCardPadding = compactCalendarLayout ? 14.0 : 16.0;
+    final calendarSectionSpacing = compactCalendarLayout ? 12.0 : 16.0;
+    final calendarRowHeight = compactCalendarLayout ? 40.0 : 42.0;
+    final calendarHeaderPadding = compactCalendarLayout ? 2.0 : 4.0;
+    final calendarToTimeSpacing = compactCalendarLayout ? 8.0 : 12.0;
+    final timeSectionSpacing = compactCalendarLayout ? 6.0 : 8.0;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -4377,12 +4385,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
                         const SizedBox(height: 16),
                         _buildGlassDamageSection(context),
                       ],
-                      const SizedBox(height: 16),
+                      SizedBox(height: calendarSectionSpacing),
                       _buildCalendarGuideCard(context),
-                      const SizedBox(height: 16),
+                      SizedBox(height: calendarSectionSpacing),
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.all(calendarCardPadding),
                         decoration: BoxDecoration(
                           color: showAppointmentError
                               ? theme.colorScheme.error.withOpacity(0.04)
@@ -4404,10 +4412,19 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
                               focusedDay: _focusedDay,
                               locale: _calendarLocaleTag(context),
                               startingDayOfWeek: StartingDayOfWeek.monday,
+                              rowHeight: calendarRowHeight,
                               availableCalendarFormats:
                                   _calendarFormatLabels(context),
                               headerStyle: HeaderStyle(
                                 titleCentered: true,
+                                headerPadding: EdgeInsets.symmetric(
+                                  vertical: calendarHeaderPadding,
+                                ),
+                                formatButtonPadding:
+                                    const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
                                 titleTextFormatter: (date, _) =>
                                     '${_calendarMonthLabel(context, date.month)} ${date.year}',
                               ),
@@ -4427,7 +4444,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
                                 _loadAvailableSlots(selectedDay);
                               },
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: calendarToTimeSpacing),
                             Text(
                               _timeTitle(context),
                               style: Theme.of(context)
@@ -4445,7 +4462,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
                                 ),
                               ),
                             ],
-                            const SizedBox(height: 8),
+                            SizedBox(height: timeSectionSpacing),
                             if (_loadingSlots)
                               const Center(child: CircularProgressIndicator())
                             else if (slots.isEmpty)
