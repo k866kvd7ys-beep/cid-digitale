@@ -19,19 +19,37 @@ class EmailNotificationsService {
     required AppointmentRequest request,
     String functionName = 'send-appointment-confirmation',
   }) async {
+    debugPrint('[EmailConfirm] start');
     final recipient = request.customerEmail?.trim() ?? '';
+    debugPrint('[EmailConfirm] recipient $recipient');
     if (recipient.isEmpty) {
-      debugPrint('Skip email confirmation: missing recipient');
+      debugPrint('[EmailConfirm] send error missing recipient');
       return;
     }
 
     final payload = _buildPayload(request);
+    debugPrint('[EmailConfirm] payload ready');
 
-    try {
-      await _client.functions.invoke(functionName, body: payload);
-    } catch (e) {
-      debugPrint('sendAppointmentConfirmation failed: $e');
+    final result = await _client.functions.invoke(functionName, body: payload);
+    final responseData = result.data;
+
+    if (result.status >= 400) {
+      debugPrint(
+        '[EmailConfirm] send error status=${result.status} data=$responseData',
+      );
+      throw Exception('Edge function status ${result.status}');
     }
+
+    if (responseData is Map && responseData['success'] == false) {
+      final errorMessage =
+          responseData['error']?.toString() ?? 'Email send failed';
+      debugPrint('[EmailConfirm] send error $errorMessage');
+      throw Exception(errorMessage);
+    }
+
+    debugPrint(
+      '[EmailConfirm] send success status=${result.status} data=$responseData',
+    );
   }
 
   Map<String, dynamic> _buildPayload(AppointmentRequest request) {
@@ -88,6 +106,8 @@ class EmailNotificationsService {
             workshopAdditionalServicesFieldLabel(locale),
       if (additionalServices.isNotEmpty)
         'additional_services': additionalServices,
+      'locale': request.locale,
+      'request_id': request.id,
     };
   }
 

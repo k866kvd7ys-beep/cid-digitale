@@ -725,7 +725,9 @@ class AppointmentRequestsService {
     try {
       await _emailNotifications.sendAppointmentConfirmation(request: record);
     } catch (e) {
-      debugPrint('Appointment email send failed: $e');
+      debugPrint(
+        '[EmailConfirm] send error requestId=${record.id} recipient=${record.customerEmail ?? ''} error=$e',
+      );
     }
 
     return record;
@@ -1075,7 +1077,9 @@ class AppointmentRequestsService {
           await _emailNotifications.sendAppointmentConfirmation(
               request: record);
         } catch (e) {
-          debugPrint('Appointment email send failed after sync: $e');
+          debugPrint(
+            '[EmailConfirm] send error requestId=${record.id} recipient=${record.customerEmail ?? ''} error=$e',
+          );
         }
 
         await _removeQueueEntry(localRequest.id);
