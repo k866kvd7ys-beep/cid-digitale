@@ -3519,6 +3519,179 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
     ].where((line) => line.isNotEmpty).join('\n');
   }
 
+  String _selectedWorkshopDisplayName(BuildContext context) {
+    final workshop = widget.selectedWorkshop;
+    final trimmedName = workshop?.name.trim() ?? '';
+    if (trimmedName.isNotEmpty) {
+      return trimmedName;
+    }
+
+    return _copy(
+      context: context,
+      de: 'CrashForm Partnerwerkstatt',
+      it: 'Officina partner CrashForm',
+      en: 'CrashForm partner workshop',
+      fr: 'Atelier partenaire CrashForm',
+    );
+  }
+
+  String _selectedWorkshopAddressLine() {
+    final workshop = widget.selectedWorkshop;
+    if (workshop == null) {
+      return '';
+    }
+
+    final address = workshop.address.trim();
+    final city = workshop.city.trim();
+    if (address.isEmpty) return city;
+    if (city.isEmpty) return address;
+    return '$address, $city';
+  }
+
+  String? _selectedWorkshopRatingLabel(BuildContext context) {
+    final rating = widget.selectedWorkshop?.rating;
+    if (rating == null) return null;
+
+    return NumberFormat.decimalPatternDigits(
+      locale: Localizations.localeOf(context).toLanguageTag(),
+      decimalDigits: 1,
+    ).format(rating);
+  }
+
+  String? _selectedWorkshopDistanceLabel(BuildContext context) {
+    final distanceKm = widget.selectedWorkshop?.distanceKm;
+    if (distanceKm == null) return null;
+
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    final meters = distanceKm * 1000;
+    if (meters < 1000) {
+      return '${NumberFormat.decimalPattern(locale).format(meters.round())} m';
+    }
+
+    final decimalDigits = distanceKm >= 10 ? 0 : 1;
+    final kmLabel = NumberFormat.decimalPatternDigits(
+      locale: locale,
+      decimalDigits: decimalDigits,
+    ).format(distanceKm);
+    return '$kmLabel km';
+  }
+
+  Widget _buildAppointmentOverviewCard(BuildContext context) {
+    final theme = Theme.of(context);
+    final ratingLabel = _selectedWorkshopRatingLabel(context);
+    final distanceLabel = _selectedWorkshopDistanceLabel(context);
+    final addressLine = _selectedWorkshopAddressLine();
+    final metrics = <Widget>[
+      if (ratingLabel != null)
+        _buildOverviewMetric(
+          context,
+          icon: Icons.star_rounded,
+          label: ratingLabel,
+          color: const Color(0xFFF59E0B),
+        ),
+      if (distanceLabel != null)
+        _buildOverviewMetric(
+          context,
+          icon: Icons.place_rounded,
+          label: distanceLabel,
+          color: theme.colorScheme.primary,
+        ),
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFFFFF),
+            Color(0xFFF8FBFF),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x120F172A),
+            blurRadius: 20,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _selectedRequestTypeLabel(context),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              height: 1.15,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _selectedWorkshopDisplayName(context),
+            style: theme.textTheme.bodyLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          if (addressLine.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              addressLine,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
+                height: 1.25,
+              ),
+            ),
+          ],
+          if (metrics.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 10,
+              runSpacing: 6,
+              children: metrics,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverviewMetric(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.82),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _summaryValue(String? value) {
     final trimmed = value?.trim() ?? '';
     return trimmed.isEmpty ? '-' : trimmed;
@@ -4318,10 +4491,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
                           formHeaderSubtitle,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color:
-                                theme.colorScheme.onSurface.withOpacity(0.72),
+                            theme.colorScheme.onSurface.withOpacity(0.72),
                           ),
                         ),
                       ],
+                      const SizedBox(height: 12),
+                      _buildAppointmentOverviewCard(context),
                       const SizedBox(height: 12),
                       _licensePlateCard(context),
                       const SizedBox(height: 12),
