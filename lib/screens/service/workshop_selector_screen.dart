@@ -316,6 +316,8 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
   Future<void> _handleUseLocation() async {
     if (_isResolvingLocation) return;
 
+    debugPrint('[WorkshopGPS] start');
+
     _searchDebounce?.cancel();
     if (_query.trim().isNotEmpty) {
       _searchController.clear();
@@ -331,8 +333,10 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
     });
 
     try {
-      final locationResult = await _deviceLocationService.requestCurrentPosition();
+      final locationResult =
+          await _deviceLocationService.requestCurrentPosition();
       if (!locationResult.serviceEnabled) {
+        debugPrint('[WorkshopGPS] permission denied service-disabled');
         if (!mounted) return;
         setState(() {
           _isResolvingLocation = false;
@@ -342,6 +346,11 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
       }
 
       if (!locationResult.permissionGranted || locationResult.position == null) {
+        debugPrint(
+          locationResult.permissionGranted
+              ? '[WorkshopGPS] permission granted but coordinates unavailable'
+              : '[WorkshopGPS] permission denied ${locationResult.permission}',
+        );
         if (!mounted) return;
         setState(() {
           _isResolvingLocation = false;
@@ -352,14 +361,38 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
       }
 
       final position = locationResult.position!;
+      debugPrint(
+        '[WorkshopGPS] permission granted ${locationResult.permission}',
+      );
+      debugPrint(
+        '[WorkshopGPS] coordinates received lat=${position.latitude}, lng=${position.longitude}',
+      );
+
       final localWithDistance = _withDistance(_catalogWorkshops, position);
       final cityHint = await _deviceLocationService.resolveCityHint(position);
-      final nearbyResults = await _placesService.searchNearbyWorkshops(
-        latitude: position.latitude,
-        longitude: position.longitude,
-        locale: _localeCode,
-        cityHint: cityHint,
-      );
+      debugPrint('[WorkshopGPS] search nearby started');
+
+      List<WorkshopModel> nearbyResults = const [];
+      try {
+        nearbyResults = await _placesService.searchNearbyWorkshops(
+          latitude: position.latitude,
+          longitude: position.longitude,
+          locale: _localeCode,
+          cityHint: cityHint,
+        );
+        final issue = _placesService.lastIssue;
+        if (issue != null) {
+          debugPrint(
+            '[WorkshopGPS] search nearby fail ${issue.type} ${issue.message}',
+          );
+        } else {
+          debugPrint(
+            '[WorkshopGPS] search nearby success count=${nearbyResults.length}',
+          );
+        }
+      } catch (error, stackTrace) {
+        debugPrint('[WorkshopGPS] search nearby fail $error\n$stackTrace');
+      }
 
       if (!mounted) return;
       setState(() {
@@ -371,13 +404,15 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
         _isSearchingNearby = false;
       });
     } on TimeoutException {
+      debugPrint('[WorkshopGPS] search nearby fail timeout while requesting coordinates');
       if (!mounted) return;
       setState(() {
         _isResolvingLocation = false;
         _isSearchingNearby = false;
       });
       _showLocationErrorSnack();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('[WorkshopGPS] search nearby fail $error\n$stackTrace');
       if (!mounted) return;
       setState(() {
         _isResolvingLocation = false;

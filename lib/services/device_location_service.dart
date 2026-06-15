@@ -82,7 +82,12 @@ class DeviceLocationService {
   }
 
   Future<String?> resolveCityHint(Position position) async {
-    final placemarks = await loadPlacemarks(position);
+    List<Placemark> placemarks;
+    try {
+      placemarks = await loadPlacemarks(position);
+    } catch (_) {
+      return null;
+    }
 
     for (final placemark in placemarks) {
       final candidates = [
@@ -103,7 +108,12 @@ class DeviceLocationService {
   }
 
   Future<String?> resolveAddressLabel(Position position) async {
-    final placemarks = await loadPlacemarks(position);
+    List<Placemark> placemarks;
+    try {
+      placemarks = await loadPlacemarks(position);
+    } catch (_) {
+      return null;
+    }
     if (placemarks.isEmpty) return null;
 
     final placemark = placemarks.first;
