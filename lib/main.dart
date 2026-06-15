@@ -1698,6 +1698,12 @@ const Map<String, Map<String, String>> _tMap = {
     'fr': 'Adresse non disponible',
     'en': 'Address not available',
   },
+  'Posizione GPS': {
+    'it': 'Posizione GPS',
+    'de': 'GPS-Position',
+    'fr': 'Position GPS',
+    'en': 'GPS location',
+  },
   'Consenti la posizione in Safari per compilare automaticamente il luogo dell’incidente.':
       {
     'it':
@@ -4305,7 +4311,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _luogoController.text.trim().isNotEmpty) return;
       debugPrint('[Geo] auto-populate accident location on open');
-      unawaited(_impostaLuogoAutomatico());
+      unawaited(_impostaLuogoAutomatico(forceUpdateField: false));
     });
   }
 
@@ -4318,10 +4324,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         _emailBController.text.trim().isNotEmpty;
   }
 
-  Future<void> _impostaLuogoAutomatico() async {
+  Future<void> _impostaLuogoAutomatico({bool forceUpdateField = true}) async {
     if (_geoLoading) return;
 
-    debugPrint('[Geo] start geolocation request');
+    debugPrint(
+      '[Geo] start geolocation request forceUpdateField=$forceUpdateField',
+    );
     setState(() {
       _geoLoading = true;
       _geoPosition = null;
@@ -4345,6 +4353,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
       var permission = await Geolocator.checkPermission();
       _geoPermission = _mapPermission(permission);
+      final initialPermission = permission;
       debugPrint(
         '[Geo] permission (initial): $permission -> ${_geoPermission.name}',
       );
@@ -4354,6 +4363,15 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         debugPrint(
           '[Geo] permission (after request): $permission -> ${_geoPermission.name}',
         );
+      }
+
+      if (initialPermission == LocationPermission.denied &&
+          (permission == LocationPermission.whileInUse ||
+              permission == LocationPermission.always)) {
+        debugPrint(
+          '[Geo] permission granted after prompt, waiting briefly before requesting coordinates',
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 350));
       }
 
       if (permission == LocationPermission.denied ||
@@ -4400,6 +4418,46 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       }
 
       if (pos == null) {
+        debugPrint('[Geo] fallback geolocation attempt (last known position)');
+        try {
+          pos = await Geolocator.getLastKnownPosition();
+          if (pos != null) {
+            debugPrint(
+              '[Geo] last known position lat=${pos.latitude}, lon=${pos.longitude}',
+            );
+          } else {
+            debugPrint('[Geo] last known position unavailable');
+          }
+        } catch (e, st) {
+          lastErrorCode = 'error_last_known';
+          debugPrint('[Geo] exception last known position: $e\n$st');
+        }
+      }
+
+      if (pos == null) {
+        debugPrint('[Geo] fallback geolocation attempt (position stream)');
+        try {
+          pos = await Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.medium,
+            ),
+          ).first.timeout(const Duration(seconds: 7));
+          debugPrint(
+            '[Geo] stream position lat=${pos.latitude}, lon=${pos.longitude}',
+          );
+        } on TimeoutException catch (e) {
+          lastErrorCode = 'timeout_stream';
+          debugPrint('[Geo] timeout stream attempt: $e');
+        } catch (e, st) {
+          lastErrorCode = 'error_stream';
+          debugPrint('[Geo] exception stream position: $e\n$st');
+        }
+      }
+
+      if (pos == null) {
+        debugPrint(
+          '[Geo] position unavailable after all attempts lastErrorCode=$lastErrorCode',
+        );
         _setGeoError(
           _geoPermission,
           tx(context,
@@ -4411,23 +4469,49 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       final position = pos;
 
       debugPrint(
-        '[Geo] position acquired lat=${position.latitude}, lon=${position.longitude}',
+        '[Geo] position acquired lat=${position.latitude}, lon=${position.longitude}, accuracy=${position.accuracy}',
       );
 
-      final indirizzo = await getIndirizzoDaGps(position: position);
+      final gpsFallback = _buildGpsLocationLabel(position);
+      String? indirizzo;
+      try {
+        indirizzo = await getIndirizzoDaGps(position: position);
+        if (indirizzo != null && indirizzo.trim().isNotEmpty) {
+          indirizzo = indirizzo.trim();
+          debugPrint('[Geo] reverse geocoding success (placemark): $indirizzo');
+        } else {
+          indirizzo = null;
+          debugPrint('[Geo] reverse geocoding returned no readable address');
+        }
+      } catch (e, st) {
+        indirizzo = null;
+        debugPrint('[Geo] reverse geocoding fail (placemark): $e\n$st');
+      }
+
+      final finalLocation = indirizzo ?? gpsFallback;
+      debugPrint('[Geo] final generated address: $finalLocation');
+
       if (!mounted) return;
       setState(() {
         _geoLoading = false;
         _geoPosition = position;
         _geoErrorMessage = null;
-        _addressReadable = null;
-        if (_luogoController.text.trim().isEmpty) {
-          _luogoController.text = indirizzo ??
-              'LAT: ${position.latitude.toStringAsFixed(5)}, '
-                  'LNG: ${position.longitude.toStringAsFixed(5)}';
+        _addressReadable = indirizzo;
+        _geoMessage = null;
+        final currentValue = _luogoController.text.trim();
+        final shouldOverwrite = forceUpdateField ||
+            currentValue.isEmpty ||
+            _isGpsFallbackValue(currentValue);
+        if (shouldOverwrite) {
+          _luogoController.text = finalLocation;
         }
       });
-      unawaited(_caricaIndirizzoDaPosizione(position));
+      unawaited(
+        _caricaIndirizzoDaPosizione(
+          position,
+          forceUpdateField: forceUpdateField,
+        ),
+      );
     } catch (e, st) {
       debugPrint('[Geo] geolocation exception: $e\n$st');
       _setGeoError(
@@ -4447,6 +4531,20 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return Geolocator.getCurrentPosition(
       desiredAccuracy: accuracy,
     ).timeout(timeout);
+  }
+
+  String _buildGpsLocationLabel(Position position) {
+    final prefix = tx(context, 'Posizione GPS');
+    return '$prefix: ${position.latitude.toStringAsFixed(5)}, '
+        '${position.longitude.toStringAsFixed(5)}';
+  }
+
+  bool _isGpsFallbackValue(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return false;
+    return trimmed.startsWith('${tx(context, 'Posizione GPS')}:') ||
+        trimmed.startsWith('Posizione GPS:') ||
+        trimmed.startsWith('LAT:');
   }
 
   void _setGeoError(
@@ -4482,9 +4580,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     }
   }
 
-  Future<void> _caricaIndirizzoDaPosizione(Position pos) async {
+  Future<void> _caricaIndirizzoDaPosizione(
+    Position pos, {
+    bool forceUpdateField = true,
+  }) async {
     debugPrint(
-      '[Geo] reverse geocoding start lat=${pos.latitude}, lon=${pos.longitude}',
+      '[Geo] reverse geocoding start lat=${pos.latitude}, lon=${pos.longitude}, forceUpdateField=$forceUpdateField',
     );
     setState(() {
       _addressReadable = null;
@@ -4518,21 +4619,27 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         setState(() {
           if (addr != null && addr.isNotEmpty) {
             _addressReadable = addr;
-            debugPrint('[Geo] reverse geocoding success: $addr');
+            debugPrint('[Geo] reverse geocoding success (nominatim): $addr');
             final current = _luogoController.text.trim();
-            if (current.isEmpty || current.startsWith('LAT:')) {
+            if (forceUpdateField ||
+                current.isEmpty ||
+                _isGpsFallbackValue(current)) {
               _luogoController.text = addr;
+              debugPrint('[Geo] final generated address updated: $addr');
             }
           } else {
             _addressReadable = null;
-            debugPrint('[Geo] reverse geocoding address unavailable');
+            debugPrint('[Geo] reverse geocoding failed: address unavailable');
           }
         });
       } else {
+        debugPrint(
+          '[Geo] reverse geocoding failed with status ${res.statusCode}',
+        );
         setState(() => _addressReadable = null);
       }
-    } catch (e) {
-      debugPrint('[Geo] reverse geocoding error: $e');
+    } catch (e, st) {
+      debugPrint('[Geo] reverse geocoding error: $e\n$st');
       if (!mounted) return;
       setState(() => _addressReadable = null);
     }
