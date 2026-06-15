@@ -4306,7 +4306,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         _emailBController.text.trim().isNotEmpty;
   }
 
-  Future<void> _impostaLuogoAutomatico({bool forceUpdateField = true}) async {
+  Future<void> _impostaLuogoAutomatico({bool forceUpdateField = false}) async {
     if (_geoLoading) return;
 
     final enableLocationMessage = tx(context,
@@ -4320,6 +4320,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     debugPrint(
       '[AccidentGPS] start forceUpdateField=$forceUpdateField',
     );
+    debugPrint('[AccidentGPS] same workshop GPS method called');
     setState(() {
       _geoLoading = true;
       _geoPosition = null;
@@ -4369,41 +4370,24 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       }
 
       debugPrint(
-        '[AccidentGPS] coordinates lat=${position.latitude}, lng=${position.longitude}',
+        '[AccidentGPS] coordinates received lat=${position.latitude}, lng=${position.longitude}',
       );
 
       final gpsFallback = _buildGpsLocationLabel(position, gpsLabel: gpsLabel);
-      String? indirizzo;
-      try {
-        indirizzo = await getIndirizzoDaGps(position: position);
-        if (indirizzo != null && indirizzo.trim().isNotEmpty) {
-          indirizzo = indirizzo.trim();
-          debugPrint('[AccidentGPS] reverse geocode success $indirizzo');
-        } else {
-          indirizzo = null;
-          debugPrint('[AccidentGPS] reverse geocode fail placemark-empty');
-        }
-      } catch (e, st) {
-        indirizzo = null;
-        debugPrint('[AccidentGPS] reverse geocode fail $e\n$st');
-      }
-
-      final finalLocation = indirizzo ?? gpsFallback;
-
       if (!mounted) return;
       setState(() {
         _geoLoading = false;
         _geoPosition = position;
         _geoErrorMessage = null;
-        _addressReadable = indirizzo;
+        _addressReadable = null;
         _geoMessage = null;
         final currentValue = _luogoController.text.trim();
         final shouldOverwrite = forceUpdateField ||
             currentValue.isEmpty ||
             _isGpsFallbackValue(currentValue, gpsLabel: gpsLabel);
         if (shouldOverwrite) {
-          _luogoController.text = finalLocation;
-          debugPrint('[AccidentGPS] field updated $finalLocation');
+          _luogoController.text = gpsFallback;
+          debugPrint('[AccidentGPS] field updated $gpsFallback');
         } else {
           debugPrint('[AccidentGPS] field updated skipped-manual-value');
         }
