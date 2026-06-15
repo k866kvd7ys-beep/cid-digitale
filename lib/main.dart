@@ -4302,6 +4302,11 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         telefonoController: TextEditingController(),
       ),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _luogoController.text.trim().isNotEmpty) return;
+      debugPrint('[Geo] auto-populate accident location on open');
+      unawaited(_impostaLuogoAutomatico());
+    });
   }
 
   bool _isAnyCampoBCompilato() {
