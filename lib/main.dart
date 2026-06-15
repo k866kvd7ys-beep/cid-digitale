@@ -16,7 +16,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:signature/signature.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:record/record.dart';
@@ -30,6 +29,7 @@ import 'screens/officina/appointments_screen.dart';
 import 'screens/service/service_anmelden_screen.dart';
 import 'screens/service/raeder_wechsel_screen.dart';
 import 'screens/service/workshop_selector_screen.dart';
+import 'services/device_location_service.dart';
 import 'services/supabase_service.dart';
 import 'services/appointment_requests_service.dart';
 import 'services/incidents_sync_service.dart';
@@ -1382,39 +1382,21 @@ Future<String> buildWorkshopQrData(Incidente inc) async {
 
 /// GPS /////////////////////////////////////////////////////////////
 
+const DeviceLocationService _globalDeviceLocationService =
+    DeviceLocationService();
+
 Future<Position?> getPosizioneConPermessi() async {
-  final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  if (!serviceEnabled) return null;
-
-  var permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-  }
-  if (permission == LocationPermission.denied ||
-      permission == LocationPermission.deniedForever) {
-    return null;
-  }
-
-  try {
-    return await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    ).timeout(const Duration(seconds: 12));
-  } on TimeoutException {
-    return null;
-  }
+  final result = await _globalDeviceLocationService.requestCurrentPosition(
+    timeout: const Duration(seconds: 12),
+  );
+  return result.position;
 }
 
 Future<String?> getIndirizzoDaGps({Position? position}) async {
   final pos = position ?? await getPosizioneConPermessi();
   if (pos == null) return null;
 
-  final placemarks =
-      await placemarkFromCoordinates(pos.latitude, pos.longitude);
-
-  if (placemarks.isEmpty) return null;
-
-  final p = placemarks.first;
-  return "${p.street}, ${p.locality}";
+  return _globalDeviceLocationService.resolveAddressLabel(pos);
 }
 
 /// ✅ LINGUA MANUALE
@@ -4292,7 +4274,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   @override
   void initState() {
     super.initState();
-    debugPrint('[Geo] init NuovaPraticaIncidentePage');
+    debugPrint('[AccidentGPS] init NuovaPraticaIncidentePage');
     _audioPlayerSub = _audioPlayer.onPlayerComplete.listen((event) {
       if (mounted) {
         setState(() {
@@ -4310,7 +4292,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _luogoController.text.trim().isNotEmpty) return;
-      debugPrint('[Geo] auto-populate accident location on open');
+      debugPrint('[AccidentGPS] auto-populate on open');
       unawaited(_impostaLuogoAutomatico(forceUpdateField: false));
     });
   }
@@ -4327,8 +4309,16 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   Future<void> _impostaLuogoAutomatico({bool forceUpdateField = true}) async {
     if (_geoLoading) return;
 
+    final enableLocationMessage = tx(context,
+        'Attiva la localizzazione sul dispositivo per compilare automaticamente il luogo dell’incidente.');
+    final allowLocationMessage = tx(context,
+        'Consenti la posizione in Safari per compilare automaticamente il luogo dell’incidente.');
+    final unavailableLocationMessage = tx(context,
+        'Non siamo riusciti a ottenere la posizione. Verifica che la geolocalizzazione sia attiva e riprova.');
+    final gpsLabel = tx(context, 'Posizione GPS');
+
     debugPrint(
-      '[Geo] start geolocation request forceUpdateField=$forceUpdateField',
+      '[AccidentGPS] start forceUpdateField=$forceUpdateField',
     );
     setState(() {
       _geoLoading = true;
@@ -4340,156 +4330,65 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     });
 
     try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      debugPrint('[Geo] service enabled: $serviceEnabled');
-      if (!serviceEnabled) {
+      final locationResult = await _globalDeviceLocationService
+          .requestCurrentPosition();
+      final permissionState =
+          _mapPermission(locationResult.permission ?? LocationPermission.denied);
+      _geoPermission = permissionState;
+
+      if (!locationResult.serviceEnabled) {
+        debugPrint('[AccidentGPS] permission denied service-disabled');
         _setGeoError(
           _GeoPermissionState.unknown,
-          tx(context,
-              'Attiva la localizzazione sul dispositivo per compilare automaticamente il luogo dell’incidente.'),
+          enableLocationMessage,
         );
         return;
       }
-
-      var permission = await Geolocator.checkPermission();
-      _geoPermission = _mapPermission(permission);
-      final initialPermission = permission;
-      debugPrint(
-        '[Geo] permission (initial): $permission -> ${_geoPermission.name}',
-      );
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        _geoPermission = _mapPermission(permission);
-        debugPrint(
-          '[Geo] permission (after request): $permission -> ${_geoPermission.name}',
-        );
-      }
-
-      if (initialPermission == LocationPermission.denied &&
-          (permission == LocationPermission.whileInUse ||
-              permission == LocationPermission.always)) {
-        debugPrint(
-          '[Geo] permission granted after prompt, waiting briefly before requesting coordinates',
-        );
-        await Future<void>.delayed(const Duration(milliseconds: 350));
-      }
-
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        _setGeoError(
-          _geoPermission,
-          tx(context,
-              'Consenti la posizione in Safari per compilare automaticamente il luogo dell’incidente.'),
-        );
-        return;
-      }
-
-      debugPrint('[Geo] calling getCurrentPosition() ...');
-      Position? pos;
-      String? lastErrorCode;
-
-      try {
-        pos = await _getPositionWithTimeout(
-          accuracy: LocationAccuracy.high,
-          timeout: const Duration(seconds: 9),
-        );
-      } on TimeoutException catch (e) {
-        lastErrorCode = 'timeout_primary';
-        debugPrint('[Geo] timeout first attempt: $e');
-      } catch (e, st) {
-        lastErrorCode = 'error_primary';
-        debugPrint('[Geo] exception first attempt: $e\n$st');
-      }
-
-      if (pos == null) {
-        debugPrint('[Geo] fallback geolocation attempt (balanced accuracy)');
-        try {
-          pos = await _getPositionWithTimeout(
-            accuracy: LocationAccuracy.medium,
-            timeout: const Duration(seconds: 5),
-          );
-        } on TimeoutException catch (e) {
-          lastErrorCode = 'timeout_secondary';
-          debugPrint('[Geo] timeout second attempt: $e');
-        } catch (e, st) {
-          lastErrorCode = 'error_secondary';
-          debugPrint('[Geo] exception second attempt: $e\n$st');
-        }
-      }
-
-      if (pos == null) {
-        debugPrint('[Geo] fallback geolocation attempt (last known position)');
-        try {
-          pos = await Geolocator.getLastKnownPosition();
-          if (pos != null) {
-            debugPrint(
-              '[Geo] last known position lat=${pos.latitude}, lon=${pos.longitude}',
-            );
-          } else {
-            debugPrint('[Geo] last known position unavailable');
-          }
-        } catch (e, st) {
-          lastErrorCode = 'error_last_known';
-          debugPrint('[Geo] exception last known position: $e\n$st');
-        }
-      }
-
-      if (pos == null) {
-        debugPrint('[Geo] fallback geolocation attempt (position stream)');
-        try {
-          pos = await Geolocator.getPositionStream(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.medium,
-            ),
-          ).first.timeout(const Duration(seconds: 7));
-          debugPrint(
-            '[Geo] stream position lat=${pos.latitude}, lon=${pos.longitude}',
-          );
-        } on TimeoutException catch (e) {
-          lastErrorCode = 'timeout_stream';
-          debugPrint('[Geo] timeout stream attempt: $e');
-        } catch (e, st) {
-          lastErrorCode = 'error_stream';
-          debugPrint('[Geo] exception stream position: $e\n$st');
-        }
-      }
-
-      if (pos == null) {
-        debugPrint(
-          '[Geo] position unavailable after all attempts lastErrorCode=$lastErrorCode',
-        );
-        _setGeoError(
-          _geoPermission,
-          tx(context,
-              'Non siamo riusciti a ottenere la posizione. Verifica che la geolocalizzazione sia attiva e riprova.'),
-        );
-        return;
-      }
-
-      final position = pos;
 
       debugPrint(
-        '[Geo] position acquired lat=${position.latitude}, lon=${position.longitude}, accuracy=${position.accuracy}',
+        locationResult.permissionGranted
+            ? '[AccidentGPS] permission granted ${locationResult.permission}'
+            : '[AccidentGPS] permission denied ${locationResult.permission}',
+      );
+      if (!locationResult.permissionGranted) {
+        _setGeoError(
+          permissionState,
+          allowLocationMessage,
+        );
+        return;
+      }
+
+      final position = locationResult.position;
+      if (position == null) {
+        debugPrint('[AccidentGPS] coordinates unavailable');
+        _setGeoError(
+          permissionState,
+          unavailableLocationMessage,
+        );
+        return;
+      }
+
+      debugPrint(
+        '[AccidentGPS] coordinates lat=${position.latitude}, lng=${position.longitude}',
       );
 
-      final gpsFallback = _buildGpsLocationLabel(position);
+      final gpsFallback = _buildGpsLocationLabel(position, gpsLabel: gpsLabel);
       String? indirizzo;
       try {
         indirizzo = await getIndirizzoDaGps(position: position);
         if (indirizzo != null && indirizzo.trim().isNotEmpty) {
           indirizzo = indirizzo.trim();
-          debugPrint('[Geo] reverse geocoding success (placemark): $indirizzo');
+          debugPrint('[AccidentGPS] reverse geocode success $indirizzo');
         } else {
           indirizzo = null;
-          debugPrint('[Geo] reverse geocoding returned no readable address');
+          debugPrint('[AccidentGPS] reverse geocode fail placemark-empty');
         }
       } catch (e, st) {
         indirizzo = null;
-        debugPrint('[Geo] reverse geocoding fail (placemark): $e\n$st');
+        debugPrint('[AccidentGPS] reverse geocode fail $e\n$st');
       }
 
       final finalLocation = indirizzo ?? gpsFallback;
-      debugPrint('[Geo] final generated address: $finalLocation');
 
       if (!mounted) return;
       setState(() {
@@ -4501,9 +4400,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         final currentValue = _luogoController.text.trim();
         final shouldOverwrite = forceUpdateField ||
             currentValue.isEmpty ||
-            _isGpsFallbackValue(currentValue);
+            _isGpsFallbackValue(currentValue, gpsLabel: gpsLabel);
         if (shouldOverwrite) {
           _luogoController.text = finalLocation;
+          debugPrint('[AccidentGPS] field updated $finalLocation');
+        } else {
+          debugPrint('[AccidentGPS] field updated skipped-manual-value');
         }
       });
       unawaited(
@@ -4513,36 +4415,29 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         ),
       );
     } catch (e, st) {
-      debugPrint('[Geo] geolocation exception: $e\n$st');
+      debugPrint('[AccidentGPS] coordinates unavailable exception $e\n$st');
       _setGeoError(
         _geoPermission,
-        tx(context,
-            'Non siamo riusciti a ottenere la posizione. Verifica che la geolocalizzazione sia attiva e riprova.'),
+        unavailableLocationMessage,
       );
     }
   }
 
-  Future<Position> _getPositionWithTimeout({
-    required LocationAccuracy accuracy,
-    required Duration timeout,
+  String _buildGpsLocationLabel(
+    Position position, {
+    required String gpsLabel,
   }) {
-    debugPrint(
-        '[Geo] getCurrentPosition acc=$accuracy timeout=${timeout.inSeconds}s');
-    return Geolocator.getCurrentPosition(
-      desiredAccuracy: accuracy,
-    ).timeout(timeout);
-  }
-
-  String _buildGpsLocationLabel(Position position) {
-    final prefix = tx(context, 'Posizione GPS');
-    return '$prefix: ${position.latitude.toStringAsFixed(5)}, '
+    return '$gpsLabel: ${position.latitude.toStringAsFixed(5)}, '
         '${position.longitude.toStringAsFixed(5)}';
   }
 
-  bool _isGpsFallbackValue(String value) {
+  bool _isGpsFallbackValue(
+    String value, {
+    required String gpsLabel,
+  }) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) return false;
-    return trimmed.startsWith('${tx(context, 'Posizione GPS')}:') ||
+    return trimmed.startsWith('$gpsLabel:') ||
         trimmed.startsWith('Posizione GPS:') ||
         trimmed.startsWith('LAT:');
   }
@@ -4552,7 +4447,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     String message,
   ) {
     debugPrint(
-      '[Geo] error: $message (permission=$permissionState)',
+      '[AccidentGPS] error $message (permission=$permissionState)',
     );
     if (!mounted) return;
     setState(() {
@@ -4585,8 +4480,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     bool forceUpdateField = true,
   }) async {
     debugPrint(
-      '[Geo] reverse geocoding start lat=${pos.latitude}, lon=${pos.longitude}, forceUpdateField=$forceUpdateField',
+      '[AccidentGPS] reverse geocode start lat=${pos.latitude}, lng=${pos.longitude}, forceUpdateField=$forceUpdateField',
     );
+    final gpsLabel = tx(context, 'Posizione GPS');
     setState(() {
       _addressReadable = null;
     });
@@ -4607,7 +4503,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       final res = await http.get(uri, headers: headers).timeout(
             const Duration(seconds: 10),
           );
-      debugPrint('[Geo] reverse geocoding status: ${res.statusCode}');
+      debugPrint('[AccidentGPS] reverse geocode status ${res.statusCode}');
 
       if (!mounted) return;
 
@@ -4619,27 +4515,27 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         setState(() {
           if (addr != null && addr.isNotEmpty) {
             _addressReadable = addr;
-            debugPrint('[Geo] reverse geocoding success (nominatim): $addr');
+            debugPrint('[AccidentGPS] reverse geocode success $addr');
             final current = _luogoController.text.trim();
             if (forceUpdateField ||
                 current.isEmpty ||
-                _isGpsFallbackValue(current)) {
+                _isGpsFallbackValue(current, gpsLabel: gpsLabel)) {
               _luogoController.text = addr;
-              debugPrint('[Geo] final generated address updated: $addr');
+              debugPrint('[AccidentGPS] field updated $addr');
             }
           } else {
             _addressReadable = null;
-            debugPrint('[Geo] reverse geocoding failed: address unavailable');
+            debugPrint('[AccidentGPS] reverse geocode fail address-unavailable');
           }
         });
       } else {
         debugPrint(
-          '[Geo] reverse geocoding failed with status ${res.statusCode}',
+          '[AccidentGPS] reverse geocode fail status-${res.statusCode}',
         );
         setState(() => _addressReadable = null);
       }
     } catch (e, st) {
-      debugPrint('[Geo] reverse geocoding error: $e\n$st');
+      debugPrint('[AccidentGPS] reverse geocode fail $e\n$st');
       if (!mounted) return;
       setState(() => _addressReadable = null);
     }

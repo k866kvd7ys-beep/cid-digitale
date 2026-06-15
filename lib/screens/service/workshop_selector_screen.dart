@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:cid_digitale/models/workshop_model.dart';
+import 'package:cid_digitale/services/device_location_service.dart';
 import 'package:cid_digitale/services/places_workshop_search_service.dart';
 import 'package:cid_digitale/services/workshop_catalog_service.dart';
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 
@@ -76,6 +76,8 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
   static const Color _border = Color(0xFFDCE7F5);
 
   final WorkshopCatalogService _catalogService = WorkshopCatalogService();
+  final DeviceLocationService _deviceLocationService =
+      const DeviceLocationService();
   final PlacesWorkshopSearchService _placesService =
       PlacesWorkshopSearchService();
   final TextEditingController _searchController = TextEditingController();
@@ -329,8 +331,8 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
     });
 
     try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
+      final locationResult = await _deviceLocationService.requestCurrentPosition();
+      if (!locationResult.serviceEnabled) {
         if (!mounted) return;
         setState(() {
           _isResolvingLocation = false;
@@ -339,13 +341,7 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
         return;
       }
 
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
+      if (!locationResult.permissionGranted || locationResult.position == null) {
         if (!mounted) return;
         setState(() {
           _isResolvingLocation = false;
@@ -355,12 +351,9 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
         return;
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      ).timeout(const Duration(seconds: 10));
-
+      final position = locationResult.position!;
       final localWithDistance = _withDistance(_catalogWorkshops, position);
-      final cityHint = await _resolveCityHint(position);
+      final cityHint = await _deviceLocationService.resolveCityHint(position);
       final nearbyResults = await _placesService.searchNearbyWorkshops(
         latitude: position.latitude,
         longitude: position.longitude,
@@ -392,34 +385,6 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
       });
       _showLocationErrorSnack();
     }
-  }
-
-  Future<String?> _resolveCityHint(Position position) async {
-    try {
-      final placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-
-      for (final placemark in placemarks) {
-        final candidates = [
-          placemark.locality,
-          placemark.subAdministrativeArea,
-          placemark.administrativeArea,
-        ];
-
-        for (final candidate in candidates) {
-          final trimmed = candidate?.trim() ?? '';
-          if (trimmed.isNotEmpty) {
-            return trimmed;
-          }
-        }
-      }
-    } catch (_) {
-      // Reverse geocoding is only a fallback hint for text search.
-    }
-
-    return null;
   }
 
   List<WorkshopModel> _withDistance(
