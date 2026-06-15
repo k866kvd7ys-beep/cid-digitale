@@ -4426,6 +4426,21 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         trimmed.startsWith('LAT:');
   }
 
+  bool _shouldHideGeoSuggestionPanel() {
+    final currentValue = _luogoController.text.trim();
+    if (_geoPosition == null || currentValue.isEmpty) {
+      return false;
+    }
+
+    final gpsLabel = tx(context, 'Posizione GPS');
+    if (_isGpsFallbackValue(currentValue, gpsLabel: gpsLabel)) {
+      return true;
+    }
+
+    final readableAddress = _addressReadable?.trim() ?? '';
+    return readableAddress.isNotEmpty && currentValue == readableAddress;
+  }
+
   void _setGeoError(
     _GeoPermissionState permissionState,
     String message,
@@ -4587,6 +4602,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
   Widget _buildGeoActions() {
     final theme = Theme.of(context);
+    final hideGeoSuggestionPanel = _shouldHideGeoSuggestionPanel();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -4637,12 +4653,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                 ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
         ],
-        if (_suggestionsLoading)
+        if (_suggestionsLoading && !hideGeoSuggestionPanel)
           const Padding(
             padding: EdgeInsets.only(top: 4),
             child: LinearProgressIndicator(minHeight: 2),
           ),
-        if (_suggestions.isNotEmpty)
+        if (_suggestions.isNotEmpty && !hideGeoSuggestionPanel)
           Container(
             margin: const EdgeInsets.only(top: 4),
             decoration: BoxDecoration(
