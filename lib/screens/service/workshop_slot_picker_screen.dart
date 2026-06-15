@@ -242,51 +242,6 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
         fr: 'Sélectionner le rendez-vous',
       );
 
-  String _formHeaderTitle(BuildContext context) {
-    if (_isTireService) {
-      return localizedTireServiceType(
-        tireLocaleCode(context),
-        tireServiceType: widget.tireServiceType,
-        serviceType: widget.serviceType,
-      );
-    }
-    if (_isComprehensiveDamage) {
-      return AppLocalizations.of(context)!.damage_comprehensive;
-    }
-    if (_isOtherDamage) {
-      return _copy(
-        context: context,
-        de: 'Sonstige Schäden oder technische Probleme',
-        it: 'Altri danni o problemi tecnici',
-        en: 'Other damages or technical problems',
-        fr: 'Autres dommages ou problèmes techniques',
-      );
-    }
-    return widget.title;
-  }
-
-  String? _formHeaderSubtitle(BuildContext context) {
-    if (_isComprehensiveDamage) {
-      return _copy(
-        context: context,
-        de: 'Kollision mit Objekt oder selbst verursachter Schaden',
-        it: 'Collisione con oggetto o danno causato dal conducente',
-        en: 'Collision with object or self-caused damage',
-        fr: 'Collision avec un objet ou dommage causé par le conducteur',
-      );
-    }
-    if (_isOtherDamage) {
-      return _copy(
-        context: context,
-        de: 'Melden Sie technische Probleme, Warnmeldungen oder sonstige Schäden.',
-        it: 'Segnala problemi tecnici, spie o altri danni.',
-        en: 'Report technical problems, warning lights or other damages.',
-        fr: 'Signalez des problèmes techniques, voyants ou autres dommages.',
-      );
-    }
-    return null;
-  }
-
   String _nameHint(BuildContext context) => _copy(
         context: context,
         de: 'Name und Nachname',
@@ -4455,8 +4410,6 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
     final showAppointmentError = _showValidationErrors &&
         usesDamageValidation &&
         _isAppointmentSelectionMissing;
-    final formHeaderTitle = _formHeaderTitle(context);
-    final formHeaderSubtitle = _formHeaderSubtitle(context);
     final viewportSize = MediaQuery.sizeOf(context);
     final compactCalendarLayout = viewportSize.height <= 760;
     final calendarCardPadding = compactCalendarLayout ? 14.0 : 16.0;
@@ -4480,22 +4433,6 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.all(16),
                     children: [
-                      Text(
-                        formHeaderTitle,
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w800),
-                      ),
-                      if (formHeaderSubtitle != null) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          formHeaderSubtitle,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color:
-                            theme.colorScheme.onSurface.withOpacity(0.72),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 12),
                       _buildAppointmentOverviewCard(context),
                       const SizedBox(height: 12),
                       _licensePlateCard(context),
