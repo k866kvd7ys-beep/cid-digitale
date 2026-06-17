@@ -1,5 +1,4 @@
 // deno-lint-ignore-file no-explicit-any
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
@@ -13,13 +12,22 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 // TODO: sostituire il mittente Resend con email professionale del dominio quando disponibile.
 const FROM_EMAIL = "onboarding@resend.dev";
-const MAX_ATTACHMENTS = 8;
+const MAX_ATTACHMENTS = 10;
+const JPEG_MAX_WIDTH = 1600;
+const JPEG_QUALITY = 75;
+const SIGNED_URL_TTL_SECONDS = 60;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 type ResendAttachment = {
   filename: string;
   content: string;
+  contentType?: string;
+};
+
+type DownloadedAttachment = {
+  filename: string;
+  bytes: Uint8Array;
   contentType?: string;
 };
 
@@ -81,6 +89,28 @@ const buildFileNameFromPath = (path: string, fallback: string) => {
   return last.length > 2 ? last : fallback;
 };
 
+const normalizeContentType = (value: string | null | undefined) =>
+  value?.split(";")[0].trim().toLowerCase() || null;
+
+const isJpegContentType = (value: string | null | undefined) => {
+  const normalized = normalizeContentType(value);
+  return normalized === "image/jpeg" || normalized === "image/jpg";
+};
+
+const isJpegFilename = (value: string | null | undefined) => {
+  const normalized = (value ?? "").trim().toLowerCase();
+  return normalized.endsWith(".jpg") || normalized.endsWith(".jpeg");
+};
+
+const shouldOptimizeJpeg = (
+  source: string,
+  fallbackName: string,
+  contentTypeHint?: string,
+) =>
+  isJpegContentType(contentTypeHint) ||
+  isJpegFilename(fallbackName) ||
+  isJpegFilename(source);
+
 const normalizeClaimAttachmentPath = (value: string) => {
   const trimmed = value.trim();
   const marker = "claim_attachments/";
@@ -121,56 +151,120 @@ const extractStorageLocation = (value: string) => {
 };
 
 async function downloadAsAttachment(
+  url: string,
+  fallbackName: string,
+  contentTypeHint?: string,
+  logLabel = "fetch",
+): Promise<DownloadedAttachment | null> {
+  const resp = await fetch(url);
+  if (!resp.ok) {
+    console.error(
+      "SEND CID EMAIL fetch attachment failed",
+      JSON.stringify({
+        logLabel,
+        url,
+        status: resp.status,
+      }),
+    );
+    return null;
+  }
+
+  const filename = buildFileNameFromPath(resp.url || url, fallbackName);
+  const contentType = resp.headers.get("content-type") ?? contentTypeHint;
+  const bytes = new Uint8Array(await resp.arrayBuffer());
+  console.log(
+    `SEND CID EMAIL attachment fetched: mode=${logLabel} url=${url} bytes=${bytes.length}`,
+  );
+  return {
+    filename,
+    bytes,
+    contentType,
+  };
+}
+
+async function createSignedOptimizedJpegUrl(
+  bucket: string,
+  path: string,
+): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(
+      path,
+      SIGNED_URL_TTL_SECONDS,
+      {
+        transform: {
+          width: JPEG_MAX_WIDTH,
+          quality: JPEG_QUALITY,
+        },
+      },
+    );
+    if (error || !data?.signedUrl) {
+      console.error(
+        "SEND CID EMAIL jpeg transform signed url error",
+        JSON.stringify({ bucket, path, error }),
+      );
+      return null;
+    }
+    return data.signedUrl;
+  } catch (err) {
+    console.error(
+      "SEND CID EMAIL jpeg transform signed url unexpected error",
+      JSON.stringify({ bucket, path, err }),
+    );
+    return null;
+  }
+}
+
+async function downloadAttachmentBytes(
   source: string,
   fallbackName: string,
   contentTypeHint?: string,
-): Promise<ResendAttachment | null> {
+): Promise<DownloadedAttachment | null> {
   const storage = extractStorageLocation(source);
   try {
     if (storage) {
       const possiblePath = normalizeClaimAttachmentPath(storage.path);
-      const { data, error } = await supabase.storage
-        .from(storage.bucket)
+      const filename = buildFileNameFromPath(possiblePath, fallbackName);
+      if (shouldOptimizeJpeg(source, filename, contentTypeHint)) {
+        const optimizedUrl = await createSignedOptimizedJpegUrl(
+          storage.bucket,
+          possiblePath,
+        );
+        if (optimizedUrl) {
+          const optimizedAttachment = await downloadAsAttachment(
+            optimizedUrl,
+            filename,
+            "image/jpeg",
+            "jpeg-transform",
+          );
+          if (optimizedAttachment) {
+            return optimizedAttachment;
+          }
+        }
+      }
+
+      const { data, error } = await supabase.storage.from(storage.bucket)
         .download(possiblePath);
-      if (!error && data) {
+      if (error || !data) {
+        console.error(
+          "SEND CID EMAIL storage download error",
+          JSON.stringify({ storage, error }),
+        );
+      } else {
         const bytes = new Uint8Array(await data.arrayBuffer());
-        const filename = buildFileNameFromPath(possiblePath, fallbackName);
         const contentType = data.type || contentTypeHint;
         console.log(
           `SEND CID EMAIL attachment from storage: bucket=${storage.bucket} path=${possiblePath} bytes=${bytes.length}`,
         );
         return {
           filename,
-          content: base64Encode(bytes),
+          bytes,
           contentType,
         };
-      } else {
-        console.error("SEND CID EMAIL storage download error", storage, error);
       }
     }
 
     if (source.startsWith("http")) {
-      const resp = await fetch(source);
-      if (!resp.ok) {
-        console.error(
-          "SEND CID EMAIL fetch attachment failed",
-          source,
-          resp.status,
-        );
-      } else {
-        const arrayBuffer = await resp.arrayBuffer();
-        const bytes = new Uint8Array(arrayBuffer);
-        const filename = buildFileNameFromPath(resp.url || source, fallbackName);
-        const contentType = resp.headers.get("content-type") ?? contentTypeHint;
-        console.log(
-          `SEND CID EMAIL attachment fetched: url=${source} bytes=${bytes.length}`,
-        );
-        return {
-          filename,
-          content: base64Encode(bytes),
-          contentType,
-        };
-      }
+      return await downloadAsAttachment(source, fallbackName, contentTypeHint);
     }
   } catch (err) {
     console.error("SEND CID EMAIL attachment download error", err);
@@ -178,6 +272,23 @@ async function downloadAsAttachment(
 
   return null;
 }
+
+const encodeAttachment = (
+  attachment: DownloadedAttachment,
+): ResendAttachment | null => {
+  const filename = attachment.filename.trim();
+  if (!filename) return null;
+
+  try {
+    return {
+      filename,
+      content: base64Encode(attachment.bytes),
+      contentType: attachment.contentType,
+    };
+  } finally {
+    attachment.bytes.fill(0);
+  }
+};
 
 const buildAttachmentKey = (source: string) => {
   const storage = extractStorageLocation(source);
@@ -1203,8 +1314,7 @@ async function savePdfToStorage(
 ) {
   try {
     const path = `claims/${claimId}/cid/cid-digitale-${claimId}.pdf`;
-    const blob = new Blob([pdfBytes], { type: "application/pdf" });
-    const { error } = await supabase.storage.from(bucket).upload(path, blob, {
+    const { error } = await supabase.storage.from(bucket).upload(path, pdfBytes, {
       upsert: true,
       contentType: "application/pdf",
     });
@@ -1347,20 +1457,17 @@ async function handleRequest(req: Request): Promise<Response> {
     // === RACCOLTA ALLEGATI DA DATABASE + PAYLOAD ===
     const attachments: ResendAttachment[] = [];
     const addedPaths = new Set<string>();
-    const MAX_ATTACHMENTS = 10;
     let pdfAttached = false;
 
     // 1. AGGIUNGI SEMPRE PDF generato dal payload corrente come primo allegato
     try {
-      const displayClaimId = formatClaimDisplayId(
-        claimId,
-        payload?.dataOra ?? claimRow?.created_at,
-      );
       const pdfBytes = await generatePdfFromPayload(payload, claimId);
       await savePdfToStorage(pdfBytes, claimId);
+      const pdfContent = base64Encode(pdfBytes);
+      pdfBytes.fill(0);
       attachments.push({
         filename: `cid-digitale-${displayClaimId}.pdf`,
-        content: base64Encode(pdfBytes),
+        content: pdfContent,
         contentType: "application/pdf",
       });
       pdfAttached = true;
@@ -1383,16 +1490,25 @@ async function handleRequest(req: Request): Promise<Response> {
       }
 
       try {
-        const downloaded = await downloadAsAttachment(
+        const downloaded = await downloadAttachmentBytes(
           source,
           fallbackName,
           contentTypeHint,
         );
         if (downloaded) {
+          const encodedAttachment = encodeAttachment(downloaded);
+          if (!encodedAttachment) {
+            console.error(
+              "CLAIM_ATTACHMENT_DOWNLOAD_ERROR: invalid encoded attachment",
+              attachmentKey,
+            );
+            return;
+          }
           attachments.push({
-            filename: downloaded.filename || fallbackName,
-            content: downloaded.content,
-            contentType: downloaded.contentType || contentTypeHint,
+            filename: encodedAttachment.filename || fallbackName,
+            content: encodedAttachment.content,
+            contentType:
+              encodedAttachment.contentType || contentTypeHint,
           });
           addedPaths.add(attachmentKey);
           console.log("CLAIM_ATTACHMENT_DOWNLOAD_OK:", attachmentKey);
@@ -1702,12 +1818,7 @@ async function handleRequest(req: Request): Promise<Response> {
     const safeHtmlBody = htmlBody.trim().length > 0
       ? htmlBody
       : `<p>${escapeHtml(safeTextBody)}</p>`;
-    const safeAttachments = attachments.filter((attachment) =>
-      typeof attachment.filename === "string" &&
-      attachment.filename.trim().length > 0 &&
-      typeof attachment.content === "string" &&
-      attachment.content.trim().length > 0
-    );
+    const safeAttachments = attachments;
 
     console.log("[CIDEmail] payload ready", JSON.stringify({
       claimId,
@@ -1797,7 +1908,7 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
       headers: corsHeaders,
