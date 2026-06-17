@@ -286,6 +286,68 @@ class Ferito {
   }
 }
 
+class ConducenteAggiuntivo {
+  final String driverKey;
+  final String nome;
+  final String cognome;
+  final String indirizzo;
+  final String zip;
+  final String city;
+  final String targa;
+  final String assicurazione;
+  final String telefono;
+  final String email;
+  final String fotoLibrettoPath;
+  final String fotoLibrettoCacheKey;
+
+  ConducenteAggiuntivo({
+    required this.driverKey,
+    required this.nome,
+    required this.cognome,
+    required this.indirizzo,
+    required this.zip,
+    required this.city,
+    required this.targa,
+    required this.assicurazione,
+    required this.telefono,
+    required this.email,
+    this.fotoLibrettoPath = '',
+    this.fotoLibrettoCacheKey = '',
+  });
+
+  Map<String, dynamic> toJson() => {
+        'driverKey': driverKey,
+        'nome': nome,
+        'cognome': cognome,
+        'indirizzo': indirizzo,
+        'zip': zip,
+        'city': city,
+        'targa': targa,
+        'assicurazione': assicurazione,
+        'telefono': telefono,
+        'email': email,
+        'fotoLibrettoPath': fotoLibrettoPath,
+        'fotoLibrettoCacheKey': fotoLibrettoCacheKey,
+      };
+
+  factory ConducenteAggiuntivo.fromJson(Map<String, dynamic> json) {
+    return ConducenteAggiuntivo(
+      driverKey: json['driverKey']?.toString() ?? '',
+      nome: json['nome']?.toString() ?? '',
+      cognome: json['cognome']?.toString() ?? '',
+      indirizzo: json['indirizzo']?.toString() ?? '',
+      zip: json['zip']?.toString() ?? '',
+      city: json['city']?.toString() ?? '',
+      targa: json['targa']?.toString() ?? '',
+      assicurazione: json['assicurazione']?.toString() ?? '',
+      telefono: json['telefono']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      fotoLibrettoPath: json['fotoLibrettoPath']?.toString() ?? '',
+      fotoLibrettoCacheKey: json['fotoLibrettoCacheKey']?.toString() ?? '',
+    );
+  }
+}
+
 /// ✅ RESULT FIRMA (STEP C: timestamp firma)
 class FirmaResult {
   final String base64Data;
@@ -331,6 +393,7 @@ class Incidente {
 
   final List<Testimone> testimoni;
   final List<Ferito> feriti;
+  final List<ConducenteAggiuntivo> conducentiAggiuntivi;
 
   final String notaVocaleA;
   final String notaVocaleB;
@@ -387,6 +450,7 @@ class Incidente {
     required this.otherVehicleDamage,
     required this.testimoni,
     required this.feriti,
+    this.conducentiAggiuntivi = const [],
     required this.notaVocaleA,
     required this.notaVocaleB,
     required this.notaAudioAPath,
@@ -435,6 +499,8 @@ class Incidente {
         'otherVehicleDamage': otherVehicleDamage,
         'testimoni': testimoni.map((t) => t.toJson()).toList(),
         'feriti': feriti.map((f) => f.toJson()).toList(),
+        'conducentiAggiuntivi':
+            conducentiAggiuntivi.map((d) => d.toJson()).toList(),
         'notaVocaleA': notaVocaleA,
         'notaVocaleB': notaVocaleB,
         'notaAudioAPath': notaAudioAPath,
@@ -485,6 +551,13 @@ class Incidente {
           .toList();
     }
 
+    List<ConducenteAggiuntivo> parsedConducentiAggiuntivi = [];
+    if (json['conducentiAggiuntivi'] is List) {
+      parsedConducentiAggiuntivi = (json['conducentiAggiuntivi'] as List)
+          .map((e) => ConducenteAggiuntivo.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+
     return Incidente(
       id: json['id']?.toString() ?? '',
       dataOra: DateTime.tryParse(json['dataOra'] ?? '') ?? DateTime.now(),
@@ -518,6 +591,7 @@ class Incidente {
           : null,
       testimoni: parsedTestimoni,
       feriti: parsedFeriti,
+      conducentiAggiuntivi: parsedConducentiAggiuntivi,
       notaVocaleA: json['notaVocaleA'] ?? '',
       notaVocaleB: json['notaVocaleB'] ?? '',
       notaAudioAPath: json['notaAudioAPath'] ?? '',
@@ -1016,6 +1090,7 @@ Future<Incidente> aggiornaHashIncidente(Incidente inc) async {
     otherVehicleDamage: inc.otherVehicleDamage,
     testimoni: inc.testimoni,
     feriti: inc.feriti,
+    conducentiAggiuntivi: inc.conducentiAggiuntivi,
     notaVocaleA: inc.notaVocaleA,
     notaVocaleB: inc.notaVocaleB,
     notaAudioAPath: inc.notaAudioAPath,
@@ -1071,6 +1146,7 @@ Incidente _copyIncidenteWithEmailSendState(
     otherVehicleDamage: inc.otherVehicleDamage,
     testimoni: inc.testimoni,
     feriti: inc.feriti,
+    conducentiAggiuntivi: inc.conducentiAggiuntivi,
     notaVocaleA: inc.notaVocaleA,
     notaVocaleB: inc.notaVocaleB,
     notaAudioAPath: inc.notaAudioAPath,
@@ -4181,6 +4257,91 @@ class _FeritoFormData {
   });
 }
 
+class _ConducenteExtraFormData {
+  final int sequence;
+  final String driverKey;
+  final TextEditingController nomeController;
+  final TextEditingController cognomeController;
+  final TextEditingController indirizzoController;
+  final TextEditingController zipController;
+  final TextEditingController cityController;
+  final TextEditingController targaController;
+  final TextEditingController assicurazioneController;
+  final TextEditingController telefonoController;
+  final TextEditingController emailController;
+  String? fotoLibrettoPath;
+  Uint8List? fotoLibrettoBytes;
+  String? fotoLibrettoCacheKey;
+
+  _ConducenteExtraFormData({
+    required this.sequence,
+    required this.driverKey,
+    required this.nomeController,
+    required this.cognomeController,
+    required this.indirizzoController,
+    required this.zipController,
+    required this.cityController,
+    required this.targaController,
+    required this.assicurazioneController,
+    required this.telefonoController,
+    required this.emailController,
+  });
+
+  bool get hasAnyValue {
+    return nomeController.text.trim().isNotEmpty ||
+        cognomeController.text.trim().isNotEmpty ||
+        indirizzoController.text.trim().isNotEmpty ||
+        zipController.text.trim().isNotEmpty ||
+        cityController.text.trim().isNotEmpty ||
+        targaController.text.trim().isNotEmpty ||
+        assicurazioneController.text.trim().isNotEmpty ||
+        telefonoController.text.trim().isNotEmpty ||
+        emailController.text.trim().isNotEmpty ||
+        (fotoLibrettoPath?.trim().isNotEmpty ?? false) ||
+        (fotoLibrettoCacheKey?.trim().isNotEmpty ?? false) ||
+        fotoLibrettoBytes != null;
+  }
+
+  String get persistedFotoLibrettoReference {
+    final pathValue = fotoLibrettoPath?.trim() ?? '';
+    if (pathValue.isNotEmpty) return pathValue;
+    final cacheValue = fotoLibrettoCacheKey?.trim() ?? '';
+    return cacheValue;
+  }
+
+  void dispose() {
+    nomeController.dispose();
+    cognomeController.dispose();
+    indirizzoController.dispose();
+    zipController.dispose();
+    cityController.dispose();
+    targaController.dispose();
+    assicurazioneController.dispose();
+    telefonoController.dispose();
+    emailController.dispose();
+  }
+}
+
+class _DriverFieldBundle {
+  final TextEditingController nomeController;
+  final TextEditingController cognomeController;
+  final TextEditingController indirizzoController;
+  final TextEditingController zipController;
+  final TextEditingController cityController;
+  final TextEditingController targaController;
+  final TextEditingController assicurazioneController;
+
+  _DriverFieldBundle({
+    required this.nomeController,
+    required this.cognomeController,
+    required this.indirizzoController,
+    required this.zipController,
+    required this.cityController,
+    required this.targaController,
+    required this.assicurazioneController,
+  });
+}
+
 /// NUOVA PRATICA ///////////////////////////////////////////////////////
 
 enum _GeoPermissionState {
@@ -4200,6 +4361,13 @@ class NuovaPraticaIncidentePage extends StatefulWidget {
 }
 
 class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
+  static const Color _incidentBackground = Color(0xFFF8FAFC);
+  static const Color _incidentCardBorder = Color(0xFFE5E7EB);
+  static const Color _incidentMutedBackground = Color(0xFFF3F4F6);
+  static const Color _incidentMutedText = Color(0xFF4B5563);
+  static const Color _incidentDropBorder = Color(0xFF93C5FD);
+  static const double _incidentSectionSpacing = 20;
+
   final _formKey = GlobalKey<FormState>();
 
   final _luogoController = TextEditingController();
@@ -4244,6 +4412,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
   final List<_TestimoneFormData> _testimoni = [];
   final List<_FeritoFormData> _feriti = [];
+  final List<_ConducenteExtraFormData> _conducentiAggiuntivi = [];
+  int _nextConducenteSequence = 0;
 
   final _notaVocaleAController = TextEditingController();
   final _notaVocaleBController = TextEditingController();
@@ -4306,6 +4476,145 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         _emailBController.text.trim().isNotEmpty;
   }
 
+  String _copyText({
+    required String it,
+    required String de,
+    required String fr,
+    required String en,
+  }) {
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'de':
+        return de;
+      case 'fr':
+        return fr;
+      case 'en':
+        return en;
+      case 'it':
+      default:
+        return it;
+    }
+  }
+
+  String _driverKeyFromSequence(int sequence) {
+    var value = sequence + 3;
+    final buffer = StringBuffer();
+    while (value > 0) {
+      value--;
+      buffer.writeCharCode(65 + (value % 26));
+      value ~/= 26;
+    }
+    return buffer.toString().split('').reversed.join();
+  }
+
+  _ConducenteExtraFormData _createConducenteAggiuntivo() {
+    final sequence = _nextConducenteSequence++;
+    return _ConducenteExtraFormData(
+      sequence: sequence,
+      driverKey: _driverKeyFromSequence(sequence),
+      nomeController: TextEditingController(),
+      cognomeController: TextEditingController(),
+      indirizzoController: TextEditingController(),
+      zipController: TextEditingController(),
+      cityController: TextEditingController(),
+      targaController: TextEditingController(),
+      assicurazioneController: TextEditingController(),
+      telefonoController: TextEditingController(),
+      emailController: TextEditingController(),
+    );
+  }
+
+  void _addConducenteAggiuntivo() {
+    setState(() {
+      _conducentiAggiuntivi.add(_createConducenteAggiuntivo());
+    });
+  }
+
+  void _removeConducenteAggiuntivo(_ConducenteExtraFormData driver) {
+    setState(() {
+      driver.dispose();
+      _conducentiAggiuntivi.remove(driver);
+    });
+  }
+
+  _ConducenteExtraFormData? _findConducenteAggiuntivo(String key) {
+    for (final driver in _conducentiAggiuntivi) {
+      if (driver.driverKey == key) return driver;
+    }
+    return null;
+  }
+
+  _DriverFieldBundle? _driverFieldBundleForKey(String key) {
+    if (key == 'A') {
+      return _DriverFieldBundle(
+        nomeController: _nomeAController,
+        cognomeController: _cognomeAController,
+        indirizzoController: _indirizzoAController,
+        zipController: _driverAZipController,
+        cityController: _driverACityController,
+        targaController: _targaAController,
+        assicurazioneController: _assicurazioneAController,
+      );
+    }
+    if (key == 'B') {
+      return _DriverFieldBundle(
+        nomeController: _nomeBController,
+        cognomeController: _cognomeBController,
+        indirizzoController: _indirizzoBController,
+        zipController: _driverBZipController,
+        cityController: _driverBCityController,
+        targaController: _targaBController,
+        assicurazioneController: _assicurazioneBController,
+      );
+    }
+    final driver = _findConducenteAggiuntivo(key);
+    if (driver == null) return null;
+    return _DriverFieldBundle(
+      nomeController: driver.nomeController,
+      cognomeController: driver.cognomeController,
+      indirizzoController: driver.indirizzoController,
+      zipController: driver.zipController,
+      cityController: driver.cityController,
+      targaController: driver.targaController,
+      assicurazioneController: driver.assicurazioneController,
+    );
+  }
+
+  void _setLibrettoPreviewForDriver(
+    String key, {
+    String? path,
+    Uint8List? bytes,
+    String? cacheKey,
+  }) {
+    if (key == 'A') {
+      _fotoLibrettoAPath = path;
+      _fotoLibrettoABytes = bytes;
+      _fotoLibrettoACacheKey = cacheKey;
+      return;
+    }
+    if (key == 'B') {
+      _fotoLibrettoBPath = path;
+      _fotoLibrettoBBytes = bytes;
+      _fotoLibrettoBCacheKey = cacheKey;
+      return;
+    }
+    final driver = _findConducenteAggiuntivo(key);
+    if (driver == null) return;
+    driver.fotoLibrettoPath = path;
+    driver.fotoLibrettoBytes = bytes;
+    driver.fotoLibrettoCacheKey = cacheKey;
+  }
+
+  String _driverTitle(String key) {
+    if (key == 'A') return AppLocalizations.of(context)!.driverA;
+    if (key == 'B') return AppLocalizations.of(context)!.driverB;
+    return _copyText(
+      it: 'Conducente $key',
+      de: 'Fahrer $key',
+      fr: 'Conducteur $key',
+      en: 'Driver $key',
+    );
+  }
+
   Future<void> _impostaLuogoAutomatico({bool forceUpdateField = false}) async {
     if (_geoLoading) return;
 
@@ -4331,10 +4640,10 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     });
 
     try {
-      final locationResult = await _globalDeviceLocationService
-          .requestCurrentPosition();
-      final permissionState =
-          _mapPermission(locationResult.permission ?? LocationPermission.denied);
+      final locationResult =
+          await _globalDeviceLocationService.requestCurrentPosition();
+      final permissionState = _mapPermission(
+          locationResult.permission ?? LocationPermission.denied);
       _geoPermission = permissionState;
 
       if (!locationResult.serviceEnabled) {
@@ -4524,7 +4833,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             }
           } else {
             _addressReadable = null;
-            debugPrint('[AccidentGPS] reverse geocode fail address-unavailable');
+            debugPrint(
+                '[AccidentGPS] reverse geocode fail address-unavailable');
           }
         });
       } else {
@@ -4715,6 +5025,18 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
     _notaVocaleAController.dispose();
     _notaVocaleBController.dispose();
+    for (final driver in _conducentiAggiuntivi) {
+      driver.dispose();
+    }
+    for (final testimone in _testimoni) {
+      testimone.nomeController.dispose();
+      testimone.telefonoController.dispose();
+    }
+    for (final ferito in _feriti) {
+      ferito.nomeController.dispose();
+      ferito.indirizzoController.dispose();
+      ferito.telefonoController.dispose();
+    }
     _suggestionDebounce?.cancel();
     _luogoController.removeListener(_onLuogoChanged);
 
@@ -5455,15 +5777,15 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         'nome:$nome, cognome:$cognome, indirizzo:$indirizzo, cap:$cap, city:$city, '
         'targa:$targa, assicurazione:$assicurazione}');
 
-    final isA = quale == 'A';
-    final nomeCtrl = isA ? _nomeAController : _nomeBController;
-    final cognomeCtrl = isA ? _cognomeAController : _cognomeBController;
-    final indirizzoCtrl = isA ? _indirizzoAController : _indirizzoBController;
-    final zipCtrl = isA ? _driverAZipController : _driverBZipController;
-    final cityCtrl = isA ? _driverACityController : _driverBCityController;
-    final targaCtrl = isA ? _targaAController : _targaBController;
-    final assicurazioneCtrl =
-        isA ? _assicurazioneAController : _assicurazioneBController;
+    final bundle = _driverFieldBundleForKey(quale);
+    if (bundle == null) return false;
+    final nomeCtrl = bundle.nomeController;
+    final cognomeCtrl = bundle.cognomeController;
+    final indirizzoCtrl = bundle.indirizzoController;
+    final zipCtrl = bundle.zipController;
+    final cityCtrl = bundle.cityController;
+    final targaCtrl = bundle.targaController;
+    final assicurazioneCtrl = bundle.assicurazioneController;
 
     bool changed = false;
 
@@ -5493,21 +5815,21 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     }
 
     writeIfBetter(nomeCtrl, nome,
-        validator: _isPlausibleName, label: '${isA ? 'A' : 'B'} nome');
+        validator: _isPlausibleName, label: '$quale nome');
     writeIfBetter(cognomeCtrl, cognome,
-        validator: _isPlausibleName, label: '${isA ? 'A' : 'B'} cognome');
+        validator: _isPlausibleName, label: '$quale cognome');
     writeIfBetter(indirizzoCtrl, indirizzo,
-        validator: _isPlausibleAddress, label: '${isA ? 'A' : 'B'} indirizzo');
+        validator: _isPlausibleAddress, label: '$quale indirizzo');
     writeIfBetter(zipCtrl, cap,
-        validator: _isPlausibleZip, label: '${isA ? 'A' : 'B'} cap');
+        validator: _isPlausibleZip, label: '$quale cap');
     writeIfBetter(cityCtrl, city,
-        validator: _isPlausibleCity, label: '${isA ? 'A' : 'B'} city');
+        validator: _isPlausibleCity, label: '$quale city');
     writeIfBetter(
       assicurazioneCtrl,
       assicurazione,
       validator: _isPlausibleInsurance,
       isBetter: (val) => val.length > assicurazioneCtrl.text.trim().length,
-      label: '${isA ? 'A' : 'B'} assicurazione',
+      label: '$quale assicurazione',
     );
     writeIfBetter(
       targaCtrl,
@@ -5516,7 +5838,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       isBetter: (val) =>
           RegExp(r'\d').allMatches(val).length >
           RegExp(r'\d').allMatches(targaCtrl.text).length,
-      label: '${isA ? 'A' : 'B'} targa',
+      label: '$quale targa',
     );
 
     return changed;
@@ -5600,15 +5922,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           await LocalImageCache.saveImageLocally(cacheKey, bytes);
         }
         setState(() {
-          if (quale == 'A') {
-            _fotoLibrettoABytes = bytes;
-            _fotoLibrettoAPath = null;
-            _fotoLibrettoACacheKey = cacheKey;
-          } else {
-            _fotoLibrettoBBytes = bytes;
-            _fotoLibrettoBPath = null;
-            _fotoLibrettoBCacheKey = cacheKey;
-          }
+          _setLibrettoPreviewForDriver(
+            quale,
+            path: null,
+            bytes: bytes,
+            cacheKey: cacheKey,
+          );
         });
       }
 
@@ -5692,6 +6011,1111 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       return txStatic('Numero di telefono non valido');
     }
     return null;
+  }
+
+  Widget _buildSectionCard({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required Widget child,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _incidentCardBorder),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0F0F172A),
+            blurRadius: 24,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                    if (subtitle != null && subtitle.trim().isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF6B7280),
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInnerCard({
+    required Widget child,
+    Color? backgroundColor,
+    EdgeInsetsGeometry padding = const EdgeInsets.all(16),
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: backgroundColor ?? const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _incidentCardBorder),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildResponsivePair(Widget left, Widget right) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final horizontal = constraints.maxWidth >= 680;
+        if (!horizontal) {
+          return Column(
+            children: [
+              left,
+              const SizedBox(height: 12),
+              right,
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: left),
+            const SizedBox(width: 12),
+            Expanded(child: right),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDriverPreview(String? path, Uint8List? bytes) {
+    if ((path == null || path.isEmpty) && bytes == null) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          height: 132,
+          width: double.infinity,
+          child: bytes != null
+              ? Image.memory(bytes, fit: BoxFit.cover)
+              : Image.file(File(path!), fit: BoxFit.cover),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddOutlinedButton({
+    required VoidCallback onPressed,
+    required IconData icon,
+    required String label,
+  }) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 44),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.22),
+        ),
+      ),
+    );
+  }
+
+  String _driverAddressLabel(String driverKey) {
+    return _copyText(
+      it: 'Indirizzo conducente $driverKey',
+      de: 'Adresse Fahrer $driverKey',
+      fr: 'Adresse conducteur $driverKey',
+      en: 'Driver $driverKey address',
+    );
+  }
+
+  String _vehiclePlateLabel(String driverKey) {
+    return _copyText(
+      it: 'Targa veicolo $driverKey',
+      de: 'Kennzeichen Fahrzeug $driverKey',
+      fr: 'Plaque véhicule $driverKey',
+      en: 'Vehicle $driverKey plate',
+    );
+  }
+
+  String _vehicleInsuranceLabel(String driverKey) {
+    return _copyText(
+      it: 'Assicurazione veicolo $driverKey',
+      de: 'Versicherung Fahrzeug $driverKey',
+      fr: 'Assurance véhicule $driverKey',
+      en: 'Vehicle $driverKey insurance',
+    );
+  }
+
+  String _driverPhoneLabel(String driverKey) {
+    return _copyText(
+      it: 'Telefono conducente $driverKey',
+      de: 'Telefon Fahrer $driverKey',
+      fr: 'Téléphone conducteur $driverKey',
+      en: 'Driver $driverKey phone',
+    );
+  }
+
+  String _driverEmailLabel(String driverKey) {
+    return _copyText(
+      it: 'Email conducente $driverKey',
+      de: 'E-Mail Fahrer $driverKey',
+      fr: 'E-mail conducteur $driverKey',
+      en: 'Driver $driverKey email',
+    );
+  }
+
+  String _vehicleInsuranceHint(String driverKey) {
+    if (driverKey == 'A') {
+      return tx(context, 'Assicurazione veicolo A (es. Allianz)');
+    }
+    if (driverKey == 'B') {
+      return tx(context, 'Assicurazione veicolo B (es. AXA)');
+    }
+    return _copyText(
+      it: 'Es. Allianz',
+      de: 'Z. B. Allianz',
+      fr: 'Ex. Allianz',
+      en: 'E.g. Allianz',
+    );
+  }
+
+  Widget _buildDriverFormCard({
+    required String driverKey,
+    required TextEditingController nomeController,
+    required TextEditingController cognomeController,
+    required TextEditingController indirizzoController,
+    required TextEditingController zipController,
+    required TextEditingController cityController,
+    required TextEditingController targaController,
+    required TextEditingController assicurazioneController,
+    required TextEditingController telefonoController,
+    required TextEditingController emailController,
+    required String? fotoLibrettoPath,
+    required Uint8List? fotoLibrettoBytes,
+    required String? Function(String?) nomeValidator,
+    required String? Function(String?) targaValidator,
+    VoidCallback? onDelete,
+  }) {
+    return _buildInnerCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _driverTitle(driverKey),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+              if (onDelete != null)
+                IconButton(
+                  tooltip: _copyText(
+                    it: 'Elimina conducente',
+                    de: 'Fahrer entfernen',
+                    fr: 'Supprimer le conducteur',
+                    en: 'Remove driver',
+                  ),
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildAddOutlinedButton(
+            onPressed: () => _scattaFotoLibretto(driverKey),
+            icon: kIsWeb
+                ? Icons.photo_camera_outlined
+                : Icons.camera_alt_outlined,
+            label: tx(context, 'Foto libretto'),
+          ),
+          _buildDriverPreview(fotoLibrettoPath, fotoLibrettoBytes),
+          const SizedBox(height: 14),
+          _buildResponsivePair(
+            TextFormField(
+              controller: nomeController,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.firstName,
+              ),
+              validator: nomeValidator,
+            ),
+            TextFormField(
+              controller: cognomeController,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.lastName,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: indirizzoController,
+            decoration: InputDecoration(
+              labelText: _driverAddressLabel(driverKey),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildResponsivePair(
+            TextFormField(
+              controller: zipController,
+              textInputAction: TextInputAction.next,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.zip,
+              ),
+            ),
+            TextFormField(
+              controller: cityController,
+              textInputAction: TextInputAction.next,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.city,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildResponsivePair(
+            TextFormField(
+              controller: targaController,
+              decoration: InputDecoration(
+                labelText: _vehiclePlateLabel(driverKey),
+              ),
+              validator: targaValidator,
+            ),
+            TextFormField(
+              controller: assicurazioneController,
+              decoration: InputDecoration(
+                labelText: _vehicleInsuranceLabel(driverKey),
+                hintText: _vehicleInsuranceHint(driverKey),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildResponsivePair(
+            TextFormField(
+              controller: telefonoController,
+              keyboardType: TextInputType.phone,
+              validator: _validatePhone,
+              decoration: InputDecoration(
+                labelText: _driverPhoneLabel(driverKey),
+                hintText: tx(context, 'Es. +41...'),
+              ),
+            ),
+            TextFormField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              validator: _validateEmail,
+              decoration: InputDecoration(
+                labelText: _driverEmailLabel(driverKey),
+                hintText: tx(context, 'nome@email.ch'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLuogoSection(String dataOraString) {
+    return _buildSectionCard(
+      icon: Icons.location_on_outlined,
+      title: tx(context, "Luogo dell'incidente"),
+      subtitle: _copyText(
+        it: 'Data, posizione e controlli iniziali della pratica.',
+        de: 'Datum, Ort und erste Angaben des Falls.',
+        fr: 'Date, lieu et premiers éléments du dossier.',
+        en: 'Date, location and initial case information.',
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tx(context, 'Data e ora'),
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            dataOraString,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _luogoController,
+            decoration: InputDecoration(
+              hintText: tx(context, 'Es. Autostrada A2, uscita Lugano Nord'),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return txStatic("Inserisci il luogo dell'incidente");
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 10),
+          _buildGeoActions(),
+          const SizedBox(height: 16),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            value: _validazioneContattiAttiva,
+            title: Text(tx(context, 'Verifica email/telefono')),
+            subtitle: Text(
+              tx(context,
+                  'Se disattivi, i contatti non sono obbligatori (utile in emergenza).'),
+              style: const TextStyle(fontSize: 12),
+            ),
+            onChanged: (val) {
+              setState(() => _validazioneContattiAttiva = val);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConducentiSection() {
+    final widgets = <Widget>[
+      _buildDriverFormCard(
+        driverKey: 'A',
+        nomeController: _nomeAController,
+        cognomeController: _cognomeAController,
+        indirizzoController: _indirizzoAController,
+        zipController: _driverAZipController,
+        cityController: _driverACityController,
+        targaController: _targaAController,
+        assicurazioneController: _assicurazioneAController,
+        telefonoController: _telefonoAController,
+        emailController: _emailAController,
+        fotoLibrettoPath: _fotoLibrettoAPath,
+        fotoLibrettoBytes: _fotoLibrettoABytes,
+        nomeValidator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return txStatic('Inserisci il nome del conducente A');
+          }
+          return null;
+        },
+        targaValidator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return txStatic('Inserisci la targa del veicolo A');
+          }
+          return null;
+        },
+      ),
+      const SizedBox(height: 16),
+      _buildDriverFormCard(
+        driverKey: 'B',
+        nomeController: _nomeBController,
+        cognomeController: _cognomeBController,
+        indirizzoController: _indirizzoBController,
+        zipController: _driverBZipController,
+        cityController: _driverBCityController,
+        targaController: _targaBController,
+        assicurazioneController: _assicurazioneBController,
+        telefonoController: _telefonoBController,
+        emailController: _emailBController,
+        fotoLibrettoPath: _fotoLibrettoBPath,
+        fotoLibrettoBytes: _fotoLibrettoBBytes,
+        nomeValidator: (value) {
+          if (!_isAnyCampoBCompilato()) return null;
+          if (value == null || value.trim().isEmpty) {
+            return txStatic('Inserisci il nome del conducente B');
+          }
+          return null;
+        },
+        targaValidator: (value) {
+          if (!_isAnyCampoBCompilato()) return null;
+          if (value == null || value.trim().isEmpty) {
+            return txStatic('Inserisci la targa del veicolo B');
+          }
+          return null;
+        },
+      ),
+      const SizedBox(height: 16),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: _buildAddOutlinedButton(
+          onPressed: _addConducenteAggiuntivo,
+          icon: Icons.add_circle_outline,
+          label: _copyText(
+            it: 'Aggiungi conducente',
+            de: 'Fahrer hinzufügen',
+            fr: 'Ajouter un conducteur',
+            en: 'Add driver',
+          ),
+        ),
+      ),
+    ];
+
+    for (final driver in _conducentiAggiuntivi) {
+      widgets.add(const SizedBox(height: 16));
+      widgets.add(
+        _buildDriverFormCard(
+          driverKey: driver.driverKey,
+          nomeController: driver.nomeController,
+          cognomeController: driver.cognomeController,
+          indirizzoController: driver.indirizzoController,
+          zipController: driver.zipController,
+          cityController: driver.cityController,
+          targaController: driver.targaController,
+          assicurazioneController: driver.assicurazioneController,
+          telefonoController: driver.telefonoController,
+          emailController: driver.emailController,
+          fotoLibrettoPath: driver.fotoLibrettoPath,
+          fotoLibrettoBytes: driver.fotoLibrettoBytes,
+          nomeValidator: (value) {
+            if (!driver.hasAnyValue) return null;
+            if (value == null || value.trim().isEmpty) {
+              return _copyText(
+                it: 'Inserisci il nome del conducente ${driver.driverKey}',
+                de: 'Name von Fahrer ${driver.driverKey} eingeben',
+                fr: 'Saisissez le prénom du conducteur ${driver.driverKey}',
+                en: 'Enter driver ${driver.driverKey} first name',
+              );
+            }
+            return null;
+          },
+          targaValidator: (value) {
+            if (!driver.hasAnyValue) return null;
+            if (value == null || value.trim().isEmpty) {
+              return _copyText(
+                it: 'Inserisci la targa del veicolo ${driver.driverKey}',
+                de: 'Kennzeichen von Fahrzeug ${driver.driverKey} eingeben',
+                fr: 'Saisissez la plaque du véhicule ${driver.driverKey}',
+                en: 'Enter vehicle ${driver.driverKey} plate',
+              );
+            }
+            return null;
+          },
+          onDelete: () => _removeConducenteAggiuntivo(driver),
+        ),
+      );
+    }
+
+    return _buildSectionCard(
+      icon: Icons.people_alt_outlined,
+      title: _copyText(
+        it: 'Conducenti',
+        de: 'Fahrer',
+        fr: 'Conducteurs',
+        en: 'Drivers',
+      ),
+      subtitle: _copyText(
+        it: 'Dati dei conducenti coinvolti, pronti per essere scalati oltre A e B.',
+        de: 'Daten der beteiligten Fahrer, skalierbar über A und B hinaus.',
+        fr: 'Données des conducteurs impliqués, évolutives au-delà de A et B.',
+        en: 'Driver data, ready to scale beyond A and B.',
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: widgets,
+      ),
+    );
+  }
+
+  Widget _buildTestimoniSection() {
+    return _buildSectionCard(
+      icon: Icons.groups_outlined,
+      title: tx(context, 'Testimoni (se presenti)'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (int i = 0; i < _testimoni.length; i++) ...[
+            _buildInnerCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${_copyText(it: 'Testimone', de: 'Zeuge', fr: 'Témoin', en: 'Witness')} ${i + 1}',
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                        ),
+                      ),
+                      if (_testimoni.length > 1)
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () {
+                            setState(() {
+                              _testimoni[i].nomeController.dispose();
+                              _testimoni[i].telefonoController.dispose();
+                              _testimoni.removeAt(i);
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _testimoni[i].nomeController,
+                          decoration: InputDecoration(
+                            labelText:
+                                '${tx(context, 'Nome testimone')} ${i + 1}',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _testimoni[i].telefonoController,
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            labelText:
+                                '${tx(context, 'Telefono testimone')} ${i + 1}',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (i != _testimoni.length - 1) const SizedBox(height: 12),
+          ],
+          const SizedBox(height: 14),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _buildAddOutlinedButton(
+              onPressed: () {
+                setState(() {
+                  _testimoni.add(
+                    _TestimoneFormData(
+                      nomeController: TextEditingController(),
+                      telefonoController: TextEditingController(),
+                    ),
+                  );
+                });
+              },
+              icon: Icons.add,
+              label: tx(context, 'Aggiungi testimone'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeritiSection() {
+    return _buildSectionCard(
+      icon: Icons.healing_outlined,
+      title: tx(context, 'Feriti (se presenti)'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_feriti.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: _incidentMutedBackground,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _incidentCardBorder),
+              ),
+              child: Text(
+                _copyText(
+                  it: 'Nessun ferito segnalato',
+                  de: 'Keine Verletzten gemeldet',
+                  fr: 'Aucun blessé signalé',
+                  en: 'No injuries reported',
+                ),
+                style: const TextStyle(
+                  color: _incidentMutedText,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          if (_feriti.isNotEmpty)
+            ...List.generate(_feriti.length, (i) {
+              return Padding(
+                padding:
+                    EdgeInsets.only(bottom: i == _feriti.length - 1 ? 0 : 12),
+                child: _buildInnerCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${_copyText(it: 'Ferito', de: 'Verletzte Person', fr: 'Blessé', en: 'Injured person')} ${i + 1}',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () {
+                              setState(() {
+                                _feriti[i].nomeController.dispose();
+                                _feriti[i].indirizzoController.dispose();
+                                _feriti[i].telefonoController.dispose();
+                                _feriti.removeAt(i);
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _feriti[i].nomeController,
+                        decoration: InputDecoration(
+                          labelText: '${tx(context, 'Nome ferito')} ${i + 1}',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _feriti[i].indirizzoController,
+                        decoration: InputDecoration(
+                          labelText:
+                              '${tx(context, 'Indirizzo ferito')} ${i + 1}',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _feriti[i].telefonoController,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(
+                          labelText:
+                              '${tx(context, 'Telefono ferito')} ${i + 1}',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          const SizedBox(height: 14),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _buildAddOutlinedButton(
+              onPressed: () {
+                setState(() {
+                  _feriti.add(
+                    _FeritoFormData(
+                      nomeController: TextEditingController(),
+                      indirizzoController: TextEditingController(),
+                      telefonoController: TextEditingController(),
+                    ),
+                  );
+                });
+              },
+              icon: Icons.add,
+              label: tx(context, 'Aggiungi ferito'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDamageBox({
+    required String title,
+    required TextEditingController controller,
+    required IconData icon,
+  }) {
+    return _buildInnerCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon,
+                  size: 18, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: controller,
+            maxLines: 4,
+            decoration: InputDecoration(
+              labelText: title,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () => _scattaFotoDanno(),
+              icon: const Icon(Icons.add_a_photo_outlined, size: 18),
+              label: Text(
+                _copyText(
+                  it: 'Aggiungi foto',
+                  de: 'Foto hinzufügen',
+                  fr: 'Ajouter une photo',
+                  en: 'Add photo',
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDanniSection() {
+    return _buildSectionCard(
+      icon: Icons.car_repair_outlined,
+      title: AppLocalizations.of(context)!.damageTitle,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tx(context, 'Descrizione incidente'),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 10),
+          TextFormField(
+            controller: _descrizioneController,
+            maxLines: 4,
+            decoration: InputDecoration(
+              hintText: tx(
+                context,
+                "Scrivi brevemente come è successo l'incidente...",
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _yesNoRow(
+            title: AppLocalizations.of(context)!.other_object_damage_q,
+            value: _otherObjectDamage,
+            onChanged: (v) => setState(() => _otherObjectDamage = v),
+          ),
+          _yesNoRow(
+            title: AppLocalizations.of(context)!.other_vehicle_damage_q,
+            value: _otherVehicleDamage,
+            onChanged: (v) => setState(() => _otherVehicleDamage = v),
+          ),
+          const SizedBox(height: 16),
+          _buildResponsivePair(
+            _buildDamageBox(
+              title: AppLocalizations.of(context)!.damageVehicleA,
+              controller: _damageVehicleAController,
+              icon: Icons.directions_car_outlined,
+            ),
+            _buildDamageBox(
+              title: AppLocalizations.of(context)!.damageVehicleB,
+              controller: _damageVehicleBController,
+              icon: Icons.local_shipping_outlined,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVoiceNotesSection() {
+    return _buildSectionCard(
+      icon: Icons.graphic_eq_outlined,
+      title: tx(context, 'Note vocali'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildAudioNotaControls('A'),
+          const SizedBox(height: 16),
+          _buildAudioNotaControls('B'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFotoDannoSection() {
+    return _buildSectionCard(
+      icon: Icons.photo_camera_back_outlined,
+      title: tx(context, 'Foto del danno'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => _scattaFotoDanno(),
+            child: CustomPaint(
+              painter: _DashedRRectPainter(
+                color: _incidentDropBorder,
+                radius: 16,
+              ),
+              child: Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 28),
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.add_a_photo_outlined,
+                      size: 34,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      tx(context, 'Aggiungi foto danno'),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _copyText(
+                        it: 'Tocca per acquisire immagini del danno e allegarle subito alla pratica.',
+                        de: 'Tippen Sie, um Schadenfotos aufzunehmen und direkt anzuhängen.',
+                        fr: 'Touchez pour ajouter immédiatement des photos des dommages.',
+                        en: 'Tap to capture damage photos and attach them immediately.',
+                      ),
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFF6B7280),
+                            height: 1.4,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (_damagePhotos.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 120,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _damagePhotos.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, index) {
+                  final item = _damagePhotos[index];
+                  final pathStr = item.remoteUrl ?? item.localPath ?? '';
+                  final isUrl = item.remoteUrl != null &&
+                      item.remoteUrl!.startsWith('http');
+                  final previewBytes = item.bytes;
+                  final status = item.status;
+                  debugPrint(
+                      '[DamagePreview] render ${previewBytes != null ? 'bytes' : isUrl ? 'url' : 'file'} $pathStr status=$status');
+                  return AspectRatio(
+                    aspectRatio: 4 / 3,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: GestureDetector(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (_) => Dialog(
+                                  child: previewBytes != null
+                                      ? Image.memory(
+                                          previewBytes,
+                                          fit: BoxFit.contain,
+                                        )
+                                      : isUrl
+                                          ? Image.network(
+                                              pathStr,
+                                              fit: BoxFit.contain,
+                                            )
+                                          : Image.file(
+                                              File(pathStr),
+                                              fit: BoxFit.contain,
+                                            ),
+                                ),
+                              );
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: previewBytes != null
+                                  ? Image.memory(
+                                      previewBytes,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : isUrl
+                                      ? Image.network(
+                                          pathStr,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Image.file(
+                                          File(pathStr),
+                                          fit: BoxFit.cover,
+                                        ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: InkWell(
+                            onTap: () => _removeDamagePhoto(index),
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              padding: const EdgeInsets.all(4),
+                              child: const Icon(
+                                Icons.close,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (status == DamagePhotoStatus.uploading)
+                          const Positioned(
+                            left: 6,
+                            top: 6,
+                            child: SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        if (status == DamagePhotoStatus.uploaded)
+                          const Positioned(
+                            left: 6,
+                            top: 6,
+                            child: Icon(Icons.check_circle,
+                                size: 18, color: Colors.green),
+                          ),
+                        if (status == DamagePhotoStatus.failed)
+                          Positioned(
+                            left: 6,
+                            top: 6,
+                            child: Row(
+                              children: [
+                                const Icon(Icons.error,
+                                    size: 18, color: Colors.red),
+                                TextButton(
+                                  onPressed: () =>
+                                      _retryDamagePhotoUpload(item),
+                                  child: const Text(
+                                    'Riprova',
+                                    style: TextStyle(fontSize: 10),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSaveSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _isSavingIncident ? null : _salvaIncidente,
+            icon: _isSavingIncident
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.task_alt),
+            label: Text(tx(context, 'Salva incidente')),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size.fromHeight(56),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          _copyText(
+            it: 'Puoi salvare in qualsiasi momento.\nLe informazioni verranno salvate in modo sicuro.',
+            de: 'Sie können jederzeit speichern.\nDie Informationen werden sicher gespeichert.',
+            fr: 'Vous pouvez enregistrer à tout moment.\nLes informations seront sauvegardées en toute sécurité.',
+            en: 'You can save at any time.\nThe information will be stored securely.',
+          ),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: const Color(0xFF6B7280),
+                height: 1.45,
+              ),
+        ),
+      ],
+    );
   }
 
   Future<String> _creaPercorsoNota(String quale) async {
@@ -6097,15 +7521,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         final filename = result['filename']?.toString();
         if (bytes is Uint8List) {
           setState(() {
-            if (quale == 'A') {
-              _fotoLibrettoABytes = bytes;
-              _fotoLibrettoAPath = filename;
-              _fotoLibrettoACacheKey = null;
-            } else {
-              _fotoLibrettoBBytes = bytes;
-              _fotoLibrettoBPath = filename;
-              _fotoLibrettoBCacheKey = null;
-            }
+            _setLibrettoPreviewForDriver(
+              quale,
+              path: filename,
+              bytes: bytes,
+              cacheKey: null,
+            );
           });
           _mostraSnack('Foto libretto caricata.');
         }
@@ -6115,15 +7536,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       if (result is! OcrLibrettoResult) return;
 
       setState(() {
-        if (quale == 'A') {
-          _fotoLibrettoAPath = result.path;
-          _fotoLibrettoABytes = null;
-          _fotoLibrettoACacheKey = null;
-        } else {
-          _fotoLibrettoBPath = result.path;
-          _fotoLibrettoBBytes = null;
-          _fotoLibrettoBCacheKey = null;
-        }
+        _setLibrettoPreviewForDriver(
+          quale,
+          path: result.path,
+          bytes: null,
+          cacheKey: null,
+        );
       });
 
       _mostraSnack('Foto libretto $quale caricata.');
@@ -6247,6 +7665,27 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           })
           .whereType<Ferito>()
           .toList();
+      final List<ConducenteAggiuntivo> conducentiAggiuntivi =
+          _conducentiAggiuntivi
+              .where((driver) => driver.hasAnyValue)
+              .map(
+                (driver) => ConducenteAggiuntivo(
+                  driverKey: driver.driverKey,
+                  nome: driver.nomeController.text.trim(),
+                  cognome: driver.cognomeController.text.trim(),
+                  indirizzo: driver.indirizzoController.text.trim(),
+                  zip: driver.zipController.text.trim(),
+                  city: driver.cityController.text.trim(),
+                  targa: driver.targaController.text.trim(),
+                  assicurazione: driver.assicurazioneController.text.trim(),
+                  telefono: driver.telefonoController.text.trim(),
+                  email: driver.emailController.text.trim(),
+                  fotoLibrettoPath: driver.persistedFotoLibrettoReference,
+                  fotoLibrettoCacheKey:
+                      driver.fotoLibrettoCacheKey?.trim() ?? '',
+                ),
+              )
+              .toList();
 
       final baseIncidente = Incidente(
         id: draftId,
@@ -6277,6 +7716,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         otherVehicleDamage: _otherVehicleDamage,
         testimoni: testimoni,
         feriti: feriti,
+        conducentiAggiuntivi: conducentiAggiuntivi,
         notaVocaleA: _notaVocaleAController.text.trim(),
         notaVocaleB: _notaVocaleBController.text.trim(),
         notaAudioAPath: _notaAudioAPath ?? '',
@@ -6425,652 +7865,86 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     final dataOraString = formatDataOraLocale(context, _dataOra);
 
     return Scaffold(
+      backgroundColor: _incidentBackground,
       appBar: AppBar(
         title: Text(tx(context, 'Nuova pratica incidente')),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                tx(context, 'Data e ora'),
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                dataOraString,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const Divider(height: 24),
-              Text(
-                tx(context, "Luogo dell'incidente"),
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              TextFormField(
-                controller: _luogoController,
-                decoration: InputDecoration(
-                  hintText:
-                      tx(context, 'Es. Autostrada A2, uscita Lugano Nord'),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return txStatic("Inserisci il luogo dell'incidente");
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 8),
-              _buildGeoActions(),
-              const SizedBox(height: 24),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                value: _validazioneContattiAttiva,
-                title: Text(tx(context, 'Verifica email/telefono')),
-                subtitle: Text(
-                  tx(context,
-                      'Se disattivi, i contatti non sono obbligatori (utile in emergenza).'),
-                  style: const TextStyle(fontSize: 12),
-                ),
-                onChanged: (val) {
-                  setState(() => _validazioneContattiAttiva = val);
-                },
-              ),
-              const Divider(height: 24),
-              Text(
-                AppLocalizations.of(context)!.driverA,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              if (!kIsWeb)
-                OutlinedButton.icon(
-                  onPressed: () => _scattaFotoLibretto('A'),
-                  icon: const Icon(Icons.camera_alt_outlined),
-                  label: Text(tx(context, 'Foto libretto')),
-                ),
-              if (kIsWeb)
-                OutlinedButton.icon(
-                  onPressed: () =>
-                      _pickAndUploadImage(kind: 'libretto', quale: 'A'),
-                  icon: const Icon(Icons.photo_camera),
-                  label: const Text('Foto libretto'),
-                ),
-              if ((_fotoLibrettoAPath != null &&
-                      _fotoLibrettoAPath!.isNotEmpty) ||
-                  _fotoLibrettoABytes != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: SizedBox(
-                    height: 140,
-                    child: _fotoLibrettoABytes != null
-                        ? Image.memory(
-                            _fotoLibrettoABytes!,
-                            fit: BoxFit.cover,
-                          )
-                        : Image.file(
-                            File(_fotoLibrettoAPath!),
-                            fit: BoxFit.cover,
-                          ),
-                  ),
-                ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _nomeAController,
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.firstName,
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return txStatic('Inserisci il nome del conducente A');
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _cognomeAController,
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.lastName,
-                ),
-              ),
-              TextFormField(
-                controller: _indirizzoAController,
-                decoration: InputDecoration(
-                  labelText: tx(context, 'Indirizzo conducente A'),
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _driverAZipController,
-                textInputAction: TextInputAction.next,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.zip,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _driverACityController,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.city,
-                ),
-              ),
-              TextFormField(
-                controller: _targaAController,
-                decoration:
-                    InputDecoration(labelText: tx(context, 'Targa veicolo A')),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return txStatic('Inserisci la targa del veicolo A');
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _assicurazioneAController,
-                decoration: InputDecoration(
-                  labelText:
-                      tx(context, 'Assicurazione veicolo A (es. Allianz)'),
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _telefonoAController,
-                keyboardType: TextInputType.phone,
-                validator: _validatePhone,
-                decoration: InputDecoration(
-                  labelText: tx(context, 'Telefono conducente A'),
-                  hintText: tx(context, 'Es. +41...'),
-                ),
-              ),
-              TextFormField(
-                controller: _emailAController,
-                keyboardType: TextInputType.emailAddress,
-                validator: _validateEmail,
-                decoration: InputDecoration(
-                  labelText: tx(context, 'Email conducente A'),
-                  hintText: tx(context, 'nome@email.ch'),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                AppLocalizations.of(context)!.driverB,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              if (!kIsWeb)
-                OutlinedButton.icon(
-                  onPressed: () => _scattaFotoLibretto('B'),
-                  icon: const Icon(Icons.camera_alt_outlined),
-                  label: Text(tx(context, 'Foto libretto')),
-                ),
-              if (kIsWeb)
-                OutlinedButton.icon(
-                  onPressed: () =>
-                      _pickAndUploadImage(kind: 'libretto', quale: 'B'),
-                  icon: const Icon(Icons.photo_camera),
-                  label: const Text('Foto libretto'),
-                ),
-              if ((_fotoLibrettoBPath != null &&
-                      _fotoLibrettoBPath!.isNotEmpty) ||
-                  _fotoLibrettoBBytes != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: SizedBox(
-                    height: 140,
-                    child: _fotoLibrettoBBytes != null
-                        ? Image.memory(
-                            _fotoLibrettoBBytes!,
-                            fit: BoxFit.cover,
-                          )
-                        : Image.file(
-                            File(_fotoLibrettoBPath!),
-                            fit: BoxFit.cover,
-                          ),
-                  ),
-                ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _nomeBController,
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.firstName,
-                ),
-                validator: (value) {
-                  if (!_isAnyCampoBCompilato()) return null;
-                  if (value == null || value.trim().isEmpty) {
-                    return txStatic('Inserisci il nome del conducente B');
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _cognomeBController,
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.lastName,
-                ),
-              ),
-              TextFormField(
-                controller: _indirizzoBController,
-                decoration: InputDecoration(
-                  labelText: tx(context, 'Indirizzo conducente B'),
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _driverBZipController,
-                textInputAction: TextInputAction.next,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.zip,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _driverBCityController,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.city,
-                ),
-              ),
-              TextFormField(
-                controller: _targaBController,
-                decoration:
-                    InputDecoration(labelText: tx(context, 'Targa veicolo B')),
-                validator: (value) {
-                  if (!_isAnyCampoBCompilato()) return null;
-                  if (value == null || value.trim().isEmpty) {
-                    return txStatic('Inserisci la targa del veicolo B');
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _assicurazioneBController,
-                decoration: InputDecoration(
-                  labelText: tx(context, 'Assicurazione veicolo B (es. AXA)'),
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _telefonoBController,
-                keyboardType: TextInputType.phone,
-                validator: _validatePhone,
-                decoration: InputDecoration(
-                  labelText: tx(context, 'Telefono conducente B'),
-                  hintText: tx(context, 'Es. +41...'),
-                ),
-              ),
-              TextFormField(
-                controller: _emailBController,
-                keyboardType: TextInputType.emailAddress,
-                validator: _validateEmail,
-                decoration: InputDecoration(
-                  labelText: tx(context, 'Email conducente B'),
-                  hintText: tx(context, 'nome@email.ch'),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                tx(context, 'Descrizione incidente'),
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              TextFormField(
-                controller: _descrizioneController,
-                maxLines: 4,
-                decoration: InputDecoration(
-                  hintText: tx(context,
-                      "Scrivi brevemente come è successo l'incidente..."),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _yesNoRow(
-                title: AppLocalizations.of(context)!.other_object_damage_q,
-                value: _otherObjectDamage,
-                onChanged: (v) => setState(() => _otherObjectDamage = v),
-              ),
-              _yesNoRow(
-                title: AppLocalizations.of(context)!.other_vehicle_damage_q,
-                value: _otherVehicleDamage,
-                onChanged: (v) => setState(() => _otherVehicleDamage = v),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                tx(context, 'Testimoni (se presenti)'),
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              for (int i = 0; i < _testimoni.length; i++) ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _testimoni[i].nomeController,
-                        decoration: InputDecoration(
-                          labelText:
-                              '${tx(context, 'Nome testimone')} ${i + 1}',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _testimoni[i].telefonoController,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          labelText:
-                              '${tx(context, 'Telefono testimone')} ${i + 1}',
-                        ),
-                      ),
-                    ),
-                    if (_testimoni.length > 1)
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () {
-                          setState(() {
-                            _testimoni[i].nomeController.dispose();
-                            _testimoni[i].telefonoController.dispose();
-                            _testimoni.removeAt(i);
-                          });
-                        },
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-              ],
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _testimoni.add(
-                        _TestimoneFormData(
-                          nomeController: TextEditingController(),
-                          telefonoController: TextEditingController(),
-                        ),
-                      );
-                    });
-                  },
-                  icon: const Icon(Icons.add),
-                  label: Text(tx(context, 'Aggiungi testimone')),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                tx(context, 'Feriti (se presenti)'),
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              if (_feriti.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    '-',
-                    style: const TextStyle(fontSize: 12, color: Colors.black54),
-                  ),
-                ),
-              for (int i = 0; i < _feriti.length; i++) ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _feriti[i].nomeController,
-                        decoration: InputDecoration(
-                          labelText: '${tx(context, 'Nome ferito')} ${i + 1}',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _feriti[i].indirizzoController,
-                        decoration: InputDecoration(
-                          labelText:
-                              '${tx(context, 'Indirizzo ferito')} ${i + 1}',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _feriti[i].telefonoController,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          labelText:
-                              '${tx(context, 'Telefono ferito')} ${i + 1}',
-                        ),
-                      ),
-                    ),
-                    if (_feriti.isNotEmpty)
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () {
-                          setState(() {
-                            _feriti[i].nomeController.dispose();
-                            _feriti[i].indirizzoController.dispose();
-                            _feriti[i].telefonoController.dispose();
-                            _feriti.removeAt(i);
-                          });
-                        },
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-              ],
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _feriti.add(
-                        _FeritoFormData(
-                          nomeController: TextEditingController(),
-                          indirizzoController: TextEditingController(),
-                          telefonoController: TextEditingController(),
-                        ),
-                      );
-                    });
-                  },
-                  icon: const Icon(Icons.add),
-                  label: Text(tx(context, 'Aggiungi ferito')),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                AppLocalizations.of(context)!.damageTitle,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _damageVehicleAController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.damageVehicleA,
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _damageVehicleBController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.damageVehicleB,
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (!kIsWeb) ...[
-                Text(
-                  tx(context, 'Note vocali'),
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                _buildAudioNotaControls('A'),
-                const SizedBox(height: 12),
-                _buildAudioNotaControls('B'),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildLuogoSection(dataOraString),
+                const SizedBox(height: _incidentSectionSpacing),
+                _buildConducentiSection(),
+                const SizedBox(height: _incidentSectionSpacing),
+                _buildTestimoniSection(),
+                const SizedBox(height: _incidentSectionSpacing),
+                _buildFeritiSection(),
+                const SizedBox(height: _incidentSectionSpacing),
+                _buildDanniSection(),
+                if (!kIsWeb) ...[
+                  const SizedBox(height: _incidentSectionSpacing),
+                  _buildVoiceNotesSection(),
+                ],
+                const SizedBox(height: _incidentSectionSpacing),
+                _buildFotoDannoSection(),
                 const SizedBox(height: 24),
+                _buildSaveSection(),
               ],
-              Text(
-                tx(context, 'Foto del danno'),
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () => _scattaFotoDanno(),
-                icon: const Icon(Icons.camera),
-                label: Text(tx(context, 'Aggiungi foto danno')),
-              ),
-              if (_damagePhotos.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 120,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _damagePhotos.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (_, index) {
-                      final item = _damagePhotos[index];
-                      final pathStr = item.remoteUrl ?? item.localPath ?? '';
-                      final isUrl = item.remoteUrl != null &&
-                          item.remoteUrl!.startsWith('http');
-                      final previewBytes = item.bytes;
-                      final status = item.status;
-                      debugPrint(
-                          '[DamagePreview] render ${previewBytes != null ? 'bytes' : isUrl ? 'url' : 'file'} $pathStr status=$status');
-                      return AspectRatio(
-                        aspectRatio: 4 / 3,
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: GestureDetector(
-                                onTap: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (_) => Dialog(
-                                      child: previewBytes != null
-                                          ? Image.memory(
-                                              previewBytes,
-                                              fit: BoxFit.contain,
-                                            )
-                                          : isUrl
-                                              ? Image.network(
-                                                  pathStr,
-                                                  fit: BoxFit.contain,
-                                                )
-                                              : Image.file(
-                                                  File(pathStr),
-                                                  fit: BoxFit.contain,
-                                                ),
-                                    ),
-                                  );
-                                },
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: previewBytes != null
-                                      ? Image.memory(
-                                          previewBytes,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : isUrl
-                                          ? Image.network(
-                                              pathStr,
-                                              fit: BoxFit.cover,
-                                            )
-                                          : Image.file(
-                                              File(pathStr),
-                                              fit: BoxFit.cover,
-                                            ),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              top: 6,
-                              right: 6,
-                              child: InkWell(
-                                onTap: () => _removeDamagePhoto(index),
-                                child: Container(
-                                  decoration: const BoxDecoration(
-                                    color: Colors.black54,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  padding: const EdgeInsets.all(4),
-                                  child: const Icon(
-                                    Icons.close,
-                                    size: 16,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            if (status == DamagePhotoStatus.uploading)
-                              const Positioned(
-                                left: 6,
-                                top: 6,
-                                child: SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                              ),
-                            if (status == DamagePhotoStatus.uploaded)
-                              const Positioned(
-                                left: 6,
-                                top: 6,
-                                child: Icon(Icons.check_circle,
-                                    size: 18, color: Colors.green),
-                              ),
-                            if (status == DamagePhotoStatus.failed)
-                              Positioned(
-                                left: 6,
-                                top: 6,
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.error,
-                                        size: 18, color: Colors.red),
-                                    TextButton(
-                                      onPressed: () =>
-                                          _retryDamagePhotoUpload(item),
-                                      child: const Text(
-                                        'Riprova',
-                                        style: TextStyle(fontSize: 10),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSavingIncident ? null : _salvaIncidente,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(56),
-                  ),
-                  child: _isSavingIncident
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(tx(context, 'Salva incidente')),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
+  }
+}
+
+class _DashedRRectPainter extends CustomPainter {
+  final Color color;
+  final double radius;
+
+  const _DashedRRectPainter({
+    required this.color,
+    this.radius = 16,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Offset.zero & size,
+          Radius.circular(radius),
+        ),
+      );
+
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final next = distance + 8;
+        canvas.drawPath(
+          metric.extractPath(
+            distance,
+            next < metric.length ? next : metric.length,
+          ),
+          paint,
+        );
+        distance = next + 6;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRRectPainter oldDelegate) {
+    return oldDelegate.color != color || oldDelegate.radius != radius;
   }
 }
 
@@ -9140,6 +10014,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       otherVehicleDamage: incidente.otherVehicleDamage,
       testimoni: incidente.testimoni,
       feriti: incidente.feriti,
+      conducentiAggiuntivi: incidente.conducentiAggiuntivi,
       notaVocaleA: incidente.notaVocaleA,
       notaVocaleB: incidente.notaVocaleB,
       notaAudioAPath: incidente.notaAudioAPath,
@@ -9217,6 +10092,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         otherVehicleDamage: incidente.otherVehicleDamage,
         testimoni: incidente.testimoni,
         feriti: incidente.feriti,
+        conducentiAggiuntivi: incidente.conducentiAggiuntivi,
         notaVocaleA: incidente.notaVocaleA,
         notaVocaleB: incidente.notaVocaleB,
         notaAudioAPath: incidente.notaAudioAPath,
