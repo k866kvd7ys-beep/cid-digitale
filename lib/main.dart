@@ -2723,6 +2723,24 @@ String formatNomeCompleto(String nome, String cognome) {
   return '$nome $cognome';
 }
 
+String formatClaimDisplayId(Incidente incidente) {
+  final year = incidente.dataOra.year.toString().padLeft(4, '0');
+  final source = incidente.id.trim();
+  if (source.isEmpty) {
+    return 'CID-$year-000000';
+  }
+
+  final sanitized =
+      source.replaceAll(RegExp(r'[^A-Fa-f0-9]'), '').toUpperCase();
+  final seed = sanitized.isNotEmpty ? sanitized : source.toUpperCase();
+  var value = 0;
+  for (final codeUnit in seed.codeUnits) {
+    value = ((value * 31) + codeUnit) % 1000000;
+  }
+  final serial = value.toString().padLeft(6, '0');
+  return 'CID-$year-$serial';
+}
+
 /// HOME ////////////////////////////////////////////////////////////////
 
 class HomePage extends StatefulWidget {
@@ -10531,7 +10549,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     final firmaBBytes = _decodeBase64Image(incidente.firmaBPath);
     final firmaAExists = firmaABytes != null;
     final firmaBExists = firmaBBytes != null;
-    final practiceId = incidente.id.trim().isEmpty ? '-' : incidente.id.trim();
+    final practiceId = formatClaimDisplayId(incidente);
     final contactsLines = <String>[
       if (incidente.telefonoA.isNotEmpty || incidente.emailA.isNotEmpty)
         'A ${incidente.telefonoA.isEmpty ? '-' : incidente.telefonoA}'
