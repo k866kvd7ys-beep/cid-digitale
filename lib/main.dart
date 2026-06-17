@@ -6231,6 +6231,17 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
   }
 
+  void _showDriverQrPlaceholderSnack() {
+    _mostraSnack(
+      _copyText(
+        it: 'Funzione QR dati conducente in preparazione',
+        de: 'QR-Datenfunktion für Fahrer in Vorbereitung',
+        fr: 'Fonction QR des données conducteur en préparation',
+        en: 'Driver data QR feature coming soon',
+      ),
+    );
+  }
+
   Widget _buildDriverFormCard({
     required String driverKey,
     required TextEditingController nomeController,
@@ -6276,12 +6287,31 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             ],
           ),
           const SizedBox(height: 12),
-          _buildAddOutlinedButton(
-            onPressed: () => _scattaFotoLibretto(driverKey),
-            icon: kIsWeb
-                ? Icons.photo_camera_outlined
-                : Icons.camera_alt_outlined,
-            label: tx(context, 'Foto libretto'),
+          Row(
+            children: [
+              Expanded(
+                child: _buildAddOutlinedButton(
+                  onPressed: () => _scattaFotoLibretto(driverKey),
+                  icon: kIsWeb
+                      ? Icons.photo_camera_outlined
+                      : Icons.camera_alt_outlined,
+                  label: tx(context, 'Foto libretto'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildAddOutlinedButton(
+                  onPressed: _showDriverQrPlaceholderSnack,
+                  icon: Icons.qr_code_scanner_outlined,
+                  label: _copyText(
+                    it: 'Scansiona QR dati',
+                    de: 'QR-Daten scannen',
+                    fr: 'Scanner QR données',
+                    en: 'Scan data QR',
+                  ),
+                ),
+              ),
+            ],
           ),
           _buildDriverPreview(fotoLibrettoPath, fotoLibrettoBytes),
           const SizedBox(height: 14),
