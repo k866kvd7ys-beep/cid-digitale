@@ -2741,6 +2741,10 @@ String formatClaimDisplayId(Incidente incidente) {
   return 'CID-$year-$serial';
 }
 
+String formatWorkshopDisplayCode(Incidente incidente) {
+  return '${formatClaimDisplayId(incidente)}-W';
+}
+
 /// HOME ////////////////////////////////////////////////////////////////
 
 class HomePage extends StatefulWidget {
@@ -9173,6 +9177,9 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     final l10n = AppLocalizations.of(context)!;
     final pdf = pw.Document();
     final dataOra = formatDataOraGeneric(incidente.dataOra);
+    final displayClaimId = formatClaimDisplayId(incidente);
+    final displayWorkshopCode = formatWorkshopDisplayCode(incidente);
+    final langCode = linguaSelezionata.value.languageCode;
 
     // ✅ STEP B: hash integrità
     final hash = await _calcolaHashPratica();
@@ -9194,6 +9201,36 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     }
     if (firmaBBytes != null) {
       firmaBImage = pw.MemoryImage(firmaBBytes);
+    }
+
+    final hasFirmaA = firmaAImage != null;
+    final hasFirmaB = firmaBImage != null;
+
+    late final String claimNumberLabel;
+    late final String signatureSignedText;
+    late final String signatureMissingText;
+    switch (langCode) {
+      case 'it':
+        claimNumberLabel = 'Numero pratica:';
+        signatureSignedText = 'firmato digitalmente';
+        signatureMissingText = 'firma non presente';
+        break;
+      case 'fr':
+        claimNumberLabel = 'Numero de dossier :';
+        signatureSignedText = 'signe numeriquement';
+        signatureMissingText = 'signature absente';
+        break;
+      case 'en':
+        claimNumberLabel = 'Claim number:';
+        signatureSignedText = 'digitally signed';
+        signatureMissingText = 'signature not available';
+        break;
+      case 'de':
+      default:
+        claimNumberLabel = 'Vorgangsnummer:';
+        signatureSignedText = 'digital signiert';
+        signatureMissingText = 'nicht unterschrieben';
+        break;
     }
 
     String responsabilitaPdf;
@@ -9222,6 +9259,12 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                 txStatic('CID Digitale'),
                 style:
                     pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+              ),
+              pw.SizedBox(height: 4),
+              pw.Text(
+                '$claimNumberLabel $displayClaimId',
+                style:
+                    pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
               ),
               pw.SizedBox(height: 12),
               pw.Text('${l10n.labelDateTime} $dataOra'),
@@ -9303,7 +9346,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                   pw.Text(
                     txStatic(
                         'Conducente A: nota vocale allegata (file audio).'),
-                    style: pw.TextStyle(fontSize: 10),
+                    style: const pw.TextStyle(fontSize: 10),
                   ),
                 if (incidente.notaVocaleB.isNotEmpty)
                   pw.Text('${l10n.labelDriverBText} ${incidente.notaVocaleB}'),
@@ -9311,7 +9354,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                   pw.Text(
                     txStatic(
                         'Conducente B: nota vocale allegata (file audio).'),
-                    style: pw.TextStyle(fontSize: 10),
+                    style: const pw.TextStyle(fontSize: 10),
                   ),
               ],
               pw.SizedBox(height: 12),
@@ -9321,81 +9364,67 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
               pw.SizedBox(height: 14),
               pw.Text(
                 '${txStatic('Impronta integrità (SHA-256):')} $hash',
-                style: pw.TextStyle(fontSize: 9),
+                style: const pw.TextStyle(fontSize: 9),
               ),
               pw.SizedBox(height: 12),
-              if (firmaAImage != null || firmaBImage != null) ...[
-                pw.Text(txStatic('Firme:'),
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                pw.SizedBox(height: 8),
-                pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    if (firmaAImage != null)
-                      pw.Expanded(
-                        child: pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.start,
-                          children: [
-                            pw.Text(l10n.pdfDriverA),
-                            pw.SizedBox(height: 4),
-                            pw.Container(
-                              width: 150,
-                              height: 60,
-                              decoration: pw.BoxDecoration(
-                                  border: pw.Border.all(width: 0.5)),
-                              child:
-                                  pw.Image(firmaAImage, fit: pw.BoxFit.contain),
-                            ),
-                            pw.SizedBox(height: 4),
-                            pw.Text(
-                              '${txStatic('Timestamp firma (UTC):')} ${incidente.timestampFirmaA.isEmpty ? '-' : incidente.timestampFirmaA}',
-                              style: pw.TextStyle(fontSize: 9),
-                            ),
-                          ],
-                        ),
-                      ),
-                    if (firmaBImage != null) pw.SizedBox(width: 24),
-                    if (firmaBImage != null)
-                      pw.Expanded(
-                        child: pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.start,
-                          children: [
-                            pw.Text(l10n.pdfDriverB),
-                            pw.SizedBox(height: 4),
-                            pw.Container(
-                              width: 150,
-                              height: 60,
-                              decoration: pw.BoxDecoration(
-                                  border: pw.Border.all(width: 0.5)),
-                              child:
-                                  pw.Image(firmaBImage, fit: pw.BoxFit.contain),
-                            ),
-                            pw.SizedBox(height: 4),
-                            pw.Text(
-                              '${txStatic('Timestamp firma (UTC):')} ${incidente.timestampFirmaB.isEmpty ? '-' : incidente.timestampFirmaB}',
-                              style: pw.TextStyle(fontSize: 9),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
+              pw.Text(txStatic('Firme:'),
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 8),
+              pw.Text(
+                '${l10n.pdfDriverA}: ${hasFirmaA ? signatureSignedText : signatureMissingText}',
+                style: const pw.TextStyle(fontSize: 10),
+              ),
+              if (hasFirmaA) ...[
+                pw.SizedBox(height: 4),
+                pw.Container(
+                  width: 150,
+                  height: 60,
+                  decoration:
+                      pw.BoxDecoration(border: pw.Border.all(width: 0.5)),
+                  child: pw.Image(firmaAImage!, fit: pw.BoxFit.contain),
                 ),
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  '${txStatic('Timestamp firma (UTC):')} ${incidente.timestampFirmaA.isEmpty ? '-' : incidente.timestampFirmaA}',
+                  style: const pw.TextStyle(fontSize: 9),
+                ),
+              ],
+              pw.SizedBox(height: 10),
+              pw.Text(
+                '${l10n.pdfDriverB}: ${hasFirmaB ? signatureSignedText : signatureMissingText}',
+                style: const pw.TextStyle(fontSize: 10),
+              ),
+              if (hasFirmaB) ...[
+                pw.SizedBox(height: 4),
+                pw.Container(
+                  width: 150,
+                  height: 60,
+                  decoration:
+                      pw.BoxDecoration(border: pw.Border.all(width: 0.5)),
+                  child: pw.Image(firmaBImage!, fit: pw.BoxFit.contain),
+                ),
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  '${txStatic('Timestamp firma (UTC):')} ${incidente.timestampFirmaB.isEmpty ? '-' : incidente.timestampFirmaB}',
+                  style: const pw.TextStyle(fontSize: 9),
+                ),
+              ],
+              if (hasFirmaA || hasFirmaB) ...[
                 pw.SizedBox(height: 12),
                 pw.Text(
                   txStatic(
                       'Le firme apposte confermano la correttezza dei dati inseriti nel presente CID digitale.'),
-                  style: pw.TextStyle(fontSize: 9),
+                  style: const pw.TextStyle(fontSize: 9),
                 ),
               ],
               pw.SizedBox(height: 12),
-              pw.Text(
-                  '${txStatic('Codice officina:')} ${incidente.codiceOfficina}',
-                  style: pw.TextStyle(fontSize: 10)),
+              pw.Text('${txStatic('Codice officina:')} $displayWorkshopCode',
+                  style: const pw.TextStyle(fontSize: 10)),
               pw.SizedBox(height: 4),
               pw.Text(
                 txStatic(
                     "QR code disponibile nell'app per recuperare rapidamente la pratica."),
-                style: pw.TextStyle(fontSize: 10),
+                style: const pw.TextStyle(fontSize: 10),
               ),
             ],
           );
@@ -9441,6 +9470,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     }
 
     final lang = normalizeLang(Localizations.localeOf(context).languageCode);
+    final displayClaimId = formatClaimDisplayId(incidente);
+    final displayWorkshopCode = formatWorkshopDisplayCode(incidente);
     final hasFirmaA = _decodeBase64Image(incidente.firmaAPath) != null;
     final hasFirmaB = _decodeBase64Image(incidente.firmaBPath) != null;
     final dataOra = formatDataOraLocale(context, incidente.dataOra);
@@ -9451,6 +9482,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     late final String title;
     late final String greeting;
     late final String intro;
+    late final String introDetails;
+    late final String claimNumberLabel;
     late final String dateTimeLabel;
     late final String placeLabel;
     late final String driverALabel;
@@ -9476,17 +9509,20 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     late final String qrNote;
     late final String attachmentsNote;
     late final String closing;
-    late final String presentText;
-    late final String missingText;
+    late final String signatureSignedText;
+    late final String signatureMissingText;
+    late final String signatureTimestampLabel;
 
     switch (lang) {
       case 'it':
-        subject =
-            'Constatazione amichevole digitale (CID) - Pratica ${incidente.id}';
-        title = 'Constatazione amichevole digitale (CID) - Pratica';
-        greeting = 'Buongiorno,';
+        subject = 'Pratica incidente digitale $displayClaimId';
+        title = 'Pratica incidente digitale';
+        greeting = 'Gentile utente,';
         intro =
-            'in allegato trova la constatazione amichevole digitale relativa alla pratica ${incidente.id}.';
+            'in allegato trova la pratica incidente digitale n° $displayClaimId.';
+        introDetails =
+            'La pratica è stata generata digitalmente e include i dati raccolti, gli allegati e, se presenti, le firme digitali dei conducenti.';
+        claimNumberLabel = 'Numero pratica';
         dateTimeLabel = 'Data e ora';
         placeLabel = 'Luogo';
         driverALabel = 'Conducente A';
@@ -9510,19 +9546,23 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         signaturesLabel = 'Firme';
         workshopCodeLabel = 'Codice officina';
         qrNote =
-            'QR code disponibile nell app per richiamare rapidamente la pratica.';
+            'QR disponibile nell’app per importare rapidamente la pratica.';
         attachmentsNote =
             'Il PDF della pratica e gli allegati caricati sono inclusi.';
         closing = 'Cordiali saluti';
-        presentText = 'presente';
-        missingText = 'mancante';
+        signatureSignedText = 'firmato digitalmente';
+        signatureMissingText = 'firma non presente';
+        signatureTimestampLabel = 'Timestamp UTC';
         break;
       case 'fr':
-        subject = 'Constat amiable numerique (CID) - Dossier ${incidente.id}';
-        title = 'Constat amiable numerique (CID) - Dossier';
+        subject = 'Dossier d’accident numerique $displayClaimId';
+        title = 'Dossier d’accident numerique';
         greeting = 'Bonjour,';
         intro =
-            'vous trouverez en piece jointe le constat amiable numerique relatif au dossier ${incidente.id}.';
+            'vous trouverez en piece jointe le dossier d’accident numerique n° $displayClaimId.';
+        introDetails =
+            'Le dossier a ete genere numeriquement et inclut les donnees saisies, les pieces jointes et, si disponibles, les signatures numeriques des conducteurs.';
+        claimNumberLabel = 'Numero de dossier';
         dateTimeLabel = 'Date et heure';
         placeLabel = 'Lieu';
         driverALabel = 'Conducteur A';
@@ -9546,19 +9586,23 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         signaturesLabel = 'Signatures';
         workshopCodeLabel = 'Code atelier';
         qrNote =
-            'Code QR disponible dans l application pour retrouver rapidement le dossier.';
+            'Code QR disponible dans l’application pour importer rapidement le dossier.';
         attachmentsNote =
-            'Le rapport PDF et les pieces jointes telechargees sont inclus.';
+            'Le PDF du dossier et les pieces jointes telechargees sont inclus.';
         closing = 'Cordialement';
-        presentText = 'presente';
-        missingText = 'absente';
+        signatureSignedText = 'signe numeriquement';
+        signatureMissingText = 'signature absente';
+        signatureTimestampLabel = 'Horodatage UTC';
         break;
       case 'en':
-        subject = 'Digital Accident Report (CID) - Claim ${incidente.id}';
-        title = 'Digital Accident Report (CID) - Claim';
+        subject = 'Digital accident claim $displayClaimId';
+        title = 'Digital accident claim';
         greeting = 'Hello,';
         intro =
-            'attached you will find the digital accident report for claim ${incidente.id}.';
+            'Attached you will find the digital accident claim no. $displayClaimId.';
+        introDetails =
+            'The claim was created digitally and includes the recorded data, uploaded attachments and, when available, the drivers digital signatures.';
+        claimNumberLabel = 'Claim number';
         dateTimeLabel = 'Date and time';
         placeLabel = 'Location';
         driverALabel = 'Driver A';
@@ -9581,20 +9625,24 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         liabilityEmpty = 'No information provided.';
         signaturesLabel = 'Signatures';
         workshopCodeLabel = 'Workshop code';
-        qrNote = 'QR code available in the app to quickly reopen the claim.';
+        qrNote = 'QR code available in the app to quickly import the claim.';
         attachmentsNote =
             'The PDF report and the uploaded attachments are included.';
         closing = 'Kind regards';
-        presentText = 'present';
-        missingText = 'missing';
+        signatureSignedText = 'digitally signed';
+        signatureMissingText = 'signature not available';
+        signatureTimestampLabel = 'UTC timestamp';
         break;
       case 'de':
       default:
-        subject = 'Digitaler Unfallbericht (CID) - Vorgang ${incidente.id}';
-        title = 'Digitaler Unfallbericht (CID) - Vorgang';
+        subject = 'Digitale Schadenakte $displayClaimId';
+        title = 'Digitale Schadenakte';
         greeting = 'Guten Tag,';
         intro =
-            'im Anhang finden Sie den digitalen Unfallbericht zur Vorgangsnummer ${incidente.id}.';
+            'im Anhang finden Sie die digitale Schadenakte zur Vorgangsnummer $displayClaimId.';
+        introDetails =
+            'Die Schadenakte wurde digital erstellt und enthaelt die erfassten Angaben, Anhaenge und, sofern vorhanden, die digitalen Unterschriften der beteiligten Fahrer.';
+        claimNumberLabel = 'Vorgangsnummer';
         dateTimeLabel = 'Datum und Uhrzeit';
         placeLabel = 'Ort';
         driverALabel = 'Fahrer A';
@@ -9618,13 +9666,19 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         signaturesLabel = 'Unterschriften';
         workshopCodeLabel = 'Werkstattcode';
         qrNote =
-            'QR-Code in der App verfuegbar, um den Vorgang schnell abzurufen.';
+            'QR-Code in der App verfuegbar, um den Vorgang schnell zu importieren.';
         attachmentsNote =
             'Der PDF-Bericht und die hochgeladenen Anhaenge sind beigefuegt.';
         closing = 'Freundliche Gruesse';
-        presentText = 'vorhanden';
-        missingText = 'nicht vorhanden';
+        signatureSignedText = 'digital signiert';
+        signatureMissingText = 'nicht vorhanden';
+        signatureTimestampLabel = 'UTC-Zeitstempel';
         break;
+    }
+
+    String signatureStatusLine(String driverLabel, bool hasSignature) {
+      return '$driverLabel: '
+          '${hasSignature ? signatureSignedText : signatureMissingText}';
     }
 
     final witnessesText = incidente.testimoni.isEmpty
@@ -9651,10 +9705,12 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
 
     final body = StringBuffer()
       ..writeln(title)
+      ..writeln('$claimNumberLabel: $displayClaimId')
       ..writeln()
       ..writeln(greeting)
       ..writeln()
       ..writeln(intro)
+      ..writeln(introDetails)
       ..writeln()
       ..writeln('$dateTimeLabel: $dataOra')
       ..writeln('$placeLabel: ${valueOrDash(incidente.luogo)}')
@@ -9694,10 +9750,18 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       ..writeln(liabilityText.isEmpty ? liabilityEmpty : liabilityText)
       ..writeln()
       ..writeln('$signaturesLabel:')
-      ..writeln('$driverALabel: ${hasFirmaA ? presentText : missingText}')
-      ..writeln('$driverBLabel: ${hasFirmaB ? presentText : missingText}')
+      ..writeln(signatureStatusLine(driverALabel, hasFirmaA))
+      ..writeln(hasFirmaA
+          ? '$signatureTimestampLabel: '
+              '${valueOrDash(incidente.timestampFirmaA)}'
+          : '')
+      ..writeln(signatureStatusLine(driverBLabel, hasFirmaB))
+      ..writeln(hasFirmaB
+          ? '$signatureTimestampLabel: '
+              '${valueOrDash(incidente.timestampFirmaB)}'
+          : '')
       ..writeln()
-      ..writeln('$workshopCodeLabel: ${valueOrDash(incidente.codiceOfficina)}')
+      ..writeln('$workshopCodeLabel: $displayWorkshopCode')
       ..writeln(qrNote)
       ..writeln()
       ..writeln(attachmentsNote)
@@ -9716,6 +9780,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     debugPrint('SHARE STEP 1: start');
     try {
       final emailContent = _buildLocalizedCidEmailContent();
+      final displayClaimId = formatClaimDisplayId(incidente);
+      final pdfFileName = 'cid-digitale-$displayClaimId.pdf';
 
       bool _isValidUrl(String? url) {
         if (url == null) return false;
@@ -9750,8 +9816,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       debugPrint('SHARE STEP 2b: pdf bytes=${pdfBytes.length}');
       debugPrint('ATTACH STEP 1: build pdf');
       debugPrint(
-          'ATTACH FILE READY: name=cid_${incidente.id}.pdf mime=application/pdf size=${pdfBytes.length}');
-      final pdfFileName = 'cid_${incidente.id}.pdf';
+          'ATTACH FILE READY: name=$pdfFileName mime=application/pdf size=${pdfBytes.length}');
 
       debugPrint('ATTACH STEP 2: collect libretto photos');
       final librettoPaths = <String>[
@@ -9927,10 +9992,10 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       final List<XFile> allegati = [];
 
       final pdfPath =
-          '${tempDir.path}/cid_${incidente.id}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+          '${tempDir.path}/${pdfFileName.replaceAll('.pdf', '')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
       await File(pdfPath).writeAsBytes(pdfBytes);
-      allegati.add(XFile(pdfPath,
-          mimeType: 'application/pdf', name: 'cid_${incidente.id}.pdf'));
+      allegati
+          .add(XFile(pdfPath, mimeType: 'application/pdf', name: pdfFileName));
 
       // Libretto (locale o scaricato se URL)
       int librettoAdded = 0;
@@ -10275,12 +10340,13 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     // Mobile / desktop native: proviamo share con allegati reali
     debugPrint('MAIL STEP 3: prepare body (mobile)');
     final tempDir = await getTemporaryDirectory();
+    final displayClaimId = formatClaimDisplayId(incidente);
+    final pdfFileName = 'cid-digitale-$displayClaimId.pdf';
     final pdfPath =
-        '${tempDir.path}/cid_${incidente.id}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+        '${tempDir.path}/${pdfFileName.replaceAll('.pdf', '')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
     await File(pdfPath).writeAsBytes(pdfBytes);
     final allegati = <XFile>[
-      XFile(pdfPath,
-          mimeType: 'application/pdf', name: 'cid_${incidente.id}.pdf'),
+      XFile(pdfPath, mimeType: 'application/pdf', name: pdfFileName),
     ];
 
     // Scarica foto danni per allegarle se possibile

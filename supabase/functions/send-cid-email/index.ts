@@ -11,6 +11,7 @@ import {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
+// TODO: sostituire il mittente Resend con email professionale del dominio quando disponibile.
 const FROM_EMAIL = "onboarding@resend.dev";
 const MAX_ATTACHMENTS = 8;
 
@@ -305,14 +306,53 @@ const detectPayloadLanguage = (
   return detected ?? "de";
 };
 
-const getLocalizedCopy = (lang: SupportedLang, claimId: string) => ({
+const extractIncidentYear = (value: unknown) => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    const directYear = trimmed.match(/^(\d{4})/);
+    if (directYear) {
+      return directYear[1];
+    }
+    const parsed = new Date(trimmed);
+    if (!Number.isNaN(parsed.getTime())) {
+      return String(parsed.getUTCFullYear()).padStart(4, "0");
+    }
+  }
+
+  return String(new Date().getUTCFullYear()).padStart(4, "0");
+};
+
+const formatClaimDisplayId = (claimId: string, incidentDate: unknown) => {
+  const year = extractIncidentYear(incidentDate);
+  const source = claimId.trim();
+  if (!source) {
+    return `CID-${year}-000000`;
+  }
+
+  const sanitized = source.replace(/[^A-Fa-f0-9]/g, "").toUpperCase();
+  const seed = sanitized || source.toUpperCase();
+  let value = 0;
+  for (const char of seed) {
+    value = ((value * 31) + char.charCodeAt(0)) % 1000000;
+  }
+
+  return `CID-${year}-${String(value).padStart(6, "0")}`;
+};
+
+const formatWorkshopDisplayCode = (displayClaimId: string) =>
+  `${displayClaimId}-W`;
+
+const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
   de: {
-    emailTitle: "Digitaler Unfallbericht (CID) – Vorgang",
-    pdfTitle: "Digitaler Unfallbericht",
+    emailSubject: `Digitale Schadenakte ${displayClaimId}`,
+    emailHeading: "Digitale Schadenakte",
+    pdfTitle: "Digitale Schadenakte",
     claimNumber: "Vorgangsnummer",
     greeting: "Guten Tag,",
     intro:
-      `im Anhang finden Sie den digitalen Unfallbericht zur Vorgangsnummer ${claimId}.`,
+      `im Anhang finden Sie die digitale Schadenakte zur Vorgangsnummer ${displayClaimId}.`,
+    introDetails:
+      "Die Schadenakte wurde digital erstellt und enthält die erfassten Angaben, Anhänge und, sofern vorhanden, die digitalen Unterschriften der beteiligten Fahrer.",
     dateTime: "Datum und Uhrzeit",
     place: "Ort",
     driverA: "Fahrer A",
@@ -334,18 +374,24 @@ const getLocalizedCopy = (lang: SupportedLang, claimId: string) => ({
     workshopCode: "Werkstattcode",
     integrity: "Datenintegrität",
     hash: "Hash",
+    workshopCodeNote:
+      "QR-Code in der App verfügbar, um die Schadenakte schnell zu importieren.",
     pdfNote: "Der PDF-Bericht und die hochgeladenen Anhänge sind beigefügt.",
     closing: "Freundliche Grüße",
-    signaturePresent: "vorhanden",
+    signatureSigned: "digital signiert",
     signatureMissing: "nicht vorhanden",
+    signatureTimestamp: "UTC-Zeitstempel",
   },
   it: {
-    emailTitle: "Constatazione amichevole digitale (CID) – Pratica",
-    pdfTitle: "Constatazione amichevole digitale",
+    emailSubject: `Pratica incidente digitale ${displayClaimId}`,
+    emailHeading: "Pratica incidente digitale",
+    pdfTitle: "Pratica incidente digitale",
     claimNumber: "Numero pratica",
-    greeting: "Buongiorno,",
+    greeting: "Gentile utente,",
     intro:
-      `in allegato trova la constatazione amichevole digitale relativa alla pratica ${claimId}.`,
+      `in allegato trova la pratica incidente digitale n° ${displayClaimId}.`,
+    introDetails:
+      "La pratica è stata creata digitalmente e include i dati registrati, gli allegati e, se presenti, le firme digitali dei conducenti coinvolti.",
     dateTime: "Data e ora",
     place: "Luogo",
     driverA: "Conducente A",
@@ -367,18 +413,24 @@ const getLocalizedCopy = (lang: SupportedLang, claimId: string) => ({
     workshopCode: "Codice officina",
     integrity: "Integrità dati",
     hash: "Hash",
+    workshopCodeNote:
+      "QR disponibile nell’app per importare rapidamente la pratica.",
     pdfNote: "Il PDF della pratica e gli allegati caricati sono inclusi.",
     closing: "Cordiali saluti",
-    signaturePresent: "presente",
-    signatureMissing: "mancante",
+    signatureSigned: "firmato digitalmente",
+    signatureMissing: "firma non presente",
+    signatureTimestamp: "Timestamp UTC",
   },
   fr: {
-    emailTitle: "Constat amiable numérique (CID) – Dossier",
-    pdfTitle: "Constat amiable numérique",
+    emailSubject: `Dossier d’accident numérique ${displayClaimId}`,
+    emailHeading: "Dossier d’accident numérique",
+    pdfTitle: "Dossier d’accident numérique",
     claimNumber: "Numéro de dossier",
     greeting: "Bonjour,",
     intro:
-      `vous trouverez en pièce jointe le constat amiable numérique relatif au dossier ${claimId}.`,
+      `vous trouverez en pièce jointe le dossier d’accident numérique n° ${displayClaimId}.`,
+    introDetails:
+      "Le dossier a été créé numériquement et inclut les données enregistrées, les pièces jointes et, si disponibles, les signatures numériques des conducteurs concernés.",
     dateTime: "Date et heure",
     place: "Lieu",
     driverA: "Conducteur A",
@@ -400,18 +452,24 @@ const getLocalizedCopy = (lang: SupportedLang, claimId: string) => ({
     workshopCode: "Code atelier",
     integrity: "Intégrité des données",
     hash: "Hash",
+    workshopCodeNote:
+      "QR disponible dans l’application pour importer rapidement le dossier.",
     pdfNote: "Le rapport PDF et les pièces jointes téléchargées sont inclus.",
     closing: "Cordialement",
-    signaturePresent: "présente",
+    signatureSigned: "signé numériquement",
     signatureMissing: "absente",
+    signatureTimestamp: "Horodatage UTC",
   },
   en: {
-    emailTitle: "Digital Accident Report (CID) – Claim",
-    pdfTitle: "Digital Accident Report",
+    emailSubject: `Digital accident claim ${displayClaimId}`,
+    emailHeading: "Digital accident claim",
+    pdfTitle: "Digital accident claim",
     claimNumber: "Claim number",
     greeting: "Hello,",
     intro:
-      `attached you will find the digital accident report for claim ${claimId}.`,
+      `Attached you will find the digital accident claim no. ${displayClaimId}.`,
+    introDetails:
+      "The claim was created digitally and includes the recorded data, uploaded attachments and, when available, the drivers' digital signatures.",
     dateTime: "Date and time",
     place: "Location",
     driverA: "Driver A",
@@ -433,10 +491,13 @@ const getLocalizedCopy = (lang: SupportedLang, claimId: string) => ({
     workshopCode: "Workshop code",
     integrity: "Data integrity",
     hash: "Hash",
+    workshopCodeNote:
+      "QR code available in the app to quickly import the claim.",
     pdfNote: "The PDF report and the uploaded attachments are included.",
     closing: "Kind regards",
-    signaturePresent: "present",
-    signatureMissing: "missing",
+    signatureSigned: "digitally signed",
+    signatureMissing: "not available",
+    signatureTimestamp: "UTC timestamp",
   },
 })[lang];
 
@@ -458,6 +519,62 @@ const stringOrDash = (value: unknown) => {
   }
   return "-";
 };
+
+const formatDisplayDateTime = (value: unknown, lang: SupportedLang) => {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return stringOrDash(value);
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value.trim();
+  }
+
+  const localeByLang: Record<SupportedLang, string> = {
+    de: "de-CH",
+    it: "it-CH",
+    fr: "fr-CH",
+    en: "en-CH",
+  };
+
+  return new Intl.DateTimeFormat(localeByLang[lang], {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Europe/Zurich",
+  }).format(parsed).replace(",", "");
+};
+
+const formatUtcTimestamp = (value: unknown) => {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return stringOrDash(value);
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value.trim();
+  }
+
+  return parsed.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, " UTC");
+};
+
+const renderHtmlMultiline = (value: string) =>
+  escapeHtml(value).replaceAll("\n", "<br/>");
+
+const renderHtmlRows = (rows: Array<[string, string]>) =>
+  rows.map(([label, value]) =>
+    `<tr><td style="padding:0 0 10px 0;color:#475569;font-size:13px;vertical-align:top;width:180px;"><strong>${escapeHtml(label)}</strong></td><td style="padding:0 0 10px 0;color:#0f172a;font-size:13px;">${renderHtmlMultiline(value)}</td></tr>`
+  ).join("");
+
+const renderHtmlSection = (title: string, content: string) => `
+  <div style="margin:0 0 16px 0;padding:18px 20px;border:1px solid #e2e8f0;border-radius:16px;background:#ffffff;">
+    <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;">${escapeHtml(title)}</div>
+    ${content}
+  </div>
+`;
 
 const joinNonEmpty = (parts: Array<string | null | undefined>, separator = " ") => {
   const cleaned = parts
@@ -839,6 +956,29 @@ const findSignatureValue = (
   return null;
 };
 
+const getSignatureTimestamp = (
+  payload: Record<string, any>,
+  variant: "A" | "B",
+) =>
+  readStringField(
+    payload,
+    variant === "A"
+      ? [
+        "timestampFirmaA",
+        "timestamp_firma_a",
+        "signatureATimestamp",
+        "signature_a_timestamp",
+        "driverASignatureTimestamp",
+      ]
+      : [
+        "timestampFirmaB",
+        "timestamp_firma_b",
+        "signatureBTimestamp",
+        "signature_b_timestamp",
+        "driverBSignatureTimestamp",
+      ],
+  );
+
 const decodeBase64Image = (value: string) => {
   const trimmed = value.trim();
   const match = trimmed.match(/^data:image\/[a-zA-Z0-9.+-]+;base64,(.+)$/);
@@ -888,7 +1028,9 @@ async function generatePdfFromPayload(
   claimId: string,
 ): Promise<Uint8Array> {
   const lang = detectPayloadLanguage(payload);
-  const copy = getLocalizedCopy(lang, claimId);
+  const displayClaimId = formatClaimDisplayId(claimId, payload?.dataOra);
+  const displayWorkshopCode = formatWorkshopDisplayCode(displayClaimId);
+  const copy = getLocalizedCopy(lang, displayClaimId);
   const driverAName = getFullName(payload, "A");
   const driverBName = getFullName(payload, "B");
   const driverAAddress = getFullAddress(payload, "A");
@@ -896,6 +1038,9 @@ async function generatePdfFromPayload(
   const witnessesText = formatWitnesses(payload, lang);
   const injuriesText = formatInjuries(payload, lang);
   const liabilityText = getLocalizedLiability(payload, lang);
+  const formattedDateTime = formatDisplayDateTime(payload?.dataOra, lang);
+  const signatureATimestamp = formatUtcTimestamp(getSignatureTimestamp(payload, "A"));
+  const signatureBTimestamp = formatUtcTimestamp(getSignatureTimestamp(payload, "B"));
 
   const pdfDoc = await PDFDocument.create();
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -960,8 +1105,8 @@ async function generatePdfFromPayload(
   console.log("SEND CID EMAIL PDF VERSION: detailed-v3");
 
   line(copy.pdfTitle, true, 18);
-  line(`${copy.claimNumber}: ${claimId}`, false, 12);
-  line(`${copy.dateTime}: ${stringOrDash(payload?.dataOra)}`);
+  line(`${copy.claimNumber}: ${displayClaimId}`, false, 12);
+  line(`${copy.dateTime}: ${formattedDateTime}`);
   line(`${copy.place}: ${stringOrDash(payload?.luogo)}`);
   line("");
   line(copy.driverA, true, 14);
@@ -1001,7 +1146,7 @@ async function generatePdfFromPayload(
   line(liabilityText);
   line("");
   line(copy.workshopCode, true, 14);
-  line(stringOrDash(payload?.codiceOfficina));
+  line(displayWorkshopCode);
   line("");
   line(copy.integrity, true, 14);
   line(`${copy.hash}: ${stringOrDash(payload?.hashIntegrita)}`);
@@ -1009,12 +1154,18 @@ async function generatePdfFromPayload(
 
   line(copy.signatures, true, 14);
   line(
-    `${copy.driverA}: ${signatureAValue ? copy.signaturePresent : copy.signatureMissing}`,
+    `${copy.driverA}: ${signatureAValue ? copy.signatureSigned : copy.signatureMissing}`,
   );
+  if (signatureAValue) {
+    line(`${copy.signatureTimestamp}: ${signatureATimestamp}`);
+  }
   await drawSignature(copy.driverA, signatureAValue);
   line(
-    `${copy.driverB}: ${signatureBValue ? copy.signaturePresent : copy.signatureMissing}`,
+    `${copy.driverB}: ${signatureBValue ? copy.signatureSigned : copy.signatureMissing}`,
   );
+  if (signatureBValue) {
+    line(`${copy.signatureTimestamp}: ${signatureBTimestamp}`);
+  }
   await drawSignature(copy.driverB, signatureBValue);
 
   const pdfBytes = await pdfDoc.save();
@@ -1158,10 +1309,14 @@ async function handleRequest(req: Request): Promise<Response> {
 
     // 1. AGGIUNGI SEMPRE PDF generato dal payload corrente come primo allegato
     try {
+      const displayClaimId = formatClaimDisplayId(
+        claimId,
+        payload?.dataOra ?? claimRow?.created_at,
+      );
       const pdfBytes = await generatePdfFromPayload(payload, claimId);
       await savePdfToStorage(pdfBytes, claimId);
       attachments.push({
-        filename: `cid-digitale-${claimId}.pdf`,
+        filename: `cid-digitale-${displayClaimId}.pdf`,
         content: base64Encode(pdfBytes),
         contentType: "application/pdf",
       });
@@ -1304,7 +1459,12 @@ async function handleRequest(req: Request): Promise<Response> {
 
     console.log("EMAIL_ATTACHMENTS_FINAL:", attachments.map((a) => a.filename));
 
-    const copy = getLocalizedCopy(lang, claimId);
+    const displayClaimId = formatClaimDisplayId(
+      claimId,
+      payload?.dataOra ?? claimRow?.created_at,
+    );
+    const displayWorkshopCode = formatWorkshopDisplayCode(displayClaimId);
+    const copy = getLocalizedCopy(lang, displayClaimId);
 
     const driverAName = getFullName(payload, "A");
     const driverBName = getFullName(payload, "B");
@@ -1313,24 +1473,42 @@ async function handleRequest(req: Request): Promise<Response> {
     const witnessesText = formatWitnesses(payload, lang);
     const injuriesText = formatInjuries(payload, lang);
     const liabilityText = getLocalizedLiability(payload, lang);
-    const signatureAText = findSignatureValue(payload, "A")
-      ? copy.signaturePresent
+    const formattedDateTime = formatDisplayDateTime(payload?.dataOra, lang);
+    const signatureAValue = findSignatureValue(payload, "A");
+    const signatureBValue = findSignatureValue(payload, "B");
+    const signatureATimestamp = formatUtcTimestamp(getSignatureTimestamp(payload, "A"));
+    const signatureBTimestamp = formatUtcTimestamp(getSignatureTimestamp(payload, "B"));
+    const signatureAText = signatureAValue
+      ? copy.signatureSigned
       : copy.signatureMissing;
-    const signatureBText = findSignatureValue(payload, "B")
-      ? copy.signaturePresent
+    const signatureBText = signatureBValue
+      ? copy.signatureSigned
       : copy.signatureMissing;
 
     console.log("SEND CID EMAIL BODY VERSION: detailed-v3");
 
+    const signatureALines = [`${copy.driverA}: ${signatureAText}`];
+    if (signatureAValue) {
+      signatureALines.push(`${copy.signatureTimestamp}: ${signatureATimestamp}`);
+    }
+
+    const signatureBLines = [`${copy.driverB}: ${signatureBText}`];
+    if (signatureBValue) {
+      signatureBLines.push(`${copy.signatureTimestamp}: ${signatureBTimestamp}`);
+    }
+
     const textBody = [
-      copy.emailTitle,
+      copy.emailHeading,
+      `${copy.claimNumber}: ${displayClaimId}`,
       "",
       copy.greeting,
       "",
       copy.intro,
+      copy.introDetails,
       "",
-      `${copy.dateTime}: ${stringOrDash(payload?.dataOra)}`,
+      `${copy.dateTime}: ${formattedDateTime}`,
       `${copy.place}: ${stringOrDash(payload?.luogo)}`,
+      `${copy.workshopCode}: ${displayWorkshopCode}`,
       "",
       `${copy.driverA}:`,
       `${copy.name}: ${driverAName}`,
@@ -1365,10 +1543,10 @@ async function handleRequest(req: Request): Promise<Response> {
       liabilityText,
       "",
       `${copy.signatures}:`,
-      `${copy.driverA}: ${signatureAText}`,
-      `${copy.driverB}: ${signatureBText}`,
+      ...signatureALines,
+      ...signatureBLines,
       "",
-      `${copy.workshopCode}: ${stringOrDash(payload?.codiceOfficina)}`,
+      copy.workshopCodeNote,
       "",
       copy.pdfNote,
       "",
@@ -1376,41 +1554,104 @@ async function handleRequest(req: Request): Promise<Response> {
     ].join("\n");
 
     const htmlBody = `
-      <p><strong>${escapeHtml(copy.emailTitle)}</strong></p>
-      <p>${escapeHtml(copy.greeting)}</p>
-      <p>${escapeHtml(copy.intro)}</p>
-      <p><strong>${escapeHtml(copy.dateTime)}:</strong> ${escapeHtml(stringOrDash(payload?.dataOra))}<br/>
-      <strong>${escapeHtml(copy.place)}:</strong> ${escapeHtml(stringOrDash(payload?.luogo))}</p>
+      <div style="margin:0;padding:24px;background:#f3f6fb;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+        <div style="max-width:760px;margin:0 auto;background:#ffffff;border:1px solid #dbe4f0;border-radius:20px;overflow:hidden;">
+          <div style="padding:24px 28px;background:linear-gradient(135deg,#0f5bd3,#2563eb);color:#ffffff;">
+            <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.88;">CID Digitale</div>
+            <div style="margin-top:8px;font-size:24px;font-weight:700;">${escapeHtml(copy.emailHeading)}</div>
+            <div style="margin-top:14px;display:inline-block;padding:9px 14px;border-radius:999px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.24);font-size:13px;">
+              ${escapeHtml(copy.claimNumber)}: ${escapeHtml(displayClaimId)}
+            </div>
+          </div>
+          <div style="padding:28px;">
+            <p style="margin:0 0 16px 0;">${escapeHtml(copy.greeting)}</p>
+            <p style="margin:0 0 10px 0;">${escapeHtml(copy.intro)}</p>
+            <p style="margin:0 0 24px 0;color:#475569;line-height:1.6;">${escapeHtml(copy.introDetails)}</p>
 
-      <p><strong>${escapeHtml(copy.driverA)}:</strong><br/>
-      <strong>${escapeHtml(copy.name)}:</strong> ${escapeHtml(driverAName)}<br/>
-      <strong>${escapeHtml(copy.plate)}:</strong> ${escapeHtml(stringOrDash(payload?.targaA))}<br/>
-      <strong>${escapeHtml(copy.insurance)}:</strong> ${escapeHtml(stringOrDash(payload?.assicurazioneA))}<br/>
-      <strong>${escapeHtml(copy.phone)}:</strong> ${escapeHtml(stringOrDash(payload?.telefonoA))}<br/>
-      <strong>${escapeHtml(copy.email)}:</strong> ${escapeHtml(stringOrDash(payload?.emailA))}<br/>
-      <strong>${escapeHtml(copy.address)}:</strong> ${escapeHtml(driverAAddress)}</p>
+            ${renderHtmlSection(
+      copy.claimNumber,
+      `<table style="width:100%;border-collapse:collapse;">${renderHtmlRows([
+        [copy.claimNumber, displayClaimId],
+        [copy.dateTime, formattedDateTime],
+        [copy.place, stringOrDash(payload?.luogo)],
+        [copy.workshopCode, displayWorkshopCode],
+      ])}</table>`,
+    )}
 
-      <p><strong>${escapeHtml(copy.driverB)}:</strong><br/>
-      <strong>${escapeHtml(copy.name)}:</strong> ${escapeHtml(driverBName)}<br/>
-      <strong>${escapeHtml(copy.plate)}:</strong> ${escapeHtml(stringOrDash(payload?.targaB))}<br/>
-      <strong>${escapeHtml(copy.insurance)}:</strong> ${escapeHtml(stringOrDash(payload?.assicurazioneB))}<br/>
-      <strong>${escapeHtml(copy.phone)}:</strong> ${escapeHtml(stringOrDash(payload?.telefonoB))}<br/>
-      <strong>${escapeHtml(copy.email)}:</strong> ${escapeHtml(stringOrDash(payload?.emailB))}<br/>
-      <strong>${escapeHtml(copy.address)}:</strong> ${escapeHtml(driverBAddress)}</p>
+            ${renderHtmlSection(
+      copy.driverA,
+      `<table style="width:100%;border-collapse:collapse;">${renderHtmlRows([
+        [copy.name, driverAName],
+        [copy.plate, stringOrDash(payload?.targaA)],
+        [copy.insurance, stringOrDash(payload?.assicurazioneA)],
+        [copy.phone, stringOrDash(payload?.telefonoA)],
+        [copy.email, stringOrDash(payload?.emailA)],
+        [copy.address, driverAAddress],
+      ])}</table>`,
+    )}
 
-      <p><strong>${escapeHtml(copy.description)}:</strong><br/>${escapeHtml(stringOrDash(payload?.descrizione))}</p>
-      <p><strong>${escapeHtml(copy.witnesses)}:</strong><br/>${escapeHtml(witnessesText).replaceAll("\n", "<br/>")}</p>
-      <p><strong>${escapeHtml(copy.injuries)}:</strong><br/>${escapeHtml(injuriesText).replaceAll("\n", "<br/>")}</p>
-      <p><strong>${escapeHtml(copy.damage)}:</strong><br/>
-      ${escapeHtml(copy.vehicleA)}: ${escapeHtml(stringOrDash(payload?.danniVeicoloA))}<br/>
-      ${escapeHtml(copy.vehicleB)}: ${escapeHtml(stringOrDash(payload?.danniVeicoloB))}</p>
-      <p><strong>${escapeHtml(copy.liability)}:</strong><br/>${escapeHtml(liabilityText)}</p>
-      <p><strong>${escapeHtml(copy.signatures)}:</strong><br/>
-      ${escapeHtml(copy.driverA)}: ${escapeHtml(signatureAText)}<br/>
-      ${escapeHtml(copy.driverB)}: ${escapeHtml(signatureBText)}</p>
-      <p><strong>${escapeHtml(copy.workshopCode)}:</strong> ${escapeHtml(stringOrDash(payload?.codiceOfficina))}</p>
-      <p>${escapeHtml(copy.pdfNote)}</p>
-      <p>${escapeHtml(copy.closing)}</p>
+            ${renderHtmlSection(
+      copy.driverB,
+      `<table style="width:100%;border-collapse:collapse;">${renderHtmlRows([
+        [copy.name, driverBName],
+        [copy.plate, stringOrDash(payload?.targaB)],
+        [copy.insurance, stringOrDash(payload?.assicurazioneB)],
+        [copy.phone, stringOrDash(payload?.telefonoB)],
+        [copy.email, stringOrDash(payload?.emailB)],
+        [copy.address, driverBAddress],
+      ])}</table>`,
+    )}
+
+            ${renderHtmlSection(
+      copy.description,
+      `<div style="font-size:13px;line-height:1.6;color:#0f172a;">${renderHtmlMultiline(stringOrDash(payload?.descrizione))}</div>`,
+    )}
+
+            ${renderHtmlSection(
+      copy.witnesses,
+      `<div style="font-size:13px;line-height:1.7;color:#0f172a;">${renderHtmlMultiline(witnessesText)}</div>`,
+    )}
+
+            ${renderHtmlSection(
+      copy.injuries,
+      `<div style="font-size:13px;line-height:1.7;color:#0f172a;">${renderHtmlMultiline(injuriesText)}</div>`,
+    )}
+
+            ${renderHtmlSection(
+      copy.damage,
+      `<table style="width:100%;border-collapse:collapse;">${renderHtmlRows([
+        [copy.vehicleA, stringOrDash(payload?.danniVeicoloA)],
+        [copy.vehicleB, stringOrDash(payload?.danniVeicoloB)],
+      ])}</table>`,
+    )}
+
+            ${renderHtmlSection(
+      copy.liability,
+      `<div style="font-size:13px;line-height:1.6;color:#0f172a;">${renderHtmlMultiline(liabilityText)}</div>`,
+    )}
+
+            ${renderHtmlSection(
+      copy.signatures,
+      `<table style="width:100%;border-collapse:collapse;">${renderHtmlRows([
+        [copy.driverA, signatureAValue
+          ? `${signatureAText}\n${copy.signatureTimestamp}: ${signatureATimestamp}`
+          : signatureAText],
+        [copy.driverB, signatureBValue
+          ? `${signatureBText}\n${copy.signatureTimestamp}: ${signatureBTimestamp}`
+          : signatureBText],
+      ])}</table>`,
+    )}
+
+            <div style="margin-top:20px;padding:16px 18px;border-radius:16px;background:#eff6ff;color:#1e3a8a;font-size:13px;line-height:1.6;">
+              <strong>${escapeHtml(copy.workshopCode)}:</strong> ${escapeHtml(displayWorkshopCode)}<br/>
+              ${escapeHtml(copy.workshopCodeNote)}<br/><br/>
+              ${escapeHtml(copy.pdfNote)}
+            </div>
+
+            <p style="margin:24px 0 0 0;">${escapeHtml(copy.closing)}</p>
+          </div>
+        </div>
+      </div>
     `;
 
     const res = await fetch("https://api.resend.com/emails", {
@@ -1421,8 +1662,8 @@ async function handleRequest(req: Request): Promise<Response> {
       },
       body: JSON.stringify({
         from: FROM_EMAIL,
-        to: ["antonio.privitera1984@gmail.com"],
-        subject: copy.emailTitle,
+        to: recipients,
+        subject: copy.emailSubject,
         text: textBody,
         html: htmlBody,
         attachments,
