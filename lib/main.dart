@@ -6799,22 +6799,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               labelText: title,
             ),
           ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
-              onPressed: () => _scattaFotoDanno(),
-              icon: const Icon(Icons.add_a_photo_outlined, size: 18),
-              label: Text(
-                _copyText(
-                  it: 'Aggiungi foto',
-                  de: 'Foto hinzufügen',
-                  fr: 'Ajouter une photo',
-                  en: 'Add photo',
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
