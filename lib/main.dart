@@ -8191,6 +8191,46 @@ class _QrCarrozzeriaPageState extends State<QrCarrozzeriaPage> {
 
   Incidente get incidente => widget.incidente;
 
+  String _qrText({
+    required String it,
+    required String de,
+    required String fr,
+    required String en,
+  }) {
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'de':
+        return de;
+      case 'fr':
+        return fr;
+      case 'en':
+        return en;
+      case 'it':
+      default:
+        return it;
+    }
+  }
+
+  String _qrPageTitle() => _qrText(
+        it: 'QR per importazione pratica',
+        de: 'QR zum Importieren der Schadenakte',
+        fr: 'QR pour importer le dossier',
+        en: 'QR to import the claim',
+      );
+
+  String _qrImportDescription() => _qrText(
+        it: 'Mostra questo QR alla carrozzeria per importare automaticamente tutti i dati dell’incidente.',
+        de: 'Zeigen Sie diesen QR-Code der Werkstatt, um die Schadenakte automatisch zu importieren.',
+        fr: 'Montrez ce QR au garage pour importer automatiquement toutes les données de l’accident.',
+        en: 'Show this QR to the workshop to automatically import all accident data.',
+      );
+
+  String _generateQrLabel() => _qrText(
+        it: 'Genera QR importazione',
+        de: 'Import-QR erstellen',
+        fr: 'Générer le QR d’import',
+        en: 'Generate import QR',
+      );
+
   @override
   void initState() {
     super.initState();
@@ -8215,7 +8255,12 @@ class _QrCarrozzeriaPageState extends State<QrCarrozzeriaPage> {
       debugPrint('QR ERROR: $e');
       if (!mounted) return;
       setState(() {
-        _qrError = 'Impossibile generare QR carrozzeria';
+        _qrError = _qrText(
+          it: 'Impossibile generare il QR della pratica',
+          de: 'QR der Schadenakte konnte nicht erstellt werden',
+          fr: 'Impossible de générer le QR du dossier',
+          en: 'Unable to generate the claim QR',
+        );
         _loadingQr = false;
       });
     }
@@ -8259,11 +8304,26 @@ class _QrCarrozzeriaPageState extends State<QrCarrozzeriaPage> {
   String _testoResponsabilita() {
     switch (incidente.colpevole) {
       case 'A':
-        return 'Secondo le parti il conducente ritenuto colpevole è A.';
+        return _qrText(
+          it: 'Secondo le parti il conducente ritenuto colpevole è A.',
+          de: 'Laut Parteien gilt Fahrer A als verantwortlich.',
+          fr: 'Selon les parties, le conducteur jugé responsable est A.',
+          en: 'According to the parties, driver A is considered at fault.',
+        );
       case 'B':
-        return 'Secondo le parti il conducente ritenuto colpevole è B.';
+        return _qrText(
+          it: 'Secondo le parti il conducente ritenuto colpevole è B.',
+          de: 'Laut Parteien gilt Fahrer B als verantwortlich.',
+          fr: 'Selon les parties, le conducteur jugé responsable est B.',
+          en: 'According to the parties, driver B is considered at fault.',
+        );
       default:
-        return 'Responsabilità non dichiarata nelle selezioni.';
+        return _qrText(
+          it: 'Responsabilità non dichiarata nelle selezioni.',
+          de: 'Haftung in den Auswahlfeldern nicht angegeben.',
+          fr: 'Responsabilité non déclarée dans les sélections.',
+          en: 'Liability not declared in the selections.',
+        );
     }
   }
 
@@ -8288,8 +8348,12 @@ class _QrCarrozzeriaPageState extends State<QrCarrozzeriaPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              tx(context,
-                  'Dati QR pronti. Scegli l\'app (WhatsApp, Mail, ecc.) per mandarli alla tua officina.'),
+              _qrText(
+                it: 'QR pronto. Scegli l’app con cui condividerlo con la carrozzeria.',
+                de: 'QR bereit. Wählen Sie die App, um ihn mit der Werkstatt zu teilen.',
+                fr: 'QR prêt. Choisissez l’application pour le partager avec le garage.',
+                en: 'QR ready. Choose the app to share it with the workshop.',
+              ),
             ),
           ),
         );
@@ -8306,9 +8370,8 @@ class _QrCarrozzeriaPageState extends State<QrCarrozzeriaPage> {
             name: 'qr_${incidente.id}.png',
           ),
         ],
-        subject: tx(context, 'CID digitale - QR per officina'),
-        text: tx(
-            context, 'Mostra questo QR alla carrozzeria per importare i dati.'),
+        subject: _qrPageTitle(),
+        text: _qrImportDescription(),
         sharePositionOrigin: const ui.Rect.fromLTWH(0, 0, 1, 1),
       );
       _mostraSuccesso();
@@ -8321,7 +8384,7 @@ class _QrCarrozzeriaPageState extends State<QrCarrozzeriaPage> {
     try {
       await Share.share(
         qrData,
-        subject: tx(context, 'CID digitale - QR per officina'),
+        subject: _qrPageTitle(),
         sharePositionOrigin: const ui.Rect.fromLTWH(0, 0, 1, 1),
       );
       _mostraSuccesso();
@@ -8346,7 +8409,7 @@ class _QrCarrozzeriaPageState extends State<QrCarrozzeriaPage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: Text(tx(context, 'QR per officina')),
+        title: Text(_qrPageTitle()),
       ),
       body: SafeArea(
         child: Column(
@@ -8393,7 +8456,7 @@ class _QrCarrozzeriaPageState extends State<QrCarrozzeriaPage> {
                             ElevatedButton.icon(
                               onPressed: _loadQrData,
                               icon: const Icon(Icons.refresh),
-                              label: Text(tx(context, 'Riprova')),
+                              label: Text(_generateQrLabel()),
                             ),
                           ],
                         );
@@ -8415,16 +8478,15 @@ class _QrCarrozzeriaPageState extends State<QrCarrozzeriaPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Text(
-                    'Mostra questo QR all\'officina per importare subito '
-                    'tutti i dati della pratica (anche contatti, testimoni e note).',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  Text(
+                    _qrImportDescription(),
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Targa A: ${incidente.targaA.isEmpty ? '-' : incidente.targaA}  ·  '
-                    'Targa B: ${incidente.targaB.isEmpty ? '-' : incidente.targaB}',
+                    '${_qrText(it: 'Targa A', de: 'Kennzeichen A', fr: 'Plaque A', en: 'Plate A')}: ${incidente.targaA.isEmpty ? '-' : incidente.targaA}  ·  '
+                    '${_qrText(it: 'Targa B', de: 'Kennzeichen B', fr: 'Plaque B', en: 'Plate B')}: ${incidente.targaB.isEmpty ? '-' : incidente.targaB}',
                     style: const TextStyle(color: Colors.white70, fontSize: 13),
                     textAlign: TextAlign.center,
                   ),
@@ -8436,7 +8498,7 @@ class _QrCarrozzeriaPageState extends State<QrCarrozzeriaPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Codice officina: ${incidente.codiceOfficina}',
+                    '${_qrText(it: 'Codice officina', de: 'Werkstattcode', fr: 'Code atelier', en: 'Workshop code')}: ${incidente.codiceOfficina}',
                     style: const TextStyle(color: Colors.white70, fontSize: 12),
                     textAlign: TextAlign.center,
                   ),
@@ -8549,26 +8611,183 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       case 'B':
         return l10n.faultLiabilityHintB;
       default:
-        return 'Responsabilità non selezionata.';
+        return _detailText(
+          it: 'Responsabilità non selezionata.',
+          de: 'Haftung nicht ausgewählt.',
+          fr: 'Responsabilité non sélectionnée.',
+          en: 'Liability not selected.',
+        );
     }
   }
+
+  String _detailText({
+    required String it,
+    required String de,
+    required String fr,
+    required String en,
+  }) {
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'de':
+        return de;
+      case 'fr':
+        return fr;
+      case 'en':
+        return en;
+      case 'it':
+      default:
+        return it;
+    }
+  }
+
+  String _pageTitle() => _detailText(
+        it: 'Dettagli incidente',
+        de: 'Unfallbericht',
+        fr: 'Rapport d’accident',
+        en: 'Accident report',
+      );
 
   String _emailStatusLabel() {
     switch (incidente.emailSendStatus) {
       case 'sent':
-        return '🟢 Pratica sincronizzata e inviata';
+        return _detailText(
+          it: 'Sincronizzata e inviata',
+          de: 'Synchronisiert und gesendet',
+          fr: 'Synchronisé et envoyé',
+          en: 'Synced and sent',
+        );
       case 'pending_sync':
-        return '🟠 Salvata offline, in attesa di connessione';
+        return _detailText(
+          it: 'Salvata offline',
+          de: 'Offline gespeichert',
+          fr: 'Enregistré hors ligne',
+          en: 'Saved offline',
+        );
       case 'syncing':
-        return '🔄 Sincronizzazione in corso…';
+        return _detailText(
+          it: 'Sincronizzazione in corso',
+          de: 'Synchronisierung läuft',
+          fr: 'Synchronisation en cours',
+          en: 'Sync in progress',
+        );
       case 'skipped':
-        return '🟡 Email non inviata: nessuna email disponibile';
+        return _detailText(
+          it: 'Nessuna e-mail disponibile',
+          de: 'Keine E-Mail verfügbar',
+          fr: 'Aucun e-mail disponible',
+          en: 'No email available',
+        );
       case 'failed':
-        return '🔴 Sincronizzazione fallita — Riprova';
+        return _detailText(
+          it: 'Invio da riprovare',
+          de: 'Versand erneut versuchen',
+          fr: 'Envoi à réessayer',
+          en: 'Retry sending',
+        );
       case 'pending':
-        return '🔄 Sincronizzazione in corso…';
+        return _detailText(
+          it: 'Sincronizzazione in corso',
+          de: 'Synchronisierung läuft',
+          fr: 'Synchronisation en cours',
+          en: 'Sync in progress',
+        );
       default:
         return '';
+    }
+  }
+
+  String _emailStatusDescription() {
+    switch (incidente.emailSendStatus) {
+      case 'sent':
+        return _detailText(
+          it: 'La pratica risulta inviata correttamente ai destinatari disponibili.',
+          de: 'Die Schadenakte wurde erfolgreich an die verfügbaren Empfänger gesendet.',
+          fr: 'Le dossier a été envoyé correctement aux destinataires disponibles.',
+          en: 'The claim has been sent successfully to the available recipients.',
+        );
+      case 'pending_sync':
+        return _detailText(
+          it: 'La pratica è stata salvata e verrà inviata automaticamente appena torna la connessione.',
+          de: 'Die Schadenakte wurde gespeichert und wird automatisch gesendet, sobald die Verbindung wieder verfügbar ist.',
+          fr: 'Le dossier a été enregistré et sera envoyé automatiquement dès que la connexion sera disponible.',
+          en: 'The claim was saved and will be sent automatically when the connection is available again.',
+        );
+      case 'syncing':
+      case 'pending':
+        return _detailText(
+          it: 'Stiamo completando la sincronizzazione della pratica.',
+          de: 'Die Synchronisierung der Schadenakte wird gerade abgeschlossen.',
+          fr: 'La synchronisation du dossier est en cours.',
+          en: 'The claim synchronization is being completed.',
+        );
+      case 'skipped':
+        return _detailText(
+          it: 'La pratica è salvata, ma non ci sono indirizzi e-mail disponibili per l’invio automatico.',
+          de: 'Die Schadenakte ist gespeichert, es sind jedoch keine E-Mail-Adressen für den automatischen Versand verfügbar.',
+          fr: 'Le dossier est enregistré, mais aucune adresse e-mail n’est disponible pour l’envoi automatique.',
+          en: 'The claim is saved, but no email addresses are available for automatic sending.',
+        );
+      case 'failed':
+        return _detailText(
+          it: 'La pratica è stata salvata correttamente. Puoi riprovare l’invio più tardi.',
+          de: 'Die Schadenakte wurde korrekt gespeichert. Sie können den Versand später erneut versuchen.',
+          fr: 'Le dossier a bien été enregistré. Vous pourrez réessayer l’envoi plus tard.',
+          en: 'The claim was saved correctly. You can retry sending it later.',
+        );
+      default:
+        return incidente.emailSendMessage;
+    }
+  }
+
+  IconData _emailStatusIcon() {
+    switch (incidente.emailSendStatus) {
+      case 'sent':
+        return Icons.check_circle_outline;
+      case 'pending_sync':
+        return Icons.wifi_off_outlined;
+      case 'syncing':
+      case 'pending':
+        return Icons.sync;
+      case 'skipped':
+        return Icons.mail_outline;
+      case 'failed':
+        return Icons.warning_amber_rounded;
+      default:
+        return Icons.info_outline;
+    }
+  }
+
+  Color _emailStatusBackground() {
+    switch (incidente.emailSendStatus) {
+      case 'sent':
+        return const Color(0xFFDCFCE7);
+      case 'pending_sync':
+        return const Color(0xFFFFF7ED);
+      case 'syncing':
+      case 'pending':
+        return const Color(0xFFDBEAFE);
+      case 'skipped':
+        return const Color(0xFFFEF3C7);
+      case 'failed':
+        return const Color(0xFFFEF3C7);
+      default:
+        return const Color(0xFFF3F4F6);
+    }
+  }
+
+  Color _emailStatusForeground() {
+    switch (incidente.emailSendStatus) {
+      case 'sent':
+        return const Color(0xFF166534);
+      case 'pending_sync':
+        return const Color(0xFF9A3412);
+      case 'syncing':
+      case 'pending':
+        return const Color(0xFF1D4ED8);
+      case 'skipped':
+      case 'failed':
+        return const Color(0xFF92400E);
+      default:
+        return const Color(0xFF4B5563);
     }
   }
 
@@ -8577,6 +8796,123 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     final parsed = DateTime.tryParse(incidente.emailSendLastAttemptAt);
     if (parsed == null) return incidente.emailSendLastAttemptAt;
     return formatDataOraLocale(context, parsed.toLocal());
+  }
+
+  Widget _buildDetailBadge({
+    required IconData icon,
+    required String label,
+    required Color backgroundColor,
+    required Color foregroundColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: foregroundColor),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: foregroundColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFF2563EB)),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 124,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF6B7280),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF111827),
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSoftInfoBox({
+    required IconData icon,
+    required String title,
+    required String message,
+    Color backgroundColor = const Color(0xFFFEF3C7),
+    Color foregroundColor = const Color(0xFF92400E),
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: foregroundColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: foregroundColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  message,
+                  style: TextStyle(
+                    color: foregroundColor.withValues(alpha: 0.92),
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _retryPendingSync() async {
@@ -10183,6 +10519,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     final l10n = AppLocalizations.of(context)!;
     final dataOra = formatDataOraLocale(context, incidente.dataOra);
     final emailStatusLabel = _emailStatusLabel();
+    final emailStatusDescription = _emailStatusDescription();
     final emailLastAttempt = _emailLastAttemptLabel();
     final bool hasNoteVocali = incidente.notaVocaleA.isNotEmpty ||
         incidente.notaVocaleB.isNotEmpty ||
@@ -10194,10 +10531,27 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     final firmaBBytes = _decodeBase64Image(incidente.firmaBPath);
     final firmaAExists = firmaABytes != null;
     final firmaBExists = firmaBBytes != null;
+    final practiceId = incidente.id.trim().isEmpty ? '-' : incidente.id.trim();
+    final contactsLines = <String>[
+      if (incidente.telefonoA.isNotEmpty || incidente.emailA.isNotEmpty)
+        'A ${incidente.telefonoA.isEmpty ? '-' : incidente.telefonoA}'
+            '${incidente.emailA.isNotEmpty ? ' · ${incidente.emailA}' : ''}',
+      if (incidente.telefonoB.isNotEmpty || incidente.emailB.isNotEmpty)
+        'B ${incidente.telefonoB.isEmpty ? '-' : incidente.telefonoB}'
+            '${incidente.emailB.isNotEmpty ? ' · ${incidente.emailB}' : ''}',
+    ];
+    final contactsValue = contactsLines.isEmpty
+        ? _detailText(
+            it: 'Nessun contatto disponibile',
+            de: 'Keine Kontaktdaten verfügbar',
+            fr: 'Aucun contact disponible',
+            en: 'No contact available',
+          )
+        : contactsLines.join('\n');
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(tx(context, 'Dettaglio incidente')),
+        title: Text(_pageTitle()),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -10205,126 +10559,245 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
           children: [
             Card(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
               ),
-              elevation: 1,
+              elevation: 2,
               child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline,
-                        color: Theme.of(context).colorScheme.primary, size: 28),
-                    const SizedBox(width: 12),
-                    Expanded(
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            tx(context, 'Riepilogo incidente'),
+                            '${_detailText(it: 'Pratica n°', de: 'Vorgang Nr.', fr: 'Dossier n°', en: 'Claim no.')} $practiceId',
                             style: Theme.of(context)
                                 .textTheme
-                                .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
+                                .titleSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0F172A),
+                                ),
                           ),
-                          const SizedBox(height: 8),
-                          Text('${l10n.labelDateTime} $dataOra'),
-                          Text('${l10n.labelPlace} ${incidente.luogo}'),
-                          const SizedBox(height: 6),
-                          if (incidente.telefonoA.isNotEmpty ||
-                              incidente.emailA.isNotEmpty ||
-                              incidente.telefonoB.isNotEmpty ||
-                              incidente.emailB.isNotEmpty)
-                            Text(
-                              'Contatti: '
-                              'A ${incidente.telefonoA.isEmpty ? '-' : incidente.telefonoA}'
-                              '${incidente.emailA.isNotEmpty ? ' · ${incidente.emailA}' : ''}'
-                              '  |  '
-                              'B ${incidente.telefonoB.isEmpty ? '-' : incidente.telefonoB}'
-                              '${incidente.emailB.isNotEmpty ? ' · ${incidente.emailB}' : ''}',
-                              style: const TextStyle(
-                                  fontSize: 12, color: Colors.black54),
-                            ),
-                          if (_collectSendRecipients(
-                            emailA: incidente.emailA,
-                            emailB: incidente.emailB,
-                          ).isEmpty)
-                            const Text(
-                              'Nessuna email disponibile per l’invio automatico.',
-                              style: TextStyle(
-                                  fontSize: 12, color: Colors.redAccent),
-                            ),
-                          if (emailStatusLabel.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Text(
-                              emailStatusLabel,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _buildDetailBadge(
+                                icon: Icons.event_outlined,
+                                label:
+                                    '${_detailText(it: 'Creata il', de: 'Erstellt am', fr: 'Créé le', en: 'Created on')}: $dataOra',
+                                backgroundColor: const Color(0xFFDBEAFE),
+                                foregroundColor: const Color(0xFF1D4ED8),
                               ),
-                            ),
-                          ],
-                          if (incidente.emailSendMessage.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              incidente.emailSendMessage,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.black54,
+                              _buildDetailBadge(
+                                icon: Icons.verified_user_outlined,
+                                label: _detailText(
+                                  it: 'Protetta con hash SHA-256 e timestamp UTC',
+                                  de: 'Geschützt mit SHA-256-Hash und UTC-Zeitstempel',
+                                  fr: 'Protégé par hash SHA-256 et horodatage UTC',
+                                  en: 'Protected with SHA-256 hash and UTC timestamp',
+                                ),
+                                backgroundColor: const Color(0xFFDCFCE7),
+                                foregroundColor: const Color(0xFF166534),
                               ),
-                            ),
-                          ],
-                          if (emailLastAttempt.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              'Ultimo tentativo: $emailLastAttempt',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 4),
-                          Text(
-                            _labelResponsabilita(),
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.grey),
+                            ],
                           ),
-                          if (_hashValido == false) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              AppLocalizations.of(context)!
-                                  .integrityNotVerifiedWarning,
-                              style: const TextStyle(
-                                  fontSize: 12, color: Colors.red),
-                            ),
-                          ] else if (incidente.hashIntegrita.isEmpty) ...[
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Impronta di integrità non disponibile per questa pratica.',
-                              style: TextStyle(
-                                  fontSize: 12, color: Colors.black54),
-                            ),
-                          ] else if (_hashValido == null) ...[
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Verifica integrità in corso...',
-                              style: TextStyle(
-                                  fontSize: 12, color: Colors.black54),
-                            ),
-                          ],
-                          if (_locked && !widget.readOnly) ...[
-                            const SizedBox(height: 6),
-                            const Text(
-                              'Firme completate: pratica bloccata (non più modificabile).',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.red,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ],
                         ],
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          _detailText(
+                            it: 'Riepilogo pratica',
+                            de: 'Aktenübersicht',
+                            fr: 'Résumé du dossier',
+                            en: 'Claim overview',
+                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildSummaryRow(
+                      icon: Icons.schedule_outlined,
+                      label: l10n.labelDateTime,
+                      value: dataOra,
+                    ),
+                    _buildSummaryRow(
+                      icon: Icons.location_on_outlined,
+                      label: l10n.labelPlace,
+                      value: incidente.luogo,
+                    ),
+                    _buildSummaryRow(
+                      icon: Icons.perm_contact_calendar_outlined,
+                      label: _detailText(
+                        it: 'Contatti',
+                        de: 'Kontakte',
+                        fr: 'Contacts',
+                        en: 'Contacts',
+                      ),
+                      value: contactsValue,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.cloud_done_outlined,
+                            size: 18,
+                            color: Color(0xFF2563EB),
+                          ),
+                          const SizedBox(width: 10),
+                          SizedBox(
+                            width: 124,
+                            child: Text(
+                              _detailText(
+                                it: 'Stato sincronizzazione',
+                                de: 'Synchronisierungsstatus',
+                                fr: 'État de synchronisation',
+                                en: 'Sync status',
+                              ),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF6B7280),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                if (emailStatusLabel.isNotEmpty)
+                                  _buildDetailBadge(
+                                    icon: _emailStatusIcon(),
+                                    label: emailStatusLabel,
+                                    backgroundColor: _emailStatusBackground(),
+                                    foregroundColor: _emailStatusForeground(),
+                                  ),
+                                if (emailLastAttempt.isNotEmpty)
+                                  _buildDetailBadge(
+                                    icon: Icons.history_toggle_off,
+                                    label:
+                                        '${_detailText(it: 'Ultimo tentativo', de: 'Letzter Versuch', fr: 'Dernière tentative', en: 'Last attempt')}: $emailLastAttempt',
+                                    backgroundColor: const Color(0xFFF3F4F6),
+                                    foregroundColor: const Color(0xFF4B5563),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (emailStatusDescription.isNotEmpty &&
+                        incidente.emailSendStatus != 'failed') ...[
+                      Text(
+                        emailStatusDescription,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                          height: 1.35,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    if (incidente.emailSendStatus == 'failed') ...[
+                      _buildSoftInfoBox(
+                        icon: Icons.warning_amber_rounded,
+                        title: _detailText(
+                          it: 'Invio e-mail temporaneamente non riuscito.',
+                          de: 'E-Mail-Versand vorübergehend nicht erfolgreich.',
+                          fr: 'Envoi de l’e-mail temporairement indisponible.',
+                          en: 'Email sending is temporarily unavailable.',
+                        ),
+                        message: _detailText(
+                          it: 'La pratica è stata salvata correttamente. Puoi riprovare l’invio più tardi.',
+                          de: 'Die Schadenakte wurde korrekt gespeichert. Sie können den Versand später erneut versuchen.',
+                          fr: 'Le dossier a bien été enregistré. Vous pourrez réessayer l’envoi plus tard.',
+                          en: 'The claim was saved correctly. You can retry sending it later.',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    if (_hashValido == false) ...[
+                      Text(
+                        AppLocalizations.of(context)!
+                            .integrityNotVerifiedWarning,
+                        style: const TextStyle(fontSize: 12, color: Colors.red),
+                      ),
+                      const SizedBox(height: 6),
+                    ] else if (incidente.hashIntegrita.isEmpty) ...[
+                      Text(
+                        _detailText(
+                          it: 'Impronta di integrità non disponibile per questa pratica.',
+                          de: 'Für diese Schadenakte ist kein Integritäts-Hash verfügbar.',
+                          fr: 'Aucune empreinte d’intégrité disponible pour ce dossier.',
+                          en: 'No integrity hash is available for this claim.',
+                        ),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                    ] else if (_hashValido == null) ...[
+                      Text(
+                        _detailText(
+                          it: 'Verifica integrità in corso...',
+                          de: 'Integritätsprüfung läuft...',
+                          fr: 'Vérification de l’intégrité en cours...',
+                          en: 'Integrity verification in progress...',
+                        ),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                    ],
+                    if (_locked && !widget.readOnly)
+                      _buildSoftInfoBox(
+                        icon: Icons.lock_outline,
+                        title: _detailText(
+                          it: 'Pratica bloccata dopo le firme',
+                          de: 'Akte nach den Unterschriften gesperrt',
+                          fr: 'Dossier verrouillé après les signatures',
+                          en: 'Claim locked after signatures',
+                        ),
+                        message: _detailText(
+                          it: 'Le firme sono state completate e la pratica non è più modificabile.',
+                          de: 'Die Unterschriften sind abgeschlossen und die Schadenakte kann nicht mehr bearbeitet werden.',
+                          fr: 'Les signatures sont terminées et le dossier n’est plus modifiable.',
+                          en: 'Signatures are complete and the claim can no longer be edited.',
+                        ),
+                        backgroundColor: const Color(0xFFECFDF5),
+                        foregroundColor: const Color(0xFF166534),
+                      ),
                   ],
                 ),
               ),
@@ -10570,12 +11043,18 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                       ),
                     ] else ...[
                       Padding(
-                        padding: EdgeInsets.only(top: 4),
+                        padding: const EdgeInsets.only(top: 4),
                         child: Text(
-                          tx(context,
-                              'Questo incidente è in sola lettura / bloccato.'),
-                          style:
-                              const TextStyle(color: Colors.red, fontSize: 12),
+                          _detailText(
+                            it: 'Questa pratica è in sola lettura / bloccata.',
+                            de: 'Diese Schadenakte ist schreibgeschützt / gesperrt.',
+                            fr: 'Ce dossier est en lecture seule / verrouillé.',
+                            en: 'This claim is read-only / locked.',
+                          ),
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ],
@@ -10593,19 +11072,45 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                         Text(l10n.labelDriverA),
                         const SizedBox(height: 4),
                         if (firmaAExists)
-                          SizedBox(
-                            height: 60,
-                            child:
-                                Image.memory(firmaABytes!, fit: BoxFit.contain),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                height: 60,
+                                child: Image.memory(
+                                  firmaABytes!,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _detailText(
+                                  it: 'Firmato digitalmente',
+                                  de: 'Digital signiert',
+                                  fr: 'Signé numériquement',
+                                  en: 'Digitally signed',
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF111827),
+                                ),
+                              ),
+                            ],
                           )
                         else
-                          const Text(
-                            'Firma A non trovata. Chiedi di firmare di nuovo.',
+                          Text(
+                            _detailText(
+                              it: 'Firma A non trovata. Chiedi di firmare di nuovo.',
+                              de: 'Unterschrift A nicht gefunden. Bitte erneut unterschreiben.',
+                              fr: 'Signature A introuvable. Merci de signer à nouveau.',
+                              en: 'Signature A not found. Please sign again.',
+                            ),
                             style: TextStyle(
                                 fontSize: 12, color: Colors.redAccent),
                           ),
                         Text(
-                          'Timestamp (UTC): ${incidente.timestampFirmaA.isEmpty ? '-' : incidente.timestampFirmaA}',
+                          '${_detailText(it: 'Timestamp UTC', de: 'UTC-Zeitstempel', fr: 'Horodatage UTC', en: 'UTC timestamp')}: ${incidente.timestampFirmaA.isEmpty ? '-' : incidente.timestampFirmaA}',
                           style: const TextStyle(
                               fontSize: 12, color: Colors.black54),
                         ),
@@ -10615,19 +11120,45 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                         Text(l10n.labelDriverB),
                         const SizedBox(height: 4),
                         if (firmaBExists)
-                          SizedBox(
-                            height: 60,
-                            child:
-                                Image.memory(firmaBBytes!, fit: BoxFit.contain),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                height: 60,
+                                child: Image.memory(
+                                  firmaBBytes!,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _detailText(
+                                  it: 'Firmato digitalmente',
+                                  de: 'Digital signiert',
+                                  fr: 'Signé numériquement',
+                                  en: 'Digitally signed',
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF111827),
+                                ),
+                              ),
+                            ],
                           )
                         else
-                          const Text(
-                            'Firma B non trovata. Chiedi di firmare di nuovo.',
+                          Text(
+                            _detailText(
+                              it: 'Firma B non trovata. Chiedi di firmare di nuovo.',
+                              de: 'Unterschrift B nicht gefunden. Bitte erneut unterschreiben.',
+                              fr: 'Signature B introuvable. Merci de signer à nouveau.',
+                              en: 'Signature B not found. Please sign again.',
+                            ),
                             style: TextStyle(
                                 fontSize: 12, color: Colors.redAccent),
                           ),
                         Text(
-                          'Timestamp (UTC): ${incidente.timestampFirmaB.isEmpty ? '-' : incidente.timestampFirmaB}',
+                          '${_detailText(it: 'Timestamp UTC', de: 'UTC-Zeitstempel', fr: 'Horodatage UTC', en: 'UTC timestamp')}: ${incidente.timestampFirmaB.isEmpty ? '-' : incidente.timestampFirmaB}',
                           style: const TextStyle(
                               fontSize: 12, color: Colors.black54),
                         ),
@@ -10669,22 +11200,36 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: _isSharingIncident
+                        onPressed: _isSendingAuto
                             ? null
-                            : () => _condividiPerAssicurazione(context),
-                        icon: const Icon(Icons.picture_as_pdf_outlined),
-                        label: const Text('Condividi PDF e foto'),
+                            : () => _sendCidAutomatically(incidente.id),
+                        icon: const Icon(Icons.send),
+                        label: Text(
+                          _detailText(
+                            it: 'Invia automaticamente pratica',
+                            de: 'Schadenakte automatisch senden',
+                            fr: 'Envoyer automatiquement le dossier',
+                            en: 'Send claim automatically',
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed: _isSendingAuto
+                        onPressed: _isSharingIncident
                             ? null
-                            : () => _sendCidAutomatically(incidente.id),
-                        icon: const Icon(Icons.send),
-                        label: const Text('Invia automaticamente pratica'),
+                            : () => _condividiPerAssicurazione(context),
+                        icon: const Icon(Icons.picture_as_pdf_outlined),
+                        label: Text(
+                          _detailText(
+                            it: 'Condividi PDF e foto',
+                            de: 'PDF und Fotos teilen',
+                            fr: 'Partager PDF et photos',
+                            en: 'Share PDF and photos',
+                          ),
+                        ),
                       ),
                     ),
                     if (incidente.emailSendStatus == 'failed') ...[
@@ -10694,7 +11239,14 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                         child: OutlinedButton.icon(
                           onPressed: _isSendingAuto ? null : _retryPendingSync,
                           icon: const Icon(Icons.refresh),
-                          label: const Text('Riprova invio'),
+                          label: Text(
+                            _detailText(
+                              it: 'Riprova invio',
+                              de: 'Versand erneut versuchen',
+                              fr: 'Réessayer l’envoi',
+                              en: 'Retry sending',
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -10720,7 +11272,12 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                         const Icon(Icons.qr_code_2, color: Colors.blue),
                         const SizedBox(width: 8),
                         Text(
-                          tx(context, 'QR per la carrozzeria'),
+                          _detailText(
+                            it: 'QR per importazione pratica',
+                            de: 'QR zum Importieren der Schadenakte',
+                            fr: 'QR pour importer le dossier',
+                            en: 'QR to import the claim',
+                          ),
                           style: Theme.of(context)
                               .textTheme
                               .titleMedium
@@ -10746,8 +11303,12 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                                   color: Colors.orangeAccent),
                               const SizedBox(height: 6),
                               Text(
-                                tx(context,
-                                    'Impossibile generare QR carrozzeria'),
+                                _detailText(
+                                  it: 'Impossibile generare il QR della pratica',
+                                  de: 'QR der Schadenakte konnte nicht erstellt werden',
+                                  fr: 'Impossible de générer le QR du dossier',
+                                  en: 'Unable to generate the claim QR',
+                                ),
                                 style: const TextStyle(
                                     color: Colors.orangeAccent, fontSize: 12),
                                 textAlign: TextAlign.center,
@@ -10756,8 +11317,14 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                               OutlinedButton.icon(
                                 onPressed: _startWorkshopQr,
                                 icon: const Icon(Icons.refresh),
-                                label:
-                                    Text(tx(context, 'Genera QR carrozzeria')),
+                                label: Text(
+                                  _detailText(
+                                    it: 'Genera QR importazione',
+                                    de: 'Import-QR erstellen',
+                                    fr: 'Générer le QR d’import',
+                                    en: 'Generate import QR',
+                                  ),
+                                ),
                               ),
                             ],
                           );
@@ -10770,16 +11337,26 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                                   color: Colors.blueAccent),
                               const SizedBox(height: 6),
                               Text(
-                                tx(context,
-                                    'Genera il QR per permettere alla carrozzeria di importare i dati.'),
+                                _detailText(
+                                  it: 'Genera il QR per permettere alla carrozzeria di importare automaticamente la pratica.',
+                                  de: 'Erzeugen Sie den QR-Code, damit die Werkstatt die Schadenakte automatisch importieren kann.',
+                                  fr: 'Générez le QR pour permettre au garage d’importer automatiquement le dossier.',
+                                  en: 'Generate the QR so the workshop can automatically import the claim.',
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 8),
                               OutlinedButton.icon(
                                 onPressed: _startWorkshopQr,
                                 icon: const Icon(Icons.qr_code),
-                                label:
-                                    Text(tx(context, 'Genera QR carrozzeria')),
+                                label: Text(
+                                  _detailText(
+                                    it: 'Genera QR importazione',
+                                    de: 'Import-QR erstellen',
+                                    fr: 'Générer le QR d’import',
+                                    en: 'Generate import QR',
+                                  ),
+                                ),
                               ),
                             ],
                           );
@@ -10795,8 +11372,12 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              tx(context,
-                                  'Mostra questo QR alla carrozzeria per importare i dati.'),
+                              _detailText(
+                                it: 'Mostra questo QR alla carrozzeria per importare automaticamente tutti i dati dell’incidente.',
+                                de: 'Zeigen Sie diesen QR-Code der Werkstatt, um die Schadenakte automatisch zu importieren.',
+                                fr: 'Montrez ce QR au garage pour importer automatiquement toutes les données de l’accident.',
+                                en: 'Show this QR to the workshop to automatically import all accident data.',
+                              ),
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 8),
