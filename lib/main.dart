@@ -905,15 +905,14 @@ Future<Incidente> _syncPendingQueueEntry(Map<String, dynamic> entry) async {
     debugPrint('$st');
   }
 
-  debugPrint('SYNC EMAIL START: claimId=$realClaimId');
-  final result = await Supabase.instance.client.functions.invoke(
-    'send-cid-email',
-    body: {'claimId': realClaimId},
+  await _invokeSendCidEmailEdgeFunction(
+    claimId: realClaimId,
+    incident: incident,
+    recipients: _collectSendRecipients(
+      emailA: incident.emailA,
+      emailB: incident.emailB,
+    ),
   );
-  if (result.status >= 400 ||
-      (result.data is Map && (result.data as Map)['success'] == false)) {
-    throw Exception('send-cid-email failed: ${result.data}');
-  }
 
   incident = await _persistIncidentEmailSendState(
     incident,
@@ -2743,6 +2742,59 @@ String formatClaimDisplayId(Incidente incidente) {
 
 String formatWorkshopDisplayCode(Incidente incidente) {
   return '${formatClaimDisplayId(incidente)}-W';
+}
+
+Future<void> _syncClaimPayloadSnapshot(Incidente incident) async {
+  if (!QrPayload.looksLikeUuid(incident.id)) return;
+
+  try {
+    await Supabase.instance.client.from('claims').update({
+      'payload_json': incident.toJson(),
+      'workshop_code': incident.codiceOfficina,
+      'hashed_token': incident.hashIntegrita,
+    }).eq('id', incident.id);
+    debugPrint(
+      '[CIDEmail] payload ready claimId=${incident.id} '
+      'hash=${incident.hashIntegrita} workshop=${incident.codiceOfficina}',
+    );
+  } catch (e, st) {
+    debugPrint('[CIDEmail] payload sync warning: $e');
+    debugPrint('$st');
+  }
+}
+
+Future<dynamic> _invokeSendCidEmailEdgeFunction({
+  required String claimId,
+  required Incidente incident,
+  required List<String> recipients,
+}) async {
+  final displayId = formatClaimDisplayId(incident);
+  debugPrint('[CIDEmail] start claimId=$claimId');
+  debugPrint('[CIDEmail] displayId $displayId');
+  debugPrint('[CIDEmail] recipient ${recipients.join(', ')}');
+
+  await _syncClaimPayloadSnapshot(incident);
+
+  try {
+    final result = await Supabase.instance.client.functions.invoke(
+      'send-cid-email',
+      body: {'claimId': claimId},
+    );
+    debugPrint(
+      '[CIDEmail] resend response status=${result.status} data=${result.data}',
+    );
+    if (result.status >= 400) {
+      throw Exception('Edge function status ${result.status}: ${result.data}');
+    }
+    if (result.data is Map && (result.data as Map)['success'] == false) {
+      throw Exception((result.data as Map)['error'] ?? 'Invio non riuscito');
+    }
+    return result;
+  } catch (e, st) {
+    debugPrint('[CIDEmail] error full $e');
+    debugPrint('$st');
+    rethrow;
+  }
 }
 
 /// HOME ////////////////////////////////////////////////////////////////
@@ -5402,28 +5454,20 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     }
 
     try {
-      final result = await Supabase.instance.client.functions.invoke(
-        'send-cid-email',
-        body: {
-          'claimId': claimId,
-        },
+      await _invokeSendCidEmailEdgeFunction(
+        claimId: claimId,
+        incident: currentIncident,
+        recipients: recipients,
       );
-      debugPrint('CID EMAIL RESULT: ${result.data}');
-      debugPrint('CID EMAIL STATUS: ${result.status}');
-      if (result.status >= 400) {
-        throw Exception('Edge function status ${result.status}');
-      }
-      if (result.data is Map && (result.data as Map)['success'] == false) {
-        throw Exception((result.data as Map)['error'] ?? 'Invio non riuscito');
-      }
       currentIncident = await _persistIncidentEmailSendState(
         currentIncident,
         status: 'sent',
         message: 'Pratica salvata e inviata correttamente.',
       );
       return currentIncident;
-    } catch (e) {
-      debugPrint('CID EMAIL ERROR: $e');
+    } catch (e, st) {
+      debugPrint('[CIDEmail] error full $e');
+      debugPrint('$st');
       currentIncident = await _persistIncidentEmailSendState(
         currentIncident,
         status: 'failed',
@@ -10189,22 +10233,12 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         return;
       }
 
-      debugPrint('SYNC EMAIL START: claimId=$realClaimId');
-      final result = await Supabase.instance.client.functions.invoke(
-        'send-cid-email',
-        body: {
-          'claimId': realClaimId,
-        },
+      await _invokeSendCidEmailEdgeFunction(
+        claimId: realClaimId,
+        incident: workingIncident,
+        recipients: recipients,
       );
-      debugPrint('CID EMAIL RESULT: ${result.data}');
-      debugPrint('CID EMAIL STATUS: ${result.status}');
-      if (result.status >= 400) {
-        throw Exception('Edge function status ${result.status}');
-      }
-      if (result.data is Map && (result.data as Map)['success'] == false) {
-        throw Exception((result.data as Map)['error'] ?? 'Invio non riuscito');
-      }
-      debugPrint('CID EMAIL SUCCESS');
+      debugPrint('[CIDEmail] send success');
       workingIncident = await _persistIncidentEmailSendState(
         workingIncident,
         status: 'sent',
@@ -10223,7 +10257,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         incidente = workingIncident;
       }
     } catch (e, st) {
-      debugPrint('AUTO SEND ERROR: $e');
+      debugPrint('[CIDEmail] error full $e');
       debugPrint('$st');
       final offline = !await _hasInternetConnection();
       final updatedIncident = await _persistIncidentEmailSendState(
@@ -10480,6 +10514,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       incidente = updatedWithHash;
       _qrDataFuture = _qrEmptyFuture();
     });
+    unawaited(_syncClaimPayloadSnapshot(updatedWithHash));
     unawaited(_verificaHashIntegrita());
   }
 
@@ -10580,6 +10615,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         await salvaIncidenti();
       }
 
+      await _syncClaimPayloadSnapshot(updatedWithHash);
+
       setState(() {
         incidente = updatedWithHash;
         _qrDataFuture = _qrEmptyFuture();
@@ -10616,6 +10653,18 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     final firmaAExists = firmaABytes != null;
     final firmaBExists = firmaBBytes != null;
     final practiceId = formatClaimDisplayId(incidente);
+    final lockedTitle = _detailText(
+      it: 'Pratica protetta e conclusa.',
+      de: 'Schadenakte geschützt und abgeschlossen.',
+      fr: 'Dossier protégé et finalisé.',
+      en: 'Claim protected and completed.',
+    );
+    final lockedMessage = _detailText(
+      it: 'Le firme sono state acquisite. La pratica è ora in sola lettura.',
+      de: 'Die Unterschriften sind erfasst. Die Akte ist nun schreibgeschützt.',
+      fr: 'Les signatures ont été enregistrées. Le dossier est désormais en lecture seule.',
+      en: 'The signatures have been recorded. The claim is now read-only.',
+    );
     final contactsLines = <String>[
       if (incidente.telefonoA.isNotEmpty || incidente.emailA.isNotEmpty)
         'A ${incidente.telefonoA.isEmpty ? '-' : incidente.telefonoA}'
@@ -10867,20 +10916,10 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                     if (_locked && !widget.readOnly)
                       _buildSoftInfoBox(
                         icon: Icons.lock_outline,
-                        title: _detailText(
-                          it: 'Pratica bloccata dopo le firme',
-                          de: 'Akte nach den Unterschriften gesperrt',
-                          fr: 'Dossier verrouillé après les signatures',
-                          en: 'Claim locked after signatures',
-                        ),
-                        message: _detailText(
-                          it: 'Le firme sono state completate e la pratica non è più modificabile.',
-                          de: 'Die Unterschriften sind abgeschlossen und die Schadenakte kann nicht mehr bearbeitet werden.',
-                          fr: 'Les signatures sont terminées et le dossier n’est plus modifiable.',
-                          en: 'Signatures are complete and the claim can no longer be edited.',
-                        ),
-                        backgroundColor: const Color(0xFFECFDF5),
-                        foregroundColor: const Color(0xFF166534),
+                        title: lockedTitle,
+                        message: lockedMessage,
+                        backgroundColor: const Color(0xFFEFF6FF),
+                        foregroundColor: const Color(0xFF1D4ED8),
                       ),
                   ],
                 ),
@@ -11128,17 +11167,12 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                     ] else ...[
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          _detailText(
-                            it: 'Questa pratica è in sola lettura / bloccata.',
-                            de: 'Diese Schadenakte ist schreibgeschützt / gesperrt.',
-                            fr: 'Ce dossier est en lecture seule / verrouillé.',
-                            en: 'This claim is read-only / locked.',
-                          ),
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 12,
-                          ),
+                        child: _buildSoftInfoBox(
+                          icon: Icons.lock_outline,
+                          title: lockedTitle,
+                          message: lockedMessage,
+                          backgroundColor: const Color(0xFFEFF6FF),
+                          foregroundColor: const Color(0xFF1D4ED8),
                         ),
                       ),
                     ],

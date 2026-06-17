@@ -60,6 +60,19 @@ const isValidEmail = (email: string) => {
   return trimmed.length > 3 && trimmed.includes("@");
 };
 
+const collectRecipients = (...candidates: unknown[]) => {
+  const recipients: string[] = [];
+
+  for (const candidate of candidates) {
+    if (typeof candidate !== "string") continue;
+    const trimmed = candidate.trim();
+    if (!isValidEmail(trimmed) || recipients.includes(trimmed)) continue;
+    recipients.push(trimmed);
+  }
+
+  return recipients;
+};
+
 const buildFileNameFromPath = (path: string, fallback: string) => {
   const cleaned = path.split("?")[0].split("#")[0];
   const parts = cleaned.split("/").filter((p) => p.length > 0);
@@ -508,6 +521,16 @@ const escapeHtml = (value: string) =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+
+const normalizePdfText = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, "-")
+    .replace(/…/g, "...")
+    .replace(/•/g, "-");
 
 const stringOrDash = (value: unknown) => {
   if (typeof value === "string") {
@@ -1058,7 +1081,7 @@ async function generatePdfFromPayload(
 
   const line = (text: string, bold = false, size = 12) => {
     ensureSpace(size + 12);
-    page.drawText(text ?? "", {
+    page.drawText(normalizePdfText(text ?? ""), {
       x: 40,
       y,
       size,
@@ -1211,7 +1234,7 @@ async function handleRequest(req: Request): Promise<Response> {
 
   try {
     const { claimId } = await req.json();
-    console.log("SEND CID EMAIL claimId:", claimId);
+    console.log("[CIDEmail] start", JSON.stringify({ claimId }));
     if (!claimId) {
       return Response.json(
         { error: "Missing claimId", success: false },
@@ -1249,6 +1272,11 @@ async function handleRequest(req: Request): Promise<Response> {
     const payload = (claimRow?.payload_json ?? {}) as Record<string, any>;
     console.log("SEND CID EMAIL payload keys:", Object.keys(payload));
     const lang = detectPayloadLanguage(payload);
+    const displayClaimId = formatClaimDisplayId(
+      claimId,
+      payload?.dataOra ?? claimRow?.created_at,
+    );
+    console.log("[CIDEmail] displayId", displayClaimId);
     console.log("LANG_USED", lang);
     console.log(
       "SIGNATURE_KEYS_SCAN",
@@ -1279,13 +1307,28 @@ async function handleRequest(req: Request): Promise<Response> {
       ),
     );
 
-    const recipients = [payload["emailA"], payload["emailB"]]
-      .map((v) => (typeof v === "string" ? v.trim() : ""))
-      .filter((v, i, arr) => isValidEmail(v) && arr.indexOf(v) === i);
+    const recipients = collectRecipients(
+      payload["emailA"],
+      payload["emailB"],
+      payload["recipient"],
+      payload["customerEmail"],
+      payload["customer_email"],
+      claimRow?.emailA,
+      claimRow?.emailB,
+      claimRow?.recipient,
+      claimRow?.customerEmail,
+      claimRow?.customer_email,
+      claimRow?.email,
+    );
 
-    console.log("SEND CID EMAIL recipients final:", recipients);
+    console.log("[CIDEmail] recipient", JSON.stringify(recipients));
 
     if (recipients.length === 0) {
+      console.error("[CIDEmail] error full", {
+        error: "NO_VALID_RECIPIENTS",
+        emailA: payload?.emailA ?? null,
+        emailB: payload?.emailB ?? null,
+      });
       return new Response(
         JSON.stringify({
           success: false,
@@ -1459,10 +1502,6 @@ async function handleRequest(req: Request): Promise<Response> {
 
     console.log("EMAIL_ATTACHMENTS_FINAL:", attachments.map((a) => a.filename));
 
-    const displayClaimId = formatClaimDisplayId(
-      claimId,
-      payload?.dataOra ?? claimRow?.created_at,
-    );
     const displayWorkshopCode = formatWorkshopDisplayCode(displayClaimId);
     const copy = getLocalizedCopy(lang, displayClaimId);
 
@@ -1654,6 +1693,34 @@ async function handleRequest(req: Request): Promise<Response> {
       </div>
     `;
 
+    const safeSubject = copy.emailSubject.trim().length > 0
+      ? copy.emailSubject.trim()
+      : `CID Digitale ${displayClaimId}`;
+    const safeTextBody = textBody.trim().length > 0
+      ? textBody
+      : `${copy.emailHeading}\n${copy.claimNumber}: ${displayClaimId}`;
+    const safeHtmlBody = htmlBody.trim().length > 0
+      ? htmlBody
+      : `<p>${escapeHtml(safeTextBody)}</p>`;
+    const safeAttachments = attachments.filter((attachment) =>
+      typeof attachment.filename === "string" &&
+      attachment.filename.trim().length > 0 &&
+      typeof attachment.content === "string" &&
+      attachment.content.trim().length > 0
+    );
+
+    console.log("[CIDEmail] payload ready", JSON.stringify({
+      claimId,
+      displayClaimId,
+      lang,
+      recipients,
+      subjectLength: safeSubject.length,
+      textLength: safeTextBody.length,
+      htmlLength: safeHtmlBody.length,
+      attachmentsCount: safeAttachments.length,
+      pdfAttached,
+    }));
+
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -1663,25 +1730,41 @@ async function handleRequest(req: Request): Promise<Response> {
       body: JSON.stringify({
         from: FROM_EMAIL,
         to: recipients,
-        subject: copy.emailSubject,
-        text: textBody,
-        html: htmlBody,
-        attachments,
+        subject: safeSubject,
+        text: safeTextBody,
+        html: safeHtmlBody,
+        attachments: safeAttachments,
       }),
     });
 
+    const resendResponseText = await res.text();
+    let resendResponseBody: unknown = resendResponseText;
+    try {
+      resendResponseBody = resendResponseText
+        ? JSON.parse(resendResponseText)
+        : null;
+    } catch (_err) {
+      // keep raw body
+    }
+    console.log("[CIDEmail] resend response", JSON.stringify({
+      status: res.status,
+      body: resendResponseBody,
+    }));
+
     if (!res.ok) {
-      const resendResult = await res.json().catch(() => ({} as any));
-      console.error("SEND CID EMAIL Resend error", {
+      const resendResult = resendResponseBody && typeof resendResponseBody === "object"
+        ? resendResponseBody as Record<string, unknown>
+        : null;
+      console.error("[CIDEmail] error full", {
         status: res.status,
-        body: resendResult,
+        body: resendResponseBody,
       });
       return new Response(
         JSON.stringify({
           success: false,
           error: resendResult?.message ?? "Errore invio Resend",
           resendStatus: res.status,
-          resendBody: resendResult,
+          resendBody: resendResponseBody,
         }),
         {
           status: 400,
@@ -1706,7 +1789,7 @@ async function handleRequest(req: Request): Promise<Response> {
       },
     );
   } catch (err) {
-    console.error("Function error", err);
+    console.error("[CIDEmail] error full", err);
     return Response.json(
       { error: "Unexpected error", success: false },
       { status: 500 },
