@@ -4405,6 +4405,7 @@ class _FeritoFormData {
 class _ConducenteExtraFormData {
   final int sequence;
   final String driverKey;
+  _DriverCourtesy? courtesy;
   final TextEditingController nomeController;
   final TextEditingController cognomeController;
   final TextEditingController indirizzoController;
@@ -4435,6 +4436,7 @@ class _ConducenteExtraFormData {
   bool get hasAnyValue {
     return nomeController.text.trim().isNotEmpty ||
         cognomeController.text.trim().isNotEmpty ||
+        courtesy != null ||
         indirizzoController.text.trim().isNotEmpty ||
         zipController.text.trim().isNotEmpty ||
         cityController.text.trim().isNotEmpty ||
@@ -4486,6 +4488,8 @@ class _DriverFieldBundle {
     required this.assicurazioneController,
   });
 }
+
+enum _DriverCourtesy { mr, mrs, company }
 
 /// NUOVA PRATICA ///////////////////////////////////////////////////////
 
@@ -4539,6 +4543,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   final _indirizzoAController = TextEditingController();
   final _driverAZipController = TextEditingController();
   final _driverACityController = TextEditingController();
+  _DriverCourtesy? _driverACourtesy;
 
   final _nomeBController = TextEditingController();
   final _cognomeBController = TextEditingController();
@@ -4550,6 +4555,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   final _indirizzoBController = TextEditingController();
   final _driverBZipController = TextEditingController();
   final _driverBCityController = TextEditingController();
+  _DriverCourtesy? _driverBCourtesy;
 
   final _descrizioneController = TextEditingController();
   final _damageVehicleAController = TextEditingController();
@@ -4613,7 +4619,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   }
 
   bool _isAnyCampoBCompilato() {
-    return _nomeBController.text.trim().isNotEmpty ||
+    return _driverBCourtesy != null ||
+        _nomeBController.text.trim().isNotEmpty ||
         _cognomeBController.text.trim().isNotEmpty ||
         _targaBController.text.trim().isNotEmpty ||
         _assicurazioneBController.text.trim().isNotEmpty ||
@@ -6323,13 +6330,84 @@ Future<Incidente> _sendCidAutomatically(
     );
   }
 
-  String _driverAddressLabel(String driverKey) {
+  String _driverAddressFieldLabel() {
     return _copyText(
-      it: 'Indirizzo conducente $driverKey',
-      de: 'Adresse Fahrer $driverKey',
-      fr: 'Adresse conducteur $driverKey',
-      en: 'Driver $driverKey address',
+      it: 'Indirizzo',
+      de: 'Adresse',
+      fr: 'Adresse',
+      en: 'Address',
     );
+  }
+
+  String _driverFirstNameFieldLabel() {
+    return _copyText(
+      it: 'Nome',
+      de: 'Vorname',
+      fr: 'Prénom',
+      en: 'First Name',
+    );
+  }
+
+  String _driverLastNameFieldLabel() {
+    return _copyText(
+      it: 'Cognome',
+      de: 'Nachname',
+      fr: 'Nom',
+      en: 'Last Name',
+    );
+  }
+
+  String _driverPostalCodeFieldLabel() {
+    return _copyText(
+      it: 'CAP',
+      de: 'PLZ',
+      fr: 'Code postal',
+      en: 'Postal Code',
+    );
+  }
+
+  String _driverCityFieldLabel() {
+    return _copyText(
+      it: 'Città',
+      de: 'Ort',
+      fr: 'Ville',
+      en: 'City',
+    );
+  }
+
+  String _driverCourtesyLabel() {
+    return _copyText(
+      it: 'Cortesia / persona giuridica',
+      de: 'Anrede / juristische Person',
+      fr: 'Civilité / personne morale',
+      en: 'Courtesy / legal entity',
+    );
+  }
+
+  String _driverCourtesyOptionLabel(_DriverCourtesy courtesy) {
+    switch (courtesy) {
+      case _DriverCourtesy.mr:
+        return _copyText(
+          it: 'Signor',
+          de: 'Herr',
+          fr: 'Monsieur',
+          en: 'Mr.',
+        );
+      case _DriverCourtesy.mrs:
+        return _copyText(
+          it: 'Signora',
+          de: 'Frau',
+          fr: 'Madame',
+          en: 'Mrs.',
+        );
+      case _DriverCourtesy.company:
+        return _copyText(
+          it: 'Ditta',
+          de: 'Firma',
+          fr: 'Société',
+          en: 'Company',
+        );
+    }
   }
 
   String _vehiclePlateLabel(String driverKey) {
@@ -6396,6 +6474,7 @@ Future<Incidente> _sendCidAutomatically(
 
   Widget _buildDriverFormCard({
     required String driverKey,
+    required _DriverCourtesy? courtesy,
     required TextEditingController nomeController,
     required TextEditingController cognomeController,
     required TextEditingController indirizzoController,
@@ -6409,6 +6488,7 @@ Future<Incidente> _sendCidAutomatically(
     required Uint8List? fotoLibrettoBytes,
     required String? Function(String?) nomeValidator,
     required String? Function(String?) targaValidator,
+    required ValueChanged<_DriverCourtesy?> onCourtesyChanged,
     VoidCallback? onDelete,
   }) {
     return _buildInnerCard(
@@ -6467,18 +6547,35 @@ Future<Incidente> _sendCidAutomatically(
           ),
           _buildDriverPreview(fotoLibrettoPath, fotoLibrettoBytes),
           const SizedBox(height: 14),
+          DropdownButtonFormField<_DriverCourtesy>(
+            initialValue: courtesy,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: _driverCourtesyLabel(),
+            ),
+            items: _DriverCourtesy.values
+                .map(
+                  (value) => DropdownMenuItem<_DriverCourtesy>(
+                    value: value,
+                    child: Text(_driverCourtesyOptionLabel(value)),
+                  ),
+                )
+                .toList(),
+            onChanged: onCourtesyChanged,
+          ),
+          const SizedBox(height: 12),
           _buildResponsivePair(
             TextFormField(
               controller: nomeController,
               decoration: InputDecoration(
-                labelText: AppLocalizations.of(context)!.firstName,
+                labelText: _driverFirstNameFieldLabel(),
               ),
               validator: nomeValidator,
             ),
             TextFormField(
               controller: cognomeController,
               decoration: InputDecoration(
-                labelText: AppLocalizations.of(context)!.lastName,
+                labelText: _driverLastNameFieldLabel(),
               ),
             ),
           ),
@@ -6486,7 +6583,7 @@ Future<Incidente> _sendCidAutomatically(
           TextFormField(
             controller: indirizzoController,
             decoration: InputDecoration(
-              labelText: _driverAddressLabel(driverKey),
+              labelText: _driverAddressFieldLabel(),
             ),
           ),
           const SizedBox(height: 12),
@@ -6496,14 +6593,14 @@ Future<Incidente> _sendCidAutomatically(
               textInputAction: TextInputAction.next,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: AppLocalizations.of(context)!.zip,
+                labelText: _driverPostalCodeFieldLabel(),
               ),
             ),
             TextFormField(
               controller: cityController,
               textInputAction: TextInputAction.next,
               decoration: InputDecoration(
-                labelText: AppLocalizations.of(context)!.city,
+                labelText: _driverCityFieldLabel(),
               ),
             ),
           ),
@@ -6612,6 +6709,7 @@ Future<Incidente> _sendCidAutomatically(
     final widgets = <Widget>[
       _buildDriverFormCard(
         driverKey: 'A',
+        courtesy: _driverACourtesy,
         nomeController: _nomeAController,
         cognomeController: _cognomeAController,
         indirizzoController: _indirizzoAController,
@@ -6635,10 +6733,14 @@ Future<Incidente> _sendCidAutomatically(
           }
           return null;
         },
+        onCourtesyChanged: (value) {
+          setState(() => _driverACourtesy = value);
+        },
       ),
       const SizedBox(height: 16),
       _buildDriverFormCard(
         driverKey: 'B',
+        courtesy: _driverBCourtesy,
         nomeController: _nomeBController,
         cognomeController: _cognomeBController,
         indirizzoController: _indirizzoBController,
@@ -6664,6 +6766,9 @@ Future<Incidente> _sendCidAutomatically(
           }
           return null;
         },
+        onCourtesyChanged: (value) {
+          setState(() => _driverBCourtesy = value);
+        },
       ),
       const SizedBox(height: 16),
       Align(
@@ -6686,6 +6791,7 @@ Future<Incidente> _sendCidAutomatically(
       widgets.add(
         _buildDriverFormCard(
           driverKey: driver.driverKey,
+          courtesy: driver.courtesy,
           nomeController: driver.nomeController,
           cognomeController: driver.cognomeController,
           indirizzoController: driver.indirizzoController,
@@ -6720,6 +6826,9 @@ Future<Incidente> _sendCidAutomatically(
               );
             }
             return null;
+          },
+          onCourtesyChanged: (value) {
+            setState(() => driver.courtesy = value);
           },
           onDelete: () => _removeConducenteAggiuntivo(driver),
         ),
