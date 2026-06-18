@@ -12,9 +12,12 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 // TODO: sostituire il mittente Resend con email professionale del dominio quando disponibile.
 const FROM_EMAIL = "onboarding@resend.dev";
-const MAX_ATTACHMENTS = 10;
-const JPEG_MAX_WIDTH = 1600;
-const JPEG_QUALITY = 75;
+const MAX_ATTACHMENTS = 6;
+const MAX_BOOKLET_PHOTOS = 2;
+const MAX_DAMAGE_PHOTOS = 3;
+const MAX_EMAIL_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+const JPEG_MAX_WIDTH = 1200;
+const JPEG_QUALITY = 70;
 const SIGNED_URL_TTL_SECONDS = 60;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -36,12 +39,19 @@ type AttachmentCandidate = {
   origin: string;
 };
 
+type PhotoCategory = "booklet" | "damage";
+
+type PhotoAttachmentCandidate = {
+  attachmentKey: string;
+  category: PhotoCategory;
+  contentTypeHint?: string;
+  fallbackName: string;
+  source: string;
+};
+
 type SupportedLang = "de" | "it" | "fr" | "en";
 
-const damageKeyTerms = [
-  "damage",
-  "danno",
-  "danni",
+const bookletKeyTerms = [
   "libretto",
   "fotolibretto",
   "foto_libretto",
@@ -53,14 +63,23 @@ const damageKeyTerms = [
   "certificat",
 ];
 
-const damagePathSegments = [
-  "damage",
-  "danni",
+const bookletPathSegments = [
   "libretto",
   "vehicle",
   "vehicle-document",
   "registration",
   "document",
+];
+
+const damageKeyTerms = [
+  "damage",
+  "danno",
+  "danni",
+];
+
+const damagePathSegments = [
+  "damage",
+  "danni",
 ];
 
 const isValidEmail = (email: string) => {
@@ -298,6 +317,59 @@ const buildAttachmentKey = (source: string) => {
   return source.trim();
 };
 
+const isPdfSource = (source: string) => {
+  const storage = extractStorageLocation(source);
+  const candidate = storage
+    ? normalizeClaimAttachmentPath(storage.path)
+    : source;
+  return candidate.trim().toLowerCase().endsWith(".pdf");
+};
+
+const matchesAttachmentCategory = (
+  source: string,
+  keyPath: string[],
+  options: {
+    keyTerms: string[];
+    pathSegments: string[];
+  },
+) =>
+  matchesPathSegments(source, options.pathSegments) ||
+  matchesKeyTerms(keyPath, options.keyTerms);
+
+const detectPhotoCategory = (
+  source: string,
+  originParts: string[],
+  kindHint?: string | null,
+): PhotoCategory | null => {
+  const normalizedKind = (kindHint ?? "").trim().toLowerCase();
+  if (normalizedKind.includes("libretto")) {
+    return "booklet";
+  }
+  if (normalizedKind.includes("damage") || normalizedKind.includes("danni")) {
+    return "damage";
+  }
+
+  if (
+    matchesAttachmentCategory(source, originParts, {
+      keyTerms: bookletKeyTerms,
+      pathSegments: bookletPathSegments,
+    })
+  ) {
+    return "booklet";
+  }
+
+  if (
+    matchesAttachmentCategory(source, originParts, {
+      keyTerms: damageKeyTerms,
+      pathSegments: damagePathSegments,
+    })
+  ) {
+    return "damage";
+  }
+
+  return null;
+};
+
 const matchesKeyTerms = (keyPath: string[], terms: string[]) => {
   const normalizedPath = keyPath.map((part) => part.toLowerCase());
   return normalizedPath.some((part) => terms.some((term) => part.includes(term)));
@@ -501,6 +573,8 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     workshopCodeNote:
       "QR-Code in der App verfügbar, um die Schadenakte schnell zu importieren.",
     pdfNote: "Der PDF-Bericht und die hochgeladenen Anhänge sind beigefügt.",
+    attachmentsLimitNote:
+      "Einige Fotos sind gegebenenfalls nur in der digitalen Schadenakte verfügbar, wenn das E-Mail-Anhangslimit überschritten wird.",
     closing: "Freundliche Grüße",
     signatureSigned: "digital signiert",
     signatureMissing: "nicht vorhanden",
@@ -540,6 +614,8 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     workshopCodeNote:
       "QR disponibile nell’app per importare rapidamente la pratica.",
     pdfNote: "Il PDF della pratica e gli allegati caricati sono inclusi.",
+    attachmentsLimitNote:
+      "Alcune foto potrebbero essere disponibili solo nella pratica digitale se superano il limite allegati.",
     closing: "Cordiali saluti",
     signatureSigned: "firmato digitalmente",
     signatureMissing: "firma non presente",
@@ -579,6 +655,8 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     workshopCodeNote:
       "QR disponible dans l’application pour importer rapidement le dossier.",
     pdfNote: "Le rapport PDF et les pièces jointes téléchargées sont inclus.",
+    attachmentsLimitNote:
+      "Certaines photos peuvent rester disponibles uniquement dans le dossier numérique si la limite des pièces jointes est dépassée.",
     closing: "Cordialement",
     signatureSigned: "signé numériquement",
     signatureMissing: "absente",
@@ -618,6 +696,8 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     workshopCodeNote:
       "QR code available in the app to quickly import the claim.",
     pdfNote: "The PDF report and the uploaded attachments are included.",
+    attachmentsLimitNote:
+      "Some photos may remain available only in the digital claim if they exceed the email attachment limit.",
     closing: "Kind regards",
     signatureSigned: "digitally signed",
     signatureMissing: "not available",
@@ -1456,13 +1536,20 @@ async function handleRequest(req: Request): Promise<Response> {
 
     // === RACCOLTA ALLEGATI DA DATABASE + PAYLOAD ===
     const attachments: ResendAttachment[] = [];
-    const addedPaths = new Set<string>();
+    const queuedPhotoKeys = new Set<string>();
+    const bookletCandidates: PhotoAttachmentCandidate[] = [];
+    const damageCandidates: PhotoAttachmentCandidate[] = [];
     let pdfAttached = false;
+    let totalAttachmentBytes = 0;
+    let reducedAttachments = false;
+    let bookletAttachedCount = 0;
+    let damageAttachedCount = 0;
 
     // 1. AGGIUNGI SEMPRE PDF generato dal payload corrente come primo allegato
     try {
       const pdfBytes = await generatePdfFromPayload(payload, claimId);
       await savePdfToStorage(pdfBytes, claimId);
+      totalAttachmentBytes += pdfBytes.length;
       const pdfContent = base64Encode(pdfBytes);
       pdfBytes.fill(0);
       attachments.push({
@@ -1476,47 +1563,116 @@ async function handleRequest(req: Request): Promise<Response> {
       console.error("SEND CID EMAIL pdf generation failed", err);
     }
 
-    const addAttachmentFromSource = async (
+    const queuePhotoCandidate = (
+      category: PhotoCategory,
       source: string,
       fallbackName: string,
       contentTypeHint?: string,
     ) => {
-      const attachmentKey = buildAttachmentKey(source);
-      if (addedPaths.has(attachmentKey)) {
+      const trimmedSource = source.trim();
+      if (!trimmedSource || isPdfSource(trimmedSource)) {
         return;
       }
-      if (attachments.length >= MAX_ATTACHMENTS) {
+      const attachmentKey = buildAttachmentKey(trimmedSource);
+      if (queuedPhotoKeys.has(attachmentKey)) {
         return;
       }
+      queuedPhotoKeys.add(attachmentKey);
 
-      try {
-        const downloaded = await downloadAttachmentBytes(
-          source,
-          fallbackName,
-          contentTypeHint,
-        );
-        if (downloaded) {
+      const candidate: PhotoAttachmentCandidate = {
+        attachmentKey,
+        category,
+        contentTypeHint,
+        fallbackName,
+        source: trimmedSource,
+      };
+      if (category === "booklet") {
+        bookletCandidates.push(candidate);
+      } else {
+        damageCandidates.push(candidate);
+      }
+    };
+
+    const attachPhotoCandidates = async (
+      candidates: PhotoAttachmentCandidate[],
+      maxPhotos: number,
+    ) => {
+      for (let index = 0; index < candidates.length; index++) {
+        if (attachments.length >= MAX_ATTACHMENTS) {
+          reducedAttachments = true;
+          break;
+        }
+
+        if (index >= maxPhotos) {
+          reducedAttachments = true;
+          continue;
+        }
+
+        const candidate = candidates[index];
+        try {
+          const downloaded = await downloadAttachmentBytes(
+            candidate.source,
+            candidate.fallbackName,
+            candidate.contentTypeHint,
+          );
+          if (!downloaded) {
+            console.error(
+              "CLAIM_ATTACHMENT_DOWNLOAD_ERROR:",
+              candidate.attachmentKey,
+            );
+            continue;
+          }
+          const downloadedBytesLength = downloaded.bytes.length;
+
+          if (
+            totalAttachmentBytes + downloadedBytesLength >
+              MAX_EMAIL_ATTACHMENT_BYTES
+          ) {
+            console.log("[CIDEmail] photo skipped size limit", JSON.stringify({
+              attachmentKey: candidate.attachmentKey,
+              bytes: downloadedBytesLength,
+              category: candidate.category,
+              currentTotalBytes: totalAttachmentBytes,
+              maxBytes: MAX_EMAIL_ATTACHMENT_BYTES,
+            }));
+            downloaded.bytes.fill(0);
+            reducedAttachments = true;
+            continue;
+          }
+
           const encodedAttachment = encodeAttachment(downloaded);
           if (!encodedAttachment) {
             console.error(
               "CLAIM_ATTACHMENT_DOWNLOAD_ERROR: invalid encoded attachment",
-              attachmentKey,
+              candidate.attachmentKey,
             );
-            return;
+            continue;
           }
+
           attachments.push({
-            filename: encodedAttachment.filename || fallbackName,
+            filename: encodedAttachment.filename || candidate.fallbackName,
             content: encodedAttachment.content,
             contentType:
-              encodedAttachment.contentType || contentTypeHint,
+              encodedAttachment.contentType || candidate.contentTypeHint,
           });
-          addedPaths.add(attachmentKey);
-          console.log("CLAIM_ATTACHMENT_DOWNLOAD_OK:", attachmentKey);
-        } else {
-          console.error("CLAIM_ATTACHMENT_DOWNLOAD_ERROR:", attachmentKey);
+          totalAttachmentBytes += downloadedBytesLength;
+
+          if (candidate.category === "booklet") {
+            bookletAttachedCount += 1;
+            console.log("[CIDEmail] booklet photo attached", JSON.stringify({
+              attachmentKey: candidate.attachmentKey,
+              filename: encodedAttachment.filename,
+            }));
+          } else {
+            damageAttachedCount += 1;
+            console.log("[CIDEmail] damage photo attached", JSON.stringify({
+              attachmentKey: candidate.attachmentKey,
+              filename: encodedAttachment.filename,
+            }));
+          }
+        } catch (err) {
+          console.error("CLAIM_ATTACHMENT_DOWNLOAD_ERROR:", candidate.attachmentKey, err);
         }
-      } catch (err) {
-        console.error("CLAIM_ATTACHMENT_DOWNLOAD_ERROR:", attachmentKey, err);
       }
     };
 
@@ -1547,21 +1703,54 @@ async function handleRequest(req: Request): Promise<Response> {
         ].find((value) => typeof value === "string" && value.trim().length > 0);
 
         if (typeof possibleSource !== "string") continue;
-        if (attachments.length >= MAX_ATTACHMENTS) break;
-
-        await addAttachmentFromSource(
+        const category = detectPhotoCategory(
           possibleSource.trim(),
-          file.filename ||
-            file.file_name ||
-            file.name ||
-            `allegato-${attachments.length + 1}.bin`,
-          file.mime_type || file.content_type || "application/octet-stream",
+          [],
+          typeof file.kind === "string" ? file.kind : null,
+        );
+        if (!category) continue;
+
+        const fallbackName = file.filename ||
+          file.file_name ||
+          file.name ||
+          `${category}-${category === "booklet"
+            ? bookletCandidates.length + 1
+            : damageCandidates.length + 1}.jpg`;
+
+        queuePhotoCandidate(
+          category,
+          possibleSource.trim(),
+          fallbackName,
+          file.mime_type || file.content_type || "image/jpeg",
         );
       }
     }
 
     // 3. FALLBACK ROBUSTO SU payload_json
-    const payloadAttachmentCandidates = collectCategoryPayloadAttachmentCandidates(
+    const bookletPayloadAttachmentCandidates =
+      collectCategoryPayloadAttachmentCandidates(
+      payload,
+      {
+        keyTerms: bookletKeyTerms,
+        pathSegments: bookletPathSegments,
+      },
+    );
+    console.log(
+      "LIBRETTO_LOGIC_FOUND:",
+      JSON.stringify(
+        bookletPayloadAttachmentCandidates,
+      ),
+    );
+    for (const candidate of bookletPayloadAttachmentCandidates) {
+      queuePhotoCandidate(
+        "booklet",
+        candidate.source,
+        `libretto-${bookletCandidates.length + 1}.jpg`,
+        "image/jpeg",
+      );
+    }
+
+    const damagePayloadAttachmentCandidates = collectCategoryPayloadAttachmentCandidates(
       payload,
       {
         keyTerms: damageKeyTerms,
@@ -1571,50 +1760,20 @@ async function handleRequest(req: Request): Promise<Response> {
     console.log(
       "DAMAGE_LOGIC_FOUND:",
       JSON.stringify(
-        payloadAttachmentCandidates.filter((candidate) =>
-          matchesPathSegments(candidate.source, ["damage", "danni"]) ||
-          matchesKeyTerms(candidate.origin.split(".").filter(Boolean), [
-            "damage",
-            "danno",
-            "danni",
-          ])
-        ),
+        damagePayloadAttachmentCandidates,
       ),
     );
-    console.log(
-      "LIBRETTO_LOGIC_FOUND:",
-      JSON.stringify(
-        payloadAttachmentCandidates.filter((candidate) =>
-          matchesPathSegments(candidate.source, [
-            "libretto",
-            "vehicle",
-            "vehicle-document",
-            "registration",
-            "document",
-          ]) ||
-          matchesKeyTerms(candidate.origin.split(".").filter(Boolean), [
-            "libretto",
-            "fotolibretto",
-            "foto_libretto",
-            "vehicle",
-            "registration",
-            "document",
-            "fahrzeug",
-            "carte",
-            "certificat",
-          ])
-        ),
-      ),
-    );
-
-    for (const candidate of payloadAttachmentCandidates) {
-      if (attachments.length >= MAX_ATTACHMENTS) break;
-      await addAttachmentFromSource(
+    for (const candidate of damagePayloadAttachmentCandidates) {
+      queuePhotoCandidate(
+        "damage",
         candidate.source,
-        `allegato-${attachments.length + 1}.bin`,
-        "application/octet-stream",
+        `damage-${damageCandidates.length + 1}.jpg`,
+        "image/jpeg",
       );
     }
+
+    await attachPhotoCandidates(bookletCandidates, MAX_BOOKLET_PHOTOS);
+    await attachPhotoCandidates(damageCandidates, MAX_DAMAGE_PHOTOS);
 
     console.log("EMAIL_ATTACHMENTS_FINAL:", attachments.map((a) => a.filename));
 
@@ -1704,6 +1863,7 @@ async function handleRequest(req: Request): Promise<Response> {
       copy.workshopCodeNote,
       "",
       copy.pdfNote,
+      copy.attachmentsLimitNote,
       "",
       copy.closing,
     ].join("\n");
@@ -1800,7 +1960,8 @@ async function handleRequest(req: Request): Promise<Response> {
             <div style="margin-top:20px;padding:16px 18px;border-radius:16px;background:#eff6ff;color:#1e3a8a;font-size:13px;line-height:1.6;">
               <strong>${escapeHtml(copy.workshopCode)}:</strong> ${escapeHtml(displayWorkshopCode)}<br/>
               ${escapeHtml(copy.workshopCodeNote)}<br/><br/>
-              ${escapeHtml(copy.pdfNote)}
+              ${escapeHtml(copy.pdfNote)}<br/><br/>
+              ${escapeHtml(copy.attachmentsLimitNote)}
             </div>
 
             <p style="margin:24px 0 0 0;">${escapeHtml(copy.closing)}</p>
@@ -1825,12 +1986,24 @@ async function handleRequest(req: Request): Promise<Response> {
       displayClaimId,
       lang,
       recipients,
+      totalAttachmentBytes,
       subjectLength: safeSubject.length,
       textLength: safeTextBody.length,
       htmlLength: safeHtmlBody.length,
       attachmentsCount: safeAttachments.length,
+      bookletAttachedCount,
+      damageAttachedCount,
       pdfAttached,
     }));
+
+    if (reducedAttachments) {
+      console.log("[CIDEmail] sending with reduced attachments", JSON.stringify({
+        totalAttachmentBytes,
+        attachmentsCount: safeAttachments.length,
+        bookletAttachedCount,
+        damageAttachedCount,
+      }));
+    }
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -1883,6 +2056,13 @@ async function handleRequest(req: Request): Promise<Response> {
         },
       );
     }
+
+    console.log("[CIDEmail] send success", JSON.stringify({
+      claimId,
+      displayClaimId,
+      attachmentsCount: attachments.length,
+      totalAttachmentBytes,
+    }));
 
     return new Response(
       JSON.stringify({
