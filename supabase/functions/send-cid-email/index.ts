@@ -10,14 +10,15 @@ import {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
+const RESEND_TEST_RECIPIENT = "antonio.privitera1984@gmail.com";
 // TODO: sostituire il mittente Resend con email professionale del dominio quando disponibile.
-const FROM_EMAIL = "onboarding@resend.dev";
+const FROM_EMAIL = "CID Digitale <onboarding@resend.dev>";
 const MAX_ATTACHMENTS = 6;
 const MAX_BOOKLET_PHOTOS = 2;
 const MAX_DAMAGE_PHOTOS = 3;
 const MAX_EMAIL_ATTACHMENT_BYTES = 10 * 1024 * 1024;
-const JPEG_MAX_WIDTH = 1200;
-const JPEG_QUALITY = 70;
+const JPEG_MAX_WIDTH = 1024;
+const JPEG_QUALITY = 62;
 const SIGNED_URL_TTL_SECONDS = 60;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -239,26 +240,33 @@ async function downloadAttachmentBytes(
   contentTypeHint?: string,
 ): Promise<DownloadedAttachment | null> {
   const storage = extractStorageLocation(source);
+  const requiresOptimization = shouldOptimizeJpeg(
+    source,
+    fallbackName,
+    contentTypeHint,
+  );
   try {
     if (storage) {
       const possiblePath = normalizeClaimAttachmentPath(storage.path);
       const filename = buildFileNameFromPath(possiblePath, fallbackName);
-      if (shouldOptimizeJpeg(source, filename, contentTypeHint)) {
+      if (requiresOptimization) {
         const optimizedUrl = await createSignedOptimizedJpegUrl(
           storage.bucket,
           possiblePath,
         );
-        if (optimizedUrl) {
-          const optimizedAttachment = await downloadAsAttachment(
-            optimizedUrl,
-            filename,
-            "image/jpeg",
-            "jpeg-transform",
-          );
-          if (optimizedAttachment) {
-            return optimizedAttachment;
-          }
+        if (!optimizedUrl) {
+          return null;
         }
+        const optimizedAttachment = await downloadAsAttachment(
+          optimizedUrl,
+          filename,
+          "image/jpeg",
+          "jpeg-transform",
+        );
+        if (optimizedAttachment) {
+          return optimizedAttachment;
+        }
+        return null;
       }
 
       const { data, error } = await supabase.storage.from(storage.bucket)
@@ -283,6 +291,9 @@ async function downloadAttachmentBytes(
     }
 
     if (source.startsWith("http")) {
+      if (requiresOptimization) {
+        return null;
+      }
       return await downloadAsAttachment(source, fallbackName, contentTypeHint);
     }
   } catch (err) {
@@ -544,11 +555,13 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     emailHeading: "Digitale Schadenakte",
     pdfTitle: "Digitale Schadenakte",
     claimNumber: "Vorgangsnummer",
+    summaryHeading: "Kurzuebersicht",
     greeting: "Guten Tag,",
-    intro:
-      `im Anhang finden Sie die digitale Schadenakte zur Vorgangsnummer ${displayClaimId}.`,
-    introDetails:
-      "Die Schadenakte wurde digital erstellt und enthält die erfassten Angaben, Anhänge und, sofern vorhanden, die digitalen Unterschriften der beteiligten Fahrer.",
+    intro: "Ihre digitale Schadenakte wurde erfolgreich registriert.",
+    pdfSummaryNote:
+      "Die vollstaendige Schadenakte ist im angehaengten PDF verfuegbar.",
+    photosSummaryNote:
+      "Verfuegbare Fotos sind als separate Dateien angehaengt.",
     dateTime: "Datum und Uhrzeit",
     place: "Ort",
     driverA: "Fahrer A",
@@ -585,11 +598,13 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     emailHeading: "Pratica incidente digitale",
     pdfTitle: "Pratica incidente digitale",
     claimNumber: "Numero pratica",
+    summaryHeading: "Riepilogo",
     greeting: "Gentile utente,",
-    intro:
-      `in allegato trova la pratica incidente digitale n° ${displayClaimId}.`,
-    introDetails:
-      "La pratica è stata creata digitalmente e include i dati registrati, gli allegati e, se presenti, le firme digitali dei conducenti coinvolti.",
+    intro: "La pratica incidente digitale e stata registrata correttamente.",
+    pdfSummaryNote:
+      "La pratica completa e disponibile nel PDF allegato.",
+    photosSummaryNote:
+      "Le foto disponibili sono allegate come file separati.",
     dateTime: "Data e ora",
     place: "Luogo",
     driverA: "Conducente A",
@@ -626,11 +641,13 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     emailHeading: "Dossier d’accident numérique",
     pdfTitle: "Dossier d’accident numérique",
     claimNumber: "Numéro de dossier",
+    summaryHeading: "Resume",
     greeting: "Bonjour,",
-    intro:
-      `vous trouverez en pièce jointe le dossier d’accident numérique n° ${displayClaimId}.`,
-    introDetails:
-      "Le dossier a été créé numériquement et inclut les données enregistrées, les pièces jointes et, si disponibles, les signatures numériques des conducteurs concernés.",
+    intro: "Votre dossier d’accident numerique a ete enregistre avec succes.",
+    pdfSummaryNote:
+      "Le dossier complet est disponible dans le PDF joint.",
+    photosSummaryNote:
+      "Les photos disponibles sont jointes comme fichiers separes.",
     dateTime: "Date et heure",
     place: "Lieu",
     driverA: "Conducteur A",
@@ -667,11 +684,13 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     emailHeading: "Digital accident claim",
     pdfTitle: "Digital accident claim",
     claimNumber: "Claim number",
+    summaryHeading: "Summary",
     greeting: "Hello,",
-    intro:
-      `Attached you will find the digital accident claim no. ${displayClaimId}.`,
-    introDetails:
-      "The claim was created digitally and includes the recorded data, uploaded attachments and, when available, the drivers' digital signatures.",
+    intro: "Your digital accident claim has been registered successfully.",
+    pdfSummaryNote:
+      "The complete claim is available in the attached PDF.",
+    photosSummaryNote:
+      "Available photos are attached as separate files.",
     dateTime: "Date and time",
     place: "Location",
     driverA: "Driver A",
@@ -1552,13 +1571,17 @@ async function handleRequest(req: Request): Promise<Response> {
       totalAttachmentBytes += pdfBytes.length;
       const pdfContent = base64Encode(pdfBytes);
       pdfBytes.fill(0);
+      const pdfFilename = `cid-digitale-${displayClaimId}.pdf`;
       attachments.push({
-        filename: `cid-digitale-${displayClaimId}.pdf`,
+        filename: pdfFilename,
         content: pdfContent,
         contentType: "application/pdf",
       });
       pdfAttached = true;
-      console.log("SEND CID EMAIL pdf generated and attached");
+      console.log("[CIDEmail] pdf attached", JSON.stringify({
+        filename: pdfFilename,
+        totalAttachmentBytes,
+      }));
     } catch (err) {
       console.error("SEND CID EMAIL pdf generation failed", err);
     }
@@ -1616,10 +1639,11 @@ async function handleRequest(req: Request): Promise<Response> {
             candidate.contentTypeHint,
           );
           if (!downloaded) {
-            console.error(
-              "CLAIM_ATTACHMENT_DOWNLOAD_ERROR:",
-              candidate.attachmentKey,
-            );
+            console.error("[CIDEmail] photo skipped error", JSON.stringify({
+              attachmentKey: candidate.attachmentKey,
+              category: candidate.category,
+              reason: "download_failed",
+            }));
             continue;
           }
           const downloadedBytesLength = downloaded.bytes.length;
@@ -1642,15 +1666,22 @@ async function handleRequest(req: Request): Promise<Response> {
 
           const encodedAttachment = encodeAttachment(downloaded);
           if (!encodedAttachment) {
-            console.error(
-              "CLAIM_ATTACHMENT_DOWNLOAD_ERROR: invalid encoded attachment",
-              candidate.attachmentKey,
-            );
+            console.error("[CIDEmail] photo skipped error", JSON.stringify({
+              attachmentKey: candidate.attachmentKey,
+              category: candidate.category,
+              reason: "encode_failed",
+            }));
             continue;
           }
 
+          const nextAttachmentIndex = candidate.category === "booklet"
+            ? bookletAttachedCount + 1
+            : damageAttachedCount + 1;
+          const attachmentFilename = candidate.category === "booklet"
+            ? `libretto-${nextAttachmentIndex}.jpg`
+            : `danno-${nextAttachmentIndex}.jpg`;
           attachments.push({
-            filename: encodedAttachment.filename || candidate.fallbackName,
+            filename: attachmentFilename,
             content: encodedAttachment.content,
             contentType:
               encodedAttachment.contentType || candidate.contentTypeHint,
@@ -1661,17 +1692,21 @@ async function handleRequest(req: Request): Promise<Response> {
             bookletAttachedCount += 1;
             console.log("[CIDEmail] booklet photo attached", JSON.stringify({
               attachmentKey: candidate.attachmentKey,
-              filename: encodedAttachment.filename,
+              filename: attachmentFilename,
             }));
           } else {
             damageAttachedCount += 1;
             console.log("[CIDEmail] damage photo attached", JSON.stringify({
               attachmentKey: candidate.attachmentKey,
-              filename: encodedAttachment.filename,
+              filename: attachmentFilename,
             }));
           }
         } catch (err) {
-          console.error("CLAIM_ATTACHMENT_DOWNLOAD_ERROR:", candidate.attachmentKey, err);
+          console.error("[CIDEmail] photo skipped error", JSON.stringify({
+            attachmentKey: candidate.attachmentKey,
+            category: candidate.category,
+            reason: String(err),
+          }));
         }
       }
     };
@@ -1777,39 +1812,21 @@ async function handleRequest(req: Request): Promise<Response> {
 
     console.log("EMAIL_ATTACHMENTS_FINAL:", attachments.map((a) => a.filename));
 
-    const displayWorkshopCode = formatWorkshopDisplayCode(displayClaimId);
     const copy = getLocalizedCopy(lang, displayClaimId);
 
     const driverAName = getFullName(payload, "A");
     const driverBName = getFullName(payload, "B");
-    const driverAAddress = getFullAddress(payload, "A");
-    const driverBAddress = getFullAddress(payload, "B");
-    const witnessesText = formatWitnesses(payload, lang);
-    const injuriesText = formatInjuries(payload, lang);
-    const liabilityText = getLocalizedLiability(payload, lang);
     const formattedDateTime = formatDisplayDateTime(payload?.dataOra, lang);
-    const signatureAValue = findSignatureValue(payload, "A");
-    const signatureBValue = findSignatureValue(payload, "B");
-    const signatureATimestamp = formatUtcTimestamp(getSignatureTimestamp(payload, "A"));
-    const signatureBTimestamp = formatUtcTimestamp(getSignatureTimestamp(payload, "B"));
-    const signatureAText = signatureAValue
-      ? copy.signatureSigned
-      : copy.signatureMissing;
-    const signatureBText = signatureBValue
-      ? copy.signatureSigned
-      : copy.signatureMissing;
+    const driverASummary = stringOrDash(driverAName) +
+      (stringOrDash(payload?.targaA) !== "-"
+        ? ` (${copy.plate}: ${stringOrDash(payload?.targaA)})`
+        : "");
+    const driverBSummary = stringOrDash(driverBName) +
+      (stringOrDash(payload?.targaB) !== "-"
+        ? ` (${copy.plate}: ${stringOrDash(payload?.targaB)})`
+        : "");
 
-    console.log("SEND CID EMAIL BODY VERSION: detailed-v3");
-
-    const signatureALines = [`${copy.driverA}: ${signatureAText}`];
-    if (signatureAValue) {
-      signatureALines.push(`${copy.signatureTimestamp}: ${signatureATimestamp}`);
-    }
-
-    const signatureBLines = [`${copy.driverB}: ${signatureBText}`];
-    if (signatureBValue) {
-      signatureBLines.push(`${copy.signatureTimestamp}: ${signatureBTimestamp}`);
-    }
+    console.log("SEND CID EMAIL BODY VERSION: summary-v1");
 
     const textBody = [
       copy.emailHeading,
@@ -1818,51 +1835,15 @@ async function handleRequest(req: Request): Promise<Response> {
       copy.greeting,
       "",
       copy.intro,
-      copy.introDetails,
       "",
       `${copy.dateTime}: ${formattedDateTime}`,
       `${copy.place}: ${stringOrDash(payload?.luogo)}`,
-      `${copy.workshopCode}: ${displayWorkshopCode}`,
       "",
-      `${copy.driverA}:`,
-      `${copy.name}: ${driverAName}`,
-      `${copy.plate}: ${stringOrDash(payload?.targaA)}`,
-      `${copy.insurance}: ${stringOrDash(payload?.assicurazioneA)}`,
-      `${copy.phone}: ${stringOrDash(payload?.telefonoA)}`,
-      `${copy.email}: ${stringOrDash(payload?.emailA)}`,
-      `${copy.address}: ${driverAAddress}`,
+      `${copy.driverA}: ${driverASummary}`,
+      `${copy.driverB}: ${driverBSummary}`,
       "",
-      `${copy.driverB}:`,
-      `${copy.name}: ${driverBName}`,
-      `${copy.plate}: ${stringOrDash(payload?.targaB)}`,
-      `${copy.insurance}: ${stringOrDash(payload?.assicurazioneB)}`,
-      `${copy.phone}: ${stringOrDash(payload?.telefonoB)}`,
-      `${copy.email}: ${stringOrDash(payload?.emailB)}`,
-      `${copy.address}: ${driverBAddress}`,
-      "",
-      `${copy.description}:`,
-      stringOrDash(payload?.descrizione),
-      "",
-      `${copy.witnesses}:`,
-      witnessesText,
-      "",
-      `${copy.injuries}:`,
-      injuriesText,
-      "",
-      `${copy.damage}:`,
-      `${copy.vehicleA}: ${stringOrDash(payload?.danniVeicoloA)}`,
-      `${copy.vehicleB}: ${stringOrDash(payload?.danniVeicoloB)}`,
-      "",
-      `${copy.liability}:`,
-      liabilityText,
-      "",
-      `${copy.signatures}:`,
-      ...signatureALines,
-      ...signatureBLines,
-      "",
-      copy.workshopCodeNote,
-      "",
-      copy.pdfNote,
+      copy.pdfSummaryNote,
+      copy.photosSummaryNote,
       copy.attachmentsLimitNote,
       "",
       copy.closing,
@@ -1881,86 +1862,27 @@ async function handleRequest(req: Request): Promise<Response> {
           <div style="padding:28px;">
             <p style="margin:0 0 16px 0;">${escapeHtml(copy.greeting)}</p>
             <p style="margin:0 0 10px 0;">${escapeHtml(copy.intro)}</p>
-            <p style="margin:0 0 24px 0;color:#475569;line-height:1.6;">${escapeHtml(copy.introDetails)}</p>
 
             ${renderHtmlSection(
-      copy.claimNumber,
+      copy.summaryHeading,
       `<table style="width:100%;border-collapse:collapse;">${renderHtmlRows([
         [copy.claimNumber, displayClaimId],
         [copy.dateTime, formattedDateTime],
         [copy.place, stringOrDash(payload?.luogo)],
-        [copy.workshopCode, displayWorkshopCode],
       ])}</table>`,
     )}
 
             ${renderHtmlSection(
-      copy.driverA,
+      `${copy.driverA} / ${copy.driverB}`,
       `<table style="width:100%;border-collapse:collapse;">${renderHtmlRows([
-        [copy.name, driverAName],
-        [copy.plate, stringOrDash(payload?.targaA)],
-        [copy.insurance, stringOrDash(payload?.assicurazioneA)],
-        [copy.phone, stringOrDash(payload?.telefonoA)],
-        [copy.email, stringOrDash(payload?.emailA)],
-        [copy.address, driverAAddress],
-      ])}</table>`,
-    )}
-
-            ${renderHtmlSection(
-      copy.driverB,
-      `<table style="width:100%;border-collapse:collapse;">${renderHtmlRows([
-        [copy.name, driverBName],
-        [copy.plate, stringOrDash(payload?.targaB)],
-        [copy.insurance, stringOrDash(payload?.assicurazioneB)],
-        [copy.phone, stringOrDash(payload?.telefonoB)],
-        [copy.email, stringOrDash(payload?.emailB)],
-        [copy.address, driverBAddress],
-      ])}</table>`,
-    )}
-
-            ${renderHtmlSection(
-      copy.description,
-      `<div style="font-size:13px;line-height:1.6;color:#0f172a;">${renderHtmlMultiline(stringOrDash(payload?.descrizione))}</div>`,
-    )}
-
-            ${renderHtmlSection(
-      copy.witnesses,
-      `<div style="font-size:13px;line-height:1.7;color:#0f172a;">${renderHtmlMultiline(witnessesText)}</div>`,
-    )}
-
-            ${renderHtmlSection(
-      copy.injuries,
-      `<div style="font-size:13px;line-height:1.7;color:#0f172a;">${renderHtmlMultiline(injuriesText)}</div>`,
-    )}
-
-            ${renderHtmlSection(
-      copy.damage,
-      `<table style="width:100%;border-collapse:collapse;">${renderHtmlRows([
-        [copy.vehicleA, stringOrDash(payload?.danniVeicoloA)],
-        [copy.vehicleB, stringOrDash(payload?.danniVeicoloB)],
-      ])}</table>`,
-    )}
-
-            ${renderHtmlSection(
-      copy.liability,
-      `<div style="font-size:13px;line-height:1.6;color:#0f172a;">${renderHtmlMultiline(liabilityText)}</div>`,
-    )}
-
-            ${renderHtmlSection(
-      copy.signatures,
-      `<table style="width:100%;border-collapse:collapse;">${renderHtmlRows([
-        [copy.driverA, signatureAValue
-          ? `${signatureAText}\n${copy.signatureTimestamp}: ${signatureATimestamp}`
-          : signatureAText],
-        [copy.driverB, signatureBValue
-          ? `${signatureBText}\n${copy.signatureTimestamp}: ${signatureBTimestamp}`
-          : signatureBText],
+        [copy.driverA, driverASummary],
+        [copy.driverB, driverBSummary],
       ])}</table>`,
     )}
 
             <div style="margin-top:20px;padding:16px 18px;border-radius:16px;background:#eff6ff;color:#1e3a8a;font-size:13px;line-height:1.6;">
-              <strong>${escapeHtml(copy.workshopCode)}:</strong> ${escapeHtml(displayWorkshopCode)}<br/>
-              ${escapeHtml(copy.workshopCodeNote)}<br/><br/>
-              ${escapeHtml(copy.pdfNote)}<br/><br/>
+              ${escapeHtml(copy.pdfSummaryNote)}<br/><br/>
+              ${escapeHtml(copy.photosSummaryNote)}<br/><br/>
               ${escapeHtml(copy.attachmentsLimitNote)}
             </div>
 
@@ -2005,6 +1927,16 @@ async function handleRequest(req: Request): Promise<Response> {
       }));
     }
 
+    const resendFrom = FROM_EMAIL;
+    const resendTo = [RESEND_TEST_RECIPIENT];
+    const resendCc: string[] = [];
+    const resendBcc: string[] = [];
+
+    console.log("[CIDEmail] RESEND_FROM:", resendFrom);
+    console.log("[CIDEmail] RESEND_TO:", resendTo);
+    console.log("[CIDEmail] RESEND_CC:", resendCc.length > 0 ? resendCc : null);
+    console.log("[CIDEmail] RESEND_BCC:", resendBcc.length > 0 ? resendBcc : null);
+
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -2012,12 +1944,14 @@ async function handleRequest(req: Request): Promise<Response> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: recipients,
+        from: resendFrom,
+        to: resendTo,
         subject: safeSubject,
         text: safeTextBody,
         html: safeHtmlBody,
         attachments: safeAttachments,
+        ...(resendCc.length > 0 ? { cc: resendCc } : {}),
+        ...(resendBcc.length > 0 ? { bcc: resendBcc } : {}),
       }),
     });
 
