@@ -755,6 +755,31 @@ Future<bool> _hasInternetConnection() async {
   }
 }
 
+bool _hasCompleteCidSignatures(Incidente incident) {
+  bool hasSignature(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return false;
+    try {
+      return base64Decode(trimmed).isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  return hasSignature(incident.firmaAPath) &&
+      hasSignature(incident.firmaBPath);
+}
+
+bool _cidEmailAlreadySent(Incidente incident) =>
+    incident.emailSendStatus == 'sent';
+
+String _cidAwaitingSignaturesMessage({required bool synced}) => synced
+    ? 'Pratica sincronizzata. L’invio automatico partirà dopo entrambe le firme.'
+    : 'Pratica salvata. L’invio automatico partirà dopo entrambe le firme.';
+
+String _cidOfflinePendingMessage() =>
+    'Pratica salvata offline. Verrà sincronizzata automaticamente; l’e-mail partirà dopo entrambe le firme.';
+
 Future<Uint8List?> _readQueuedAttachmentBytes(
   Map<String, dynamic> descriptor,
 ) async {
@@ -786,6 +811,7 @@ Future<Incidente> _syncPendingQueueEntry(Map<String, dynamic> entry) async {
   var incident = Incidente.fromJson(
     Map<String, dynamic>.from(entry['incident'] as Map),
   );
+  final previousId = localId == incident.id ? null : localId;
 
   debugPrint('SYNC CLAIM START: localId=$localId incidentId=${incident.id}');
 
@@ -798,7 +824,7 @@ Future<Incidente> _syncPendingQueueEntry(Map<String, dynamic> entry) async {
     incident,
     status: 'syncing',
     message: 'Sincronizzazione in corso…',
-    previousId: localId == incident.id ? null : localId,
+    previousId: previousId,
   );
 
   final supabaseService = SupabaseService();
@@ -905,20 +931,65 @@ Future<Incidente> _syncPendingQueueEntry(Map<String, dynamic> entry) async {
     debugPrint('$st');
   }
 
+  if (_cidEmailAlreadySent(incident)) {
+    debugPrint('[CIDEmail] skipped: already sent');
+    await _removePendingSyncEntry(localId);
+    if (kIsWeb) {
+      await LocalImageCache.clearIncidentImages(localId);
+    }
+    debugPrint('SYNC DONE: claimId=${incident.id}');
+    return incident;
+  }
+
+  if (!_hasCompleteCidSignatures(incident)) {
+    debugPrint('[CIDEmail] skipped: signatures missing');
+    incident = await _persistIncidentEmailSendState(
+      incident,
+      status: 'awaiting_signatures',
+      message: _cidAwaitingSignaturesMessage(synced: true),
+      previousId: previousId,
+    );
+    await _removePendingSyncEntry(localId);
+    if (kIsWeb) {
+      await LocalImageCache.clearIncidentImages(localId);
+    }
+    debugPrint('SYNC DONE: claimId=${incident.id}');
+    return incident;
+  }
+
+  final recipients = _collectSendRecipients(
+    emailA: incident.emailA,
+    emailB: incident.emailB,
+  );
+  if (recipients.isEmpty) {
+    incident = await _persistIncidentEmailSendState(
+      incident,
+      status: 'skipped',
+      message:
+          'Pratica sincronizzata. Nessuna email disponibile per l’invio automatico.',
+      previousId: previousId,
+    );
+    await _removePendingSyncEntry(localId);
+    if (kIsWeb) {
+      await LocalImageCache.clearIncidentImages(localId);
+    }
+    debugPrint('SYNC DONE: claimId=${incident.id}');
+    return incident;
+  }
+
+  debugPrint('[CIDEmail] sending after both signatures');
   await _invokeSendCidEmailEdgeFunction(
     claimId: realClaimId,
     incident: incident,
-    recipients: _collectSendRecipients(
-      emailA: incident.emailA,
-      emailB: incident.emailB,
-    ),
+    recipients: recipients,
   );
+  debugPrint('[CIDEmail] send success');
 
   incident = await _persistIncidentEmailSendState(
     incident,
     status: 'sent',
     message: 'Pratica sincronizzata e inviata.',
-    previousId: localId == incident.id ? null : localId,
+    previousId: previousId,
   );
   await _removePendingSyncEntry(localId);
   if (kIsWeb) {
@@ -956,7 +1027,7 @@ Future<void> _syncPendingQueue() async {
           : 'pending_sync';
       final nextMessage = stillOnline && attempts + 1 >= _maxPendingSyncAttempts
           ? 'Sincronizzazione fallita — Riprova'
-          : 'Pratica salvata offline. Verrà inviata automaticamente quando torna internet.';
+          : _cidOfflinePendingMessage();
       final updated = await _persistIncidentEmailSendState(
         incident,
         status: nextStatus,
@@ -5405,13 +5476,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     required String localId,
   }) async {
     debugPrint('OFFLINE SAVE START: localId=$localId');
-    final offlineIncident = await _persistIncidentEmailSendState(
-      incident,
-      status: 'pending_sync',
-      message:
-          'Pratica salvata offline. Verrà inviata automaticamente quando torna internet.',
-      previousId: localId == incident.id ? null : localId,
-    );
+  final offlineIncident = await _persistIncidentEmailSendState(
+    incident,
+    status: 'pending_sync',
+    message: _cidOfflinePendingMessage(),
+    previousId: localId == incident.id ? null : localId,
+  );
     await _upsertPendingSyncEntry(
       _buildPendingSyncEntry(offlineIncident, localId: localId),
     );
@@ -5420,15 +5490,30 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return offlineIncident;
   }
 
-  Future<Incidente> _sendCidAutomatically(
-    String claimId,
-    Incidente incidenteSalvato,
-  ) async {
-    var currentIncident = await _persistIncidentEmailSendState(
+Future<Incidente> _sendCidAutomatically(
+  String claimId,
+  Incidente incidenteSalvato,
+) async {
+  if (_cidEmailAlreadySent(incidenteSalvato)) {
+    debugPrint('[CIDEmail] skipped: already sent');
+    return incidenteSalvato;
+  }
+
+  if (!_hasCompleteCidSignatures(incidenteSalvato)) {
+    debugPrint('[CIDEmail] skipped: signatures missing');
+    return _persistIncidentEmailSendState(
       incidenteSalvato,
-      status: 'pending',
-      message: 'Invio email in corso...',
+      status: 'awaiting_signatures',
+      message: _cidAwaitingSignaturesMessage(synced: false),
     );
+  }
+
+  debugPrint('[CIDEmail] sending after both signatures');
+  var currentIncident = await _persistIncidentEmailSendState(
+    incidenteSalvato,
+    status: 'pending',
+    message: 'Invio email in corso...',
+  );
     final availableContacts = {
       'emailA': currentIncident.emailA.trim(),
       'emailB': currentIncident.emailB.trim(),
@@ -5459,6 +5544,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         incident: currentIncident,
         recipients: recipients,
       );
+      debugPrint('[CIDEmail] send success');
       currentIncident = await _persistIncidentEmailSendState(
         currentIncident,
         status: 'sent',
@@ -8728,6 +8814,13 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
           fr: 'Enregistré hors ligne',
           en: 'Saved offline',
         );
+      case 'awaiting_signatures':
+        return _detailText(
+          it: 'In attesa delle firme',
+          de: 'Wartet auf Unterschriften',
+          fr: 'En attente des signatures',
+          en: 'Waiting for signatures',
+        );
       case 'syncing':
         return _detailText(
           it: 'Sincronizzazione in corso',
@@ -8772,10 +8865,17 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         );
       case 'pending_sync':
         return _detailText(
-          it: 'La pratica è stata salvata e verrà inviata automaticamente appena torna la connessione.',
-          de: 'Die Schadenakte wurde gespeichert und wird automatisch gesendet, sobald die Verbindung wieder verfügbar ist.',
-          fr: 'Le dossier a été enregistré et sera envoyé automatiquement dès que la connexion sera disponible.',
-          en: 'The claim was saved and will be sent automatically when the connection is available again.',
+          it: 'La pratica è stata salvata offline e verrà sincronizzata automaticamente appena torna la connessione.',
+          de: 'Die Schadenakte wurde offline gespeichert und wird automatisch synchronisiert, sobald die Verbindung wieder verfügbar ist.',
+          fr: 'Le dossier a été enregistré hors ligne et sera synchronisé automatiquement dès que la connexion sera disponible.',
+          en: 'The claim was saved offline and will sync automatically when the connection is available again.',
+        );
+      case 'awaiting_signatures':
+        return _detailText(
+          it: 'La pratica è salvata. L’invio automatico partirà solo dopo la firma di entrambi i conducenti.',
+          de: 'Die Schadenakte ist gespeichert. Der automatische Versand startet erst, wenn beide Fahrer unterschrieben haben.',
+          fr: 'Le dossier est enregistré. L’envoi automatique démarrera seulement après les signatures des deux conducteurs.',
+          en: 'The claim is saved. Automatic sending will start only after both drivers have signed.',
         );
       case 'syncing':
       case 'pending':
@@ -8810,6 +8910,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         return Icons.check_circle_outline;
       case 'pending_sync':
         return Icons.wifi_off_outlined;
+      case 'awaiting_signatures':
+        return Icons.draw_outlined;
       case 'syncing':
       case 'pending':
         return Icons.sync;
@@ -8828,6 +8930,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         return const Color(0xFFDCFCE7);
       case 'pending_sync':
         return const Color(0xFFFFF7ED);
+      case 'awaiting_signatures':
+        return const Color(0xFFE0F2FE);
       case 'syncing':
       case 'pending':
         return const Color(0xFFDBEAFE);
@@ -8846,6 +8950,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         return const Color(0xFF166534);
       case 'pending_sync':
         return const Color(0xFF9A3412);
+      case 'awaiting_signatures':
+        return const Color(0xFF0F4C81);
       case 'syncing':
       case 'pending':
         return const Color(0xFF1D4ED8);
@@ -8992,15 +9098,13 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         'incident': Incidente.fromJson({
           ...incidente.toJson(),
           'emailSendStatus': 'pending_sync',
-          'emailSendMessage':
-              'Pratica salvata offline. Verrà inviata automaticamente quando torna internet.',
+          'emailSendMessage': _cidOfflinePendingMessage(),
         }).toJson(),
       });
       await _persistIncidentEmailSendState(
         incidente,
         status: 'pending_sync',
-        message:
-            'Pratica salvata offline. Verrà inviata automaticamente quando torna internet.',
+        message: _cidOfflinePendingMessage(),
       );
       await PendingSyncManager.trigger();
     } else {
@@ -10185,6 +10289,40 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         workingIncident = updatedIncident;
       }
 
+      if (_cidEmailAlreadySent(workingIncident)) {
+        debugPrint('[CIDEmail] skipped: already sent');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(workingIncident.emailSendMessage)),
+          );
+        }
+        incidente = workingIncident;
+        return;
+      }
+
+      if (!_hasCompleteCidSignatures(workingIncident)) {
+        debugPrint('[CIDEmail] skipped: signatures missing');
+        workingIncident = await _persistIncidentEmailSendState(
+          workingIncident,
+          status: 'awaiting_signatures',
+          message: _cidAwaitingSignaturesMessage(synced: false),
+          previousId: claimId == realClaimId ? null : claimId,
+        );
+        if (mounted) {
+          setState(() {
+            incidente = workingIncident;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(workingIncident.emailSendMessage)),
+          );
+        } else {
+          incidente = workingIncident;
+        }
+        return;
+      }
+
+      debugPrint('[CIDEmail] sending after both signatures');
+
       workingIncident = await _persistIncidentEmailSendState(
         workingIncident,
         status: 'pending',
@@ -10264,7 +10402,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         incidente,
         status: offline ? 'pending_sync' : 'failed',
         message: offline
-            ? 'Pratica salvata offline. Verrà inviata automaticamente quando torna internet.'
+            ? _cidOfflinePendingMessage()
             : 'Pratica salvata. Invio email non riuscito: riprova più tardi.',
       );
       if (offline) {
@@ -10627,6 +10765,11 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(tx(context, 'Firma salvata'))),
         );
+      }
+
+      if (_hasCompleteCidSignatures(updatedWithHash) &&
+          updatedWithHash.emailSendStatus != 'sent') {
+        await _sendCidAutomatically(updatedWithHash.id);
       }
     } finally {
       if (mounted) {
