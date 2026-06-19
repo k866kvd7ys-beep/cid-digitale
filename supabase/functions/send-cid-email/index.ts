@@ -1,5 +1,4 @@
 // deno-lint-ignore-file no-explicit-any
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   PDFDocument,
@@ -13,13 +12,14 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const RESEND_TEST_RECIPIENT = "antonio.privitera1984@gmail.com";
 // TODO: sostituire il mittente Resend con email professionale del dominio quando disponibile.
 const FROM_EMAIL = "CID Digitale <onboarding@resend.dev>";
-const MAX_ATTACHMENTS = 6;
 const MAX_BOOKLET_PHOTOS = 2;
-const MAX_DAMAGE_PHOTOS = 3;
+const MAX_DAMAGE_PHOTOS = 4;
+const MAX_ATTACHMENTS = 1 + MAX_BOOKLET_PHOTOS + MAX_DAMAGE_PHOTOS;
 const MAX_EMAIL_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 const JPEG_MAX_WIDTH = 1024;
-const JPEG_QUALITY = 62;
+const JPEG_QUALITY = 58;
 const SIGNED_URL_TTL_SECONDS = 60;
+const textEncoder = new TextEncoder();
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -35,6 +35,11 @@ type DownloadedAttachment = {
   contentType?: string;
 };
 
+type EncodedAttachment = {
+  attachment: ResendAttachment;
+  payloadBytes: number;
+};
+
 type AttachmentCandidate = {
   source: string;
   origin: string;
@@ -48,6 +53,14 @@ type PhotoAttachmentCandidate = {
   contentTypeHint?: string;
   fallbackName: string;
   source: string;
+};
+
+type PhotoDownloadFailureReason = "download_error" | "compression_error";
+
+type PhotoDownloadResult = {
+  attachment: DownloadedAttachment | null;
+  failureReason?: PhotoDownloadFailureReason;
+  detail?: string;
 };
 
 type SupportedLang = "de" | "it" | "fr" | "en";
@@ -101,6 +114,17 @@ const collectRecipients = (...candidates: unknown[]) => {
   return recipients;
 };
 
+const base64EncodeBytes = (bytes: Uint8Array) => {
+  const chunkSize = 0x8000;
+  const parts: string[] = [];
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    parts.push(
+      String.fromCharCode(...bytes.subarray(index, index + chunkSize)),
+    );
+  }
+  return btoa(parts.join(""));
+};
+
 const buildFileNameFromPath = (path: string, fallback: string) => {
   const cleaned = path.split("?")[0].split("#")[0];
   const parts = cleaned.split("/").filter((p) => p.length > 0);
@@ -108,28 +132,6 @@ const buildFileNameFromPath = (path: string, fallback: string) => {
   const last = parts[parts.length - 1];
   return last.length > 2 ? last : fallback;
 };
-
-const normalizeContentType = (value: string | null | undefined) =>
-  value?.split(";")[0].trim().toLowerCase() || null;
-
-const isJpegContentType = (value: string | null | undefined) => {
-  const normalized = normalizeContentType(value);
-  return normalized === "image/jpeg" || normalized === "image/jpg";
-};
-
-const isJpegFilename = (value: string | null | undefined) => {
-  const normalized = (value ?? "").trim().toLowerCase();
-  return normalized.endsWith(".jpg") || normalized.endsWith(".jpeg");
-};
-
-const shouldOptimizeJpeg = (
-  source: string,
-  fallbackName: string,
-  contentTypeHint?: string,
-) =>
-  isJpegContentType(contentTypeHint) ||
-  isJpegFilename(fallbackName) ||
-  isJpegFilename(source);
 
 const normalizeClaimAttachmentPath = (value: string) => {
   const trimmed = value.trim();
@@ -238,82 +240,96 @@ async function downloadAttachmentBytes(
   source: string,
   fallbackName: string,
   contentTypeHint?: string,
-): Promise<DownloadedAttachment | null> {
+): Promise<PhotoDownloadResult> {
   const storage = extractStorageLocation(source);
-  const requiresOptimization = shouldOptimizeJpeg(
-    source,
-    fallbackName,
-    contentTypeHint,
-  );
   try {
     if (storage) {
       const possiblePath = normalizeClaimAttachmentPath(storage.path);
       const filename = buildFileNameFromPath(possiblePath, fallbackName);
-      if (requiresOptimization) {
-        const optimizedUrl = await createSignedOptimizedJpegUrl(
-          storage.bucket,
-          possiblePath,
-        );
-        if (!optimizedUrl) {
-          return null;
-        }
-        const optimizedAttachment = await downloadAsAttachment(
-          optimizedUrl,
-          filename,
-          "image/jpeg",
-          "jpeg-transform",
-        );
-        if (optimizedAttachment) {
-          return optimizedAttachment;
-        }
-        return null;
-      }
-
-      const { data, error } = await supabase.storage.from(storage.bucket)
-        .download(possiblePath);
-      if (error || !data) {
-        console.error(
-          "SEND CID EMAIL storage download error",
-          JSON.stringify({ storage, error }),
-        );
-      } else {
-        const bytes = new Uint8Array(await data.arrayBuffer());
-        const contentType = data.type || contentTypeHint;
-        console.log(
-          `SEND CID EMAIL attachment from storage: bucket=${storage.bucket} path=${possiblePath} bytes=${bytes.length}`,
-        );
+      const optimizedUrl = await createSignedOptimizedJpegUrl(
+        storage.bucket,
+        possiblePath,
+      );
+      if (!optimizedUrl) {
         return {
-          filename,
-          bytes,
-          contentType,
+          attachment: null,
+          failureReason: "compression_error",
+          detail: "transform_signed_url_failed",
         };
       }
+
+      const optimizedAttachment = await downloadAsAttachment(
+        optimizedUrl,
+        filename,
+        "image/jpeg",
+        "jpeg-transform",
+      );
+      if (!optimizedAttachment) {
+        return {
+          attachment: null,
+          failureReason: "compression_error",
+          detail: "transform_download_failed",
+        };
+      }
+      return { attachment: optimizedAttachment };
     }
 
     if (source.startsWith("http")) {
-      if (requiresOptimization) {
-        return null;
+      const downloaded = await downloadAsAttachment(
+        source,
+        fallbackName,
+        contentTypeHint,
+      );
+      if (!downloaded) {
+        return {
+          attachment: null,
+          failureReason: "download_error",
+          detail: "http_download_failed",
+        };
       }
-      return await downloadAsAttachment(source, fallbackName, contentTypeHint);
+      return { attachment: downloaded };
     }
   } catch (err) {
     console.error("SEND CID EMAIL attachment download error", err);
+    return {
+      attachment: null,
+      failureReason: storage ? "compression_error" : "download_error",
+      detail: String(err),
+    };
   }
 
-  return null;
+  return {
+    attachment: null,
+    failureReason: "download_error",
+    detail: "unsupported_source",
+  };
 }
 
 const encodeAttachment = (
   attachment: DownloadedAttachment,
-): ResendAttachment | null => {
-  const filename = attachment.filename.trim();
+  overrides?: {
+    filename?: string;
+    contentType?: string;
+  },
+): EncodedAttachment | null => {
+  const filename = (overrides?.filename ?? attachment.filename).trim();
   if (!filename) return null;
 
   try {
-    return {
+    const content = base64EncodeBytes(attachment.bytes);
+    const resendAttachment: ResendAttachment = {
       filename,
-      content: base64Encode(attachment.bytes),
-      contentType: attachment.contentType,
+      content,
+      contentType: overrides?.contentType ?? attachment.contentType,
+    };
+    const payloadBytes =
+      textEncoder.encode(resendAttachment.content).length +
+      textEncoder.encode(resendAttachment.filename).length +
+      textEncoder.encode(resendAttachment.contentType ?? "").length;
+
+    return {
+      attachment: resendAttachment,
+      payloadBytes,
     };
   } finally {
     attachment.bytes.fill(0);
@@ -1406,6 +1422,42 @@ async function generatePdfFromPayload(
   return pdfBytes;
 }
 
+async function generateFallbackPdf(
+  displayClaimId: string,
+  payload: Record<string, any>,
+) {
+  const pdfDoc = await PDFDocument.create();
+  const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const page = pdfDoc.addPage();
+  const formattedDateTime = formatDisplayDateTime(
+    payload?.dataOra,
+    detectPayloadLanguage(payload),
+  );
+  const lines = [
+    "CID Digitale",
+    `Numero pratica: ${displayClaimId}`,
+    `Data e ora: ${formattedDateTime}`,
+    `Luogo: ${stringOrDash(payload?.luogo)}`,
+    "",
+    "PDF di fallback generato automaticamente per garantire l'invio della pratica.",
+  ];
+
+  let y = page.getSize().height - 50;
+  lines.forEach((text, index) => {
+    page.drawText(normalizePdfText(text), {
+      x: 40,
+      y,
+      size: index === 0 ? 18 : 12,
+      font: index === 0 ? fontBold : fontRegular,
+      color: rgb(0, 0, 0),
+    });
+    y -= index === 0 ? 28 : 18;
+  });
+
+  return await pdfDoc.save();
+}
+
 async function savePdfToStorage(
   pdfBytes: Uint8Array,
   claimId: string,
@@ -1563,20 +1615,23 @@ async function handleRequest(req: Request): Promise<Response> {
     let reducedAttachments = false;
     let bookletAttachedCount = 0;
     let damageAttachedCount = 0;
+    let skippedForSizeLimitCount = 0;
 
     // 1. AGGIUNGI SEMPRE PDF generato dal payload corrente come primo allegato
     try {
       const pdfBytes = await generatePdfFromPayload(payload, claimId);
       await savePdfToStorage(pdfBytes, claimId);
-      totalAttachmentBytes += pdfBytes.length;
-      const pdfContent = base64Encode(pdfBytes);
-      pdfBytes.fill(0);
-      const pdfFilename = `cid-digitale-${displayClaimId}.pdf`;
-      attachments.push({
-        filename: pdfFilename,
-        content: pdfContent,
+      const encodedPdf = encodeAttachment({
+        filename: `cid-digitale-${displayClaimId}.pdf`,
+        bytes: pdfBytes,
         contentType: "application/pdf",
       });
+      if (!encodedPdf) {
+        throw new Error("PDF_ENCODE_FAILED");
+      }
+      const pdfFilename = `cid-digitale-${displayClaimId}.pdf`;
+      attachments.push(encodedPdf.attachment);
+      totalAttachmentBytes += encodedPdf.payloadBytes;
       pdfAttached = true;
       console.log("[CIDEmail] pdf attached", JSON.stringify({
         filename: pdfFilename,
@@ -1584,6 +1639,27 @@ async function handleRequest(req: Request): Promise<Response> {
       }));
     } catch (err) {
       console.error("SEND CID EMAIL pdf generation failed", err);
+      try {
+        const fallbackPdfBytes = await generateFallbackPdf(displayClaimId, payload);
+        await savePdfToStorage(fallbackPdfBytes, claimId);
+        const encodedFallbackPdf = encodeAttachment({
+          filename: `cid-digitale-${displayClaimId}.pdf`,
+          bytes: fallbackPdfBytes,
+          contentType: "application/pdf",
+        });
+        if (encodedFallbackPdf) {
+          attachments.push(encodedFallbackPdf.attachment);
+          totalAttachmentBytes += encodedFallbackPdf.payloadBytes;
+          pdfAttached = true;
+          console.log("[CIDEmail] pdf attached", JSON.stringify({
+            filename: `cid-digitale-${displayClaimId}.pdf`,
+            totalAttachmentBytes,
+            fallback: true,
+          }));
+        }
+      } catch (fallbackErr) {
+        console.error("SEND CID EMAIL fallback pdf generation failed", fallbackErr);
+      }
     }
 
     const queuePhotoCandidate = (
@@ -1626,51 +1702,33 @@ async function handleRequest(req: Request): Promise<Response> {
           break;
         }
 
+        const candidate = candidates[index];
         if (index >= maxPhotos) {
           reducedAttachments = true;
           continue;
         }
 
-        const candidate = candidates[index];
         try {
-          const downloaded = await downloadAttachmentBytes(
+          const downloadResult = await downloadAttachmentBytes(
             candidate.source,
             candidate.fallbackName,
             candidate.contentTypeHint,
           );
-          if (!downloaded) {
-            console.error("[CIDEmail] photo skipped error", JSON.stringify({
-              attachmentKey: candidate.attachmentKey,
-              category: candidate.category,
-              reason: "download_failed",
-            }));
-            continue;
-          }
-          const downloadedBytesLength = downloaded.bytes.length;
-
-          if (
-            totalAttachmentBytes + downloadedBytesLength >
-              MAX_EMAIL_ATTACHMENT_BYTES
-          ) {
-            console.log("[CIDEmail] photo skipped size limit", JSON.stringify({
-              attachmentKey: candidate.attachmentKey,
-              bytes: downloadedBytesLength,
-              category: candidate.category,
-              currentTotalBytes: totalAttachmentBytes,
-              maxBytes: MAX_EMAIL_ATTACHMENT_BYTES,
-            }));
-            downloaded.bytes.fill(0);
+          if (!downloadResult.attachment) {
             reducedAttachments = true;
-            continue;
-          }
-
-          const encodedAttachment = encodeAttachment(downloaded);
-          if (!encodedAttachment) {
-            console.error("[CIDEmail] photo skipped error", JSON.stringify({
-              attachmentKey: candidate.attachmentKey,
-              category: candidate.category,
-              reason: "encode_failed",
-            }));
+            if (downloadResult.failureReason === "compression_error") {
+              console.error("[CIDEmail] photo skipped compression error", JSON.stringify({
+                attachmentKey: candidate.attachmentKey,
+                category: candidate.category,
+                detail: downloadResult.detail ?? null,
+              }));
+            } else {
+              console.error("[CIDEmail] photo skipped download error", JSON.stringify({
+                attachmentKey: candidate.attachmentKey,
+                category: candidate.category,
+                detail: downloadResult.detail ?? null,
+              }));
+            }
             continue;
           }
 
@@ -1680,32 +1738,60 @@ async function handleRequest(req: Request): Promise<Response> {
           const attachmentFilename = candidate.category === "booklet"
             ? `libretto-${nextAttachmentIndex}.jpg`
             : `danno-${nextAttachmentIndex}.jpg`;
-          attachments.push({
+          const encodedAttachment = encodeAttachment(downloadResult.attachment, {
             filename: attachmentFilename,
-            content: encodedAttachment.content,
-            contentType:
-              encodedAttachment.contentType || candidate.contentTypeHint,
+            contentType: "image/jpeg",
           });
-          totalAttachmentBytes += downloadedBytesLength;
+          if (!encodedAttachment) {
+            reducedAttachments = true;
+            console.error("[CIDEmail] photo skipped compression error", JSON.stringify({
+              attachmentKey: candidate.attachmentKey,
+              category: candidate.category,
+              detail: "encode_failed",
+            }));
+            continue;
+          }
+
+          if (
+            totalAttachmentBytes + encodedAttachment.payloadBytes >
+              MAX_EMAIL_ATTACHMENT_BYTES
+          ) {
+            console.log("[CIDEmail] photo skipped size limit", JSON.stringify({
+              attachmentKey: candidate.attachmentKey,
+              bytes: encodedAttachment.payloadBytes,
+              category: candidate.category,
+              currentTotalBytes: totalAttachmentBytes,
+              maxBytes: MAX_EMAIL_ATTACHMENT_BYTES,
+            }));
+            reducedAttachments = true;
+            skippedForSizeLimitCount += 1;
+            continue;
+          }
+
+          attachments.push(encodedAttachment.attachment);
+          totalAttachmentBytes += encodedAttachment.payloadBytes;
 
           if (candidate.category === "booklet") {
             bookletAttachedCount += 1;
             console.log("[CIDEmail] booklet photo attached", JSON.stringify({
               attachmentKey: candidate.attachmentKey,
               filename: attachmentFilename,
+              totalAttachmentBytes,
             }));
           } else {
             damageAttachedCount += 1;
             console.log("[CIDEmail] damage photo attached", JSON.stringify({
               attachmentKey: candidate.attachmentKey,
               filename: attachmentFilename,
+              totalAttachmentBytes,
             }));
           }
         } catch (err) {
-          console.error("[CIDEmail] photo skipped error", JSON.stringify({
+          reducedAttachments = true;
+          console.error("[CIDEmail] photo skipped compression error", JSON.stringify({
             attachmentKey: candidate.attachmentKey,
             category: candidate.category,
-            reason: String(err),
+            detail: String(err),
           }));
         }
       }
@@ -1825,6 +1911,7 @@ async function handleRequest(req: Request): Promise<Response> {
       (stringOrDash(payload?.targaB) !== "-"
         ? ` (${copy.plate}: ${stringOrDash(payload?.targaB)})`
         : "");
+    const shouldShowAttachmentLimitNote = skippedForSizeLimitCount > 0;
 
     console.log("SEND CID EMAIL BODY VERSION: summary-v1");
 
@@ -1844,7 +1931,7 @@ async function handleRequest(req: Request): Promise<Response> {
       "",
       copy.pdfSummaryNote,
       copy.photosSummaryNote,
-      copy.attachmentsLimitNote,
+      ...(shouldShowAttachmentLimitNote ? [copy.attachmentsLimitNote] : []),
       "",
       copy.closing,
     ].join("\n");
@@ -1882,8 +1969,10 @@ async function handleRequest(req: Request): Promise<Response> {
 
             <div style="margin-top:20px;padding:16px 18px;border-radius:16px;background:#eff6ff;color:#1e3a8a;font-size:13px;line-height:1.6;">
               ${escapeHtml(copy.pdfSummaryNote)}<br/><br/>
-              ${escapeHtml(copy.photosSummaryNote)}<br/><br/>
-              ${escapeHtml(copy.attachmentsLimitNote)}
+              ${escapeHtml(copy.photosSummaryNote)}
+              ${shouldShowAttachmentLimitNote
+      ? `<br/><br/>${escapeHtml(copy.attachmentsLimitNote)}`
+      : ""}
             </div>
 
             <p style="margin:24px 0 0 0;">${escapeHtml(copy.closing)}</p>
@@ -1915,6 +2004,7 @@ async function handleRequest(req: Request): Promise<Response> {
       attachmentsCount: safeAttachments.length,
       bookletAttachedCount,
       damageAttachedCount,
+      skippedForSizeLimitCount,
       pdfAttached,
     }));
 
