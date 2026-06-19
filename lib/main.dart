@@ -30,12 +30,14 @@ import 'screens/officina/appointments_screen.dart';
 import 'screens/service/service_anmelden_screen.dart';
 import 'screens/service/raeder_wechsel_screen.dart';
 import 'screens/driver_personal_qr_screen.dart';
+import 'screens/driver_qr_scanner_screen.dart';
 import 'screens/service/workshop_selector_screen.dart';
 import 'services/device_location_service.dart';
 import 'services/supabase_service.dart';
 import 'services/appointment_requests_service.dart';
 import 'services/incidents_sync_service.dart';
 import 'services/local_image_cache.dart';
+import 'models/driver_personal_qr_data.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'qr/qr_payload.dart';
@@ -768,8 +770,7 @@ bool _hasCompleteCidSignatures(Incidente incident) {
     }
   }
 
-  return hasSignature(incident.firmaAPath) &&
-      hasSignature(incident.firmaBPath);
+  return hasSignature(incident.firmaAPath) && hasSignature(incident.firmaBPath);
 }
 
 bool _cidEmailAlreadySent(Incidente incident) =>
@@ -4450,6 +4451,7 @@ class _ConducenteExtraFormData {
   final TextEditingController indirizzoController;
   final TextEditingController zipController;
   final TextEditingController cityController;
+  final TextEditingController countryController;
   final TextEditingController targaController;
   final TextEditingController assicurazioneController;
   final TextEditingController telefonoController;
@@ -4466,6 +4468,7 @@ class _ConducenteExtraFormData {
     required this.indirizzoController,
     required this.zipController,
     required this.cityController,
+    required this.countryController,
     required this.targaController,
     required this.assicurazioneController,
     required this.telefonoController,
@@ -4479,6 +4482,7 @@ class _ConducenteExtraFormData {
         indirizzoController.text.trim().isNotEmpty ||
         zipController.text.trim().isNotEmpty ||
         cityController.text.trim().isNotEmpty ||
+        countryController.text.trim().isNotEmpty ||
         targaController.text.trim().isNotEmpty ||
         assicurazioneController.text.trim().isNotEmpty ||
         telefonoController.text.trim().isNotEmpty ||
@@ -4501,6 +4505,7 @@ class _ConducenteExtraFormData {
     indirizzoController.dispose();
     zipController.dispose();
     cityController.dispose();
+    countryController.dispose();
     targaController.dispose();
     assicurazioneController.dispose();
     telefonoController.dispose();
@@ -4529,6 +4534,47 @@ class _DriverFieldBundle {
 }
 
 enum _DriverCourtesy { mr, mrs, company }
+
+class _DriverQrImportBundle {
+  final TextEditingController nomeController;
+  final TextEditingController cognomeController;
+  final TextEditingController indirizzoController;
+  final TextEditingController zipController;
+  final TextEditingController cityController;
+  final TextEditingController countryController;
+  final TextEditingController targaController;
+  final TextEditingController assicurazioneController;
+  final TextEditingController telefonoController;
+  final TextEditingController emailController;
+  final ValueChanged<_DriverCourtesy?> setCourtesy;
+
+  _DriverQrImportBundle({
+    required this.nomeController,
+    required this.cognomeController,
+    required this.indirizzoController,
+    required this.zipController,
+    required this.cityController,
+    required this.countryController,
+    required this.targaController,
+    required this.assicurazioneController,
+    required this.telefonoController,
+    required this.emailController,
+    required this.setCourtesy,
+  });
+}
+
+class DriverTarget {
+  const DriverTarget._(this.driverKey);
+
+  final String driverKey;
+
+  const DriverTarget.driverA() : driverKey = 'A';
+  const DriverTarget.driverB() : driverKey = 'B';
+
+  factory DriverTarget.fromKey(String driverKey) {
+    return DriverTarget._(driverKey.trim().toUpperCase());
+  }
+}
 
 /// NUOVA PRATICA ///////////////////////////////////////////////////////
 
@@ -4582,6 +4628,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   final _indirizzoAController = TextEditingController();
   final _driverAZipController = TextEditingController();
   final _driverACityController = TextEditingController();
+  final _driverACountryController = TextEditingController();
   _DriverCourtesy? _driverACourtesy;
 
   final _nomeBController = TextEditingController();
@@ -4594,6 +4641,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   final _indirizzoBController = TextEditingController();
   final _driverBZipController = TextEditingController();
   final _driverBCityController = TextEditingController();
+  final _driverBCountryController = TextEditingController();
   _DriverCourtesy? _driverBCourtesy;
 
   final _descrizioneController = TextEditingController();
@@ -4661,10 +4709,14 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return _driverBCourtesy != null ||
         _nomeBController.text.trim().isNotEmpty ||
         _cognomeBController.text.trim().isNotEmpty ||
+        _indirizzoBController.text.trim().isNotEmpty ||
+        _driverBZipController.text.trim().isNotEmpty ||
         _targaBController.text.trim().isNotEmpty ||
         _assicurazioneBController.text.trim().isNotEmpty ||
         _telefonoBController.text.trim().isNotEmpty ||
-        _emailBController.text.trim().isNotEmpty;
+        _emailBController.text.trim().isNotEmpty ||
+        _driverBCityController.text.trim().isNotEmpty ||
+        _driverBCountryController.text.trim().isNotEmpty;
   }
 
   String _copyText({
@@ -4707,6 +4759,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       indirizzoController: TextEditingController(),
       zipController: TextEditingController(),
       cityController: TextEditingController(),
+      countryController: TextEditingController(),
       targaController: TextEditingController(),
       assicurazioneController: TextEditingController(),
       telefonoController: TextEditingController(),
@@ -4767,6 +4820,144 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       cityController: driver.cityController,
       targaController: driver.targaController,
       assicurazioneController: driver.assicurazioneController,
+    );
+  }
+
+  _DriverQrImportBundle? _driverQrImportBundleForKey(String key) {
+    if (key == 'A') {
+      return _DriverQrImportBundle(
+        nomeController: _nomeAController,
+        cognomeController: _cognomeAController,
+        indirizzoController: _indirizzoAController,
+        zipController: _driverAZipController,
+        cityController: _driverACityController,
+        countryController: _driverACountryController,
+        targaController: _targaAController,
+        assicurazioneController: _assicurazioneAController,
+        telefonoController: _telefonoAController,
+        emailController: _emailAController,
+        setCourtesy: (value) => _driverACourtesy = value,
+      );
+    }
+    if (key == 'B') {
+      return _DriverQrImportBundle(
+        nomeController: _nomeBController,
+        cognomeController: _cognomeBController,
+        indirizzoController: _indirizzoBController,
+        zipController: _driverBZipController,
+        cityController: _driverBCityController,
+        countryController: _driverBCountryController,
+        targaController: _targaBController,
+        assicurazioneController: _assicurazioneBController,
+        telefonoController: _telefonoBController,
+        emailController: _emailBController,
+        setCourtesy: (value) => _driverBCourtesy = value,
+      );
+    }
+    final driver = _findConducenteAggiuntivo(key);
+    if (driver == null) return null;
+    return _DriverQrImportBundle(
+      nomeController: driver.nomeController,
+      cognomeController: driver.cognomeController,
+      indirizzoController: driver.indirizzoController,
+      zipController: driver.zipController,
+      cityController: driver.cityController,
+      countryController: driver.countryController,
+      targaController: driver.targaController,
+      assicurazioneController: driver.assicurazioneController,
+      telefonoController: driver.telefonoController,
+      emailController: driver.emailController,
+      setCourtesy: (value) => driver.courtesy = value,
+    );
+  }
+
+  _DriverCourtesy? _mapDriverQrCourtesy(DriverPersonalQrCourtesy? courtesy) {
+    switch (courtesy) {
+      case DriverPersonalQrCourtesy.mr:
+        return _DriverCourtesy.mr;
+      case DriverPersonalQrCourtesy.mrs:
+        return _DriverCourtesy.mrs;
+      case DriverPersonalQrCourtesy.company:
+        return _DriverCourtesy.company;
+      case null:
+        return null;
+    }
+  }
+
+  void _writeDriverQrValue(
+    TextEditingController controller,
+    String value,
+  ) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return;
+    controller.text = trimmed;
+  }
+
+  Future<void> importDriverQrData(
+    DriverPersonalQrData data,
+    DriverTarget target,
+  ) async {
+    final driverKey = target.driverKey;
+    final bundle = _driverQrImportBundleForKey(driverKey);
+    if (bundle == null || !mounted) return;
+
+    debugPrint('[DriverQR] import start target=$driverKey');
+    setState(() {
+      final courtesy = _mapDriverQrCourtesy(data.courtesy);
+      if (courtesy != null) {
+        bundle.setCourtesy(courtesy);
+      }
+      _writeDriverQrValue(bundle.nomeController, data.nome);
+      _writeDriverQrValue(bundle.cognomeController, data.cognome);
+      _writeDriverQrValue(bundle.indirizzoController, data.indirizzo);
+      _writeDriverQrValue(bundle.zipController, data.zip);
+      _writeDriverQrValue(bundle.cityController, data.city);
+      _writeDriverQrValue(bundle.countryController, data.country);
+      _writeDriverQrValue(bundle.telefonoController, data.telefono);
+      _writeDriverQrValue(bundle.emailController, data.email);
+      _writeDriverQrValue(bundle.targaController, data.targa);
+      _writeDriverQrValue(bundle.assicurazioneController, data.assicurazione);
+    });
+    debugPrint('[DriverQR] import completed target=$driverKey');
+  }
+
+  Future<void> _scanDriverQr(String driverKey) async {
+    final imported = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => DriverQrScannerScreen(
+          title: _copyText(
+            it: 'Scansiona QR conducente',
+            de: 'Fahrer-QR scannen',
+            fr: 'Scanner le QR conducteur',
+            en: 'Scan driver QR',
+          ),
+          hint: _copyText(
+            it: 'Inquadra il QR personale per importare automaticamente i dati del conducente.',
+            de: 'Richten Sie den persönlichen QR-Code aus, um die Fahrerdaten automatisch zu importieren.',
+            fr: 'Cadrez le QR personnel pour importer automatiquement les données du conducteur.',
+            en: 'Frame the personal QR code to automatically import the driver data.',
+          ),
+          invalidMessage: _copyText(
+            it: 'QR conducente non valido',
+            de: 'Ungültiger Fahrer-QR',
+            fr: 'QR conducteur non valide',
+            en: 'Invalid driver QR',
+          ),
+          onDetected: (data) => importDriverQrData(
+            data,
+            DriverTarget.fromKey(driverKey),
+          ),
+        ),
+      ),
+    );
+    if (!mounted || imported != true) return;
+    _mostraSnack(
+      _copyText(
+        it: 'Dati conducente importati correttamente',
+        de: 'Fahrerdaten erfolgreich importiert',
+        fr: 'Données conducteur importées avec succès',
+        en: 'Driver data imported successfully',
+      ),
     );
   }
 
@@ -5199,6 +5390,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     _indirizzoAController.dispose();
     _driverAZipController.dispose();
     _driverACityController.dispose();
+    _driverACountryController.dispose();
 
     _nomeBController.dispose();
     _cognomeBController.dispose();
@@ -5209,6 +5401,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     _indirizzoBController.dispose();
     _driverBZipController.dispose();
     _driverBCityController.dispose();
+    _driverBCountryController.dispose();
 
     _descrizioneController.dispose();
     _damageVehicleAController.dispose();
@@ -5522,12 +5715,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     required String localId,
   }) async {
     debugPrint('OFFLINE SAVE START: localId=$localId');
-  final offlineIncident = await _persistIncidentEmailSendState(
-    incident,
-    status: 'pending_sync',
-    message: _cidOfflinePendingMessage(),
-    previousId: localId == incident.id ? null : localId,
-  );
+    final offlineIncident = await _persistIncidentEmailSendState(
+      incident,
+      status: 'pending_sync',
+      message: _cidOfflinePendingMessage(),
+      previousId: localId == incident.id ? null : localId,
+    );
     await _upsertPendingSyncEntry(
       _buildPendingSyncEntry(offlineIncident, localId: localId),
     );
@@ -5536,30 +5729,30 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return offlineIncident;
   }
 
-Future<Incidente> _sendCidAutomatically(
-  String claimId,
-  Incidente incidenteSalvato,
-) async {
-  if (_cidEmailAlreadySent(incidenteSalvato)) {
-    debugPrint('[CIDEmail] skipped: already sent');
-    return incidenteSalvato;
-  }
+  Future<Incidente> _sendCidAutomatically(
+    String claimId,
+    Incidente incidenteSalvato,
+  ) async {
+    if (_cidEmailAlreadySent(incidenteSalvato)) {
+      debugPrint('[CIDEmail] skipped: already sent');
+      return incidenteSalvato;
+    }
 
-  if (!_hasCompleteCidSignatures(incidenteSalvato)) {
-    debugPrint('[CIDEmail] skipped: signatures missing');
-    return _persistIncidentEmailSendState(
+    if (!_hasCompleteCidSignatures(incidenteSalvato)) {
+      debugPrint('[CIDEmail] skipped: signatures missing');
+      return _persistIncidentEmailSendState(
+        incidenteSalvato,
+        status: 'awaiting_signatures',
+        message: _cidAwaitingSignaturesMessage(synced: false),
+      );
+    }
+
+    debugPrint('[CIDEmail] sending after both signatures');
+    var currentIncident = await _persistIncidentEmailSendState(
       incidenteSalvato,
-      status: 'awaiting_signatures',
-      message: _cidAwaitingSignaturesMessage(synced: false),
+      status: 'pending',
+      message: 'Invio email in corso...',
     );
-  }
-
-  debugPrint('[CIDEmail] sending after both signatures');
-  var currentIncident = await _persistIncidentEmailSendState(
-    incidenteSalvato,
-    status: 'pending',
-    message: 'Invio email in corso...',
-  );
     final availableContacts = {
       'emailA': currentIncident.emailA.trim(),
       'emailB': currentIncident.emailB.trim(),
@@ -6414,6 +6607,15 @@ Future<Incidente> _sendCidAutomatically(
     );
   }
 
+  String _driverCountryFieldLabel() {
+    return _copyText(
+      it: 'Paese',
+      de: 'Land',
+      fr: 'Pays',
+      en: 'Country',
+    );
+  }
+
   String _driverCourtesyLabel() {
     return _copyText(
       it: 'Cortesia / persona giuridica',
@@ -6500,17 +6702,6 @@ Future<Incidente> _sendCidAutomatically(
     );
   }
 
-  void _showDriverQrPlaceholderSnack() {
-    _mostraSnack(
-      _copyText(
-        it: 'Funzione QR dati conducente in preparazione',
-        de: 'QR-Datenfunktion für Fahrer in Vorbereitung',
-        fr: 'Fonction QR des données conducteur en préparation',
-        en: 'Driver data QR feature coming soon',
-      ),
-    );
-  }
-
   Widget _buildDriverFormCard({
     required String driverKey,
     required _DriverCourtesy? courtesy,
@@ -6519,6 +6710,7 @@ Future<Incidente> _sendCidAutomatically(
     required TextEditingController indirizzoController,
     required TextEditingController zipController,
     required TextEditingController cityController,
+    required TextEditingController countryController,
     required TextEditingController targaController,
     required TextEditingController assicurazioneController,
     required TextEditingController telefonoController,
@@ -6528,6 +6720,7 @@ Future<Incidente> _sendCidAutomatically(
     required String? Function(String?) nomeValidator,
     required String? Function(String?) targaValidator,
     required ValueChanged<_DriverCourtesy?> onCourtesyChanged,
+    required VoidCallback onScanQr,
     VoidCallback? onDelete,
   }) {
     return _buildInnerCard(
@@ -6572,7 +6765,7 @@ Future<Incidente> _sendCidAutomatically(
               const SizedBox(width: 12),
               Expanded(
                 child: _buildAddOutlinedButton(
-                  onPressed: _showDriverQrPlaceholderSnack,
+                  onPressed: onScanQr,
                   icon: Icons.qr_code_scanner_outlined,
                   label: _copyText(
                     it: 'Scansiona QR dati',
@@ -6641,6 +6834,14 @@ Future<Incidente> _sendCidAutomatically(
               decoration: InputDecoration(
                 labelText: _driverCityFieldLabel(),
               ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: countryController,
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(
+              labelText: _driverCountryFieldLabel(),
             ),
           ),
           const SizedBox(height: 12),
@@ -6754,6 +6955,7 @@ Future<Incidente> _sendCidAutomatically(
         indirizzoController: _indirizzoAController,
         zipController: _driverAZipController,
         cityController: _driverACityController,
+        countryController: _driverACountryController,
         targaController: _targaAController,
         assicurazioneController: _assicurazioneAController,
         telefonoController: _telefonoAController,
@@ -6775,6 +6977,7 @@ Future<Incidente> _sendCidAutomatically(
         onCourtesyChanged: (value) {
           setState(() => _driverACourtesy = value);
         },
+        onScanQr: () => _scanDriverQr('A'),
       ),
       const SizedBox(height: 16),
       _buildDriverFormCard(
@@ -6785,6 +6988,7 @@ Future<Incidente> _sendCidAutomatically(
         indirizzoController: _indirizzoBController,
         zipController: _driverBZipController,
         cityController: _driverBCityController,
+        countryController: _driverBCountryController,
         targaController: _targaBController,
         assicurazioneController: _assicurazioneBController,
         telefonoController: _telefonoBController,
@@ -6808,6 +7012,7 @@ Future<Incidente> _sendCidAutomatically(
         onCourtesyChanged: (value) {
           setState(() => _driverBCourtesy = value);
         },
+        onScanQr: () => _scanDriverQr('B'),
       ),
       const SizedBox(height: 16),
       Align(
@@ -6836,6 +7041,7 @@ Future<Incidente> _sendCidAutomatically(
           indirizzoController: driver.indirizzoController,
           zipController: driver.zipController,
           cityController: driver.cityController,
+          countryController: driver.countryController,
           targaController: driver.targaController,
           assicurazioneController: driver.assicurazioneController,
           telefonoController: driver.telefonoController,
@@ -6869,6 +7075,7 @@ Future<Incidente> _sendCidAutomatically(
           onCourtesyChanged: (value) {
             setState(() => driver.courtesy = value);
           },
+          onScanQr: () => _scanDriverQr(driver.driverKey),
           onDelete: () => _removeConducenteAggiuntivo(driver),
         ),
       );
@@ -9753,14 +9960,12 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     }
 
     String witnessSummary() {
-      return incidente.testimoni
-          .map((testimone) {
-            final name =
-                testimone.nome.trim().isEmpty ? '-' : testimone.nome.trim();
-            final phone = testimone.telefono.trim();
-            return phone.isEmpty ? name : '$name ($phone)';
-          })
-          .join(' · ');
+      return incidente.testimoni.map((testimone) {
+        final name =
+            testimone.nome.trim().isEmpty ? '-' : testimone.nome.trim();
+        final phone = testimone.telefono.trim();
+        return phone.isEmpty ? name : '$name ($phone)';
+      }).join(' · ');
     }
 
     String injurySummary() {
@@ -9916,7 +10121,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                     phoneValue:
                         incidente.telefonoA.isEmpty ? '-' : incidente.telefonoA,
                     emailLabel: emailALabel,
-                    emailValue: incidente.emailA.isEmpty ? '-' : incidente.emailA,
+                    emailValue:
+                        incidente.emailA.isEmpty ? '-' : incidente.emailA,
                     addressLabel: driverAAddressLabel,
                     addressValue:
                         indirizzoACompleto.isEmpty ? '-' : indirizzoACompleto,
@@ -9936,7 +10142,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                     phoneValue:
                         incidente.telefonoB.isEmpty ? '-' : incidente.telefonoB,
                     emailLabel: emailBLabel,
-                    emailValue: incidente.emailB.isEmpty ? '-' : incidente.emailB,
+                    emailValue:
+                        incidente.emailB.isEmpty ? '-' : incidente.emailB,
                     addressLabel: driverBAddressLabel,
                     addressValue:
                         indirizzoBCompleto.isEmpty ? '-' : indirizzoBCompleto,
@@ -10091,7 +10298,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       return joined.isEmpty ? '-' : joined;
     }
 
-    String driverSummary(String label, String nome, String cognome, String plate) {
+    String driverSummary(
+        String label, String nome, String cognome, String plate) {
       final full = fullName(nome, cognome);
       final plateValue = valueOrDash(plate);
       return plateValue == '-'

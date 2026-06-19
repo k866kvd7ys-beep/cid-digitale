@@ -126,16 +126,16 @@ class DriverPersonalQrData {
 
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{
-      'nome': nome.trim(),
-      'cognome': cognome.trim(),
-      'indirizzo': indirizzo.trim(),
+      'firstName': nome.trim(),
+      'lastName': cognome.trim(),
+      'address': indirizzo.trim(),
       'zip': zip.trim(),
       'city': city.trim(),
       'country': country.trim(),
-      'telefono': telefono.trim(),
+      'phone': telefono.trim(),
       'email': email.trim(),
-      'targa': targa.trim(),
-      'assicurazione': assicurazione.trim(),
+      'plate': targa.trim(),
+      'insurance': assicurazione.trim(),
     };
     final courtesyValue = courtesy?.storageValue;
     if (courtesyValue != null && courtesyValue.isNotEmpty) {
@@ -229,4 +229,19 @@ DriverPersonalQrData driverPersonalQrDataFromMap(Map<String, dynamic> map) {
 
 DriverPersonalQrData driverPersonalQrDataFromJson(String source) {
   return DriverPersonalQrData.fromJsonString(source);
+}
+
+DriverPersonalQrData? driverPersonalQrDataFromQrPayload(String source) {
+  if (source.trim().isEmpty) return null;
+
+  try {
+    final decoded = jsonDecode(source);
+    if (decoded is! Map) return null;
+    final map = Map<String, dynamic>.from(decoded);
+    final data = DriverPersonalQrData.fromMap(map);
+    if (!data.hasAnyValue) return null;
+    return data;
+  } catch (_) {
+    return null;
+  }
 }

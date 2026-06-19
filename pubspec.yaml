@@ -21,6 +21,7 @@ dependencies:
 
   # QR
   qr_flutter: ^4.1.0
+  mobile_scanner: ^5.2.3
 
   # URL / chiamate / mail
   url_launcher: ^6.3.2
