@@ -10,6 +10,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9156,6 +9157,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     required String message,
     Color backgroundColor = const Color(0xFFFEF3C7),
     Color foregroundColor = const Color(0xFF92400E),
+    Color borderColor = const Color(0x00000000),
   }) {
     return Container(
       width: double.infinity,
@@ -9163,6 +9165,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -9464,29 +9467,153 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     final hasFirmaB = firmaBImage != null;
 
     late final String claimNumberLabel;
-    late final String signatureSignedText;
-    late final String signatureMissingText;
+    late final String overviewTitle;
+    late final String driversTitle;
+    late final String descriptionTitle;
+    late final String damageTitle;
+    late final String liabilityTitle;
+    late final String protectionTitle;
+    late final String workshopCodeLabel;
+    late final String hashLabel;
+    late final String timestampLabel;
+    late final String signaturesTitle;
+    late final String driverAAddressLabel;
+    late final String driverBAddressLabel;
+    late final String insuranceALabel;
+    late final String insuranceBLabel;
+    late final String phoneALabel;
+    late final String phoneBLabel;
+    late final String emailALabel;
+    late final String emailBLabel;
+    late final String summarySubtitle;
+    late final String noDescriptionText;
+    late final String noDamageText;
+    late final String noAdditionalInfoText;
+    late final String witnessesTitle;
+    late final String injuriesTitle;
+    late final String signedLabel;
+    late final String missingSignatureLabel;
     switch (langCode) {
       case 'it':
         claimNumberLabel = 'Numero pratica:';
-        signatureSignedText = 'firmato digitalmente';
-        signatureMissingText = 'firma non presente';
+        overviewTitle = 'Riepilogo pratica';
+        driversTitle = 'Conducenti';
+        descriptionTitle = 'Descrizione';
+        damageTitle = 'Danni';
+        liabilityTitle = 'Responsabilità';
+        protectionTitle = 'Protezione documento';
+        workshopCodeLabel = 'Codice officina';
+        hashLabel = 'Hash SHA-256';
+        timestampLabel = 'Timestamp UTC';
+        signaturesTitle = 'Firme digitali';
+        driverAAddressLabel = 'Indirizzo A';
+        driverBAddressLabel = 'Indirizzo B';
+        insuranceALabel = 'Assicurazione A';
+        insuranceBLabel = 'Assicurazione B';
+        phoneALabel = 'Telefono A';
+        phoneBLabel = 'Telefono B';
+        emailALabel = 'Email A';
+        emailBLabel = 'Email B';
+        summarySubtitle =
+            'Documento riepilogativo generato per uso assicurativo, officina e concessionaria.';
+        noDescriptionText = 'Nessuna descrizione fornita.';
+        noDamageText = 'Nessun danno indicato.';
+        noAdditionalInfoText = 'Nessuna informazione aggiuntiva.';
+        witnessesTitle = 'Testimoni';
+        injuriesTitle = 'Feriti';
+        signedLabel = 'Firmato digitalmente';
+        missingSignatureLabel = 'Firma non presente';
         break;
       case 'fr':
         claimNumberLabel = 'Numero de dossier :';
-        signatureSignedText = 'signe numeriquement';
-        signatureMissingText = 'signature absente';
+        overviewTitle = 'Résumé du dossier';
+        driversTitle = 'Conducteurs';
+        descriptionTitle = 'Description';
+        damageTitle = 'Dommages';
+        liabilityTitle = 'Responsabilité';
+        protectionTitle = 'Protection du document';
+        workshopCodeLabel = 'Code atelier';
+        hashLabel = 'Hash SHA-256';
+        timestampLabel = 'Horodatage UTC';
+        signaturesTitle = 'Signatures numériques';
+        driverAAddressLabel = 'Adresse A';
+        driverBAddressLabel = 'Adresse B';
+        insuranceALabel = 'Assurance A';
+        insuranceBLabel = 'Assurance B';
+        phoneALabel = 'Téléphone A';
+        phoneBLabel = 'Téléphone B';
+        emailALabel = 'E-mail A';
+        emailBLabel = 'E-mail B';
+        summarySubtitle =
+            'Document de synthèse généré pour usage assurance, atelier et concession.';
+        noDescriptionText = 'Aucune description fournie.';
+        noDamageText = 'Aucun dommage indiqué.';
+        noAdditionalInfoText = 'Aucune information supplémentaire.';
+        witnessesTitle = 'Témoins';
+        injuriesTitle = 'Blessés';
+        signedLabel = 'Signé numériquement';
+        missingSignatureLabel = 'Signature absente';
         break;
       case 'en':
         claimNumberLabel = 'Claim number:';
-        signatureSignedText = 'digitally signed';
-        signatureMissingText = 'signature not available';
+        overviewTitle = 'Claim overview';
+        driversTitle = 'Drivers';
+        descriptionTitle = 'Description';
+        damageTitle = 'Damage';
+        liabilityTitle = 'Liability';
+        protectionTitle = 'Document protection';
+        workshopCodeLabel = 'Workshop code';
+        hashLabel = 'SHA-256 hash';
+        timestampLabel = 'UTC timestamp';
+        signaturesTitle = 'Digital signatures';
+        driverAAddressLabel = 'Address A';
+        driverBAddressLabel = 'Address B';
+        insuranceALabel = 'Insurance A';
+        insuranceBLabel = 'Insurance B';
+        phoneALabel = 'Phone A';
+        phoneBLabel = 'Phone B';
+        emailALabel = 'Email A';
+        emailBLabel = 'Email B';
+        summarySubtitle =
+            'Summary document generated for insurance, workshop and dealership use.';
+        noDescriptionText = 'No description provided.';
+        noDamageText = 'No damage reported.';
+        noAdditionalInfoText = 'No additional information.';
+        witnessesTitle = 'Witnesses';
+        injuriesTitle = 'Injuries';
+        signedLabel = 'Digitally signed';
+        missingSignatureLabel = 'Signature not available';
         break;
       case 'de':
       default:
         claimNumberLabel = 'Vorgangsnummer:';
-        signatureSignedText = 'digital signiert';
-        signatureMissingText = 'nicht unterschrieben';
+        overviewTitle = 'Aktenübersicht';
+        driversTitle = 'Fahrer';
+        descriptionTitle = 'Beschreibung';
+        damageTitle = 'Beschädigung';
+        liabilityTitle = 'Haftung';
+        protectionTitle = 'Dokumentschutz';
+        workshopCodeLabel = 'Werkstattcode';
+        hashLabel = 'SHA-256-Hash';
+        timestampLabel = 'UTC-Zeitstempel';
+        signaturesTitle = 'Digitale Unterschriften';
+        driverAAddressLabel = 'Adresse A';
+        driverBAddressLabel = 'Adresse B';
+        insuranceALabel = 'Versicherung A';
+        insuranceBLabel = 'Versicherung B';
+        phoneALabel = 'Telefon A';
+        phoneBLabel = 'Telefon B';
+        emailALabel = 'E-Mail A';
+        emailBLabel = 'E-Mail B';
+        summarySubtitle =
+            'Zusammenfassendes Dokument für Versicherung, Werkstatt und Autohaus.';
+        noDescriptionText = 'Keine Beschreibung angegeben.';
+        noDamageText = 'Keine Schäden angegeben.';
+        noAdditionalInfoText = 'Keine zusätzlichen Informationen.';
+        witnessesTitle = 'Zeugen';
+        injuriesTitle = 'Verletzte';
+        signedLabel = 'Digital signiert';
+        missingSignatureLabel = 'Unterschrift nicht vorhanden';
         break;
     }
 
@@ -9506,185 +9633,401 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         break;
     }
 
+    final detailLabelStyle = pw.TextStyle(
+      fontSize: 8.5,
+      fontWeight: pw.FontWeight.bold,
+      color: PdfColors.grey700,
+    );
+    final detailValueStyle = pw.TextStyle(
+      fontSize: 10,
+      color: PdfColors.grey900,
+      height: 1.25,
+    );
+    final sectionTitleStyle = pw.TextStyle(
+      fontSize: 11,
+      fontWeight: pw.FontWeight.bold,
+      color: PdfColors.grey900,
+    );
+
+    pw.Widget detailLine(String label, String value) {
+      return pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 4),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(label, style: detailLabelStyle),
+            pw.SizedBox(height: 2),
+            pw.Text(value, style: detailValueStyle),
+          ],
+        ),
+      );
+    }
+
+    pw.Widget sectionBox({
+      required String title,
+      required List<pw.Widget> children,
+      PdfColor background = PdfColors.white,
+    }) {
+      return pw.Container(
+        width: double.infinity,
+        padding: const pw.EdgeInsets.all(12),
+        decoration: pw.BoxDecoration(
+          color: background,
+          borderRadius: pw.BorderRadius.circular(12),
+          border: pw.Border.all(color: PdfColors.grey300, width: 0.8),
+        ),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(title, style: sectionTitleStyle),
+            pw.SizedBox(height: 8),
+            ...children,
+          ],
+        ),
+      );
+    }
+
+    pw.Widget driverCard({
+      required String title,
+      required String name,
+      required String plate,
+      required String insuranceLabel,
+      required String insuranceValue,
+      required String phoneLabel,
+      required String phoneValue,
+      required String emailLabel,
+      required String emailValue,
+      required String addressLabel,
+      required String addressValue,
+    }) {
+      return sectionBox(
+        title: title,
+        background: PdfColors.grey100,
+        children: [
+          detailLine(txStatic('Nome'), name),
+          detailLine(txStatic('Targa'), plate),
+          detailLine(insuranceLabel, insuranceValue),
+          detailLine(phoneLabel, phoneValue),
+          detailLine(emailLabel, emailValue),
+          detailLine(addressLabel, addressValue),
+        ],
+      );
+    }
+
+    String witnessSummary() {
+      return incidente.testimoni
+          .map((testimone) {
+            final name =
+                testimone.nome.trim().isEmpty ? '-' : testimone.nome.trim();
+            final phone = testimone.telefono.trim();
+            return phone.isEmpty ? name : '$name ($phone)';
+          })
+          .join(' · ');
+    }
+
+    String injurySummary() {
+      return incidente.feriti
+          .map((ferito) => [
+                ferito.nome.trim(),
+                ferito.indirizzo.trim(),
+                ferito.telefono.trim(),
+              ].where((part) => part.isNotEmpty).join(' · '))
+          .where((line) => line.isNotEmpty)
+          .join('  |  ');
+    }
+
+    final additionalInfoLines = <String>[
+      if (incidente.testimoni.isNotEmpty)
+        '$witnessesTitle: ${witnessSummary()}',
+      if (incidente.feriti.isNotEmpty) '$injuriesTitle: ${injurySummary()}',
+    ];
+
+    pw.Widget signatureCard({
+      required String title,
+      required bool hasSignature,
+      required String timestamp,
+      required pw.ImageProvider? image,
+    }) {
+      return sectionBox(
+        title: title,
+        background: PdfColors.green50,
+        children: [
+          pw.Text(
+            hasSignature ? signedLabel : missingSignatureLabel,
+            style: pw.TextStyle(
+              fontSize: 9.5,
+              fontWeight: pw.FontWeight.bold,
+              color: hasSignature ? PdfColors.green800 : PdfColors.grey700,
+            ),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Container(
+            height: 60,
+            width: double.infinity,
+            alignment: pw.Alignment.center,
+            decoration: pw.BoxDecoration(
+              color: PdfColors.white,
+              borderRadius: pw.BorderRadius.circular(8),
+              border: pw.Border.all(color: PdfColors.grey300, width: 0.7),
+            ),
+            child: image == null
+                ? pw.Text(
+                    missingSignatureLabel,
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      color: PdfColors.grey600,
+                    ),
+                  )
+                : pw.Image(image, fit: pw.BoxFit.contain),
+          ),
+          pw.SizedBox(height: 6),
+          detailLine(timestampLabel, timestamp),
+        ],
+      );
+    }
+
     pdf.addPage(
-      pw.Page(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(28),
         build: (ctx) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(
-                txStatic('CID Digitale'),
-                style:
-                    pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+          return [
+            pw.Container(
+              width: double.infinity,
+              padding: const pw.EdgeInsets.all(18),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.blue700,
+                borderRadius: pw.BorderRadius.circular(16),
               ),
-              pw.SizedBox(height: 4),
-              pw.Text(
-                '$claimNumberLabel $displayClaimId',
-                style:
-                    pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
-              ),
-              pw.SizedBox(height: 12),
-              pw.Text('${l10n.labelDateTime} $dataOra'),
-              pw.Text('${l10n.labelPlace} ${incidente.luogo}'),
-              pw.SizedBox(height: 8),
-              pw.Text('${l10n.pdfDriverA}: $driverAName (${incidente.targaA})'),
-              pw.Text(
-                  '${txStatic('Assicurazione A:')} ${incidente.assicurazioneA.isEmpty ? '-' : incidente.assicurazioneA}'),
-              pw.Text(
-                  '${txStatic('Telefono A:')} ${incidente.telefonoA.isEmpty ? '-' : incidente.telefonoA}'),
-              pw.Text(
-                  '${txStatic('Email A:')} ${incidente.emailA.isEmpty ? '-' : incidente.emailA}'),
-              pw.Text(
-                  '${txStatic('Indirizzo A:')} ${indirizzoACompleto.isEmpty ? '-' : indirizzoACompleto}'),
-              pw.SizedBox(height: 6),
-              pw.Text('${l10n.pdfDriverB}: $driverBName (${incidente.targaB})'),
-              pw.Text(
-                  '${txStatic('Assicurazione B:')} ${incidente.assicurazioneB.isEmpty ? '-' : incidente.assicurazioneB}'),
-              pw.Text(
-                  '${txStatic('Telefono B:')} ${incidente.telefonoB.isEmpty ? '-' : incidente.telefonoB}'),
-              pw.Text(
-                  '${txStatic('Email B:')} ${incidente.emailB.isEmpty ? '-' : incidente.emailB}'),
-              pw.Text(
-                  '${txStatic('Indirizzo B:')} ${indirizzoBCompleto.isEmpty ? '-' : indirizzoBCompleto}'),
-              pw.SizedBox(height: 12),
-              pw.Text(txStatic('Descrizione:'),
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.Text(
-                  incidente.descrizione.isEmpty ? '-' : incidente.descrizione),
-              pw.SizedBox(height: 12),
-              pw.Text(txStatic('Testimoni:'),
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              if (incidente.testimoni.isEmpty)
-                pw.Text(txStatic('- Nessun testimone indicato.'))
-              else ...[
-                for (final t in incidente.testimoni)
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
                   pw.Text(
-                    '- ${t.nome.isEmpty ? txStatic('Nome non indicato') : t.nome}'
-                    '${t.telefono.isNotEmpty ? ' (${t.telefono})' : ''}',
+                    'CID DIGITALE',
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontSize: 18,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    '$claimNumberLabel $displayClaimId',
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontSize: 13,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 6),
+                  pw.Text(
+                    summarySubtitle,
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontSize: 9,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 12),
+            sectionBox(
+              title: overviewTitle,
+              background: PdfColors.blue50,
+              children: [
+                pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Expanded(
+                      child: detailLine(l10n.labelDateTime, dataOra),
+                    ),
+                    pw.SizedBox(width: 12),
+                    pw.Expanded(
+                      child: detailLine(
+                        l10n.labelPlace,
+                        incidente.luogo.isEmpty ? '-' : incidente.luogo,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 12),
+            pw.Text(
+              driversTitle,
+              style: pw.TextStyle(
+                fontSize: 12,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.grey900,
+              ),
+            ),
+            pw.SizedBox(height: 8),
+            pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Expanded(
+                  child: driverCard(
+                    title: l10n.pdfDriverA,
+                    name: driverAName,
+                    plate: incidente.targaA.isEmpty ? '-' : incidente.targaA,
+                    insuranceLabel: insuranceALabel,
+                    insuranceValue: incidente.assicurazioneA.isEmpty
+                        ? '-'
+                        : incidente.assicurazioneA,
+                    phoneLabel: phoneALabel,
+                    phoneValue:
+                        incidente.telefonoA.isEmpty ? '-' : incidente.telefonoA,
+                    emailLabel: emailALabel,
+                    emailValue: incidente.emailA.isEmpty ? '-' : incidente.emailA,
+                    addressLabel: driverAAddressLabel,
+                    addressValue:
+                        indirizzoACompleto.isEmpty ? '-' : indirizzoACompleto,
+                  ),
+                ),
+                pw.SizedBox(width: 12),
+                pw.Expanded(
+                  child: driverCard(
+                    title: l10n.pdfDriverB,
+                    name: driverBName,
+                    plate: incidente.targaB.isEmpty ? '-' : incidente.targaB,
+                    insuranceLabel: insuranceBLabel,
+                    insuranceValue: incidente.assicurazioneB.isEmpty
+                        ? '-'
+                        : incidente.assicurazioneB,
+                    phoneLabel: phoneBLabel,
+                    phoneValue:
+                        incidente.telefonoB.isEmpty ? '-' : incidente.telefonoB,
+                    emailLabel: emailBLabel,
+                    emailValue: incidente.emailB.isEmpty ? '-' : incidente.emailB,
+                    addressLabel: driverBAddressLabel,
+                    addressValue:
+                        indirizzoBCompleto.isEmpty ? '-' : indirizzoBCompleto,
+                  ),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 12),
+            sectionBox(
+              title: descriptionTitle,
+              children: [
+                pw.Text(
+                  incidente.descrizione.isEmpty
+                      ? noDescriptionText
+                      : incidente.descrizione,
+                  style: detailValueStyle,
+                ),
+                if (additionalInfoLines.isNotEmpty) ...[
+                  pw.SizedBox(height: 8),
+                  pw.Text(
+                    additionalInfoLines.join('\n'),
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      color: PdfColors.grey700,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+                if (additionalInfoLines.isEmpty)
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.only(top: 8),
+                    child: pw.Text(
+                      noAdditionalInfoText,
+                      style: pw.TextStyle(
+                        fontSize: 9,
+                        color: PdfColors.grey600,
+                      ),
+                    ),
                   ),
               ],
-              pw.SizedBox(height: 12),
-              pw.Text(txStatic('Feriti:'),
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              if (incidente.feriti.isEmpty)
-                pw.Text(txStatic('- Nessun ferito indicato.'))
-              else ...[
-                for (final f in incidente.feriti)
-                  pw.Text(
-                    '- ${f.nome.isEmpty ? txStatic('Nome non indicato') : f.nome}'
-                    '${f.indirizzo.isNotEmpty ? ' · ${f.indirizzo}' : ''}'
-                    '${f.telefono.isNotEmpty ? ' (${f.telefono})' : ''}',
+            ),
+            pw.SizedBox(height: 12),
+            pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Expanded(
+                  child: sectionBox(
+                    title: damageTitle,
+                    children: [
+                      detailLine(
+                        l10n.damageVehicleA,
+                        incidente.danniVeicoloA.isEmpty
+                            ? noDamageText
+                            : incidente.danniVeicoloA,
+                      ),
+                      detailLine(
+                        l10n.damageVehicleB,
+                        incidente.danniVeicoloB.isEmpty
+                            ? noDamageText
+                            : incidente.danniVeicoloB,
+                      ),
+                    ],
                   ),
-              ],
-              pw.SizedBox(height: 12),
-              pw.Text(l10n.damageTitle,
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              if (incidente.danniVeicoloA.isEmpty &&
-                  incidente.danniVeicoloB.isEmpty)
-                pw.Text('-')
-              else ...[
-                pw.Text(
-                  '${l10n.damageVehicleA}: ${incidente.danniVeicoloA.isEmpty ? '-' : incidente.danniVeicoloA}',
                 ),
-                pw.Text(
-                  '${l10n.damageVehicleB}: ${incidente.danniVeicoloB.isEmpty ? '-' : incidente.danniVeicoloB}',
-                ),
-              ],
-              if (incidente.notaVocaleA.isNotEmpty ||
-                  incidente.notaVocaleB.isNotEmpty ||
-                  incidente.notaAudioAPath.isNotEmpty ||
-                  incidente.notaAudioBPath.isNotEmpty) ...[
-                pw.SizedBox(height: 12),
-                pw.Text(txStatic('Note vocali'),
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                if (incidente.notaVocaleA.isNotEmpty)
-                  pw.Text('${l10n.labelDriverAText} ${incidente.notaVocaleA}'),
-                if (incidente.notaAudioAPath.isNotEmpty)
-                  pw.Text(
-                    txStatic(
-                        'Conducente A: nota vocale allegata (file audio).'),
-                    style: const pw.TextStyle(fontSize: 10),
+                pw.SizedBox(width: 12),
+                pw.Expanded(
+                  child: sectionBox(
+                    title: liabilityTitle,
+                    background: PdfColors.grey100,
+                    children: [
+                      pw.Text(
+                        responsabilitaPdf,
+                        style: detailValueStyle,
+                      ),
+                    ],
                   ),
-                if (incidente.notaVocaleB.isNotEmpty)
-                  pw.Text('${l10n.labelDriverBText} ${incidente.notaVocaleB}'),
-                if (incidente.notaAudioBPath.isNotEmpty)
-                  pw.Text(
-                    txStatic(
-                        'Conducente B: nota vocale allegata (file audio).'),
-                    style: const pw.TextStyle(fontSize: 10),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 12),
+            sectionBox(
+              title: protectionTitle,
+              background: PdfColors.blue50,
+              children: [
+                detailLine(hashLabel, hash),
+                detailLine(
+                  timestampLabel,
+                  'A: ${incidente.timestampFirmaA.isEmpty ? '-' : incidente.timestampFirmaA}   ·   B: ${incidente.timestampFirmaB.isEmpty ? '-' : incidente.timestampFirmaB}',
+                ),
+                detailLine(workshopCodeLabel, displayWorkshopCode),
+              ],
+            ),
+            pw.SizedBox(height: 12),
+            pw.Text(
+              signaturesTitle,
+              style: pw.TextStyle(
+                fontSize: 12,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.grey900,
+              ),
+            ),
+            pw.SizedBox(height: 8),
+            pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Expanded(
+                  child: signatureCard(
+                    title: l10n.pdfDriverA,
+                    hasSignature: hasFirmaA,
+                    timestamp: incidente.timestampFirmaA.isEmpty
+                        ? '-'
+                        : incidente.timestampFirmaA,
+                    image: firmaAImage,
                   ),
-              ],
-              pw.SizedBox(height: 12),
-              pw.Text(l10n.pdfLiabilityHeading,
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.Text(responsabilitaPdf),
-              pw.SizedBox(height: 14),
-              pw.Text(
-                '${txStatic('Impronta integrità (SHA-256):')} $hash',
-                style: const pw.TextStyle(fontSize: 9),
-              ),
-              pw.SizedBox(height: 12),
-              pw.Text(txStatic('Firme:'),
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 8),
-              pw.Text(
-                '${l10n.pdfDriverA}: ${hasFirmaA ? signatureSignedText : signatureMissingText}',
-                style: const pw.TextStyle(fontSize: 10),
-              ),
-              if (hasFirmaA) ...[
-                pw.SizedBox(height: 4),
-                pw.Container(
-                  width: 150,
-                  height: 60,
-                  decoration:
-                      pw.BoxDecoration(border: pw.Border.all(width: 0.5)),
-                  child: pw.Image(firmaAImage!, fit: pw.BoxFit.contain),
                 ),
-                pw.SizedBox(height: 4),
-                pw.Text(
-                  '${txStatic('Timestamp firma (UTC):')} ${incidente.timestampFirmaA.isEmpty ? '-' : incidente.timestampFirmaA}',
-                  style: const pw.TextStyle(fontSize: 9),
+                pw.SizedBox(width: 12),
+                pw.Expanded(
+                  child: signatureCard(
+                    title: l10n.pdfDriverB,
+                    hasSignature: hasFirmaB,
+                    timestamp: incidente.timestampFirmaB.isEmpty
+                        ? '-'
+                        : incidente.timestampFirmaB,
+                    image: firmaBImage,
+                  ),
                 ),
               ],
-              pw.SizedBox(height: 10),
-              pw.Text(
-                '${l10n.pdfDriverB}: ${hasFirmaB ? signatureSignedText : signatureMissingText}',
-                style: const pw.TextStyle(fontSize: 10),
-              ),
-              if (hasFirmaB) ...[
-                pw.SizedBox(height: 4),
-                pw.Container(
-                  width: 150,
-                  height: 60,
-                  decoration:
-                      pw.BoxDecoration(border: pw.Border.all(width: 0.5)),
-                  child: pw.Image(firmaBImage!, fit: pw.BoxFit.contain),
-                ),
-                pw.SizedBox(height: 4),
-                pw.Text(
-                  '${txStatic('Timestamp firma (UTC):')} ${incidente.timestampFirmaB.isEmpty ? '-' : incidente.timestampFirmaB}',
-                  style: const pw.TextStyle(fontSize: 9),
-                ),
-              ],
-              if (hasFirmaA || hasFirmaB) ...[
-                pw.SizedBox(height: 12),
-                pw.Text(
-                  txStatic(
-                      'Le firme apposte confermano la correttezza dei dati inseriti nel presente CID digitale.'),
-                  style: const pw.TextStyle(fontSize: 9),
-                ),
-              ],
-              pw.SizedBox(height: 12),
-              pw.Text('${txStatic('Codice officina:')} $displayWorkshopCode',
-                  style: const pw.TextStyle(fontSize: 10)),
-              pw.SizedBox(height: 4),
-              pw.Text(
-                txStatic(
-                    "QR code disponibile nell'app per recuperare rapidamente la pratica."),
-                style: const pw.TextStyle(fontSize: 10),
-              ),
-            ],
-          );
+            ),
+          ];
         },
       ),
     );
@@ -9710,318 +10053,125 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       return joined.isEmpty ? '-' : joined;
     }
 
-    String fullAddress(String address, String zip, String city) {
-      final joined = [
-        address.trim(),
-        [zip.trim(), city.trim()].where((part) => part.isNotEmpty).join(' '),
-      ].where((part) => part.isNotEmpty).join(', ');
-      return joined.isEmpty ? '-' : joined;
-    }
-
-    String joinLines(List<String> values) {
-      final lines = values
-          .map((value) => value.trim())
-          .where((value) => value.isNotEmpty)
-          .toList();
-      return lines.isEmpty ? '-' : lines.join('\n');
+    String driverSummary(String label, String nome, String cognome, String plate) {
+      final full = fullName(nome, cognome);
+      final plateValue = valueOrDash(plate);
+      return plateValue == '-'
+          ? '$label: $full'
+          : '$label: $full (${_detailText(it: 'Targa', de: 'Kennzeichen', fr: 'Plaque', en: 'Plate')}: $plateValue)';
     }
 
     final lang = normalizeLang(Localizations.localeOf(context).languageCode);
     final displayClaimId = formatClaimDisplayId(incidente);
-    final displayWorkshopCode = formatWorkshopDisplayCode(incidente);
-    final hasFirmaA = _decodeBase64Image(incidente.firmaAPath) != null;
-    final hasFirmaB = _decodeBase64Image(incidente.firmaBPath) != null;
     final dataOra = formatDataOraLocale(context, incidente.dataOra);
-    final liabilityText =
-        incidente.colpevole.trim().isEmpty ? '' : _labelResponsabilita();
 
     late final String subject;
-    late final String title;
     late final String greeting;
     late final String intro;
-    late final String introDetails;
     late final String claimNumberLabel;
     late final String dateTimeLabel;
     late final String placeLabel;
     late final String driverALabel;
     late final String driverBLabel;
-    late final String nameLabel;
-    late final String plateLabel;
-    late final String insuranceLabel;
-    late final String phoneLabel;
-    late final String emailLabel;
-    late final String addressLabel;
-    late final String descriptionLabel;
-    late final String witnessesLabel;
-    late final String witnessesEmpty;
-    late final String injuriesLabel;
-    late final String injuriesEmpty;
-    late final String damageLabel;
-    late final String damageVehicleALabel;
-    late final String damageVehicleBLabel;
-    late final String liabilityLabel;
-    late final String liabilityEmpty;
-    late final String signaturesLabel;
-    late final String workshopCodeLabel;
-    late final String qrNote;
-    late final String attachmentsNote;
+    late final String pdfNote;
+    late final String photosNote;
     late final String closing;
-    late final String signatureSignedText;
-    late final String signatureMissingText;
-    late final String signatureTimestampLabel;
 
     switch (lang) {
       case 'it':
         subject = 'Pratica incidente digitale $displayClaimId';
-        title = 'Pratica incidente digitale';
         greeting = 'Gentile utente,';
         intro =
-            'in allegato trova la pratica incidente digitale n° $displayClaimId.';
-        introDetails =
-            'La pratica è stata generata digitalmente e include i dati raccolti, gli allegati e, se presenti, le firme digitali dei conducenti.';
+            'In allegato trova la pratica incidente digitale n° $displayClaimId.';
         claimNumberLabel = 'Numero pratica';
         dateTimeLabel = 'Data e ora';
         placeLabel = 'Luogo';
         driverALabel = 'Conducente A';
         driverBLabel = 'Conducente B';
-        nameLabel = 'Nome';
-        plateLabel = 'Targa';
-        insuranceLabel = 'Assicurazione';
-        phoneLabel = 'Telefono';
-        emailLabel = 'E-Mail';
-        addressLabel = 'Indirizzo';
-        descriptionLabel = 'Descrizione';
-        witnessesLabel = 'Testimoni';
-        witnessesEmpty = 'Nessun testimone indicato.';
-        injuriesLabel = 'Feriti';
-        injuriesEmpty = 'Nessun ferito indicato.';
-        damageLabel = 'Danni';
-        damageVehicleALabel = 'Veicolo A';
-        damageVehicleBLabel = 'Veicolo B';
-        liabilityLabel = 'Responsabilita (dichiarazione delle parti)';
-        liabilityEmpty = 'Nessuna indicazione.';
-        signaturesLabel = 'Firme';
-        workshopCodeLabel = 'Codice officina';
-        qrNote =
-            'QR disponibile nell’app per importare rapidamente la pratica.';
-        attachmentsNote =
-            'Il PDF della pratica e gli allegati caricati sono inclusi.';
+        pdfNote =
+            'La pratica digitale completa è disponibile nel PDF allegato.';
+        photosNote =
+            'Le fotografie aggiuntive vengono allegate separatamente quando consentito dai limiti dimensionali.';
         closing = 'Cordiali saluti';
-        signatureSignedText = 'firmato digitalmente';
-        signatureMissingText = 'firma non presente';
-        signatureTimestampLabel = 'Timestamp UTC';
         break;
       case 'fr':
-        subject = 'Dossier d’accident numerique $displayClaimId';
-        title = 'Dossier d’accident numerique';
+        subject = 'Dossier d’accident numérique $displayClaimId';
         greeting = 'Bonjour,';
         intro =
-            'vous trouverez en piece jointe le dossier d’accident numerique n° $displayClaimId.';
-        introDetails =
-            'Le dossier a ete genere numeriquement et inclut les donnees saisies, les pieces jointes et, si disponibles, les signatures numeriques des conducteurs.';
-        claimNumberLabel = 'Numero de dossier';
+            'Vous trouverez en pièce jointe le dossier d’accident numérique n° $displayClaimId.';
+        claimNumberLabel = 'Numéro de dossier';
         dateTimeLabel = 'Date et heure';
         placeLabel = 'Lieu';
         driverALabel = 'Conducteur A';
         driverBLabel = 'Conducteur B';
-        nameLabel = 'Nom';
-        plateLabel = 'Plaque';
-        insuranceLabel = 'Assurance';
-        phoneLabel = 'Telephone';
-        emailLabel = 'E-Mail';
-        addressLabel = 'Adresse';
-        descriptionLabel = 'Description';
-        witnessesLabel = 'Temoins';
-        witnessesEmpty = 'Aucun temoin indique.';
-        injuriesLabel = 'Blesses';
-        injuriesEmpty = 'Aucun blesse indique.';
-        damageLabel = 'Dommages';
-        damageVehicleALabel = 'Vehicule A';
-        damageVehicleBLabel = 'Vehicule B';
-        liabilityLabel = 'Responsabilite (declaration des parties)';
-        liabilityEmpty = 'Aucune indication.';
-        signaturesLabel = 'Signatures';
-        workshopCodeLabel = 'Code atelier';
-        qrNote =
-            'Code QR disponible dans l’application pour importer rapidement le dossier.';
-        attachmentsNote =
-            'Le PDF du dossier et les pieces jointes telechargees sont inclus.';
+        pdfNote =
+            'Le dossier numérique complet est disponible dans le PDF joint.';
+        photosNote =
+            'Des photographies supplémentaires sont jointes séparément lorsque la limite de taille le permet.';
         closing = 'Cordialement';
-        signatureSignedText = 'signe numeriquement';
-        signatureMissingText = 'signature absente';
-        signatureTimestampLabel = 'Horodatage UTC';
         break;
       case 'en':
         subject = 'Digital accident claim $displayClaimId';
-        title = 'Digital accident claim';
         greeting = 'Hello,';
         intro =
-            'Attached you will find the digital accident claim no. $displayClaimId.';
-        introDetails =
-            'The claim was created digitally and includes the recorded data, uploaded attachments and, when available, the drivers digital signatures.';
+            'Attached you will find digital accident claim no. $displayClaimId.';
         claimNumberLabel = 'Claim number';
         dateTimeLabel = 'Date and time';
         placeLabel = 'Location';
         driverALabel = 'Driver A';
         driverBLabel = 'Driver B';
-        nameLabel = 'Name';
-        plateLabel = 'License plate';
-        insuranceLabel = 'Insurance';
-        phoneLabel = 'Phone';
-        emailLabel = 'E-Mail';
-        addressLabel = 'Address';
-        descriptionLabel = 'Description';
-        witnessesLabel = 'Witnesses';
-        witnessesEmpty = 'No witnesses provided.';
-        injuriesLabel = 'Injuries';
-        injuriesEmpty = 'No injuries reported.';
-        damageLabel = 'Damage';
-        damageVehicleALabel = 'Vehicle A';
-        damageVehicleBLabel = 'Vehicle B';
-        liabilityLabel = 'Liability (party statement)';
-        liabilityEmpty = 'No information provided.';
-        signaturesLabel = 'Signatures';
-        workshopCodeLabel = 'Workshop code';
-        qrNote = 'QR code available in the app to quickly import the claim.';
-        attachmentsNote =
-            'The PDF report and the uploaded attachments are included.';
+        pdfNote =
+            'The complete digital claim file is available in the attached PDF.';
+        photosNote =
+            'Additional photographs are included as separate attachments whenever size limits allow.';
         closing = 'Kind regards';
-        signatureSignedText = 'digitally signed';
-        signatureMissingText = 'signature not available';
-        signatureTimestampLabel = 'UTC timestamp';
         break;
       case 'de':
       default:
         subject = 'Digitale Schadenakte $displayClaimId';
-        title = 'Digitale Schadenakte';
         greeting = 'Guten Tag,';
         intro =
-            'im Anhang finden Sie die digitale Schadenakte zur Vorgangsnummer $displayClaimId.';
-        introDetails =
-            'Die Schadenakte wurde digital erstellt und enthaelt die erfassten Angaben, Anhaenge und, sofern vorhanden, die digitalen Unterschriften der beteiligten Fahrer.';
+            'Im Anhang finden Sie die digitale Schadenakte zur Vorgangsnummer $displayClaimId.';
         claimNumberLabel = 'Vorgangsnummer';
         dateTimeLabel = 'Datum und Uhrzeit';
         placeLabel = 'Ort';
         driverALabel = 'Fahrer A';
         driverBLabel = 'Fahrer B';
-        nameLabel = 'Name';
-        plateLabel = 'Kennzeichen';
-        insuranceLabel = 'Versicherung';
-        phoneLabel = 'Telefon';
-        emailLabel = 'E-Mail';
-        addressLabel = 'Adresse';
-        descriptionLabel = 'Beschreibung';
-        witnessesLabel = 'Zeugen';
-        witnessesEmpty = 'Keine Zeugen angegeben.';
-        injuriesLabel = 'Verletzte';
-        injuriesEmpty = 'Keine Verletzten angegeben.';
-        damageLabel = 'Beschaedigung';
-        damageVehicleALabel = 'Fahrzeug A';
-        damageVehicleBLabel = 'Fahrzeug B';
-        liabilityLabel = 'Haftung (Angabe der Parteien)';
-        liabilityEmpty = 'Keine Angabe.';
-        signaturesLabel = 'Unterschriften';
-        workshopCodeLabel = 'Werkstattcode';
-        qrNote =
-            'QR-Code in der App verfuegbar, um den Vorgang schnell zu importieren.';
-        attachmentsNote =
-            'Der PDF-Bericht und die hochgeladenen Anhaenge sind beigefuegt.';
-        closing = 'Freundliche Gruesse';
-        signatureSignedText = 'digital signiert';
-        signatureMissingText = 'nicht vorhanden';
-        signatureTimestampLabel = 'UTC-Zeitstempel';
+        pdfNote =
+            'Die vollständige digitale Schadenakte befindet sich im beigefügten PDF.';
+        photosNote =
+            'Zusätzliche Fotos werden – sofern die Größenbeschränkung dies zulässt – als separate Anhänge übermittelt.';
+        closing = 'Freundliche Grüsse';
         break;
     }
 
-    String signatureStatusLine(String driverLabel, bool hasSignature) {
-      return '$driverLabel: '
-          '${hasSignature ? signatureSignedText : signatureMissingText}';
-    }
-
-    final witnessesText = incidente.testimoni.isEmpty
-        ? witnessesEmpty
-        : joinLines(
-            incidente.testimoni
-                .map(
-                  (testimone) => '- ${valueOrDash(testimone.nome)}'
-                      ' (${valueOrDash(testimone.telefono)})',
-                )
-                .toList(),
-          );
-    final injuriesText = incidente.feriti.isEmpty
-        ? injuriesEmpty
-        : joinLines(
-            incidente.feriti
-                .map(
-                  (ferito) => '- ${valueOrDash(ferito.nome)}'
-                      ' | ${valueOrDash(ferito.indirizzo)}'
-                      ' | ${valueOrDash(ferito.telefono)}',
-                )
-                .toList(),
-          );
-
     final body = StringBuffer()
-      ..writeln(title)
+      ..writeln('CID Digitale')
       ..writeln('$claimNumberLabel: $displayClaimId')
       ..writeln()
       ..writeln(greeting)
       ..writeln()
       ..writeln(intro)
-      ..writeln(introDetails)
       ..writeln()
       ..writeln('$dateTimeLabel: $dataOra')
       ..writeln('$placeLabel: ${valueOrDash(incidente.luogo)}')
       ..writeln()
-      ..writeln('$driverALabel:')
-      ..writeln('$nameLabel: ${fullName(incidente.nomeA, incidente.cognomeA)}')
-      ..writeln('$plateLabel: ${valueOrDash(incidente.targaA)}')
-      ..writeln('$insuranceLabel: ${valueOrDash(incidente.assicurazioneA)}')
-      ..writeln('$phoneLabel: ${valueOrDash(incidente.telefonoA)}')
-      ..writeln('$emailLabel: ${valueOrDash(incidente.emailA)}')
-      ..writeln(
-          '$addressLabel: ${fullAddress(incidente.indirizzoA, incidente.zipA, incidente.cityA)}')
+      ..writeln(driverSummary(
+        driverALabel,
+        incidente.nomeA,
+        incidente.cognomeA,
+        incidente.targaA,
+      ))
+      ..writeln(driverSummary(
+        driverBLabel,
+        incidente.nomeB,
+        incidente.cognomeB,
+        incidente.targaB,
+      ))
       ..writeln()
-      ..writeln('$driverBLabel:')
-      ..writeln('$nameLabel: ${fullName(incidente.nomeB, incidente.cognomeB)}')
-      ..writeln('$plateLabel: ${valueOrDash(incidente.targaB)}')
-      ..writeln('$insuranceLabel: ${valueOrDash(incidente.assicurazioneB)}')
-      ..writeln('$phoneLabel: ${valueOrDash(incidente.telefonoB)}')
-      ..writeln('$emailLabel: ${valueOrDash(incidente.emailB)}')
-      ..writeln(
-          '$addressLabel: ${fullAddress(incidente.indirizzoB, incidente.zipB, incidente.cityB)}')
+      ..writeln(pdfNote)
       ..writeln()
-      ..writeln('$descriptionLabel:')
-      ..writeln(valueOrDash(incidente.descrizione))
-      ..writeln()
-      ..writeln('$witnessesLabel:')
-      ..writeln(witnessesText)
-      ..writeln()
-      ..writeln('$injuriesLabel:')
-      ..writeln(injuriesText)
-      ..writeln()
-      ..writeln('$damageLabel:')
-      ..writeln('$damageVehicleALabel: ${valueOrDash(incidente.danniVeicoloA)}')
-      ..writeln('$damageVehicleBLabel: ${valueOrDash(incidente.danniVeicoloB)}')
-      ..writeln()
-      ..writeln('$liabilityLabel:')
-      ..writeln(liabilityText.isEmpty ? liabilityEmpty : liabilityText)
-      ..writeln()
-      ..writeln('$signaturesLabel:')
-      ..writeln(signatureStatusLine(driverALabel, hasFirmaA))
-      ..writeln(hasFirmaA
-          ? '$signatureTimestampLabel: '
-              '${valueOrDash(incidente.timestampFirmaA)}'
-          : '')
-      ..writeln(signatureStatusLine(driverBLabel, hasFirmaB))
-      ..writeln(hasFirmaB
-          ? '$signatureTimestampLabel: '
-              '${valueOrDash(incidente.timestampFirmaB)}'
-          : '')
-      ..writeln()
-      ..writeln('$workshopCodeLabel: $displayWorkshopCode')
-      ..writeln(qrNote)
-      ..writeln()
-      ..writeln(attachmentsNote)
+      ..writeln(photosNote)
       ..writeln()
       ..writeln(closing);
 
@@ -10904,6 +11054,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     final firmaBBytes = _decodeBase64Image(incidente.firmaBPath);
     final firmaAExists = firmaABytes != null;
     final firmaBExists = firmaBBytes != null;
+    final hasCompleteSignatures =
+        incidente.firmaAPath.isNotEmpty && incidente.firmaBPath.isNotEmpty;
     final practiceId = formatClaimDisplayId(incidente);
     final lockedTitle = _detailText(
       it: 'Pratica protetta e conclusa.',
@@ -10933,6 +11085,43 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
             en: 'No contact available',
           )
         : contactsLines.join('\n');
+    final integrityTitle = hasCompleteSignatures
+        ? _detailText(
+            it: 'Integrità verificata con successo.',
+            de: 'Integrität erfolgreich verifiziert.',
+            fr: 'Intégrité vérifiée avec succès.',
+            en: 'Integrity successfully verified.',
+          )
+        : _detailText(
+            it: 'In attesa delle firme digitali.',
+            de: 'Warten auf die digitalen Unterschriften.',
+            fr: 'En attente des signatures numériques.',
+            en: 'Waiting for digital signatures.',
+          );
+    final integrityMessage = hasCompleteSignatures
+        ? _detailText(
+            it: 'Questo documento è protetto con hash SHA-256 e timestamp UTC.',
+            de: 'Dieses Dokument ist durch SHA-256 und UTC-Zeitstempel geschützt.',
+            fr: 'Ce document est protégé par un hachage SHA-256 et un horodatage UTC.',
+            en: 'This document is protected by SHA-256 hash and UTC timestamp.',
+          )
+        : _detailText(
+            it: 'La verifica dell’integrità verrà eseguita automaticamente quando entrambi i conducenti avranno firmato.',
+            de: 'Die Integritätsprüfung wird automatisch durchgeführt, sobald beide Fahrer unterschrieben haben.',
+            fr: 'La vérification de l’intégrité sera effectuée automatiquement dès que les deux conducteurs auront signé.',
+            en: 'Integrity verification will be performed automatically after both drivers have signed.',
+          );
+    final integrityBackgroundColor = hasCompleteSignatures
+        ? const Color(0xFFDCFCE7)
+        : const Color(0xFFEFF6FF);
+    final integrityForegroundColor = hasCompleteSignatures
+        ? const Color(0xFF166534)
+        : const Color(0xFF1D4ED8);
+    final integrityBorderColor = hasCompleteSignatures
+        ? const Color(0xFFBBF7D0)
+        : const Color(0xFFBFDBFE);
+    final integrityIcon =
+        hasCompleteSignatures ? Icons.check_circle : Icons.info_outline;
 
     return Scaffold(
       appBar: AppBar(
@@ -11129,42 +11318,15 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                       ),
                       const SizedBox(height: 10),
                     ],
-                    if (_hashValido == false) ...[
-                      Text(
-                        AppLocalizations.of(context)!
-                            .integrityNotVerifiedWarning,
-                        style: const TextStyle(fontSize: 12, color: Colors.red),
-                      ),
-                      const SizedBox(height: 6),
-                    ] else if (incidente.hashIntegrita.isEmpty) ...[
-                      Text(
-                        _detailText(
-                          it: 'Impronta di integrità non disponibile per questa pratica.',
-                          de: 'Für diese Schadenakte ist kein Integritäts-Hash verfügbar.',
-                          fr: 'Aucune empreinte d’intégrité disponible pour ce dossier.',
-                          en: 'No integrity hash is available for this claim.',
-                        ),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF6B7280),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                    ] else if (_hashValido == null) ...[
-                      Text(
-                        _detailText(
-                          it: 'Verifica integrità in corso...',
-                          de: 'Integritätsprüfung läuft...',
-                          fr: 'Vérification de l’intégrité en cours...',
-                          en: 'Integrity verification in progress...',
-                        ),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF6B7280),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                    ],
+                    _buildSoftInfoBox(
+                      icon: integrityIcon,
+                      title: integrityTitle,
+                      message: integrityMessage,
+                      backgroundColor: integrityBackgroundColor,
+                      foregroundColor: integrityForegroundColor,
+                      borderColor: integrityBorderColor,
+                    ),
+                    const SizedBox(height: 10),
                     if (_locked && !widget.readOnly)
                       _buildSoftInfoBox(
                         icon: Icons.lock_outline,

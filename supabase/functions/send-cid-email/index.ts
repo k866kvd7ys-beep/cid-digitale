@@ -575,9 +575,9 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     greeting: "Guten Tag,",
     intro: "Ihre digitale Schadenakte wurde erfolgreich registriert.",
     pdfSummaryNote:
-      "Die vollstaendige Schadenakte ist im angehaengten PDF verfuegbar.",
+      "Die vollständige digitale Schadenakte befindet sich im beigefügten PDF.",
     photosSummaryNote:
-      "Verfuegbare Fotos sind als separate Dateien angehaengt.",
+      "Zusätzliche Fotos werden - sofern die Größenbeschränkung dies zulässt - als separate Anhänge übermittelt.",
     dateTime: "Datum und Uhrzeit",
     place: "Ort",
     driverA: "Fahrer A",
@@ -618,9 +618,9 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     greeting: "Gentile utente,",
     intro: "La pratica incidente digitale e stata registrata correttamente.",
     pdfSummaryNote:
-      "La pratica completa e disponibile nel PDF allegato.",
+      "La pratica digitale completa è disponibile nel PDF allegato.",
     photosSummaryNote:
-      "Le foto disponibili sono allegate come file separati.",
+      "Le fotografie aggiuntive vengono allegate separatamente quando consentito dai limiti dimensionali.",
     dateTime: "Data e ora",
     place: "Luogo",
     driverA: "Conducente A",
@@ -661,9 +661,9 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     greeting: "Bonjour,",
     intro: "Votre dossier d’accident numerique a ete enregistre avec succes.",
     pdfSummaryNote:
-      "Le dossier complet est disponible dans le PDF joint.",
+      "Le dossier numérique complet est disponible dans le PDF joint.",
     photosSummaryNote:
-      "Les photos disponibles sont jointes comme fichiers separes.",
+      "Des photographies supplémentaires sont jointes séparément lorsque la limite de taille le permet.",
     dateTime: "Date et heure",
     place: "Lieu",
     driverA: "Conducteur A",
@@ -704,9 +704,9 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     greeting: "Hello,",
     intro: "Your digital accident claim has been registered successfully.",
     pdfSummaryNote:
-      "The complete claim is available in the attached PDF.",
+      "The complete digital claim file is available in the attached PDF.",
     photosSummaryNote:
-      "Available photos are attached as separate files.",
+      "Additional photographs are included as separate attachments whenever size limits allow.",
     dateTime: "Date and time",
     place: "Location",
     driverA: "Driver A",
@@ -1294,128 +1294,660 @@ async function generatePdfFromPayload(
   const pdfDoc = await PDFDocument.create();
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  let page = pdfDoc.addPage();
-  let { height } = page.getSize();
-  let y = height - 40;
+  const signatureAValue = findSignatureValue(payload, "A");
+  const signatureBValue = findSignatureValue(payload, "B");
+  const signatureABytes = signatureAValue
+    ? await resolveSignatureImageBytes(signatureAValue)
+    : null;
+  const signatureBBytes = signatureBValue
+    ? await resolveSignatureImageBytes(signatureBValue)
+    : null;
 
-  const ensureSpace = (neededHeight = 20) => {
-    if (y >= neededHeight) return;
-    page = pdfDoc.addPage();
-    ({ height } = page.getSize());
-    y = height - 40;
-  };
+  let signatureAImage:
+    | Awaited<ReturnType<PDFDocument["embedPng"]>>
+    | Awaited<ReturnType<PDFDocument["embedJpg"]>>
+    | null = null;
+  let signatureBImage:
+    | Awaited<ReturnType<PDFDocument["embedPng"]>>
+    | Awaited<ReturnType<PDFDocument["embedJpg"]>>
+    | null = null;
 
-  const line = (text: string, bold = false, size = 12) => {
-    ensureSpace(size + 12);
-    page.drawText(normalizePdfText(text ?? ""), {
-      x: 40,
-      y,
-      size,
-      font: bold ? fontBold : fontRegular,
-      color: rgb(0, 0, 0),
-    });
-    y -= size + 6;
-  };
-
-  const drawSignature = async (label: string, value: string | null) => {
-    if (!value) return;
-    const bytes = await resolveSignatureImageBytes(value);
-    if (!bytes) return;
-
-    let image;
+  if (signatureABytes) {
     try {
-      image = await pdfDoc.embedPng(bytes);
+      signatureAImage = await pdfDoc.embedPng(signatureABytes);
     } catch (_pngErr) {
       try {
-        image = await pdfDoc.embedJpg(bytes);
+        signatureAImage = await pdfDoc.embedJpg(signatureABytes);
       } catch (_jpgErr) {
-        return;
+        signatureAImage = null;
+      }
+    }
+  }
+
+  if (signatureBBytes) {
+    try {
+      signatureBImage = await pdfDoc.embedPng(signatureBBytes);
+    } catch (_pngErr) {
+      try {
+        signatureBImage = await pdfDoc.embedJpg(signatureBBytes);
+      } catch (_jpgErr) {
+        signatureBImage = null;
+      }
+    }
+  }
+
+  const hasWitnesses = Array.isArray(payload?.testimoni) && payload.testimoni.length > 0;
+  const hasInjuries = Array.isArray(payload?.feriti) && payload.feriti.length > 0;
+
+  let summarySubtitle = "";
+  let protectionNote = "";
+  switch (lang) {
+    case "it":
+      summarySubtitle =
+        "Documento riepilogativo per assicurazione, officina e concessionaria.";
+      protectionNote =
+        "Documento protetto con hash SHA-256 e timestamp UTC.";
+      break;
+    case "fr":
+      summarySubtitle =
+        "Document de synthèse destiné à l’assurance, à l’atelier et à la concession.";
+      protectionNote =
+        "Document protégé par un hachage SHA-256 et un horodatage UTC.";
+      break;
+    case "en":
+      summarySubtitle =
+        "Summary document for insurance, workshop and dealership use.";
+      protectionNote =
+        "Document protected by SHA-256 hash and UTC timestamp.";
+      break;
+    case "de":
+    default:
+      summarySubtitle =
+        "Zusammenfassendes Dokument für Versicherung, Werkstatt und Autohaus.";
+      protectionNote =
+        "Dokument geschützt durch SHA-256-Hash und UTC-Zeitstempel.";
+      break;
+  }
+
+  const pageWidth = 595.28;
+  const pageHeight = 841.89;
+  const margin = 28;
+  const cardGap = 12;
+  const cardPadding = 12;
+  const contentWidth = pageWidth - (margin * 2);
+  const halfWidth = (contentWidth - cardGap) / 2;
+  const blue = rgb(0.11, 0.36, 0.83);
+  const blueLight = rgb(0.94, 0.97, 1);
+  const greenLight = rgb(0.93, 0.98, 0.94);
+  const white = rgb(1, 1, 1);
+  const dark = rgb(0.06, 0.09, 0.16);
+  const muted = rgb(0.42, 0.47, 0.55);
+  const border = rgb(0.87, 0.9, 0.95);
+  const success = rgb(0.09, 0.39, 0.2);
+
+  let page = pdfDoc.addPage([pageWidth, pageHeight]);
+  let y = pageHeight - margin;
+
+  const wrapText = (
+    text: string,
+    font: typeof fontRegular,
+    size: number,
+    maxWidth: number,
+  ) => {
+    const normalized = normalizePdfText(text || "-");
+    const paragraphs = normalized.split("\n");
+    const lines: string[] = [];
+
+    for (const paragraph of paragraphs) {
+      const trimmed = paragraph.trim();
+      if (!trimmed) {
+        lines.push("");
+        continue;
+      }
+      const words = trimmed.split(/\s+/);
+      let current = "";
+      for (const word of words) {
+        const candidate = current ? `${current} ${word}` : word;
+        if (font.widthOfTextAtSize(candidate, size) <= maxWidth) {
+          current = candidate;
+          continue;
+        }
+        if (current) {
+          lines.push(current);
+        }
+        current = word;
+      }
+      if (current) {
+        lines.push(current);
       }
     }
 
-    line(label, true, 14);
-    const dimensions = image.scale(1);
-    const scale = Math.min(180 / dimensions.width, 70 / dimensions.height, 1);
-    const width = dimensions.width * scale;
-    const imageHeight = dimensions.height * scale;
-    ensureSpace(imageHeight + 20);
-    page.drawImage(image, {
-      x: 40,
-      y: y - imageHeight,
-      width,
-      height: imageHeight,
-    });
-    y -= imageHeight + 16;
+    return lines.length > 0 ? lines : ["-"];
   };
 
-  const signatureAValue = findSignatureValue(payload, "A");
-  const signatureBValue = findSignatureValue(payload, "B");
+  const measureLines = (lines: string[], size: number, gap = 3) =>
+    lines.length * (size + gap);
+
+  const drawWrappedText = (options: {
+    text: string;
+    x: number;
+    y: number;
+    width: number;
+    font: typeof fontRegular;
+    size: number;
+    color: ReturnType<typeof rgb>;
+    gap?: number;
+  }) => {
+    const gap = options.gap ?? 3;
+    const lines = wrapText(
+      options.text,
+      options.font,
+      options.size,
+      options.width,
+    );
+    let currentY = options.y;
+    for (const lineText of lines) {
+      page.drawText(lineText || " ", {
+        x: options.x,
+        y: currentY,
+        size: options.size,
+        font: options.font,
+        color: options.color,
+      });
+      currentY -= options.size + gap;
+    }
+    return currentY;
+  };
+
+  const drawCardBackground = (
+    x: number,
+    yTop: number,
+    width: number,
+    height: number,
+    background: ReturnType<typeof rgb>,
+  ) => {
+    page.drawRectangle({
+      x,
+      y: yTop - height,
+      width,
+      height,
+      color: background,
+      borderColor: border,
+      borderWidth: 0.8,
+    });
+  };
+
+  const measureRowsCard = (
+    title: string,
+    rows: Array<[string, string]>,
+    width: number,
+  ) => {
+    const innerWidth = width - (cardPadding * 2);
+    let totalHeight = cardPadding;
+    totalHeight += measureLines(
+      wrapText(title, fontBold, 11, innerWidth),
+      11,
+      3,
+    );
+    totalHeight += 6;
+    for (const [label, value] of rows) {
+      totalHeight += measureLines(
+        wrapText(label, fontBold, 8.5, innerWidth),
+        8.5,
+        2,
+      );
+      totalHeight += 2;
+      totalHeight += measureLines(
+        wrapText(value, fontRegular, 10, innerWidth),
+        10,
+        3,
+      );
+      totalHeight += 6;
+    }
+    return totalHeight + 6;
+  };
+
+  const drawRowsCard = (options: {
+    x: number;
+    yTop: number;
+    width: number;
+    height: number;
+    title: string;
+    rows: Array<[string, string]>;
+    background?: ReturnType<typeof rgb>;
+    titleColor?: ReturnType<typeof rgb>;
+  }) => {
+    drawCardBackground(
+      options.x,
+      options.yTop,
+      options.width,
+      options.height,
+      options.background ?? white,
+    );
+    const innerWidth = options.width - (cardPadding * 2);
+    let currentY = options.yTop - cardPadding - 11;
+    currentY = drawWrappedText({
+      text: options.title,
+      x: options.x + cardPadding,
+      y: currentY,
+      width: innerWidth,
+      font: fontBold,
+      size: 11,
+      color: options.titleColor ?? dark,
+      gap: 3,
+    });
+    currentY -= 3;
+    for (const [label, value] of options.rows) {
+      currentY = drawWrappedText({
+        text: label,
+        x: options.x + cardPadding,
+        y: currentY,
+        width: innerWidth,
+        font: fontBold,
+        size: 8.5,
+        color: muted,
+        gap: 2,
+      });
+      currentY -= 2;
+      currentY = drawWrappedText({
+        text: value,
+        x: options.x + cardPadding,
+        y: currentY,
+        width: innerWidth,
+        font: fontRegular,
+        size: 10,
+        color: dark,
+        gap: 3,
+      });
+      currentY -= 3;
+    }
+  };
+
+  const measureTextCard = (
+    title: string,
+    blocks: Array<{ label?: string; text: string }>,
+    width: number,
+  ) => {
+    const innerWidth = width - (cardPadding * 2);
+    let totalHeight = cardPadding;
+    totalHeight += measureLines(
+      wrapText(title, fontBold, 11, innerWidth),
+      11,
+      3,
+    );
+    totalHeight += 6;
+    for (const block of blocks) {
+      if (block.label) {
+        totalHeight += measureLines(
+          wrapText(block.label, fontBold, 8.5, innerWidth),
+          8.5,
+          2,
+        );
+        totalHeight += 2;
+      }
+      totalHeight += measureLines(
+        wrapText(block.text, fontRegular, 10, innerWidth),
+        10,
+        3,
+      );
+      totalHeight += 6;
+    }
+    return totalHeight + 6;
+  };
+
+  const drawTextCard = (options: {
+    x: number;
+    yTop: number;
+    width: number;
+    height: number;
+    title: string;
+    blocks: Array<{ label?: string; text: string }>;
+    background?: ReturnType<typeof rgb>;
+  }) => {
+    drawCardBackground(
+      options.x,
+      options.yTop,
+      options.width,
+      options.height,
+      options.background ?? white,
+    );
+    const innerWidth = options.width - (cardPadding * 2);
+    let currentY = options.yTop - cardPadding - 11;
+    currentY = drawWrappedText({
+      text: options.title,
+      x: options.x + cardPadding,
+      y: currentY,
+      width: innerWidth,
+      font: fontBold,
+      size: 11,
+      color: dark,
+      gap: 3,
+    });
+    currentY -= 3;
+    for (const block of options.blocks) {
+      if (block.label) {
+        currentY = drawWrappedText({
+          text: block.label,
+          x: options.x + cardPadding,
+          y: currentY,
+          width: innerWidth,
+          font: fontBold,
+          size: 8.5,
+          color: muted,
+          gap: 2,
+        });
+        currentY -= 2;
+      }
+      currentY = drawWrappedText({
+        text: block.text,
+        x: options.x + cardPadding,
+        y: currentY,
+        width: innerWidth,
+        font: fontRegular,
+        size: 10,
+        color: dark,
+        gap: 3,
+      });
+      currentY -= 3;
+    }
+  };
+
+  const signatureCardHeight = 168;
+
+  const drawSignatureCard = (options: {
+    x: number;
+    yTop: number;
+    width: number;
+    title: string;
+    status: string;
+    timestamp: string;
+    image:
+      | Awaited<ReturnType<PDFDocument["embedPng"]>>
+      | Awaited<ReturnType<PDFDocument["embedJpg"]>>
+      | null;
+  }) => {
+    drawCardBackground(
+      options.x,
+      options.yTop,
+      options.width,
+      signatureCardHeight,
+      greenLight,
+    );
+    const innerWidth = options.width - (cardPadding * 2);
+    let currentY = options.yTop - cardPadding - 11;
+    currentY = drawWrappedText({
+      text: options.title,
+      x: options.x + cardPadding,
+      y: currentY,
+      width: innerWidth,
+      font: fontBold,
+      size: 11,
+      color: dark,
+      gap: 3,
+    });
+    currentY -= 2;
+    currentY = drawWrappedText({
+      text: options.status,
+      x: options.x + cardPadding,
+      y: currentY,
+      width: innerWidth,
+      font: fontBold,
+      size: 9.5,
+      color: options.image ? success : muted,
+      gap: 3,
+    });
+    currentY -= 8;
+    const imageBoxHeight = 56;
+    const imageBoxY = currentY - imageBoxHeight;
+    page.drawRectangle({
+      x: options.x + cardPadding,
+      y: imageBoxY,
+      width: innerWidth,
+      height: imageBoxHeight,
+      color: white,
+      borderColor: border,
+      borderWidth: 0.7,
+    });
+    if (options.image) {
+      const dimensions = options.image.scale(1);
+      const scale = Math.min(
+        (innerWidth - 12) / dimensions.width,
+        (imageBoxHeight - 10) / dimensions.height,
+        1,
+      );
+      const imageWidth = dimensions.width * scale;
+      const imageHeight = dimensions.height * scale;
+      page.drawImage(options.image, {
+        x: options.x + cardPadding + ((innerWidth - imageWidth) / 2),
+        y: imageBoxY + ((imageBoxHeight - imageHeight) / 2),
+        width: imageWidth,
+        height: imageHeight,
+      });
+    }
+    currentY = imageBoxY - 12;
+    drawWrappedText({
+      text: `${copy.signatureTimestamp}: ${options.timestamp}`,
+      x: options.x + cardPadding,
+      y: currentY,
+      width: innerWidth,
+      font: fontRegular,
+      size: 9,
+      color: dark,
+      gap: 3,
+    });
+  };
+
+  const ensureSpace = (requiredHeight: number) => {
+    if (y - requiredHeight >= margin) return;
+    page = pdfDoc.addPage([pageWidth, pageHeight]);
+    y = pageHeight - margin;
+  };
 
   console.log("SEND CID EMAIL PDF VERSION: detailed-v3");
+  const headerHeight = 82;
+  page.drawRectangle({
+    x: margin,
+    y: y - headerHeight,
+    width: contentWidth,
+    height: headerHeight,
+    color: blue,
+  });
+  page.drawText("CID DIGITALE", {
+    x: margin + 16,
+    y: y - 24,
+    size: 18,
+    font: fontBold,
+    color: white,
+  });
+  page.drawText(normalizePdfText(copy.pdfTitle), {
+    x: margin + 16,
+    y: y - 42,
+    size: 11,
+    font: fontRegular,
+    color: white,
+  });
+  page.drawText(`${copy.claimNumber}: ${displayClaimId}`, {
+    x: margin + 16,
+    y: y - 59,
+    size: 13,
+    font: fontBold,
+    color: white,
+  });
+  page.drawText(normalizePdfText(summarySubtitle), {
+    x: margin + 16,
+    y: y - 73,
+    size: 8.5,
+    font: fontRegular,
+    color: white,
+  });
+  y -= headerHeight + cardGap;
 
-  line(copy.pdfTitle, true, 18);
-  line(`${copy.claimNumber}: ${displayClaimId}`, false, 12);
-  line(`${copy.dateTime}: ${formattedDateTime}`);
-  line(`${copy.place}: ${stringOrDash(payload?.luogo)}`);
-  line("");
-  line(copy.driverA, true, 14);
-  line(`${copy.name}: ${driverAName}`);
-  line(`${copy.plate}: ${stringOrDash(payload?.targaA)}`);
-  line(`${copy.insurance}: ${stringOrDash(payload?.assicurazioneA)}`);
-  line(`${copy.phone}: ${stringOrDash(payload?.telefonoA)}`);
-  line(`${copy.email}: ${stringOrDash(payload?.emailA)}`);
-  line(`${copy.address}: ${driverAAddress}`);
-  line("");
-  line(copy.driverB, true, 14);
-  line(`${copy.name}: ${driverBName}`);
-  line(`${copy.plate}: ${stringOrDash(payload?.targaB)}`);
-  line(`${copy.insurance}: ${stringOrDash(payload?.assicurazioneB)}`);
-  line(`${copy.phone}: ${stringOrDash(payload?.telefonoB)}`);
-  line(`${copy.email}: ${stringOrDash(payload?.emailB)}`);
-  line(`${copy.address}: ${driverBAddress}`);
-  line("");
-  line(copy.description, true, 14);
-  line(stringOrDash(payload?.descrizione));
-  line("");
-  line(copy.witnesses, true, 14);
-  for (const witnessLine of witnessesText.split("\n")) {
-    line(witnessLine);
-  }
-  line("");
-  line(copy.injuries, true, 14);
-  for (const injuryLine of injuriesText.split("\n")) {
-    line(injuryLine);
-  }
-  line("");
-  line(copy.damage, true, 14);
-  line(`${copy.vehicleA}: ${stringOrDash(payload?.danniVeicoloA)}`);
-  line(`${copy.vehicleB}: ${stringOrDash(payload?.danniVeicoloB)}`);
-  line("");
-  line(copy.liability, true, 14);
-  line(liabilityText);
-  line("");
-  line(copy.workshopCode, true, 14);
-  line(displayWorkshopCode);
-  line("");
-  line(copy.integrity, true, 14);
-  line(`${copy.hash}: ${stringOrDash(payload?.hashIntegrita)}`);
-  line("");
+  const summaryRows: Array<[string, string]> = [
+    [copy.claimNumber, displayClaimId],
+    [copy.dateTime, formattedDateTime],
+    [copy.place, stringOrDash(payload?.luogo)],
+  ];
+  const summaryHeight = measureRowsCard(copy.summaryHeading, summaryRows, contentWidth);
+  ensureSpace(summaryHeight);
+  drawRowsCard({
+    x: margin,
+    yTop: y,
+    width: contentWidth,
+    height: summaryHeight,
+    title: copy.summaryHeading,
+    rows: summaryRows,
+    background: blueLight,
+  });
+  y -= summaryHeight + cardGap;
 
-  line(copy.signatures, true, 14);
-  line(
-    `${copy.driverA}: ${signatureAValue ? copy.signatureSigned : copy.signatureMissing}`,
+  const driverARows: Array<[string, string]> = [
+    [copy.name, driverAName],
+    [copy.plate, stringOrDash(payload?.targaA)],
+    [copy.insurance, stringOrDash(payload?.assicurazioneA)],
+    [copy.phone, stringOrDash(payload?.telefonoA)],
+    [copy.email, stringOrDash(payload?.emailA)],
+    [copy.address, driverAAddress],
+  ];
+  const driverBRows: Array<[string, string]> = [
+    [copy.name, driverBName],
+    [copy.plate, stringOrDash(payload?.targaB)],
+    [copy.insurance, stringOrDash(payload?.assicurazioneB)],
+    [copy.phone, stringOrDash(payload?.telefonoB)],
+    [copy.email, stringOrDash(payload?.emailB)],
+    [copy.address, driverBAddress],
+  ];
+  const driverAHeight = measureRowsCard(copy.driverA, driverARows, halfWidth);
+  const driverBHeight = measureRowsCard(copy.driverB, driverBRows, halfWidth);
+  const driversHeight = Math.max(driverAHeight, driverBHeight);
+  ensureSpace(driversHeight);
+  drawRowsCard({
+    x: margin,
+    yTop: y,
+    width: halfWidth,
+    height: driversHeight,
+    title: copy.driverA,
+    rows: driverARows,
+    background: white,
+  });
+  drawRowsCard({
+    x: margin + halfWidth + cardGap,
+    yTop: y,
+    width: halfWidth,
+    height: driversHeight,
+    title: copy.driverB,
+    rows: driverBRows,
+    background: white,
+  });
+  y -= driversHeight + cardGap;
+
+  const descriptionBlocks = [
+    { text: stringOrDash(payload?.descrizione) },
+    ...(hasWitnesses ? [{ label: copy.witnesses, text: witnessesText }] : []),
+    ...(hasInjuries ? [{ label: copy.injuries, text: injuriesText }] : []),
+  ];
+  const descriptionHeight = measureTextCard(
+    copy.description,
+    descriptionBlocks,
+    contentWidth,
   );
-  if (signatureAValue) {
-    line(`${copy.signatureTimestamp}: ${signatureATimestamp}`);
-  }
-  await drawSignature(copy.driverA, signatureAValue);
-  line(
-    `${copy.driverB}: ${signatureBValue ? copy.signatureSigned : copy.signatureMissing}`,
+  ensureSpace(descriptionHeight);
+  drawTextCard({
+    x: margin,
+    yTop: y,
+    width: contentWidth,
+    height: descriptionHeight,
+    title: copy.description,
+    blocks: descriptionBlocks,
+    background: white,
+  });
+  y -= descriptionHeight + cardGap;
+
+  const damageBlocks = [
+    { label: copy.vehicleA, text: stringOrDash(payload?.danniVeicoloA) },
+    { label: copy.vehicleB, text: stringOrDash(payload?.danniVeicoloB) },
+  ];
+  const damageHeight = measureTextCard(copy.damage, damageBlocks, halfWidth);
+  const liabilityHeight = measureTextCard(
+    copy.liability,
+    [{ text: liabilityText }],
+    halfWidth,
   );
-  if (signatureBValue) {
-    line(`${copy.signatureTimestamp}: ${signatureBTimestamp}`);
-  }
-  await drawSignature(copy.driverB, signatureBValue);
+  const damageRowHeight = Math.max(damageHeight, liabilityHeight);
+  ensureSpace(damageRowHeight);
+  drawTextCard({
+    x: margin,
+    yTop: y,
+    width: halfWidth,
+    height: damageRowHeight,
+    title: copy.damage,
+    blocks: damageBlocks,
+    background: white,
+  });
+  drawTextCard({
+    x: margin + halfWidth + cardGap,
+    yTop: y,
+    width: halfWidth,
+    height: damageRowHeight,
+    title: copy.liability,
+    blocks: [{ text: liabilityText }],
+    background: white,
+  });
+  y -= damageRowHeight + cardGap;
+
+  const protectionBlocks = [
+    { text: protectionNote },
+    { label: copy.hash, text: stringOrDash(payload?.hashIntegrita) },
+    {
+      label: copy.signatureTimestamp,
+      text: `A: ${signatureATimestamp}   |   B: ${signatureBTimestamp}`,
+    },
+    { label: copy.workshopCode, text: displayWorkshopCode },
+  ];
+  const protectionHeight = measureTextCard(
+    copy.integrity,
+    protectionBlocks,
+    contentWidth,
+  );
+  ensureSpace(protectionHeight);
+  drawTextCard({
+    x: margin,
+    yTop: y,
+    width: contentWidth,
+    height: protectionHeight,
+    title: copy.integrity,
+    blocks: protectionBlocks,
+    background: blueLight,
+  });
+  y -= protectionHeight + cardGap;
+
+  const signaturesTitleHeight = 18;
+  ensureSpace(signaturesTitleHeight + signatureCardHeight);
+  page.drawText(normalizePdfText(copy.signatures), {
+    x: margin,
+    y,
+    size: 12,
+    font: fontBold,
+    color: dark,
+  });
+  y -= signaturesTitleHeight;
+  drawSignatureCard({
+    x: margin,
+    yTop: y,
+    width: halfWidth,
+    title: copy.driverA,
+    status: signatureAImage ? copy.signatureSigned : copy.signatureMissing,
+    timestamp: signatureATimestamp,
+    image: signatureAImage,
+  });
+  drawSignatureCard({
+    x: margin + halfWidth + cardGap,
+    yTop: y,
+    width: halfWidth,
+    title: copy.driverB,
+    status: signatureBImage ? copy.signatureSigned : copy.signatureMissing,
+    timestamp: signatureBTimestamp,
+    image: signatureBImage,
+  });
 
   const pdfBytes = await pdfDoc.save();
   console.log("SEND CID EMAIL pdf generated bytes:", pdfBytes.length);
