@@ -1378,11 +1378,13 @@ async function generatePdfFromPayload(
   const halfWidth = (contentWidth - cardGap) / 2;
   const blue = rgb(0.11, 0.36, 0.83);
   const blueLight = rgb(0.94, 0.97, 1);
-  const greenLight = rgb(0.93, 0.98, 0.94);
   const white = rgb(1, 1, 1);
+  const lightGray = rgb(0.98, 0.98, 0.98);
   const dark = rgb(0.06, 0.09, 0.16);
   const muted = rgb(0.42, 0.47, 0.55);
   const border = rgb(0.87, 0.9, 0.95);
+  const signatureBorder = rgb(0.84, 0.87, 0.91);
+  const footerColor = rgb(0.47, 0.47, 0.47);
   const success = rgb(0.09, 0.39, 0.2);
 
   let page = pdfDoc.addPage([pageWidth, pageHeight]);
@@ -1465,6 +1467,7 @@ async function generatePdfFromPayload(
     width: number,
     height: number,
     background: ReturnType<typeof rgb>,
+    borderColor = border,
   ) => {
     page.drawRectangle({
       x,
@@ -1472,7 +1475,7 @@ async function generatePdfFromPayload(
       width,
       height,
       color: background,
-      borderColor: border,
+      borderColor,
       borderWidth: 0.8,
     });
   };
@@ -1652,7 +1655,7 @@ async function generatePdfFromPayload(
     }
   };
 
-  const signatureCardHeight = 168;
+  const signatureCardHeight = 190;
 
   const drawSignatureCard = (options: {
     x: number;
@@ -1671,7 +1674,8 @@ async function generatePdfFromPayload(
       options.yTop,
       options.width,
       signatureCardHeight,
-      greenLight,
+      lightGray,
+      signatureBorder,
     );
     const innerWidth = options.width - (cardPadding * 2);
     let currentY = options.yTop - cardPadding - 11;
@@ -1685,19 +1689,42 @@ async function generatePdfFromPayload(
       color: dark,
       gap: 3,
     });
-    currentY -= 2;
-    currentY = drawWrappedText({
-      text: options.status,
-      x: options.x + cardPadding,
-      y: currentY,
-      width: innerWidth,
-      font: fontBold,
-      size: 9.5,
-      color: options.image ? success : muted,
-      gap: 3,
-    });
+    currentY -= 4;
+    if (options.image) {
+      const checkText = "✓";
+      const checkSize = 10;
+      const checkWidth = fontBold.widthOfTextAtSize(checkText, checkSize);
+      page.drawText(checkText, {
+        x: options.x + cardPadding,
+        y: currentY,
+        size: checkSize,
+        font: fontBold,
+        color: success,
+      });
+      currentY = drawWrappedText({
+        text: options.status,
+        x: options.x + cardPadding + checkWidth + 4,
+        y: currentY,
+        width: innerWidth - checkWidth - 4,
+        font: fontBold,
+        size: 9.5,
+        color: success,
+        gap: 3,
+      });
+    } else {
+      currentY = drawWrappedText({
+        text: options.status,
+        x: options.x + cardPadding,
+        y: currentY,
+        width: innerWidth,
+        font: fontBold,
+        size: 9.5,
+        color: muted,
+        gap: 3,
+      });
+    }
     currentY -= 8;
-    const imageBoxHeight = 56;
+    const imageBoxHeight = 76;
     const imageBoxY = currentY - imageBoxHeight;
     page.drawRectangle({
       x: options.x + cardPadding,
@@ -1705,7 +1732,7 @@ async function generatePdfFromPayload(
       width: innerWidth,
       height: imageBoxHeight,
       color: white,
-      borderColor: border,
+      borderColor: signatureBorder,
       borderWidth: 0.7,
     });
     if (options.image) {
@@ -1732,9 +1759,37 @@ async function generatePdfFromPayload(
       width: innerWidth,
       font: fontRegular,
       size: 9,
-      color: dark,
+      color: muted,
       gap: 3,
     });
+  };
+
+  const drawFooter = () => {
+    const footerEntries = [
+      { text: "CID DIGITALE", font: fontBold, size: 7.5 },
+      { text: "Documento generato automaticamente.", font: fontRegular, size: 7 },
+      { text: "Protetto mediante SHA-256 e UTC Timestamp.", font: fontRegular, size: 7 },
+      { text: "www.cid-digitale.com", font: fontRegular, size: 7 },
+    ];
+    const footerGap = 2;
+    const footerHeight = footerEntries.reduce(
+      (total, entry, index) => total + entry.size + (index < footerEntries.length - 1 ? footerGap : 0),
+      0,
+    );
+    let currentY = 16 + footerHeight - footerEntries[0].size;
+
+    for (const entry of footerEntries) {
+      const text = normalizePdfText(entry.text);
+      const textWidth = entry.font.widthOfTextAtSize(text, entry.size);
+      page.drawText(text, {
+        x: (pageWidth - textWidth) / 2,
+        y: currentY,
+        size: entry.size,
+        font: entry.font,
+        color: footerColor,
+      });
+      currentY -= entry.size + footerGap;
+    }
   };
 
   const ensureSpace = (requiredHeight: number) => {
@@ -1921,7 +1976,8 @@ async function generatePdfFromPayload(
   y -= protectionHeight + cardGap;
 
   const signaturesTitleHeight = 18;
-  ensureSpace(signaturesTitleHeight + signatureCardHeight);
+  const footerReserveHeight = 42;
+  ensureSpace(signaturesTitleHeight + signatureCardHeight + footerReserveHeight);
   page.drawText(normalizePdfText(copy.signatures), {
     x: margin,
     y,
@@ -1948,6 +2004,7 @@ async function generatePdfFromPayload(
     timestamp: signatureBTimestamp,
     image: signatureBImage,
   });
+  drawFooter();
 
   const pdfBytes = await pdfDoc.save();
   console.log("SEND CID EMAIL pdf generated bytes:", pdfBytes.length);
