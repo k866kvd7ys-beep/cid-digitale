@@ -43,6 +43,7 @@ class DriverPersonalQrData {
     required this.indirizzo,
     required this.zip,
     required this.city,
+    required this.country,
     required this.telefono,
     required this.email,
     required this.targa,
@@ -56,6 +57,7 @@ class DriverPersonalQrData {
         indirizzo = '',
         zip = '',
         city = '',
+        country = '',
         telefono = '',
         email = '',
         targa = '',
@@ -67,6 +69,7 @@ class DriverPersonalQrData {
   final String indirizzo;
   final String zip;
   final String city;
+  final String country;
   final String telefono;
   final String email;
   final String targa;
@@ -81,6 +84,7 @@ class DriverPersonalQrData {
         indirizzo,
         zip,
         city,
+        country,
         telefono,
         email,
         targa,
@@ -99,6 +103,7 @@ class DriverPersonalQrData {
     String? indirizzo,
     String? zip,
     String? city,
+    String? country,
     String? telefono,
     String? email,
     String? targa,
@@ -111,6 +116,7 @@ class DriverPersonalQrData {
       indirizzo: indirizzo ?? this.indirizzo,
       zip: zip ?? this.zip,
       city: city ?? this.city,
+      country: country ?? this.country,
       telefono: telefono ?? this.telefono,
       email: email ?? this.email,
       targa: targa ?? this.targa,
@@ -125,6 +131,7 @@ class DriverPersonalQrData {
       'indirizzo': indirizzo.trim(),
       'zip': zip.trim(),
       'city': city.trim(),
+      'country': country.trim(),
       'telefono': telefono.trim(),
       'email': email.trim(),
       'targa': targa.trim(),
@@ -165,6 +172,9 @@ class DriverPersonalQrData {
         const ['zip', 'cap', 'plz', 'postalCode', 'zipCode', 'codePostal'],
       ),
       city: readValue(const ['city', 'citta', 'città', 'ort', 'ville']),
+      country: readValue(
+        const ['country', 'land', 'paese', 'pays', 'nation', 'staat'],
+      ),
       telefono: readValue(const ['telefono', 'phone', 'telefon', 'mobile']),
       email: readValue(const ['email', 'eMail', 'mail']),
       targa: readValue(

@@ -25,6 +25,7 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   final _indirizzoController = TextEditingController();
   final _zipController = TextEditingController();
   final _cityController = TextEditingController();
+  final _countryController = TextEditingController();
   final _telefonoController = TextEditingController();
   final _emailController = TextEditingController();
   final _targaController = TextEditingController();
@@ -51,6 +52,7 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
     _indirizzoController.dispose();
     _zipController.dispose();
     _cityController.dispose();
+    _countryController.dispose();
     _telefonoController.dispose();
     _emailController.dispose();
     _targaController.dispose();
@@ -65,6 +67,7 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
       _indirizzoController,
       _zipController,
       _cityController,
+      _countryController,
       _telefonoController,
       _emailController,
       _targaController,
@@ -95,7 +98,7 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
 
   String get _pageTitle => _text(
         it: 'Il mio QR personale',
-        de: 'Mein persoenlicher QR',
+        de: 'Mein persönlicher QR',
         fr: 'Mon QR personnel',
         en: 'My personal QR',
       );
@@ -103,7 +106,7 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   String get _introTitle => _text(
         it: 'Crea il tuo QR conducente',
         de: 'Erstelle deinen Fahrer-QR',
-        fr: 'Creez votre QR conducteur',
+        fr: 'Créez votre QR conducteur',
         en: 'Create your driver QR',
       );
 
@@ -111,45 +114,45 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
         it:
             'Compila i tuoi dati personali e del veicolo per generare un QR pronto per l\'autocompilazione futura.',
         de:
-            'Erfasse deine persoenlichen Daten und Fahrzeugdaten, um einen QR fuer die zukuenftige automatische Befuellung zu erzeugen.',
+            'Erfasse deine persönlichen Daten und Fahrzeugdaten, um einen QR für die künftige automatische Befüllung zu erzeugen.',
         fr:
-            'Renseignez vos informations personnelles et vehicule pour generer un QR pret pour le remplissage automatique futur.',
+            'Renseignez vos informations personnelles et véhicule pour générer un QR prêt pour le remplissage automatique futur.',
         en:
             'Fill in your personal and vehicle details to generate a QR ready for future auto-fill.',
       );
 
   String get _localSaveNote => _text(
         it: 'I dati vengono salvati localmente su questo dispositivo/browser.',
-        de: 'Die Daten werden lokal auf diesem Geraet bzw. Browser gespeichert.',
-        fr: 'Les donnees sont enregistrees localement sur cet appareil/navigateur.',
+        de: 'Die Daten werden lokal auf diesem Gerät bzw. Browser gespeichert.',
+        fr: 'Les données sont enregistrées localement sur cet appareil/navigateur.',
         en: 'Data is stored locally on this device/browser.',
       );
 
   String get _privacyNote => _text(
         it: 'Il QR contiene solo dati anagrafici e del veicolo del conducente.',
-        de: 'Der QR enthaelt nur Fahrer- und Fahrzeugdaten.',
-        fr: 'Le QR contient uniquement les donnees du conducteur et du vehicule.',
+        de: 'Der QR enthält nur Fahrer- und Fahrzeugdaten.',
+        fr: 'Le QR contient uniquement les données du conducteur et du véhicule.',
         en: 'The QR contains only driver and vehicle details.',
       );
 
   String get _formTitle => _text(
         it: 'Dati da includere nel QR',
-        de: 'Daten fuer den QR',
-        fr: 'Donnees a inclure dans le QR',
+        de: 'Daten für den QR',
+        fr: 'Données à inclure dans le QR',
         en: 'Data to include in the QR',
       );
 
   String get _courtesyLabel => _text(
         it: 'Titolo / forma giuridica',
         de: 'Anrede / Rechtsform',
-        fr: 'Civilite / forme juridique',
+        fr: 'Civilité / forme juridique',
         en: 'Title / legal form',
       );
 
   String get _firstNameLabel => _text(
         it: 'Nome',
         de: 'Vorname',
-        fr: 'Prenom',
+        fr: 'Prénom',
         en: 'First Name',
       );
 
@@ -175,10 +178,17 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
       );
 
   String get _cityLabel => _text(
-        it: 'Citta',
+        it: 'Città',
         de: 'Ort',
         fr: 'Ville',
         en: 'City',
+      );
+
+  String get _countryLabel => _text(
+        it: 'Paese',
+        de: 'Land',
+        fr: 'Pays',
+        en: 'Country',
       );
 
   String get _phoneLabel => _text(
@@ -198,61 +208,82 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   String get _plateLabel => _text(
         it: 'Targa veicolo',
         de: 'Kennzeichen Fahrzeug',
-        fr: 'Plaque vehicule',
+        fr: 'Plaque véhicule',
         en: 'Vehicle plate',
       );
 
   String get _insuranceLabel => _text(
         it: 'Assicurazione veicolo',
         de: 'Fahrzeugversicherung',
-        fr: 'Assurance vehicule',
+        fr: 'Assurance véhicule',
         en: 'Vehicle insurance',
       );
 
   String get _generateLabel => _text(
-        it: 'Genera QR personale',
-        de: 'Persoenlichen QR erzeugen',
-        fr: 'Generer le QR personnel',
-        en: 'Generate personal QR',
+        it: 'Crea QR personale',
+        de: 'Persönlichen QR erstellen',
+        fr: 'Créer QR personnel',
+        en: 'Create personal QR',
       );
 
   String get _generatedTitle => _text(
         it: 'QR personale',
-        de: 'Persoenlicher QR',
+        de: 'Persönlicher QR',
         fr: 'QR personnel',
         en: 'Personal QR',
       );
 
   String get _generatedHint => _text(
         it:
-            'Questo QR servira per compilare automaticamente i dati del conducente.',
+            'Scansiona questo codice per compilare automaticamente i dati del conducente.',
         de:
-            'Dieser QR wird kuenftig verwendet, um Fahrerdaten automatisch auszufuellen.',
+            'Scanne diesen Code, um die Fahrerdaten automatisch auszufüllen.',
         fr:
-            'Ce QR servira a renseigner automatiquement les donnees du conducteur.',
+            'Scannez ce code pour remplir automatiquement les données du conducteur.',
         en:
-            'This QR will be used to automatically fill in the driver data.',
+            'Scan this code to automatically fill in the driver data.',
       );
 
   String get _emptyQrHint => _text(
         it: 'Compila almeno il nome per generare il tuo QR personale.',
-        de: 'Trage mindestens den Vornamen ein, um deinen persoenlichen QR zu erzeugen.',
-        fr: 'Renseignez au moins le prenom pour generer votre QR personnel.',
+        de: 'Trage mindestens den Vornamen ein, um deinen persönlichen QR zu erstellen.',
+        fr: 'Renseignez au moins le prénom pour générer votre QR personnel.',
         en: 'Enter at least the first name to generate your personal QR.',
       );
 
   String get _savedMessage => _text(
         it: 'QR personale aggiornato e salvato localmente.',
-        de: 'Persoenlicher QR aktualisiert und lokal gespeichert.',
-        fr: 'QR personnel mis a jour et enregistre localement.',
+        de: 'Persönlicher QR aktualisiert und lokal gespeichert.',
+        fr: 'QR personnel mis à jour et enregistré localement.',
         en: 'Personal QR updated and saved locally.',
       );
 
   String get _saveErrorMessage => _text(
         it: 'Impossibile salvare localmente il QR personale.',
-        de: 'Der persoenliche QR konnte lokal nicht gespeichert werden.',
+        de: 'Der persönliche QR konnte lokal nicht gespeichert werden.',
         fr: 'Impossible d\'enregistrer localement le QR personnel.',
         en: 'Unable to save the personal QR locally.',
+      );
+
+  String get _placeholderMessage => _text(
+        it: 'Funzione in preparazione',
+        de: 'Funktion in Vorbereitung',
+        fr: 'Fonction en préparation',
+        en: 'Feature in preparation',
+      );
+
+  String get _shareQrLabel => _text(
+        it: 'Condividi QR',
+        de: 'QR teilen',
+        fr: 'Partager QR',
+        en: 'Share QR',
+      );
+
+  String get _saveImageLabel => _text(
+        it: 'Salva come immagine',
+        de: 'Als Bild speichern',
+        fr: 'Enregistrer comme image',
+        en: 'Save as image',
       );
 
   String _courtesyOptionLabel(DriverPersonalQrCourtesy value) {
@@ -275,10 +306,16 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
         return _text(
           it: 'Ditta',
           de: 'Firma',
-          fr: 'Societe',
+          fr: 'Société',
           en: 'Company',
         );
     }
+  }
+
+  void _showPlaceholderAction() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(_placeholderMessage)),
+    );
   }
 
   DriverPersonalQrData _buildDraftModel() {
@@ -289,6 +326,7 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
       indirizzo: _indirizzoController.text,
       zip: _zipController.text,
       city: _cityController.text,
+      country: _countryController.text,
       telefono: _telefonoController.text,
       email: _emailController.text,
       targa: _targaController.text,
@@ -313,6 +351,7 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
     _indirizzoController.text = data.indirizzo;
     _zipController.text = data.zip;
     _cityController.text = data.city;
+    _countryController.text = data.country;
     _telefonoController.text = data.telefono;
     _emailController.text = data.email;
     _targaController.text = data.targa;
@@ -380,6 +419,8 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
       );
     }
   }
+
+  bool get _canGenerateQr => _buildDraftModel().hasMinimumData;
 
   Widget _buildCard({
     required Widget child,
@@ -507,6 +548,13 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
             SizedBox(
               width: fieldWidth,
               child: _buildTextField(
+                controller: _countryController,
+                label: _countryLabel,
+              ),
+            ),
+            SizedBox(
+              width: fieldWidth,
+              child: _buildTextField(
                 controller: _telefonoController,
                 label: _phoneLabel,
                 keyboardType: TextInputType.phone,
@@ -614,18 +662,79 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
                         QrImageView(
                           data: payload,
                           version: QrVersions.auto,
-                          size: 230,
+                          size: 244,
                           backgroundColor: Colors.white,
                         ),
                         const SizedBox(height: 14),
                         Text(
+                          _generatedHint,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: _titleText,
+                                fontWeight: FontWeight.w600,
+                                height: 1.45,
+                              ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
                           _privacyNote,
                           textAlign: TextAlign.center,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: _mutedText,
-                                    height: 1.4,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: _mutedText,
+                                height: 1.4,
+                              ),
+                        ),
+                        const SizedBox(height: 18),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final wide = constraints.maxWidth >= 420;
+                            final buttons = [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: _showPlaceholderAction,
+                                  icon: const Icon(Icons.share_outlined),
+                                  label: Text(_shareQrLabel),
+                                  style: OutlinedButton.styleFrom(
+                                    minimumSize: const Size.fromHeight(48),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
                                   ),
+                                ),
+                              ),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: _showPlaceholderAction,
+                                  icon: const Icon(Icons.download_outlined),
+                                  label: Text(_saveImageLabel),
+                                  style: OutlinedButton.styleFrom(
+                                    minimumSize: const Size.fromHeight(48),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ];
+
+                            if (wide) {
+                              return Row(
+                                children: [
+                                  buttons[0],
+                                  const SizedBox(width: 12),
+                                  buttons[1],
+                                ],
+                              );
+                            }
+
+                            return Column(
+                              children: [
+                                buttons[0],
+                                const SizedBox(height: 12),
+                                buttons[1],
+                              ],
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -763,18 +872,31 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
                               _buildFormGrid(),
                               const SizedBox(height: 20),
                               FilledButton.icon(
-                                onPressed:
-                                    _buildDraftModel().hasMinimumData
-                                        ? _generateQr
-                                        : null,
+                                onPressed: _canGenerateQr ? _generateQr : null,
                                 icon: const Icon(Icons.qr_code_2_rounded),
                                 label: Text(_generateLabel),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: _primaryBlue,
-                                  foregroundColor: Colors.white,
-                                  minimumSize: const Size.fromHeight(56),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(18),
+                                style: ButtonStyle(
+                                  backgroundColor:
+                                      WidgetStateProperty.resolveWith((states) {
+                                    if (states.contains(WidgetState.disabled)) {
+                                      return const Color(0xFFD1D5DB);
+                                    }
+                                    return _primaryBlue;
+                                  }),
+                                  foregroundColor:
+                                      WidgetStateProperty.resolveWith((states) {
+                                    if (states.contains(WidgetState.disabled)) {
+                                      return const Color(0xFF6B7280);
+                                    }
+                                    return Colors.white;
+                                  }),
+                                  minimumSize: WidgetStateProperty.all(
+                                    const Size.fromHeight(56),
+                                  ),
+                                  shape: WidgetStateProperty.all(
+                                    RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
                                   ),
                                 ),
                               ),
