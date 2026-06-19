@@ -14,11 +14,14 @@ class DriverPersonalQrScreen extends StatefulWidget {
 
 class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   static const String _storageKey = 'driver_personal_qr_data_v1';
+  static const String _generatedQrKey = 'driver_personal_qr_generated_v1';
   static const Color _pageBackground = Color(0xFFF8FAFC);
   static const Color _cardBorder = Color(0xFFE5E7EB);
   static const Color _primaryBlue = Color(0xFF2563EB);
   static const Color _mutedText = Color(0xFF6B7280);
   static const Color _titleText = Color(0xFF111827);
+  static const Color _successBackground = Color(0xFFEAF8ED);
+  static const Color _successText = Color(0xFF166534);
 
   final _nomeController = TextEditingController();
   final _cognomeController = TextEditingController();
@@ -251,18 +254,53 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
         en: 'Enter at least the first name to generate your personal QR.',
       );
 
-  String get _savedMessage => _text(
-        it: 'QR personale aggiornato e salvato localmente.',
-        de: 'Persönlicher QR aktualisiert und lokal gespeichert.',
-        fr: 'QR personnel mis à jour et enregistré localement.',
-        en: 'Personal QR updated and saved locally.',
-      );
-
   String get _saveErrorMessage => _text(
         it: 'Impossibile salvare localmente il QR personale.',
         de: 'Der persönliche QR konnte lokal nicht gespeichert werden.',
         fr: 'Impossible d\'enregistrer localement le QR personnel.',
         en: 'Unable to save the personal QR locally.',
+      );
+
+  String get _createSuccessMessage => _text(
+        it: 'QR creato correttamente',
+        de: 'QR erfolgreich erstellt',
+        fr: 'QR créé avec succès',
+        en: 'QR created successfully',
+      );
+
+  String get _updateSuccessMessage => _text(
+        it: 'QR aggiornato correttamente',
+        de: 'QR erfolgreich aktualisiert',
+        fr: 'QR mis à jour avec succès',
+        en: 'QR updated successfully',
+      );
+
+  String get _readyBadgeLabel => _text(
+        it: 'QR pronto per la compilazione automatica',
+        de: 'QR bereit für automatische Befüllung',
+        fr: 'QR prêt pour le remplissage automatique',
+        en: 'QR ready for automatic filling',
+      );
+
+  String get _qrCardEyebrow => _text(
+        it: 'QR personale conducente',
+        de: 'Persönlicher Fahrer-QR',
+        fr: 'QR personnel conducteur',
+        en: 'Personal driver QR',
+      );
+
+  String get _updateLabel => _text(
+        it: 'Aggiorna QR',
+        de: 'QR aktualisieren',
+        fr: 'Mettre à jour le QR',
+        en: 'Update QR',
+      );
+
+  String get _summaryTitle => _text(
+        it: 'Riepilogo dati',
+        de: 'Datenübersicht',
+        fr: 'Résumé des données',
+        en: 'Data summary',
       );
 
   String get _placeholderMessage => _text(
@@ -334,12 +372,65 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
     );
   }
 
+  String get _currentDraftJson => driverPersonalQrDataToJson(_buildDraftModel());
+
+  bool get _hasGeneratedQr => _qrPayload?.trim().isNotEmpty == true;
+
+  bool get _isQrDirty {
+    final payload = _qrPayload?.trim();
+    if (payload == null || payload.isEmpty) return false;
+    return payload != _currentDraftJson;
+  }
+
+  bool get _isQrReady => _hasGeneratedQr && !_isQrDirty;
+
+  String get _primaryButtonLabel {
+    if (_hasGeneratedQr && _isQrDirty) {
+      return _updateLabel;
+    }
+    return _generateLabel;
+  }
+
+  String get _summaryPrimaryLine {
+    final draft = _buildDraftModel();
+    final fullName = draft.fullName;
+    if (fullName.isNotEmpty) return fullName;
+    return _text(
+      it: 'Dati conducente non completi',
+      de: 'Fahrerdaten unvollständig',
+      fr: 'Données conducteur incomplètes',
+      en: 'Driver details incomplete',
+    );
+  }
+
+  String get _summaryPlateLine {
+    final value = _targaController.text.trim();
+    return value.isEmpty ? '-' : value;
+  }
+
+  String get _summaryInsuranceLine {
+    final value = _assicurazioneController.text.trim();
+    return value.isEmpty ? '-' : value;
+  }
+
+  String get _summaryLocationLine {
+    final city = _cityController.text.trim();
+    final country = _countryController.text.trim();
+    final parts = [city, country].where((value) => value.isNotEmpty).toList();
+    if (parts.isEmpty) return '-';
+    return parts.join(', ');
+  }
+
   Future<void> _loadSavedDraft() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_storageKey);
+    final generatedRaw = prefs.getString(_generatedQrKey)?.trim();
     if (raw == null || raw.trim().isEmpty) {
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _qrPayload = generatedRaw?.isNotEmpty == true ? generatedRaw : null;
+        _loading = false;
+      });
       return;
     }
 
@@ -360,22 +451,15 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
 
     if (!mounted) return;
     setState(() {
-      _qrPayload = data.hasMinimumData ? driverPersonalQrDataToJson(data) : null;
+      _qrPayload = generatedRaw?.isNotEmpty == true ? generatedRaw : null;
       _loading = false;
     });
   }
 
   void _handleDraftChanged() {
     if (_hydrating) return;
-    final model = _buildDraftModel();
     if (mounted) {
-      setState(() {
-        if (!model.hasMinimumData) {
-          _qrPayload = null;
-        } else if (_qrPayload != null) {
-          _qrPayload = driverPersonalQrDataToJson(model);
-        }
-      });
+      setState(() {});
     }
     _persistDebounce?.cancel();
     _persistDebounce = Timer(const Duration(milliseconds: 350), () {
@@ -388,7 +472,7 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
         _storageKey,
-        driverPersonalQrDataToJson(_buildDraftModel()),
+        _currentDraftJson,
       );
     } catch (_) {}
   }
@@ -405,12 +489,18 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final payload = driverPersonalQrDataToJson(model);
+      final payload = _currentDraftJson;
+      final wasUpdate = _hasGeneratedQr;
       await prefs.setString(_storageKey, payload);
+      await prefs.setString(_generatedQrKey, payload);
       if (!mounted) return;
       setState(() => _qrPayload = payload);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_savedMessage)),
+        SnackBar(
+          content: Text(
+            wasUpdate ? _updateSuccessMessage : _createSuccessMessage,
+          ),
+        ),
       );
     } catch (_) {
       if (!mounted) return;
@@ -594,6 +684,77 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (_isQrReady) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              decoration: BoxDecoration(
+                color: _successBackground,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: _successText,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      _readyBadgeLabel,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: _successText,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.qr_code_2_rounded,
+                  color: _primaryBlue,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'CID DIGITALE',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: _primaryBlue,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.4,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _qrCardEyebrow,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: _mutedText,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
           Text(
             _generatedTitle,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -683,6 +844,66 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
                                 color: _mutedText,
                                 height: 1.4,
                               ),
+                        ),
+                        const SizedBox(height: 18),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: _cardBorder),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _summaryTitle,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelLarge
+                                    ?.copyWith(
+                                      color: _titleText,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                _summaryPrimaryLine,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      color: _titleText,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _summaryPlateLine,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(color: _mutedText),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _summaryInsuranceLine,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(color: _mutedText),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _summaryLocationLine,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(color: _mutedText),
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 18),
                         LayoutBuilder(
@@ -874,7 +1095,7 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
                               FilledButton.icon(
                                 onPressed: _canGenerateQr ? _generateQr : null,
                                 icon: const Icon(Icons.qr_code_2_rounded),
-                                label: Text(_generateLabel),
+                                label: Text(_primaryButtonLabel),
                                 style: ButtonStyle(
                                   backgroundColor:
                                       WidgetStateProperty.resolveWith((states) {
