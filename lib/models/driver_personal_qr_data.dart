@@ -1,8 +1,43 @@
 import 'dart:convert';
 
 /// TODO: collegare questo modello allo scanner QR reale nello step successivo.
+enum DriverPersonalQrCourtesy {
+  mr('mr'),
+  mrs('mrs'),
+  company('company');
+
+  const DriverPersonalQrCourtesy(this.storageValue);
+
+  final String storageValue;
+}
+
+DriverPersonalQrCourtesy? driverPersonalQrCourtesyFromString(String? raw) {
+  final normalized = raw?.trim().toLowerCase() ?? '';
+  switch (normalized) {
+    case 'mr':
+    case 'herr':
+    case 'signor':
+    case 'monsieur':
+      return DriverPersonalQrCourtesy.mr;
+    case 'mrs':
+    case 'frau':
+    case 'signora':
+    case 'madame':
+      return DriverPersonalQrCourtesy.mrs;
+    case 'company':
+    case 'firma':
+    case 'ditta':
+    case 'societe':
+    case 'société':
+      return DriverPersonalQrCourtesy.company;
+    default:
+      return null;
+  }
+}
+
 class DriverPersonalQrData {
   const DriverPersonalQrData({
+    this.courtesy,
     required this.nome,
     required this.cognome,
     required this.indirizzo,
@@ -15,7 +50,8 @@ class DriverPersonalQrData {
   });
 
   const DriverPersonalQrData.empty()
-      : nome = '',
+      : courtesy = null,
+        nome = '',
         cognome = '',
         indirizzo = '',
         zip = '',
@@ -25,6 +61,7 @@ class DriverPersonalQrData {
         targa = '',
         assicurazione = '';
 
+  final DriverPersonalQrCourtesy? courtesy;
   final String nome;
   final String cognome;
   final String indirizzo;
@@ -35,7 +72,10 @@ class DriverPersonalQrData {
   final String targa;
   final String assicurazione;
 
+  bool get hasMinimumData => nome.trim().isNotEmpty;
+
   bool get hasAnyValue => [
+        courtesy?.storageValue ?? '',
         nome,
         cognome,
         indirizzo,
@@ -53,6 +93,7 @@ class DriverPersonalQrData {
       ].where((value) => value.isNotEmpty).join(' ');
 
   DriverPersonalQrData copyWith({
+    DriverPersonalQrCourtesy? courtesy,
     String? nome,
     String? cognome,
     String? indirizzo,
@@ -64,6 +105,7 @@ class DriverPersonalQrData {
     String? assicurazione,
   }) {
     return DriverPersonalQrData(
+      courtesy: courtesy ?? this.courtesy,
       nome: nome ?? this.nome,
       cognome: cognome ?? this.cognome,
       indirizzo: indirizzo ?? this.indirizzo,
@@ -76,17 +118,24 @@ class DriverPersonalQrData {
     );
   }
 
-  Map<String, dynamic> toMap() => {
-        'nome': nome.trim(),
-        'cognome': cognome.trim(),
-        'indirizzo': indirizzo.trim(),
-        'zip': zip.trim(),
-        'city': city.trim(),
-        'telefono': telefono.trim(),
-        'email': email.trim(),
-        'targa': targa.trim(),
-        'assicurazione': assicurazione.trim(),
-      };
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{
+      'nome': nome.trim(),
+      'cognome': cognome.trim(),
+      'indirizzo': indirizzo.trim(),
+      'zip': zip.trim(),
+      'city': city.trim(),
+      'telefono': telefono.trim(),
+      'email': email.trim(),
+      'targa': targa.trim(),
+      'assicurazione': assicurazione.trim(),
+    };
+    final courtesyValue = courtesy?.storageValue;
+    if (courtesyValue != null && courtesyValue.isNotEmpty) {
+      map['courtesy'] = courtesyValue;
+    }
+    return map;
+  }
 
   String toJsonString() => jsonEncode(toMap());
 
@@ -102,6 +151,11 @@ class DriverPersonalQrData {
     }
 
     return DriverPersonalQrData(
+      courtesy: driverPersonalQrCourtesyFromString(
+        readValue(
+          const ['courtesy', 'anrede', 'title', 'salutation', 'civilite'],
+        ),
+      ),
       nome: readValue(const ['nome', 'firstName', 'vorname', 'prenom']),
       cognome: readValue(const ['cognome', 'lastName', 'nachname', 'nom']),
       indirizzo: readValue(

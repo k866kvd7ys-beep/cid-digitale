@@ -29,6 +29,7 @@ import 'config/supabase_config.dart';
 import 'screens/officina/appointments_screen.dart';
 import 'screens/service/service_anmelden_screen.dart';
 import 'screens/service/raeder_wechsel_screen.dart';
+import 'screens/driver_personal_qr_screen.dart';
 import 'screens/service/workshop_selector_screen.dart';
 import 'services/device_location_service.dart';
 import 'services/supabase_service.dart';
@@ -3115,6 +3116,15 @@ class _HomePageState extends State<HomePage> {
     _refreshHomeData();
   }
 
+  Future<void> _openPersonalQr() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const DriverPersonalQrScreen(),
+      ),
+    );
+    _refreshHomeData();
+  }
+
   Future<void> _exitHome() async {
     try {
       await Supabase.instance.client.auth.signOut();
@@ -3391,6 +3401,17 @@ class _HomePageState extends State<HomePage> {
           onTap: _openMyRequests,
         );
       },
+    );
+  }
+
+  Widget _buildPersonalQrCard(String title, String subtitle) {
+    return _HomeActionCard(
+      icon: Icons.qr_code_2_rounded,
+      iconColor: _homePrimary,
+      iconBackgroundColor: _homeLightBlue,
+      title: title,
+      subtitle: subtitle,
+      onTap: _openPersonalQr,
     );
   }
 
@@ -3739,6 +3760,18 @@ class _HomePageState extends State<HomePage> {
       fr: 'Consultez l’état de vos demandes',
       en: 'Check the status of your requests',
     );
+    final personalQrTitle = _copy(
+      it: 'Il mio QR personale',
+      de: 'Mein persönlicher QR',
+      fr: 'Mon QR personnel',
+      en: 'My personal QR',
+    );
+    final personalQrSubtitle = _copy(
+      it: 'Salva i tuoi dati conducente e genera un QR pronto per l’autocompilazione futura.',
+      de: 'Speichere deine Fahrerdaten und erzeuge einen QR für die zukünftige automatische Befüllung.',
+      fr: 'Enregistrez vos données conducteur et générez un QR prêt pour le remplissage automatique futur.',
+      en: 'Save your driver details and generate a QR ready for future auto-fill.',
+    );
     final servicesSubtitle = _copy(
       it: 'Prenota rapidamente gli interventi disponibili.',
       de: 'Buche verfügbare Werkstattservices schnell.',
@@ -3838,6 +3871,11 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 18),
                         _buildMyRequestsCard(l10n, requestsSubtitle),
+                        const SizedBox(height: 18),
+                        _buildPersonalQrCard(
+                          personalQrTitle,
+                          personalQrSubtitle,
+                        ),
                         const SizedBox(height: 22),
                         _buildWorkshopServices(
                           l10n,
