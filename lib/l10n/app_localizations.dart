@@ -515,6 +515,288 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Fahrer B'**
   String get pdfDriverLabelB;
+
+  /// No description provided for @driverPersonalQrPageTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Mein persönlicher QR'**
+  String get driverPersonalQrPageTitle;
+
+  /// No description provided for @driverPersonalQrIntroTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Erstelle deinen Fahrer-QR'**
+  String get driverPersonalQrIntroTitle;
+
+  /// No description provided for @driverPersonalQrIntroBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Speichere Kunden-, Fahrzeug- und Versicherungsdaten in einem persönlichen QR, der in der Werkstatt bei Neue Akte sofort gescannt werden kann.'**
+  String get driverPersonalQrIntroBody;
+
+  /// No description provided for @driverPersonalQrLocalSaveNote.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Daten werden lokal auf diesem Gerät bzw. Browser gespeichert.'**
+  String get driverPersonalQrLocalSaveNote;
+
+  /// No description provided for @driverPersonalQrPrivacyNote.
+  ///
+  /// In de, this message translates to:
+  /// **'Der QR enthält nur Kunden-, Fahrzeug- und Versicherungsdaten.'**
+  String get driverPersonalQrPrivacyNote;
+
+  /// No description provided for @driverPersonalQrStatusReady.
+  ///
+  /// In de, this message translates to:
+  /// **'QR bereits bereit / Daten gespeichert'**
+  String get driverPersonalQrStatusReady;
+
+  /// No description provided for @driverPersonalQrStatusReadyMessage.
+  ///
+  /// In de, this message translates to:
+  /// **'Der QR ist aktuell und kann direkt von der Werkstatt gescannt werden.'**
+  String get driverPersonalQrStatusReadyMessage;
+
+  /// No description provided for @driverPersonalQrStatusNeedsUpdate.
+  ///
+  /// In de, this message translates to:
+  /// **'Daten geändert / QR aktualisieren'**
+  String get driverPersonalQrStatusNeedsUpdate;
+
+  /// No description provided for @driverPersonalQrStatusNeedsUpdateMessage.
+  ///
+  /// In de, this message translates to:
+  /// **'Die gespeicherten Daten wurden geändert. Aktualisiere den QR, damit die neueste Version codiert wird.'**
+  String get driverPersonalQrStatusNeedsUpdateMessage;
+
+  /// No description provided for @driverPersonalQrStatusDraftSaved.
+  ///
+  /// In de, this message translates to:
+  /// **'Daten lokal gespeichert'**
+  String get driverPersonalQrStatusDraftSaved;
+
+  /// No description provided for @driverPersonalQrStatusDraftSavedMessage.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Daten sind bereits auf diesem Gerät gespeichert. Erstelle den QR, sobald sie scanbar sein sollen.'**
+  String get driverPersonalQrStatusDraftSavedMessage;
+
+  /// No description provided for @driverPersonalQrStatusEmpty.
+  ///
+  /// In de, this message translates to:
+  /// **'Noch keine Daten gespeichert'**
+  String get driverPersonalQrStatusEmpty;
+
+  /// No description provided for @driverPersonalQrStatusEmptyMessage.
+  ///
+  /// In de, this message translates to:
+  /// **'Erfasse Kunden-, Fahrzeug- und Versicherungsdaten, um deinen persönlichen QR vorzubereiten.'**
+  String get driverPersonalQrStatusEmptyMessage;
+
+  /// No description provided for @driverPersonalQrCustomerSectionTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Kundendaten'**
+  String get driverPersonalQrCustomerSectionTitle;
+
+  /// No description provided for @driverPersonalQrCustomerSectionSubtitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Erfasse die Kunden- oder Fahrerdaten, damit die Werkstatt sie sofort übernehmen kann.'**
+  String get driverPersonalQrCustomerSectionSubtitle;
+
+  /// No description provided for @driverPersonalQrVehicleSectionTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Fahrzeugdaten'**
+  String get driverPersonalQrVehicleSectionTitle;
+
+  /// No description provided for @driverPersonalQrVehicleSectionSubtitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Füge die wichtigsten Fahrzeugdaten hinzu, um die Akte schneller zu eröffnen.'**
+  String get driverPersonalQrVehicleSectionSubtitle;
+
+  /// No description provided for @driverPersonalQrInsuranceSectionTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Versicherungsdaten'**
+  String get driverPersonalQrInsuranceSectionTitle;
+
+  /// No description provided for @driverPersonalQrInsuranceSectionSubtitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Ergänze die relevanten Versicherungsangaben für die Schadenbearbeitung.'**
+  String get driverPersonalQrInsuranceSectionSubtitle;
+
+  /// No description provided for @driverPersonalQrFormActionCreate.
+  ///
+  /// In de, this message translates to:
+  /// **'Persönlichen QR erstellen'**
+  String get driverPersonalQrFormActionCreate;
+
+  /// No description provided for @driverPersonalQrFormActionUpdate.
+  ///
+  /// In de, this message translates to:
+  /// **'QR aktualisieren'**
+  String get driverPersonalQrFormActionUpdate;
+
+  /// No description provided for @driverPersonalQrEditSavedData.
+  ///
+  /// In de, this message translates to:
+  /// **'Gespeicherte Daten bearbeiten'**
+  String get driverPersonalQrEditSavedData;
+
+  /// No description provided for @driverPersonalQrQrCardTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Persönlicher Fahrer-QR'**
+  String get driverPersonalQrQrCardTitle;
+
+  /// No description provided for @driverPersonalQrQrCardSubtitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Zeige diesen QR der Werkstatt, damit die verfügbaren Daten automatisch übernommen werden.'**
+  String get driverPersonalQrQrCardSubtitle;
+
+  /// No description provided for @driverPersonalQrQrEmptyTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'QR noch nicht erstellt'**
+  String get driverPersonalQrQrEmptyTitle;
+
+  /// No description provided for @driverPersonalQrMinimumHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Fülle mindestens Vorname, Nachname und Kennzeichen aus, um den QR zu erstellen.'**
+  String get driverPersonalQrMinimumHint;
+
+  /// No description provided for @driverPersonalQrCreateSuccess.
+  ///
+  /// In de, this message translates to:
+  /// **'QR erfolgreich erstellt'**
+  String get driverPersonalQrCreateSuccess;
+
+  /// No description provided for @driverPersonalQrUpdateSuccess.
+  ///
+  /// In de, this message translates to:
+  /// **'QR erfolgreich aktualisiert'**
+  String get driverPersonalQrUpdateSuccess;
+
+  /// No description provided for @driverPersonalQrSaveError.
+  ///
+  /// In de, this message translates to:
+  /// **'Der persönliche QR konnte lokal nicht gespeichert werden.'**
+  String get driverPersonalQrSaveError;
+
+  /// No description provided for @driverPersonalQrSavedDataPreviewTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Vorschau der gespeicherten Daten'**
+  String get driverPersonalQrSavedDataPreviewTitle;
+
+  /// No description provided for @driverPersonalQrJsonPreviewTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'QR-Inhalt (JSON)'**
+  String get driverPersonalQrJsonPreviewTitle;
+
+  /// No description provided for @driverPersonalQrJsonPreviewHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Dies ist das lesbare JSON, das im QR codiert ist und vom Werkstatt-Scanner gelesen werden kann.'**
+  String get driverPersonalQrJsonPreviewHint;
+
+  /// No description provided for @driverPersonalQrTitleLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Anrede / Titel'**
+  String get driverPersonalQrTitleLabel;
+
+  /// No description provided for @driverPersonalQrStreetLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Strasse'**
+  String get driverPersonalQrStreetLabel;
+
+  /// No description provided for @driverPersonalQrCountryLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Land'**
+  String get driverPersonalQrCountryLabel;
+
+  /// No description provided for @driverPersonalQrBrandLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Marke'**
+  String get driverPersonalQrBrandLabel;
+
+  /// No description provided for @driverPersonalQrModelLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Modell / Typ'**
+  String get driverPersonalQrModelLabel;
+
+  /// No description provided for @driverPersonalQrVinLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Fahrgestellnummer VIN'**
+  String get driverPersonalQrVinLabel;
+
+  /// No description provided for @driverPersonalQrMileageLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Kilometerstand'**
+  String get driverPersonalQrMileageLabel;
+
+  /// No description provided for @driverPersonalQrFirstRegistrationLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'1. Inverkehrsetzung'**
+  String get driverPersonalQrFirstRegistrationLabel;
+
+  /// No description provided for @driverPersonalQrInsuranceLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Versicherung'**
+  String get driverPersonalQrInsuranceLabel;
+
+  /// No description provided for @driverPersonalQrPolicyNumberLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Policennummer'**
+  String get driverPersonalQrPolicyNumberLabel;
+
+  /// No description provided for @driverPersonalQrClaimNumberLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Schadennummer'**
+  String get driverPersonalQrClaimNumberLabel;
+
+  /// No description provided for @driverPersonalQrLocationLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'PLZ / Ort / Land'**
+  String get driverPersonalQrLocationLabel;
+
+  /// No description provided for @driverPersonalQrTitleMr.
+  ///
+  /// In de, this message translates to:
+  /// **'Herr'**
+  String get driverPersonalQrTitleMr;
+
+  /// No description provided for @driverPersonalQrTitleMrs.
+  ///
+  /// In de, this message translates to:
+  /// **'Frau'**
+  String get driverPersonalQrTitleMrs;
+
+  /// No description provided for @driverPersonalQrTitleCompany.
+  ///
+  /// In de, this message translates to:
+  /// **'Firma'**
+  String get driverPersonalQrTitleCompany;
 }
 
 class _AppLocalizationsDelegate

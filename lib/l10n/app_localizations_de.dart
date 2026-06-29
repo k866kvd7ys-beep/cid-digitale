@@ -219,4 +219,162 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get pdfDriverLabelB => 'Fahrer B';
+
+  @override
+  String get driverPersonalQrPageTitle => 'Mein persönlicher QR';
+
+  @override
+  String get driverPersonalQrIntroTitle => 'Erstelle deinen Fahrer-QR';
+
+  @override
+  String get driverPersonalQrIntroBody =>
+      'Speichere Kunden-, Fahrzeug- und Versicherungsdaten in einem persönlichen QR, der in der Werkstatt bei Neue Akte sofort gescannt werden kann.';
+
+  @override
+  String get driverPersonalQrLocalSaveNote =>
+      'Die Daten werden lokal auf diesem Gerät bzw. Browser gespeichert.';
+
+  @override
+  String get driverPersonalQrPrivacyNote =>
+      'Der QR enthält nur Kunden-, Fahrzeug- und Versicherungsdaten.';
+
+  @override
+  String get driverPersonalQrStatusReady =>
+      'QR bereits bereit / Daten gespeichert';
+
+  @override
+  String get driverPersonalQrStatusReadyMessage =>
+      'Der QR ist aktuell und kann direkt von der Werkstatt gescannt werden.';
+
+  @override
+  String get driverPersonalQrStatusNeedsUpdate =>
+      'Daten geändert / QR aktualisieren';
+
+  @override
+  String get driverPersonalQrStatusNeedsUpdateMessage =>
+      'Die gespeicherten Daten wurden geändert. Aktualisiere den QR, damit die neueste Version codiert wird.';
+
+  @override
+  String get driverPersonalQrStatusDraftSaved => 'Daten lokal gespeichert';
+
+  @override
+  String get driverPersonalQrStatusDraftSavedMessage =>
+      'Die Daten sind bereits auf diesem Gerät gespeichert. Erstelle den QR, sobald sie scanbar sein sollen.';
+
+  @override
+  String get driverPersonalQrStatusEmpty => 'Noch keine Daten gespeichert';
+
+  @override
+  String get driverPersonalQrStatusEmptyMessage =>
+      'Erfasse Kunden-, Fahrzeug- und Versicherungsdaten, um deinen persönlichen QR vorzubereiten.';
+
+  @override
+  String get driverPersonalQrCustomerSectionTitle => 'Kundendaten';
+
+  @override
+  String get driverPersonalQrCustomerSectionSubtitle =>
+      'Erfasse die Kunden- oder Fahrerdaten, damit die Werkstatt sie sofort übernehmen kann.';
+
+  @override
+  String get driverPersonalQrVehicleSectionTitle => 'Fahrzeugdaten';
+
+  @override
+  String get driverPersonalQrVehicleSectionSubtitle =>
+      'Füge die wichtigsten Fahrzeugdaten hinzu, um die Akte schneller zu eröffnen.';
+
+  @override
+  String get driverPersonalQrInsuranceSectionTitle => 'Versicherungsdaten';
+
+  @override
+  String get driverPersonalQrInsuranceSectionSubtitle =>
+      'Ergänze die relevanten Versicherungsangaben für die Schadenbearbeitung.';
+
+  @override
+  String get driverPersonalQrFormActionCreate => 'Persönlichen QR erstellen';
+
+  @override
+  String get driverPersonalQrFormActionUpdate => 'QR aktualisieren';
+
+  @override
+  String get driverPersonalQrEditSavedData => 'Gespeicherte Daten bearbeiten';
+
+  @override
+  String get driverPersonalQrQrCardTitle => 'Persönlicher Fahrer-QR';
+
+  @override
+  String get driverPersonalQrQrCardSubtitle =>
+      'Zeige diesen QR der Werkstatt, damit die verfügbaren Daten automatisch übernommen werden.';
+
+  @override
+  String get driverPersonalQrQrEmptyTitle => 'QR noch nicht erstellt';
+
+  @override
+  String get driverPersonalQrMinimumHint =>
+      'Fülle mindestens Vorname, Nachname und Kennzeichen aus, um den QR zu erstellen.';
+
+  @override
+  String get driverPersonalQrCreateSuccess => 'QR erfolgreich erstellt';
+
+  @override
+  String get driverPersonalQrUpdateSuccess => 'QR erfolgreich aktualisiert';
+
+  @override
+  String get driverPersonalQrSaveError =>
+      'Der persönliche QR konnte lokal nicht gespeichert werden.';
+
+  @override
+  String get driverPersonalQrSavedDataPreviewTitle =>
+      'Vorschau der gespeicherten Daten';
+
+  @override
+  String get driverPersonalQrJsonPreviewTitle => 'QR-Inhalt (JSON)';
+
+  @override
+  String get driverPersonalQrJsonPreviewHint =>
+      'Dies ist das lesbare JSON, das im QR codiert ist und vom Werkstatt-Scanner gelesen werden kann.';
+
+  @override
+  String get driverPersonalQrTitleLabel => 'Anrede / Titel';
+
+  @override
+  String get driverPersonalQrStreetLabel => 'Strasse';
+
+  @override
+  String get driverPersonalQrCountryLabel => 'Land';
+
+  @override
+  String get driverPersonalQrBrandLabel => 'Marke';
+
+  @override
+  String get driverPersonalQrModelLabel => 'Modell / Typ';
+
+  @override
+  String get driverPersonalQrVinLabel => 'Fahrgestellnummer VIN';
+
+  @override
+  String get driverPersonalQrMileageLabel => 'Kilometerstand';
+
+  @override
+  String get driverPersonalQrFirstRegistrationLabel => '1. Inverkehrsetzung';
+
+  @override
+  String get driverPersonalQrInsuranceLabel => 'Versicherung';
+
+  @override
+  String get driverPersonalQrPolicyNumberLabel => 'Policennummer';
+
+  @override
+  String get driverPersonalQrClaimNumberLabel => 'Schadennummer';
+
+  @override
+  String get driverPersonalQrLocationLabel => 'PLZ / Ort / Land';
+
+  @override
+  String get driverPersonalQrTitleMr => 'Herr';
+
+  @override
+  String get driverPersonalQrTitleMrs => 'Frau';
+
+  @override
+  String get driverPersonalQrTitleCompany => 'Firma';
 }

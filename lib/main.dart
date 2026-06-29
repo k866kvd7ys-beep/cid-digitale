@@ -3762,16 +3762,16 @@ class _HomePageState extends State<HomePage> {
       en: 'Check the status of your requests',
     );
     final personalQrTitle = _copy(
-      it: 'Il mio QR personale',
+      it: 'Mio QR personale',
       de: 'Mein persönlicher QR',
       fr: 'Mon QR personnel',
       en: 'My personal QR',
     );
     final personalQrSubtitle = _copy(
-      it: 'Salva i tuoi dati conducente e genera un QR pronto per l’autocompilazione futura.',
-      de: 'Speichere deine Fahrerdaten und erzeuge einen QR für die zukünftige automatische Befüllung.',
-      fr: 'Enregistrez vos données conducteur et générez un QR prêt pour le remplissage automatique futur.',
-      en: 'Save your driver details and generate a QR ready for future auto-fill.',
+      it: 'Salva i tuoi dati cliente, veicolo e assicurazione e genera un QR pronto per la compilazione automatica.',
+      de: 'Speichere Kunden-, Fahrzeug- und Versicherungsdaten und erzeuge einen QR für die automatische Befüllung.',
+      fr: 'Enregistre les données client, véhicule et assurance et génère un QR prêt pour le remplissage automatique.',
+      en: 'Save customer, vehicle and insurance details and generate a QR ready for automatic filling.',
     );
     final servicesSubtitle = _copy(
       it: 'Prenota rapidamente gli interventi disponibili.',

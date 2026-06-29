@@ -1,9 +1,28 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:cid_digitale/models/driver_personal_qr_data.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+enum _QrPreviewState {
+  empty,
+  draftSaved,
+  needsUpdate,
+  ready,
+}
+
+class _ResponsiveFieldItem {
+  const _ResponsiveFieldItem({
+    required this.child,
+    this.fullWidth = false,
+  });
+
+  final Widget child;
+  final bool fullWidth;
+}
 
 class DriverPersonalQrScreen extends StatefulWidget {
   const DriverPersonalQrScreen({super.key});
@@ -15,30 +34,99 @@ class DriverPersonalQrScreen extends StatefulWidget {
 class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   static const String _storageKey = 'driver_personal_qr_data_v1';
   static const String _generatedQrKey = 'driver_personal_qr_generated_v1';
-  static const Color _pageBackground = Color(0xFFF8FAFC);
-  static const Color _cardBorder = Color(0xFFE5E7EB);
-  static const Color _primaryBlue = Color(0xFF2563EB);
-  static const Color _mutedText = Color(0xFF6B7280);
-  static const Color _titleText = Color(0xFF111827);
-  static const Color _successBackground = Color(0xFFEAF8ED);
-  static const Color _successText = Color(0xFF166534);
+  static const Color _pageBackground = Color(0xFFF3F6FB);
+  static const Color _cardBorder = Color(0xFFE2E8F0);
+  static const Color _cardShadow = Color(0x120F172A);
+  static const Color _primaryBlue = Color(0xFF1D4ED8);
+  static const Color _primaryBlueDark = Color(0xFF0F172A);
+  static const Color _mutedText = Color(0xFF64748B);
+  static const Color _successBackground = Color(0xFFECFDF3);
+  static const Color _successForeground = Color(0xFF166534);
+  static const Color _warningBackground = Color(0xFFFFF7ED);
+  static const Color _warningForeground = Color(0xFF9A3412);
+  static const Color _infoBackground = Color(0xFFEFF6FF);
+  static const Color _infoForeground = Color(0xFF1D4ED8);
+  static const Color _emptyBackground = Color(0xFFF8FAFC);
+  static const Color _emptyForeground = Color(0xFF475569);
 
-  final _nomeController = TextEditingController();
-  final _cognomeController = TextEditingController();
-  final _indirizzoController = TextEditingController();
-  final _zipController = TextEditingController();
-  final _cityController = TextEditingController();
-  final _countryController = TextEditingController();
-  final _telefonoController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _targaController = TextEditingController();
-  final _assicurazioneController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _formAnchorKey = GlobalKey();
+
+  final TextEditingController _nomeController = TextEditingController();
+  final TextEditingController _cognomeController = TextEditingController();
+  final TextEditingController _indirizzoController = TextEditingController();
+  final TextEditingController _zipController = TextEditingController();
+  final TextEditingController _cityController = TextEditingController();
+  final TextEditingController _countryController = TextEditingController();
+  final TextEditingController _telefonoController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _targaController = TextEditingController();
+  final TextEditingController _marcaController = TextEditingController();
+  final TextEditingController _modelloController = TextEditingController();
+  final TextEditingController _vinController = TextEditingController();
+  final TextEditingController _kilometraggioController =
+      TextEditingController();
+  final TextEditingController _primaImmatricolazioneController =
+      TextEditingController();
+  final TextEditingController _assicurazioneController =
+      TextEditingController();
+  final TextEditingController _numeroPolizzaController =
+      TextEditingController();
+  final TextEditingController _numeroSinistroController =
+      TextEditingController();
 
   DriverPersonalQrCourtesy? _courtesy;
   Timer? _persistDebounce;
   bool _loading = true;
   bool _hydrating = false;
   String? _qrPayload;
+
+  AppLocalizations get _l10n => AppLocalizations.of(context)!;
+
+  List<TextEditingController> get _controllers => [
+        _nomeController,
+        _cognomeController,
+        _indirizzoController,
+        _zipController,
+        _cityController,
+        _countryController,
+        _telefonoController,
+        _emailController,
+        _targaController,
+        _marcaController,
+        _modelloController,
+        _vinController,
+        _kilometraggioController,
+        _primaImmatricolazioneController,
+        _assicurazioneController,
+        _numeroPolizzaController,
+        _numeroSinistroController,
+      ];
+
+  DriverPersonalQrData get _draft => _buildDraftModel();
+
+  String get _currentDraftJson => driverPersonalQrDataToJson(_draft);
+
+  bool get _hasGeneratedQr => _qrPayload?.trim().isNotEmpty == true;
+
+  bool get _hasSavedDraft => _draft.hasAnyValue;
+
+  bool get _isQrDirty {
+    final payload = _qrPayload?.trim();
+    if (payload == null || payload.isEmpty) return false;
+    return payload != _currentDraftJson;
+  }
+
+  bool get _isQrReady => _hasGeneratedQr && !_isQrDirty;
+
+  bool get _canGenerateQr => _draft.hasMinimumData;
+
+  _QrPreviewState get _previewState {
+    if (_isQrReady) return _QrPreviewState.ready;
+    if (_hasGeneratedQr && _isQrDirty) return _QrPreviewState.needsUpdate;
+    if (_hasSavedDraft) return _QrPreviewState.draftSaved;
+    return _QrPreviewState.empty;
+  }
 
   @override
   void initState() {
@@ -50,391 +138,41 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   @override
   void dispose() {
     _persistDebounce?.cancel();
-    _nomeController.dispose();
-    _cognomeController.dispose();
-    _indirizzoController.dispose();
-    _zipController.dispose();
-    _cityController.dispose();
-    _countryController.dispose();
-    _telefonoController.dispose();
-    _emailController.dispose();
-    _targaController.dispose();
-    _assicurazioneController.dispose();
+    _scrollController.dispose();
+    for (final controller in _controllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
   void _attachDraftListeners() {
-    final controllers = [
-      _nomeController,
-      _cognomeController,
-      _indirizzoController,
-      _zipController,
-      _cityController,
-      _countryController,
-      _telefonoController,
-      _emailController,
-      _targaController,
-      _assicurazioneController,
-    ];
-    for (final controller in controllers) {
+    for (final controller in _controllers) {
       controller.addListener(_handleDraftChanged);
     }
   }
 
-  String _text({
-    required String it,
-    required String de,
-    required String fr,
-    required String en,
-  }) {
-    switch (Localizations.localeOf(context).languageCode) {
-      case 'de':
-        return de;
-      case 'fr':
-        return fr;
-      case 'en':
-        return en;
-      default:
-        return it;
-    }
-  }
-
-  String get _pageTitle => _text(
-        it: 'Il mio QR personale',
-        de: 'Mein persönlicher QR',
-        fr: 'Mon QR personnel',
-        en: 'My personal QR',
-      );
-
-  String get _introTitle => _text(
-        it: 'Crea il tuo QR conducente',
-        de: 'Erstelle deinen Fahrer-QR',
-        fr: 'Créez votre QR conducteur',
-        en: 'Create your driver QR',
-      );
-
-  String get _introBody => _text(
-        it:
-            'Compila i tuoi dati personali e del veicolo per generare un QR pronto per l\'autocompilazione futura.',
-        de:
-            'Erfasse deine persönlichen Daten und Fahrzeugdaten, um einen QR für die künftige automatische Befüllung zu erzeugen.',
-        fr:
-            'Renseignez vos informations personnelles et véhicule pour générer un QR prêt pour le remplissage automatique futur.',
-        en:
-            'Fill in your personal and vehicle details to generate a QR ready for future auto-fill.',
-      );
-
-  String get _localSaveNote => _text(
-        it: 'I dati vengono salvati localmente su questo dispositivo/browser.',
-        de: 'Die Daten werden lokal auf diesem Gerät bzw. Browser gespeichert.',
-        fr: 'Les données sont enregistrées localement sur cet appareil/navigateur.',
-        en: 'Data is stored locally on this device/browser.',
-      );
-
-  String get _privacyNote => _text(
-        it: 'Il QR contiene solo dati anagrafici e del veicolo del conducente.',
-        de: 'Der QR enthält nur Fahrer- und Fahrzeugdaten.',
-        fr: 'Le QR contient uniquement les données du conducteur et du véhicule.',
-        en: 'The QR contains only driver and vehicle details.',
-      );
-
-  String get _formTitle => _text(
-        it: 'Dati da includere nel QR',
-        de: 'Daten für den QR',
-        fr: 'Données à inclure dans le QR',
-        en: 'Data to include in the QR',
-      );
-
-  String get _courtesyLabel => _text(
-        it: 'Titolo / forma giuridica',
-        de: 'Anrede / Rechtsform',
-        fr: 'Civilité / forme juridique',
-        en: 'Title / legal form',
-      );
-
-  String get _firstNameLabel => _text(
-        it: 'Nome',
-        de: 'Vorname',
-        fr: 'Prénom',
-        en: 'First Name',
-      );
-
-  String get _lastNameLabel => _text(
-        it: 'Cognome',
-        de: 'Nachname',
-        fr: 'Nom',
-        en: 'Last Name',
-      );
-
-  String get _addressLabel => _text(
-        it: 'Indirizzo',
-        de: 'Adresse',
-        fr: 'Adresse',
-        en: 'Address',
-      );
-
-  String get _zipLabel => _text(
-        it: 'CAP / ZIP',
-        de: 'PLZ',
-        fr: 'Code postal',
-        en: 'ZIP',
-      );
-
-  String get _cityLabel => _text(
-        it: 'Città',
-        de: 'Ort',
-        fr: 'Ville',
-        en: 'City',
-      );
-
-  String get _countryLabel => _text(
-        it: 'Paese',
-        de: 'Land',
-        fr: 'Pays',
-        en: 'Country',
-      );
-
-  String get _phoneLabel => _text(
-        it: 'Telefono',
-        de: 'Telefon',
-        fr: 'Telephone',
-        en: 'Phone',
-      );
-
-  String get _emailLabel => _text(
-        it: 'E-mail',
-        de: 'E-Mail',
-        fr: 'E-mail',
-        en: 'E-mail',
-      );
-
-  String get _plateLabel => _text(
-        it: 'Targa veicolo',
-        de: 'Kennzeichen Fahrzeug',
-        fr: 'Plaque véhicule',
-        en: 'Vehicle plate',
-      );
-
-  String get _insuranceLabel => _text(
-        it: 'Assicurazione veicolo',
-        de: 'Fahrzeugversicherung',
-        fr: 'Assurance véhicule',
-        en: 'Vehicle insurance',
-      );
-
-  String get _generateLabel => _text(
-        it: 'Crea QR personale',
-        de: 'Persönlichen QR erstellen',
-        fr: 'Créer QR personnel',
-        en: 'Create personal QR',
-      );
-
-  String get _generatedTitle => _text(
-        it: 'QR personale',
-        de: 'Persönlicher QR',
-        fr: 'QR personnel',
-        en: 'Personal QR',
-      );
-
-  String get _generatedHint => _text(
-        it:
-            'Scansiona questo codice per compilare automaticamente i dati del conducente.',
-        de:
-            'Scanne diesen Code, um die Fahrerdaten automatisch auszufüllen.',
-        fr:
-            'Scannez ce code pour remplir automatiquement les données du conducteur.',
-        en:
-            'Scan this code to automatically fill in the driver data.',
-      );
-
-  String get _emptyQrHint => _text(
-        it: 'Compila almeno il nome per generare il tuo QR personale.',
-        de: 'Trage mindestens den Vornamen ein, um deinen persönlichen QR zu erstellen.',
-        fr: 'Renseignez au moins le prénom pour générer votre QR personnel.',
-        en: 'Enter at least the first name to generate your personal QR.',
-      );
-
-  String get _saveErrorMessage => _text(
-        it: 'Impossibile salvare localmente il QR personale.',
-        de: 'Der persönliche QR konnte lokal nicht gespeichert werden.',
-        fr: 'Impossible d\'enregistrer localement le QR personnel.',
-        en: 'Unable to save the personal QR locally.',
-      );
-
-  String get _createSuccessMessage => _text(
-        it: 'QR creato correttamente',
-        de: 'QR erfolgreich erstellt',
-        fr: 'QR créé avec succès',
-        en: 'QR created successfully',
-      );
-
-  String get _updateSuccessMessage => _text(
-        it: 'QR aggiornato correttamente',
-        de: 'QR erfolgreich aktualisiert',
-        fr: 'QR mis à jour avec succès',
-        en: 'QR updated successfully',
-      );
-
-  String get _readyBadgeLabel => _text(
-        it: 'QR pronto per la compilazione automatica',
-        de: 'QR bereit für automatische Befüllung',
-        fr: 'QR prêt pour le remplissage automatique',
-        en: 'QR ready for automatic filling',
-      );
-
-  String get _qrCardEyebrow => _text(
-        it: 'QR personale conducente',
-        de: 'Persönlicher Fahrer-QR',
-        fr: 'QR personnel conducteur',
-        en: 'Personal driver QR',
-      );
-
-  String get _updateLabel => _text(
-        it: 'Aggiorna QR',
-        de: 'QR aktualisieren',
-        fr: 'Mettre à jour le QR',
-        en: 'Update QR',
-      );
-
-  String get _summaryTitle => _text(
-        it: 'Riepilogo dati',
-        de: 'Datenübersicht',
-        fr: 'Résumé des données',
-        en: 'Data summary',
-      );
-
-  String get _placeholderMessage => _text(
-        it: 'Funzione in preparazione',
-        de: 'Funktion in Vorbereitung',
-        fr: 'Fonction en préparation',
-        en: 'Feature in preparation',
-      );
-
-  String get _shareQrLabel => _text(
-        it: 'Condividi QR',
-        de: 'QR teilen',
-        fr: 'Partager QR',
-        en: 'Share QR',
-      );
-
-  String get _saveImageLabel => _text(
-        it: 'Salva come immagine',
-        de: 'Als Bild speichern',
-        fr: 'Enregistrer comme image',
-        en: 'Save as image',
-      );
-
-  String _courtesyOptionLabel(DriverPersonalQrCourtesy value) {
-    switch (value) {
-      case DriverPersonalQrCourtesy.mr:
-        return _text(
-          it: 'Signor',
-          de: 'Herr',
-          fr: 'Monsieur',
-          en: 'Mr.',
-        );
-      case DriverPersonalQrCourtesy.mrs:
-        return _text(
-          it: 'Signora',
-          de: 'Frau',
-          fr: 'Madame',
-          en: 'Mrs.',
-        );
-      case DriverPersonalQrCourtesy.company:
-        return _text(
-          it: 'Ditta',
-          de: 'Firma',
-          fr: 'Société',
-          en: 'Company',
-        );
-    }
-  }
-
-  void _showPlaceholderAction() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(_placeholderMessage)),
-    );
-  }
-
-  DriverPersonalQrData _buildDraftModel() {
-    return DriverPersonalQrData(
-      courtesy: _courtesy,
-      nome: _nomeController.text,
-      cognome: _cognomeController.text,
-      indirizzo: _indirizzoController.text,
-      zip: _zipController.text,
-      city: _cityController.text,
-      country: _countryController.text,
-      telefono: _telefonoController.text,
-      email: _emailController.text,
-      targa: _targaController.text,
-      assicurazione: _assicurazioneController.text,
-    );
-  }
-
-  String get _currentDraftJson => driverPersonalQrDataToJson(_buildDraftModel());
-
-  bool get _hasGeneratedQr => _qrPayload?.trim().isNotEmpty == true;
-
-  bool get _isQrDirty {
-    final payload = _qrPayload?.trim();
-    if (payload == null || payload.isEmpty) return false;
-    return payload != _currentDraftJson;
-  }
-
-  bool get _isQrReady => _hasGeneratedQr && !_isQrDirty;
-
-  String get _primaryButtonLabel {
-    if (_hasGeneratedQr && _isQrDirty) {
-      return _updateLabel;
-    }
-    return _generateLabel;
-  }
-
-  String get _summaryPrimaryLine {
-    final draft = _buildDraftModel();
-    final fullName = draft.fullName;
-    if (fullName.isNotEmpty) return fullName;
-    return _text(
-      it: 'Dati conducente non completi',
-      de: 'Fahrerdaten unvollständig',
-      fr: 'Données conducteur incomplètes',
-      en: 'Driver details incomplete',
-    );
-  }
-
-  String get _summaryPlateLine {
-    final value = _targaController.text.trim();
-    return value.isEmpty ? '-' : value;
-  }
-
-  String get _summaryInsuranceLine {
-    final value = _assicurazioneController.text.trim();
-    return value.isEmpty ? '-' : value;
-  }
-
-  String get _summaryLocationLine {
-    final city = _cityController.text.trim();
-    final country = _countryController.text.trim();
-    final parts = [city, country].where((value) => value.isNotEmpty).toList();
-    if (parts.isEmpty) return '-';
-    return parts.join(', ');
-  }
-
   Future<void> _loadSavedDraft() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_storageKey);
-    final generatedRaw = prefs.getString(_generatedQrKey)?.trim();
-    if (raw == null || raw.trim().isEmpty) {
-      if (!mounted) return;
-      setState(() {
-        _qrPayload = generatedRaw?.isNotEmpty == true ? generatedRaw : null;
-        _loading = false;
-      });
-      return;
+    final rawDraft = prefs.getString(_storageKey)?.trim();
+    final rawGenerated = prefs.getString(_generatedQrKey)?.trim();
+    final sourceRaw = (rawDraft != null && rawDraft.isNotEmpty)
+        ? rawDraft
+        : (rawGenerated != null && rawGenerated.isNotEmpty ? rawGenerated : '');
+
+    if (sourceRaw.isNotEmpty) {
+      final data = driverPersonalQrDataFromJson(sourceRaw);
+      _hydrateDraft(data);
     }
 
-    final data = driverPersonalQrDataFromJson(raw);
+    if (!mounted) return;
+    setState(() {
+      _qrPayload =
+          rawGenerated != null && rawGenerated.isNotEmpty ? rawGenerated : null;
+      _loading = false;
+    });
+  }
+
+  void _hydrateDraft(DriverPersonalQrData data) {
     _hydrating = true;
     _courtesy = data.courtesy;
     _nomeController.text = data.nome;
@@ -446,14 +184,15 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
     _telefonoController.text = data.telefono;
     _emailController.text = data.email;
     _targaController.text = data.targa;
+    _marcaController.text = data.marca;
+    _modelloController.text = data.modello;
+    _vinController.text = data.vin;
+    _kilometraggioController.text = data.kilometraggio;
+    _primaImmatricolazioneController.text = data.primaImmatricolazione;
     _assicurazioneController.text = data.assicurazione;
+    _numeroPolizzaController.text = data.numeroPolizza;
+    _numeroSinistroController.text = data.numeroSinistro;
     _hydrating = false;
-
-    if (!mounted) return;
-    setState(() {
-      _qrPayload = generatedRaw?.isNotEmpty == true ? generatedRaw : null;
-      _loading = false;
-    });
   }
 
   void _handleDraftChanged() {
@@ -470,19 +209,16 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   Future<void> _persistDraft() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        _storageKey,
-        _currentDraftJson,
-      );
+      await prefs.setString(_storageKey, _currentDraftJson);
     } catch (_) {}
   }
 
   Future<void> _generateQr() async {
-    final model = _buildDraftModel();
+    final model = _draft;
     if (!model.hasMinimumData) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_emptyQrHint)),
+        SnackBar(content: Text(_l10n.driverPersonalQrMinimumHint)),
       );
       return;
     }
@@ -498,19 +234,172 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            wasUpdate ? _updateSuccessMessage : _createSuccessMessage,
+            wasUpdate
+                ? _l10n.driverPersonalQrUpdateSuccess
+                : _l10n.driverPersonalQrCreateSuccess,
           ),
         ),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_saveErrorMessage)),
+        SnackBar(content: Text(_l10n.driverPersonalQrSaveError)),
       );
     }
   }
 
-  bool get _canGenerateQr => _buildDraftModel().hasMinimumData;
+  Future<void> _scrollToForm() async {
+    final formContext = _formAnchorKey.currentContext;
+    if (formContext == null) return;
+    await Scrollable.ensureVisible(
+      formContext,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+      alignment: 0.04,
+    );
+  }
+
+  DriverPersonalQrData _buildDraftModel() {
+    return DriverPersonalQrData(
+      courtesy: _courtesy,
+      nome: _nomeController.text,
+      cognome: _cognomeController.text,
+      indirizzo: _indirizzoController.text,
+      zip: _zipController.text,
+      city: _cityController.text,
+      country: _countryController.text,
+      telefono: _telefonoController.text,
+      email: _emailController.text,
+      targa: _targaController.text,
+      marca: _marcaController.text,
+      modello: _modelloController.text,
+      vin: _vinController.text,
+      kilometraggio: _kilometraggioController.text,
+      primaImmatricolazione: _primaImmatricolazioneController.text,
+      assicurazione: _assicurazioneController.text,
+      numeroPolizza: _numeroPolizzaController.text,
+      numeroSinistro: _numeroSinistroController.text,
+      customerNumber: '',
+    );
+  }
+
+  String get _primaryButtonLabel => _hasGeneratedQr
+      ? _l10n.driverPersonalQrFormActionUpdate
+      : _l10n.driverPersonalQrFormActionCreate;
+
+  String get _payloadPreview {
+    final payload = _qrPayload?.trim();
+    if (payload == null || payload.isEmpty) return '';
+    try {
+      final decoded = jsonDecode(payload);
+      return const JsonEncoder.withIndent('  ').convert(decoded);
+    } catch (_) {
+      return payload;
+    }
+  }
+
+  String get _customerLocationLine {
+    final parts = [
+      _draft.zip.trim(),
+      _draft.city.trim(),
+      _draft.country.trim(),
+    ].where((value) => value.isNotEmpty).toList();
+    if (parts.isEmpty) return '-';
+    return parts.join(' · ');
+  }
+
+  String get _vehicleIdentityLine {
+    final summary = _draft.vehicleSummary;
+    if (summary.isNotEmpty) return summary;
+    return '-';
+  }
+
+  String get _insuranceIdentityLine {
+    final summary = _draft.insuranceSummary;
+    if (summary.isNotEmpty) return summary;
+    return '-';
+  }
+
+  String _valueOrDash(String value) {
+    final normalized = value.trim();
+    return normalized.isEmpty ? '-' : normalized;
+  }
+
+  Color _statusBackground(_QrPreviewState state) {
+    switch (state) {
+      case _QrPreviewState.ready:
+        return _successBackground;
+      case _QrPreviewState.needsUpdate:
+        return _warningBackground;
+      case _QrPreviewState.draftSaved:
+        return _infoBackground;
+      case _QrPreviewState.empty:
+        return _emptyBackground;
+    }
+  }
+
+  Color _statusForeground(_QrPreviewState state) {
+    switch (state) {
+      case _QrPreviewState.ready:
+        return _successForeground;
+      case _QrPreviewState.needsUpdate:
+        return _warningForeground;
+      case _QrPreviewState.draftSaved:
+        return _infoForeground;
+      case _QrPreviewState.empty:
+        return _emptyForeground;
+    }
+  }
+
+  IconData _statusIcon(_QrPreviewState state) {
+    switch (state) {
+      case _QrPreviewState.ready:
+        return Icons.verified_rounded;
+      case _QrPreviewState.needsUpdate:
+        return Icons.sync_problem_rounded;
+      case _QrPreviewState.draftSaved:
+        return Icons.save_outlined;
+      case _QrPreviewState.empty:
+        return Icons.info_outline_rounded;
+    }
+  }
+
+  String _statusLabel(_QrPreviewState state) {
+    switch (state) {
+      case _QrPreviewState.ready:
+        return _l10n.driverPersonalQrStatusReady;
+      case _QrPreviewState.needsUpdate:
+        return _l10n.driverPersonalQrStatusNeedsUpdate;
+      case _QrPreviewState.draftSaved:
+        return _l10n.driverPersonalQrStatusDraftSaved;
+      case _QrPreviewState.empty:
+        return _l10n.driverPersonalQrStatusEmpty;
+    }
+  }
+
+  String _statusMessage(_QrPreviewState state) {
+    switch (state) {
+      case _QrPreviewState.ready:
+        return _l10n.driverPersonalQrStatusReadyMessage;
+      case _QrPreviewState.needsUpdate:
+        return _l10n.driverPersonalQrStatusNeedsUpdateMessage;
+      case _QrPreviewState.draftSaved:
+        return _l10n.driverPersonalQrStatusDraftSavedMessage;
+      case _QrPreviewState.empty:
+        return _l10n.driverPersonalQrStatusEmptyMessage;
+    }
+  }
+
+  String _courtesyOptionLabel(DriverPersonalQrCourtesy value) {
+    switch (value) {
+      case DriverPersonalQrCourtesy.mr:
+        return _l10n.driverPersonalQrTitleMr;
+      case DriverPersonalQrCourtesy.mrs:
+        return _l10n.driverPersonalQrTitleMrs;
+      case DriverPersonalQrCourtesy.company:
+        return _l10n.driverPersonalQrTitleCompany;
+    }
+  }
 
   Widget _buildCard({
     required Widget child,
@@ -520,13 +409,13 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
       padding: padding,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(26),
         border: Border.all(color: _cardBorder),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0D0F172A),
-            blurRadius: 24,
-            offset: Offset(0, 12),
+            color: _cardShadow,
+            blurRadius: 22,
+            offset: Offset(0, 14),
           ),
         ],
       ),
@@ -534,23 +423,113 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(String label) {
+  Widget _buildInfoPill({
+    required IconData icon,
+    required String text,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _cardBorder),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: _primaryBlue),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: _primaryBlueDark,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderCard() {
+    return _buildCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: const Color(0xFFDBEAFE),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Icon(
+              Icons.qr_code_2_rounded,
+              color: _primaryBlue,
+              size: 30,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            _l10n.driverPersonalQrIntroTitle,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: _primaryBlueDark,
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _l10n.driverPersonalQrIntroBody,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: _mutedText,
+                  height: 1.5,
+                ),
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _buildInfoPill(
+                icon: Icons.save_outlined,
+                text: _l10n.driverPersonalQrLocalSaveNote,
+              ),
+              _buildInfoPill(
+                icon: Icons.lock_outline_rounded,
+                text: _l10n.driverPersonalQrPrivacyNote,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required String label,
+    String? hint,
+  }) {
     return InputDecoration(
       labelText: label,
+      hintText: hint,
       filled: true,
       fillColor: const Color(0xFFF8FAFC),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         borderSide: const BorderSide(color: _cardBorder),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         borderSide: const BorderSide(color: _cardBorder),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: _primaryBlue, width: 1.2),
+        borderRadius: BorderRadius.circular(18),
+        borderSide: const BorderSide(color: _primaryBlue, width: 1.3),
       ),
     );
   }
@@ -558,175 +537,66 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
+    String? hint,
     TextInputType keyboardType = TextInputType.text,
+    TextCapitalization textCapitalization = TextCapitalization.none,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      decoration: _inputDecoration(label),
+      textCapitalization: textCapitalization,
+      decoration: _inputDecoration(label: label, hint: hint),
     );
   }
 
-  Widget _buildFormGrid() {
+  Widget _buildResponsiveFieldGrid(List<_ResponsiveFieldItem> items) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 720;
-        final fieldWidth = wide
-            ? (constraints.maxWidth - 12) / 2
+        final useTwoColumns = constraints.maxWidth >= 560;
+        const spacing = 12.0;
+        final fieldWidth = useTwoColumns
+            ? (constraints.maxWidth - spacing) / 2
             : constraints.maxWidth;
 
         return Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            SizedBox(
-              width: fieldWidth,
-              child: DropdownButtonFormField<DriverPersonalQrCourtesy>(
-                initialValue: _courtesy,
-                isExpanded: true,
-                decoration: _inputDecoration(_courtesyLabel),
-                items: DriverPersonalQrCourtesy.values
-                    .map(
-                      (value) => DropdownMenuItem<DriverPersonalQrCourtesy>(
-                        value: value,
-                        child: Text(_courtesyOptionLabel(value)),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  setState(() => _courtesy = value);
-                  _handleDraftChanged();
-                },
-              ),
-            ),
-            SizedBox(
-              width: fieldWidth,
-              child: _buildTextField(
-                controller: _nomeController,
-                label: _firstNameLabel,
-              ),
-            ),
-            SizedBox(
-              width: fieldWidth,
-              child: _buildTextField(
-                controller: _cognomeController,
-                label: _lastNameLabel,
-              ),
-            ),
-            SizedBox(
-              width: fieldWidth,
-              child: _buildTextField(
-                controller: _indirizzoController,
-                label: _addressLabel,
-              ),
-            ),
-            SizedBox(
-              width: fieldWidth,
-              child: _buildTextField(
-                controller: _zipController,
-                label: _zipLabel,
-                keyboardType: TextInputType.number,
-              ),
-            ),
-            SizedBox(
-              width: fieldWidth,
-              child: _buildTextField(
-                controller: _cityController,
-                label: _cityLabel,
-              ),
-            ),
-            SizedBox(
-              width: fieldWidth,
-              child: _buildTextField(
-                controller: _countryController,
-                label: _countryLabel,
-              ),
-            ),
-            SizedBox(
-              width: fieldWidth,
-              child: _buildTextField(
-                controller: _telefonoController,
-                label: _phoneLabel,
-                keyboardType: TextInputType.phone,
-              ),
-            ),
-            SizedBox(
-              width: fieldWidth,
-              child: _buildTextField(
-                controller: _emailController,
-                label: _emailLabel,
-                keyboardType: TextInputType.emailAddress,
-              ),
-            ),
-            SizedBox(
-              width: fieldWidth,
-              child: _buildTextField(
-                controller: _targaController,
-                label: _plateLabel,
-              ),
-            ),
-            SizedBox(
-              width: fieldWidth,
-              child: _buildTextField(
-                controller: _assicurazioneController,
-                label: _insuranceLabel,
-              ),
-            ),
-          ],
+          spacing: spacing,
+          runSpacing: spacing,
+          children: items
+              .map(
+                (item) => SizedBox(
+                  width: item.fullWidth && useTwoColumns
+                      ? constraints.maxWidth
+                      : fieldWidth,
+                  child: item.child,
+                ),
+              )
+              .toList(),
         );
       },
     );
   }
 
-  Widget _buildGeneratedQrCard() {
-    final payload = _qrPayload;
+  Widget _buildSectionCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget child,
+  }) {
     return _buildCard(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_isQrReady) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-              decoration: BoxDecoration(
-                color: _successBackground,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    color: _successText,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      _readyBadgeLabel,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: _successText,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-          ],
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(
-                  Icons.qr_code_2_rounded,
-                  color: _primaryBlue,
-                ),
+                child: Icon(icon, color: _primaryBlue),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -734,19 +604,18 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'CID DIGITALE',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: _primaryBlue,
+                      title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: _primaryBlueDark,
                             fontWeight: FontWeight.w800,
-                            letterSpacing: 0.4,
                           ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
-                      _qrCardEyebrow,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: _mutedText,
-                            fontWeight: FontWeight.w600,
+                            height: 1.45,
                           ),
                     ),
                   ],
@@ -754,215 +623,666 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          Text(
-            _generatedTitle,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: _titleText,
-                ),
+          const SizedBox(height: 18),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomerSection() {
+    return _buildSectionCard(
+      icon: Icons.badge_outlined,
+      title: _l10n.driverPersonalQrCustomerSectionTitle,
+      subtitle: _l10n.driverPersonalQrCustomerSectionSubtitle,
+      child: _buildResponsiveFieldGrid(
+        [
+          _ResponsiveFieldItem(
+            child: DropdownButtonFormField<DriverPersonalQrCourtesy>(
+              initialValue: _courtesy,
+              isExpanded: true,
+              decoration: _inputDecoration(
+                label: _l10n.driverPersonalQrTitleLabel,
+              ),
+              items: DriverPersonalQrCourtesy.values
+                  .map(
+                    (value) => DropdownMenuItem<DriverPersonalQrCourtesy>(
+                      value: value,
+                      child: Text(_courtesyOptionLabel(value)),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                setState(() => _courtesy = value);
+                _handleDraftChanged();
+              },
+            ),
           ),
-          const SizedBox(height: 8),
+          _ResponsiveFieldItem(
+            child: _buildTextField(
+              controller: _nomeController,
+              label: _l10n.firstName,
+              textCapitalization: TextCapitalization.words,
+            ),
+          ),
+          _ResponsiveFieldItem(
+            child: _buildTextField(
+              controller: _cognomeController,
+              label: _l10n.lastName,
+              textCapitalization: TextCapitalization.words,
+            ),
+          ),
+          _ResponsiveFieldItem(
+            fullWidth: true,
+            child: _buildTextField(
+              controller: _indirizzoController,
+              label: _l10n.driverPersonalQrStreetLabel,
+              textCapitalization: TextCapitalization.words,
+            ),
+          ),
+          _ResponsiveFieldItem(
+            child: _buildTextField(
+              controller: _zipController,
+              label: _l10n.zip,
+              keyboardType: TextInputType.number,
+            ),
+          ),
+          _ResponsiveFieldItem(
+            child: _buildTextField(
+              controller: _cityController,
+              label: _l10n.city,
+              textCapitalization: TextCapitalization.words,
+            ),
+          ),
+          _ResponsiveFieldItem(
+            child: _buildTextField(
+              controller: _countryController,
+              label: _l10n.driverPersonalQrCountryLabel,
+              textCapitalization: TextCapitalization.characters,
+            ),
+          ),
+          _ResponsiveFieldItem(
+            child: _buildTextField(
+              controller: _telefonoController,
+              label: _l10n.customer_phone,
+              keyboardType: TextInputType.phone,
+            ),
+          ),
+          _ResponsiveFieldItem(
+            child: _buildTextField(
+              controller: _emailController,
+              label: _l10n.customer_email,
+              keyboardType: TextInputType.emailAddress,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVehicleSection() {
+    return _buildSectionCard(
+      icon: Icons.directions_car_outlined,
+      title: _l10n.driverPersonalQrVehicleSectionTitle,
+      subtitle: _l10n.driverPersonalQrVehicleSectionSubtitle,
+      child: _buildResponsiveFieldGrid(
+        [
+          _ResponsiveFieldItem(
+            child: _buildTextField(
+              controller: _marcaController,
+              label: _l10n.driverPersonalQrBrandLabel,
+              textCapitalization: TextCapitalization.words,
+            ),
+          ),
+          _ResponsiveFieldItem(
+            child: _buildTextField(
+              controller: _modelloController,
+              label: _l10n.driverPersonalQrModelLabel,
+              textCapitalization: TextCapitalization.words,
+            ),
+          ),
+          _ResponsiveFieldItem(
+            child: _buildTextField(
+              controller: _targaController,
+              label: _l10n.license_plate_label,
+              hint: _l10n.license_plate_hint,
+              textCapitalization: TextCapitalization.characters,
+            ),
+          ),
+          _ResponsiveFieldItem(
+            child: _buildTextField(
+              controller: _vinController,
+              label: _l10n.driverPersonalQrVinLabel,
+              textCapitalization: TextCapitalization.characters,
+            ),
+          ),
+          _ResponsiveFieldItem(
+            child: _buildTextField(
+              controller: _kilometraggioController,
+              label: _l10n.driverPersonalQrMileageLabel,
+              keyboardType: TextInputType.number,
+            ),
+          ),
+          _ResponsiveFieldItem(
+            child: _buildTextField(
+              controller: _primaImmatricolazioneController,
+              label: _l10n.driverPersonalQrFirstRegistrationLabel,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInsuranceSection() {
+    return _buildSectionCard(
+      icon: Icons.shield_outlined,
+      title: _l10n.driverPersonalQrInsuranceSectionTitle,
+      subtitle: _l10n.driverPersonalQrInsuranceSectionSubtitle,
+      child: _buildResponsiveFieldGrid(
+        [
+          _ResponsiveFieldItem(
+            child: _buildTextField(
+              controller: _assicurazioneController,
+              label: _l10n.driverPersonalQrInsuranceLabel,
+              textCapitalization: TextCapitalization.words,
+            ),
+          ),
+          _ResponsiveFieldItem(
+            child: _buildTextField(
+              controller: _numeroPolizzaController,
+              label: _l10n.driverPersonalQrPolicyNumberLabel,
+            ),
+          ),
+          _ResponsiveFieldItem(
+            child: _buildTextField(
+              controller: _numeroSinistroController,
+              label: _l10n.driverPersonalQrClaimNumberLabel,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrimaryActionCard() {
+    return _buildCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           Text(
-            _generatedHint,
+            _l10n.driverPersonalQrPrivacyNote,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: _mutedText,
                   height: 1.45,
                 ),
           ),
+          const SizedBox(height: 10),
+          Text(
+            _l10n.driverPersonalQrMinimumHint,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: _primaryBlueDark,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
           const SizedBox(height: 18),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 180),
-            child: payload == null
-                ? Container(
-                    key: const ValueKey('empty-qr'),
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: _cardBorder),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEFF6FF),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(
-                            Icons.qr_code_2_rounded,
-                            color: _primaryBlue,
-                          ),
+          FilledButton.icon(
+            onPressed: _canGenerateQr ? _generateQr : null,
+            icon: const Icon(Icons.qr_code_2_rounded),
+            label: Text(_primaryButtonLabel),
+            style: FilledButton.styleFrom(
+              backgroundColor: _primaryBlue,
+              disabledBackgroundColor: const Color(0xFFD1D5DB),
+              disabledForegroundColor: const Color(0xFF6B7280),
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(56),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryBlock({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: _primaryBlueDark,
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 10),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryLine({
+    required String label,
+    required String value,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 118,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: _mutedText,
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: _primaryBlueDark,
+                    height: 1.35,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreviewHeader() {
+    final state = _previewState;
+    final foreground = _statusForeground(state);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _statusBackground(state),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.72),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(_statusIcon(state), color: foreground),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _statusLabel(state),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: foreground,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _statusMessage(state),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: foreground,
+                        height: 1.45,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQrVisualCard() {
+    final payload = _qrPayload?.trim();
+
+    if (payload == null || payload.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _cardBorder),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Icon(
+                Icons.qr_code_2_rounded,
+                color: _primaryBlue,
+                size: 30,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              _l10n.driverPersonalQrQrEmptyTitle,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: _primaryBlueDark,
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _l10n.driverPersonalQrMinimumHint,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: _mutedText,
+                    height: 1.45,
+                  ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: _previewState == _QrPreviewState.needsUpdate
+              ? const Color(0xFFFAC9A5)
+              : const Color(0xFFBFDBFE),
+        ),
+      ),
+      child: Column(
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final size = constraints.maxWidth < 320 ? 220.0 : 270.0;
+              return QrImageView(
+                data: payload,
+                version: QrVersions.auto,
+                size: size,
+                backgroundColor: Colors.white,
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _l10n.driverPersonalQrQrCardSubtitle,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: _primaryBlueDark,
+                  fontWeight: FontWeight.w600,
+                  height: 1.45,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _l10n.driverPersonalQrPrivacyNote,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: _mutedText,
+                  height: 1.4,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSavedDataPreview() {
+    return _buildSummaryBlock(
+      title: _l10n.driverPersonalQrSavedDataPreviewTitle,
+      children: [
+        _buildSummaryLine(
+          label: _l10n.driverPersonalQrCustomerSectionTitle,
+          value: _draft.fullName.isEmpty ? '-' : _draft.fullName,
+        ),
+        _buildSummaryLine(
+          label: _l10n.driverPersonalQrStreetLabel,
+          value: _valueOrDash(_draft.indirizzo),
+        ),
+        _buildSummaryLine(
+          label: _l10n.driverPersonalQrLocationLabel,
+          value: _customerLocationLine,
+        ),
+        _buildSummaryLine(
+          label: _l10n.customer_phone,
+          value: _valueOrDash(_draft.telefono),
+        ),
+        _buildSummaryLine(
+          label: _l10n.customer_email,
+          value: _valueOrDash(_draft.email),
+        ),
+        const SizedBox(height: 8),
+        _buildSummaryLine(
+          label: _l10n.driverPersonalQrVehicleSectionTitle,
+          value: _vehicleIdentityLine,
+        ),
+        _buildSummaryLine(
+          label: _l10n.license_plate_label,
+          value: _valueOrDash(_draft.targa),
+        ),
+        _buildSummaryLine(
+          label: _l10n.driverPersonalQrVinLabel,
+          value: _valueOrDash(_draft.vin),
+        ),
+        _buildSummaryLine(
+          label: _l10n.driverPersonalQrMileageLabel,
+          value: _valueOrDash(_draft.kilometraggio),
+        ),
+        _buildSummaryLine(
+          label: _l10n.driverPersonalQrFirstRegistrationLabel,
+          value: _valueOrDash(_draft.primaImmatricolazione),
+        ),
+        const SizedBox(height: 8),
+        _buildSummaryLine(
+          label: _l10n.driverPersonalQrInsuranceSectionTitle,
+          value: _insuranceIdentityLine,
+        ),
+        _buildSummaryLine(
+          label: _l10n.driverPersonalQrClaimNumberLabel,
+          value: _valueOrDash(_draft.numeroSinistro),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildJsonPreview() {
+    if (!_hasGeneratedQr) {
+      return _buildSummaryBlock(
+        title: _l10n.driverPersonalQrJsonPreviewTitle,
+        children: [
+          Text(
+            _l10n.driverPersonalQrJsonPreviewHint,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: _mutedText,
+                  height: 1.45,
+                ),
+          ),
+        ],
+      );
+    }
+
+    return _buildSummaryBlock(
+      title: _l10n.driverPersonalQrJsonPreviewTitle,
+      children: [
+        Text(
+          _l10n.driverPersonalQrJsonPreviewHint,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: _mutedText,
+                height: 1.45,
+              ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _cardBorder),
+          ),
+          child: SelectableText(
+            _payloadPreview,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: _primaryBlueDark,
+                  fontFamily: 'monospace',
+                  height: 1.5,
+                ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPreviewCard() {
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final stackHeaderButton = constraints.maxWidth < 420;
+              final editButton = _hasSavedDraft
+                  ? OutlinedButton.icon(
+                      onPressed: _scrollToForm,
+                      icon: const Icon(Icons.edit_outlined),
+                      label: Text(_l10n.driverPersonalQrEditSavedData),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize:
+                            Size.fromHeight(stackHeaderButton ? 44 : 42),
+                        foregroundColor: _primaryBlue,
+                        side: const BorderSide(color: Color(0xFFBFDBFE)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Text(
-                            _emptyQrHint,
-                            style:
-                                Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: _mutedText,
-                                      height: 1.4,
-                                    ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : Container(
-                    key: const ValueKey('ready-qr'),
-                    padding: const EdgeInsets.all(18),
+                      ),
+                    )
+                  : null;
+
+              final titleBlock = Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFD7E3FF)),
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(14),
                     ),
+                    child: const Icon(
+                      Icons.qr_code_2_rounded,
+                      color: _primaryBlue,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        QrImageView(
-                          data: payload,
-                          version: QrVersions.auto,
-                          size: 244,
-                          backgroundColor: Colors.white,
-                        ),
-                        const SizedBox(height: 14),
                         Text(
-                          _generatedHint,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: _titleText,
-                                fontWeight: FontWeight.w600,
-                                height: 1.45,
-                              ),
+                          'CID DIGITALE',
+                          style:
+                              Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    color: _primaryBlue,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.4,
+                                  ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 2),
                         Text(
-                          _privacyNote,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: _mutedText,
-                                height: 1.4,
-                              ),
-                        ),
-                        const SizedBox(height: 18),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: _cardBorder),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _summaryTitle,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelLarge
-                                    ?.copyWith(
-                                      color: _titleText,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                _summaryPrimaryLine,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(
-                                      color: _titleText,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                _summaryPlateLine,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(color: _mutedText),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _summaryInsuranceLine,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(color: _mutedText),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _summaryLocationLine,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(color: _mutedText),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final wide = constraints.maxWidth >= 420;
-                            final buttons = [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: _showPlaceholderAction,
-                                  icon: const Icon(Icons.share_outlined),
-                                  label: Text(_shareQrLabel),
-                                  style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size.fromHeight(48),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
+                          _l10n.driverPersonalQrQrCardTitle,
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: _mutedText,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                ),
-                              ),
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: _showPlaceholderAction,
-                                  icon: const Icon(Icons.download_outlined),
-                                  label: Text(_saveImageLabel),
-                                  style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size.fromHeight(48),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ];
-
-                            if (wide) {
-                              return Row(
-                                children: [
-                                  buttons[0],
-                                  const SizedBox(width: 12),
-                                  buttons[1],
-                                ],
-                              );
-                            }
-
-                            return Column(
-                              children: [
-                                buttons[0],
-                                const SizedBox(height: 12),
-                                buttons[1],
-                              ],
-                            );
-                          },
                         ),
                       ],
                     ),
                   ),
+                ],
+              );
+
+              if (editButton == null) {
+                return titleBlock;
+              }
+
+              if (stackHeaderButton) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    titleBlock,
+                    const SizedBox(height: 14),
+                    editButton,
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: titleBlock),
+                  const SizedBox(width: 12),
+                  editButton,
+                ],
+              );
+            },
           ),
+          const SizedBox(height: 18),
+          _buildPreviewHeader(),
+          const SizedBox(height: 18),
+          _buildQrVisualCard(),
+          const SizedBox(height: 18),
+          _buildSavedDataPreview(),
+          const SizedBox(height: 18),
+          _buildJsonPreview(),
         ],
       ),
+    );
+  }
+
+  Widget _buildFormColumn() {
+    return Column(
+      key: _formAnchorKey,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildCustomerSection(),
+        const SizedBox(height: 18),
+        _buildVehicleSection(),
+        const SizedBox(height: 18),
+        _buildInsuranceSection(),
+        const SizedBox(height: 18),
+        _buildPrimaryActionCard(),
+      ],
     );
   }
 
@@ -971,161 +1291,52 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
     return Scaffold(
       backgroundColor: _pageBackground,
       appBar: AppBar(
-        title: Text(_pageTitle),
+        title: Text(_l10n.driverPersonalQrPageTitle),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 980),
+                  constraints: const BoxConstraints(maxWidth: 1240),
                   child: SingleChildScrollView(
+                    controller: _scrollController,
                     padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                        _buildHeaderCard(),
+                        const SizedBox(height: 18),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final useTwoColumns = constraints.maxWidth >= 1024;
+                            if (!useTwoColumns) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  Container(
-                                    width: 56,
-                                    height: 56,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFEFF6FF),
-                                      borderRadius: BorderRadius.circular(18),
-                                    ),
-                                    child: const Icon(
-                                      Icons.shield_outlined,
-                                      color: _primaryBlue,
-                                      size: 28,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          _introTitle,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .headlineSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w800,
-                                                color: _titleText,
-                                              ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          _introBody,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium
-                                              ?.copyWith(
-                                                color: _mutedText,
-                                                height: 1.5,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                  _buildFormColumn(),
+                                  const SizedBox(height: 18),
+                                  _buildPreviewCard(),
                                 ],
-                              ),
-                              const SizedBox(height: 16),
-                              Container(
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: _cardBorder),
+                              );
+                            }
+
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  flex: 11,
+                                  child: _buildFormColumn(),
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _localSaveNote,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(
-                                            color: _titleText,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      _privacyNote,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: _mutedText,
-                                            height: 1.4,
-                                          ),
-                                    ),
-                                  ],
+                                const SizedBox(width: 18),
+                                Expanded(
+                                  flex: 9,
+                                  child: _buildPreviewCard(),
                                 ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            );
+                          },
                         ),
-                        const SizedBox(height: 18),
-                        _buildCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                _formTitle,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                      color: _titleText,
-                                    ),
-                              ),
-                              const SizedBox(height: 18),
-                              _buildFormGrid(),
-                              const SizedBox(height: 20),
-                              FilledButton.icon(
-                                onPressed: _canGenerateQr ? _generateQr : null,
-                                icon: const Icon(Icons.qr_code_2_rounded),
-                                label: Text(_primaryButtonLabel),
-                                style: ButtonStyle(
-                                  backgroundColor:
-                                      WidgetStateProperty.resolveWith((states) {
-                                    if (states.contains(WidgetState.disabled)) {
-                                      return const Color(0xFFD1D5DB);
-                                    }
-                                    return _primaryBlue;
-                                  }),
-                                  foregroundColor:
-                                      WidgetStateProperty.resolveWith((states) {
-                                    if (states.contains(WidgetState.disabled)) {
-                                      return const Color(0xFF6B7280);
-                                    }
-                                    return Colors.white;
-                                  }),
-                                  minimumSize: WidgetStateProperty.all(
-                                    const Size.fromHeight(56),
-                                  ),
-                                  shape: WidgetStateProperty.all(
-                                    RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(18),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        _buildGeneratedQrCard(),
                       ],
                     ),
                   ),

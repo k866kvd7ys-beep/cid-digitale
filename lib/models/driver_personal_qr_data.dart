@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-/// TODO: collegare questo modello allo scanner QR reale nello step successivo.
 enum DriverPersonalQrCourtesy {
   mr('mr'),
   mrs('mrs'),
@@ -47,7 +46,15 @@ class DriverPersonalQrData {
     required this.telefono,
     required this.email,
     required this.targa,
+    required this.marca,
+    required this.modello,
+    required this.vin,
+    required this.kilometraggio,
+    required this.primaImmatricolazione,
     required this.assicurazione,
+    required this.numeroPolizza,
+    required this.numeroSinistro,
+    required this.customerNumber,
   });
 
   const DriverPersonalQrData.empty()
@@ -61,7 +68,15 @@ class DriverPersonalQrData {
         telefono = '',
         email = '',
         targa = '',
-        assicurazione = '';
+        marca = '',
+        modello = '',
+        vin = '',
+        kilometraggio = '',
+        primaImmatricolazione = '',
+        assicurazione = '',
+        numeroPolizza = '',
+        numeroSinistro = '',
+        customerNumber = '';
 
   final DriverPersonalQrCourtesy? courtesy;
   final String nome;
@@ -73,9 +88,20 @@ class DriverPersonalQrData {
   final String telefono;
   final String email;
   final String targa;
+  final String marca;
+  final String modello;
+  final String vin;
+  final String kilometraggio;
+  final String primaImmatricolazione;
   final String assicurazione;
+  final String numeroPolizza;
+  final String numeroSinistro;
+  final String customerNumber;
 
-  bool get hasMinimumData => nome.trim().isNotEmpty;
+  bool get hasMinimumData =>
+      nome.trim().isNotEmpty &&
+      cognome.trim().isNotEmpty &&
+      targa.trim().isNotEmpty;
 
   bool get hasAnyValue => [
         courtesy?.storageValue ?? '',
@@ -88,13 +114,31 @@ class DriverPersonalQrData {
         telefono,
         email,
         targa,
+        marca,
+        modello,
+        vin,
+        kilometraggio,
+        primaImmatricolazione,
         assicurazione,
+        numeroPolizza,
+        numeroSinistro,
+        customerNumber,
       ].any((value) => value.trim().isNotEmpty);
 
   String get fullName => [
         nome.trim(),
         cognome.trim(),
       ].where((value) => value.isNotEmpty).join(' ');
+
+  String get vehicleSummary => [
+        marca.trim(),
+        modello.trim(),
+      ].where((value) => value.isNotEmpty).join(' ');
+
+  String get insuranceSummary => [
+        assicurazione.trim(),
+        numeroPolizza.trim(),
+      ].where((value) => value.isNotEmpty).join(' · ');
 
   DriverPersonalQrData copyWith({
     DriverPersonalQrCourtesy? courtesy,
@@ -107,7 +151,15 @@ class DriverPersonalQrData {
     String? telefono,
     String? email,
     String? targa,
+    String? marca,
+    String? modello,
+    String? vin,
+    String? kilometraggio,
+    String? primaImmatricolazione,
     String? assicurazione,
+    String? numeroPolizza,
+    String? numeroSinistro,
+    String? customerNumber,
   }) {
     return DriverPersonalQrData(
       courtesy: courtesy ?? this.courtesy,
@@ -120,39 +172,72 @@ class DriverPersonalQrData {
       telefono: telefono ?? this.telefono,
       email: email ?? this.email,
       targa: targa ?? this.targa,
+      marca: marca ?? this.marca,
+      modello: modello ?? this.modello,
+      vin: vin ?? this.vin,
+      kilometraggio: kilometraggio ?? this.kilometraggio,
+      primaImmatricolazione:
+          primaImmatricolazione ?? this.primaImmatricolazione,
       assicurazione: assicurazione ?? this.assicurazione,
+      numeroPolizza: numeroPolizza ?? this.numeroPolizza,
+      numeroSinistro: numeroSinistro ?? this.numeroSinistro,
+      customerNumber: customerNumber ?? this.customerNumber,
     );
   }
 
   Map<String, dynamic> toMap() {
-    final map = <String, dynamic>{
-      'firstName': nome.trim(),
-      'lastName': cognome.trim(),
-      'address': indirizzo.trim(),
-      'zip': zip.trim(),
-      'city': city.trim(),
-      'country': country.trim(),
-      'phone': telefono.trim(),
-      'email': email.trim(),
-      'plate': targa.trim(),
-      'insurance': assicurazione.trim(),
+    return <String, dynamic>{
+      'customer': <String, dynamic>{
+        'title': courtesy?.storageValue ?? '',
+        'first_name': nome.trim(),
+        'last_name': cognome.trim(),
+        'email': email.trim(),
+        'phone': telefono.trim(),
+        'street': indirizzo.trim(),
+        'zip': zip.trim(),
+        'city': city.trim(),
+        'country': country.trim(),
+        'customer_number': customerNumber.trim(),
+      },
+      'vehicle': <String, dynamic>{
+        'brand': marca.trim(),
+        'model': modello.trim(),
+        'plate': targa.trim(),
+        'vin': vin.trim(),
+        'mileage': kilometraggio.trim(),
+        'year': primaImmatricolazione.trim(),
+      },
+      'insurance': <String, dynamic>{
+        'insurance': assicurazione.trim(),
+        'policy_nr': numeroPolizza.trim(),
+        'claim_nr': numeroSinistro.trim(),
+      },
     };
-    final courtesyValue = courtesy?.storageValue;
-    if (courtesyValue != null && courtesyValue.isNotEmpty) {
-      map['courtesy'] = courtesyValue;
-    }
-    return map;
   }
 
   String toJsonString() => jsonEncode(toMap());
 
   factory DriverPersonalQrData.fromMap(Map<String, dynamic> map) {
+    Map<String, dynamic> readSection(String key) {
+      final raw = map[key];
+      if (raw is Map<String, dynamic>) return raw;
+      if (raw is Map) return Map<String, dynamic>.from(raw);
+      return const <String, dynamic>{};
+    }
+
+    final customer = readSection('customer');
+    final vehicle = readSection('vehicle');
+    final insurance = readSection('insurance');
+    final sources = <Map<String, dynamic>>[customer, vehicle, insurance, map];
+
     String readValue(List<String> keys) {
-      for (final key in keys) {
-        final value = map[key];
-        if (value == null) continue;
-        final normalized = value.toString().trim();
-        if (normalized.isNotEmpty) return normalized;
+      for (final source in sources) {
+        for (final key in keys) {
+          final value = source[key];
+          if (value == null) continue;
+          final normalized = value.toString().trim();
+          if (normalized.isNotEmpty) return normalized;
+        }
       }
       return '';
     }
@@ -160,16 +245,42 @@ class DriverPersonalQrData {
     return DriverPersonalQrData(
       courtesy: driverPersonalQrCourtesyFromString(
         readValue(
-          const ['courtesy', 'anrede', 'title', 'salutation', 'civilite'],
+          const [
+            'courtesy',
+            'anrede',
+            'title',
+            'salutation',
+            'civilite',
+            'civilité',
+          ],
         ),
       ),
-      nome: readValue(const ['nome', 'firstName', 'vorname', 'prenom']),
-      cognome: readValue(const ['cognome', 'lastName', 'nachname', 'nom']),
+      nome: readValue(
+        const ['nome', 'first_name', 'firstName', 'vorname', 'prenom'],
+      ),
+      cognome: readValue(
+        const ['cognome', 'last_name', 'lastName', 'nachname', 'nom'],
+      ),
       indirizzo: readValue(
-        const ['indirizzo', 'address', 'adresse', 'streetAddress'],
+        const [
+          'indirizzo',
+          'street',
+          'address',
+          'adresse',
+          'streetAddress',
+          'street_address',
+        ],
       ),
       zip: readValue(
-        const ['zip', 'cap', 'plz', 'postalCode', 'zipCode', 'codePostal'],
+        const [
+          'zip',
+          'cap',
+          'plz',
+          'postalCode',
+          'zipCode',
+          'postal_code',
+          'codePostal',
+        ],
       ),
       city: readValue(const ['city', 'citta', 'città', 'ort', 'ville']),
       country: readValue(
@@ -178,7 +289,31 @@ class DriverPersonalQrData {
       telefono: readValue(const ['telefono', 'phone', 'telefon', 'mobile']),
       email: readValue(const ['email', 'eMail', 'mail']),
       targa: readValue(
-        const ['targa', 'licensePlate', 'plate', 'kennzeichen'],
+        const [
+          'targa',
+          'licensePlate',
+          'license_plate',
+          'plate',
+          'kennzeichen',
+        ],
+      ),
+      marca: readValue(const ['brand', 'marca', 'make']),
+      modello: readValue(const ['model', 'modello', 'tipo', 'type']),
+      vin: readValue(
+        const ['vin', 'telaio', 'numero_telaio', 'numeroTelaio', 'chassis'],
+      ),
+      kilometraggio: readValue(
+        const ['mileage', 'kilometraggio', 'kilometer', 'km', 'odometer'],
+      ),
+      primaImmatricolazione: readValue(
+        const [
+          'year',
+          'first_registration',
+          'firstRegistration',
+          'prima_immatricolazione',
+          'primaImmatricolazione',
+          'immatricolazione',
+        ],
       ),
       assicurazione: readValue(
         const [
@@ -187,6 +322,35 @@ class DriverPersonalQrData {
           'versicherung',
           'assurance',
           'vehicleInsurance',
+        ],
+      ),
+      numeroPolizza: readValue(
+        const [
+          'policy_nr',
+          'policyNumber',
+          'policy_number',
+          'numero_polizza',
+          'numeroPolizza',
+          'polizza',
+        ],
+      ),
+      numeroSinistro: readValue(
+        const [
+          'claim_nr',
+          'claimNumber',
+          'claim_number',
+          'numero_sinistro',
+          'numeroSinistro',
+          'sinistro',
+        ],
+      ),
+      customerNumber: readValue(
+        const [
+          'customer_number',
+          'customerNumber',
+          'numero_cliente',
+          'numeroCliente',
+          'kundennummer',
         ],
       ),
     );
