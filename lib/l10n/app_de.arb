@@ -98,6 +98,9 @@
   "driverPersonalQrQrCardTitle": "Persönlicher Fahrer-QR",
   "driverPersonalQrQrCardSubtitle": "Zeige diesen QR der Werkstatt, damit die verfügbaren Daten automatisch übernommen werden.",
   "driverPersonalQrQrEmptyTitle": "QR noch nicht erstellt",
+  "driverPersonalQrTapToEnlarge": "Zum Vergrößern antippen",
+  "driverPersonalQrFullscreenHint": "Zeige diesen QR der Werkstatt",
+  "driverPersonalQrCloseFullscreen": "Schließen",
   "driverPersonalQrMinimumHint": "Fülle mindestens Vorname, Nachname und Kennzeichen aus, um den QR zu erstellen.",
   "driverPersonalQrCreateSuccess": "QR erfolgreich erstellt",
   "driverPersonalQrUpdateSuccess": "QR erfolgreich aktualisiert",
@@ -105,6 +108,7 @@
   "driverPersonalQrSavedDataPreviewTitle": "Vorschau der gespeicherten Daten",
   "driverPersonalQrJsonPreviewTitle": "QR-Inhalt (JSON)",
   "driverPersonalQrJsonPreviewHint": "Dies ist das lesbare JSON, das im QR codiert ist und vom Werkstatt-Scanner gelesen werden kann.",
+  "driverPersonalQrTechnicalDetailsTitle": "Technische Details (JSON)",
   "driverPersonalQrTitleLabel": "Anrede / Titel",
   "driverPersonalQrStreetLabel": "Strasse",
   "driverPersonalQrCountryLabel": "Land",
@@ -120,6 +124,9 @@
   "driverPersonalQrTitleMr": "Herr",
   "driverPersonalQrTitleMrs": "Frau",
   "driverPersonalQrTitleCompany": "Firma",
+  "driverPersonalQrUseAsCustomerDriver": "Als Kunde/Fahrer verwenden",
+  "driverPersonalQrUseAsWitness": "Als Zeuge verwenden",
+  "driverPersonalQrUseAsInjured": "Als verletzte Person verwenden",
   "@pdfLiabilityAccordingToParties": {
     "placeholders": {
       "driver": {}

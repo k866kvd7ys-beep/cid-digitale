@@ -666,6 +666,24 @@ abstract class AppLocalizations {
   /// **'QR noch nicht erstellt'**
   String get driverPersonalQrQrEmptyTitle;
 
+  /// No description provided for @driverPersonalQrTapToEnlarge.
+  ///
+  /// In de, this message translates to:
+  /// **'Zum Vergrößern antippen'**
+  String get driverPersonalQrTapToEnlarge;
+
+  /// No description provided for @driverPersonalQrFullscreenHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Zeige diesen QR der Werkstatt'**
+  String get driverPersonalQrFullscreenHint;
+
+  /// No description provided for @driverPersonalQrCloseFullscreen.
+  ///
+  /// In de, this message translates to:
+  /// **'Schließen'**
+  String get driverPersonalQrCloseFullscreen;
+
   /// No description provided for @driverPersonalQrMinimumHint.
   ///
   /// In de, this message translates to:
@@ -707,6 +725,12 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Dies ist das lesbare JSON, das im QR codiert ist und vom Werkstatt-Scanner gelesen werden kann.'**
   String get driverPersonalQrJsonPreviewHint;
+
+  /// No description provided for @driverPersonalQrTechnicalDetailsTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Technische Details (JSON)'**
+  String get driverPersonalQrTechnicalDetailsTitle;
 
   /// No description provided for @driverPersonalQrTitleLabel.
   ///
@@ -797,6 +821,24 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Firma'**
   String get driverPersonalQrTitleCompany;
+
+  /// No description provided for @driverPersonalQrUseAsCustomerDriver.
+  ///
+  /// In de, this message translates to:
+  /// **'Als Kunde/Fahrer verwenden'**
+  String get driverPersonalQrUseAsCustomerDriver;
+
+  /// No description provided for @driverPersonalQrUseAsWitness.
+  ///
+  /// In de, this message translates to:
+  /// **'Als Zeuge verwenden'**
+  String get driverPersonalQrUseAsWitness;
+
+  /// No description provided for @driverPersonalQrUseAsInjured.
+  ///
+  /// In de, this message translates to:
+  /// **'Als verletzte Person verwenden'**
+  String get driverPersonalQrUseAsInjured;
 }
 
 class _AppLocalizationsDelegate

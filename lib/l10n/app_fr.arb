@@ -94,6 +94,9 @@
   "driverPersonalQrQrCardTitle": "QR personnel conducteur",
   "driverPersonalQrQrCardSubtitle": "Présente ce QR à l’atelier pour remplir automatiquement les données disponibles.",
   "driverPersonalQrQrEmptyTitle": "QR pas encore créé",
+  "driverPersonalQrTapToEnlarge": "Touchez pour agrandir",
+  "driverPersonalQrFullscreenHint": "Montrez ce QR à l’atelier",
+  "driverPersonalQrCloseFullscreen": "Fermer",
   "driverPersonalQrMinimumHint": "Remplis au minimum prénom, nom et plaque pour créer le QR.",
   "driverPersonalQrCreateSuccess": "QR créé avec succès",
   "driverPersonalQrUpdateSuccess": "QR mis à jour avec succès",
@@ -101,6 +104,7 @@
   "driverPersonalQrSavedDataPreviewTitle": "Aperçu des données enregistrées",
   "driverPersonalQrJsonPreviewTitle": "Contenu du QR (JSON)",
   "driverPersonalQrJsonPreviewHint": "Voici le JSON lisible encodé dans le QR et compatible avec le scanner atelier.",
+  "driverPersonalQrTechnicalDetailsTitle": "Détails techniques (JSON)",
   "driverPersonalQrTitleLabel": "Civilité / Titre",
   "driverPersonalQrStreetLabel": "Rue",
   "driverPersonalQrCountryLabel": "Pays",
@@ -116,6 +120,9 @@
   "driverPersonalQrTitleMr": "Monsieur",
   "driverPersonalQrTitleMrs": "Madame",
   "driverPersonalQrTitleCompany": "Société",
+  "driverPersonalQrUseAsCustomerDriver": "Utiliser comme client/conducteur",
+  "driverPersonalQrUseAsWitness": "Utiliser comme témoin",
+  "driverPersonalQrUseAsInjured": "Utiliser comme blessé",
   "@pdfLiabilityAccordingToParties": {
     "placeholders": {
       "driver": {}

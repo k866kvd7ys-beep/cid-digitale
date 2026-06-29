@@ -34,7 +34,21 @@ DriverPersonalQrCourtesy? driverPersonalQrCourtesyFromString(String? raw) {
   }
 }
 
+enum DriverPersonalQrImportRole {
+  customerDriver('customer_driver'),
+  witness('witness'),
+  injured('injured');
+
+  const DriverPersonalQrImportRole(this.payloadValue);
+
+  final String payloadValue;
+}
+
 class DriverPersonalQrData {
+  static const String qrType = 'CID_PERSON_QR';
+  static const int qrVersion = 1;
+  static const Object _unset = Object();
+
   const DriverPersonalQrData({
     this.courtesy,
     required this.nome,
@@ -140,8 +154,38 @@ class DriverPersonalQrData {
         numeroPolizza.trim(),
       ].where((value) => value.isNotEmpty).join(' · ');
 
+  List<String> get supportedRoles => DriverPersonalQrImportRole.values
+      .map((role) => role.payloadValue)
+      .toList(growable: false);
+
+  DriverPersonalQrData scopedForImportRole(
+    DriverPersonalQrImportRole role, {
+    bool includeEmail = false,
+  }) {
+    switch (role) {
+      case DriverPersonalQrImportRole.customerDriver:
+        return this;
+      case DriverPersonalQrImportRole.witness:
+      case DriverPersonalQrImportRole.injured:
+        return copyWith(
+          courtesy: null,
+          email: includeEmail ? email : '',
+          targa: '',
+          marca: '',
+          modello: '',
+          vin: '',
+          kilometraggio: '',
+          primaImmatricolazione: '',
+          assicurazione: '',
+          numeroPolizza: '',
+          numeroSinistro: '',
+          customerNumber: '',
+        );
+    }
+  }
+
   DriverPersonalQrData copyWith({
-    DriverPersonalQrCourtesy? courtesy,
+    Object? courtesy = _unset,
     String? nome,
     String? cognome,
     String? indirizzo,
@@ -162,7 +206,9 @@ class DriverPersonalQrData {
     String? customerNumber,
   }) {
     return DriverPersonalQrData(
-      courtesy: courtesy ?? this.courtesy,
+      courtesy: identical(courtesy, _unset)
+          ? this.courtesy
+          : courtesy as DriverPersonalQrCourtesy?,
       nome: nome ?? this.nome,
       cognome: cognome ?? this.cognome,
       indirizzo: indirizzo ?? this.indirizzo,
@@ -187,17 +233,19 @@ class DriverPersonalQrData {
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
-      'customer': <String, dynamic>{
+      'type': qrType,
+      'version': qrVersion,
+      'roles': supportedRoles,
+      'person': <String, dynamic>{
         'title': courtesy?.storageValue ?? '',
-        'first_name': nome.trim(),
-        'last_name': cognome.trim(),
+        'firstName': nome.trim(),
+        'lastName': cognome.trim(),
         'email': email.trim(),
         'phone': telefono.trim(),
         'street': indirizzo.trim(),
         'zip': zip.trim(),
         'city': city.trim(),
         'country': country.trim(),
-        'customer_number': customerNumber.trim(),
       },
       'vehicle': <String, dynamic>{
         'brand': marca.trim(),
@@ -205,12 +253,12 @@ class DriverPersonalQrData {
         'plate': targa.trim(),
         'vin': vin.trim(),
         'mileage': kilometraggio.trim(),
-        'year': primaImmatricolazione.trim(),
+        'firstRegistration': primaImmatricolazione.trim(),
       },
       'insurance': <String, dynamic>{
-        'insurance': assicurazione.trim(),
-        'policy_nr': numeroPolizza.trim(),
-        'claim_nr': numeroSinistro.trim(),
+        'company': assicurazione.trim(),
+        'policyNumber': numeroPolizza.trim(),
+        'claimNumber': numeroSinistro.trim(),
       },
     };
   }
@@ -225,10 +273,17 @@ class DriverPersonalQrData {
       return const <String, dynamic>{};
     }
 
+    final person = readSection('person');
     final customer = readSection('customer');
     final vehicle = readSection('vehicle');
     final insurance = readSection('insurance');
-    final sources = <Map<String, dynamic>>[customer, vehicle, insurance, map];
+    final sources = <Map<String, dynamic>>[
+      person,
+      customer,
+      vehicle,
+      insurance,
+      map,
+    ];
 
     String readValue(List<String> keys) {
       for (final source in sources) {
@@ -256,7 +311,13 @@ class DriverPersonalQrData {
         ),
       ),
       nome: readValue(
-        const ['nome', 'first_name', 'firstName', 'vorname', 'prenom'],
+        const [
+          'nome',
+          'first_name',
+          'firstName',
+          'vorname',
+          'prenom',
+        ],
       ),
       cognome: readValue(
         const ['cognome', 'last_name', 'lastName', 'nachname', 'nom'],
@@ -317,6 +378,7 @@ class DriverPersonalQrData {
       ),
       assicurazione: readValue(
         const [
+          'company',
           'assicurazione',
           'insurance',
           'versicherung',
@@ -326,8 +388,8 @@ class DriverPersonalQrData {
       ),
       numeroPolizza: readValue(
         const [
-          'policy_nr',
           'policyNumber',
+          'policy_nr',
           'policy_number',
           'numero_polizza',
           'numeroPolizza',
@@ -336,8 +398,8 @@ class DriverPersonalQrData {
       ),
       numeroSinistro: readValue(
         const [
-          'claim_nr',
           'claimNumber',
+          'claim_nr',
           'claim_number',
           'numero_sinistro',
           'numeroSinistro',

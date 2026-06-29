@@ -309,6 +309,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get driverPersonalQrQrEmptyTitle => 'QR noch nicht erstellt';
 
   @override
+  String get driverPersonalQrTapToEnlarge => 'Zum Vergrößern antippen';
+
+  @override
+  String get driverPersonalQrFullscreenHint => 'Zeige diesen QR der Werkstatt';
+
+  @override
+  String get driverPersonalQrCloseFullscreen => 'Schließen';
+
+  @override
   String get driverPersonalQrMinimumHint =>
       'Fülle mindestens Vorname, Nachname und Kennzeichen aus, um den QR zu erstellen.';
 
@@ -332,6 +341,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get driverPersonalQrJsonPreviewHint =>
       'Dies ist das lesbare JSON, das im QR codiert ist und vom Werkstatt-Scanner gelesen werden kann.';
+
+  @override
+  String get driverPersonalQrTechnicalDetailsTitle =>
+      'Technische Details (JSON)';
 
   @override
   String get driverPersonalQrTitleLabel => 'Anrede / Titel';
@@ -377,4 +390,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get driverPersonalQrTitleCompany => 'Firma';
+
+  @override
+  String get driverPersonalQrUseAsCustomerDriver =>
+      'Als Kunde/Fahrer verwenden';
+
+  @override
+  String get driverPersonalQrUseAsWitness => 'Als Zeuge verwenden';
+
+  @override
+  String get driverPersonalQrUseAsInjured => 'Als verletzte Person verwenden';
 }

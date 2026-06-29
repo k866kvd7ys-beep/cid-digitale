@@ -259,6 +259,99 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
     );
   }
 
+  Future<void> _showQrFullscreenPreview() async {
+    final payload = _qrPayload?.trim();
+    if (payload == null || payload.isEmpty || !mounted) return;
+
+    final qrSize =
+        (MediaQuery.sizeOf(context).width - 48).clamp(240.0, 350.0).toDouble();
+
+    await showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: _l10n.driverPersonalQrCloseFullscreen,
+      barrierColor: Colors.black.withValues(alpha: 0.88),
+      transitionDuration: const Duration(milliseconds: 180),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return SafeArea(
+          child: Material(
+            color: Colors.transparent,
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: FilledButton.icon(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                    label: Text(_l10n.driverPersonalQrCloseFullscreen),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.12),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                    ),
+                  ),
+                ),
+                Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(24, 80, 24, 24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: QrImageView(
+                            data: payload,
+                            version: QrVersions.auto,
+                            size: qrSize,
+                            backgroundColor: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          _l10n.driverPersonalQrFullscreenHint,
+                          textAlign: TextAlign.center,
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
   DriverPersonalQrData _buildDraftModel() {
     return DriverPersonalQrData(
       courtesy: _courtesy,
@@ -489,6 +582,10 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
                   height: 1.5,
                 ),
           ),
+          if (_hasGeneratedQr) ...[
+            const SizedBox(height: 20),
+            _buildTopQrPreview(),
+          ],
           const SizedBox(height: 18),
           Wrap(
             spacing: 12,
@@ -505,6 +602,57 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTopQrPreview() {
+    final payload = _qrPayload?.trim();
+    if (payload == null || payload.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Center(
+      child: InkWell(
+        onTap: _showQrFullscreenPreview,
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x120F172A),
+                      blurRadius: 18,
+                      offset: Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: QrImageView(
+                  data: payload,
+                  version: QrVersions.auto,
+                  size: 120,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _l10n.driverPersonalQrTapToEnlarge,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: _primaryBlue,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1024,16 +1172,23 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
       ),
       child: Column(
         children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final size = constraints.maxWidth < 320 ? 220.0 : 270.0;
-              return QrImageView(
-                data: payload,
-                version: QrVersions.auto,
-                size: size,
-                backgroundColor: Colors.white,
-              );
-            },
+          InkWell(
+            onTap: _showQrFullscreenPreview,
+            borderRadius: BorderRadius.circular(22),
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final size = constraints.maxWidth < 320 ? 220.0 : 270.0;
+                  return QrImageView(
+                    data: payload,
+                    version: QrVersions.auto,
+                    size: size,
+                    backgroundColor: Colors.white,
+                  );
+                },
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           Text(
@@ -1052,6 +1207,15 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: _mutedText,
                   height: 1.4,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _l10n.driverPersonalQrTapToEnlarge,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: _primaryBlue,
+                  fontWeight: FontWeight.w700,
                 ),
           ),
         ],
@@ -1118,50 +1282,68 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   }
 
   Widget _buildJsonPreview() {
-    if (!_hasGeneratedQr) {
-      return _buildSummaryBlock(
-        title: _l10n.driverPersonalQrJsonPreviewTitle,
-        children: [
-          Text(
-            _l10n.driverPersonalQrJsonPreviewHint,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: _mutedText,
-                  height: 1.45,
-                ),
-          ),
-        ],
-      );
-    }
+    final payloadPreview = _payloadPreview;
 
-    return _buildSummaryBlock(
-      title: _l10n.driverPersonalQrJsonPreviewTitle,
-      children: [
-        Text(
-          _l10n.driverPersonalQrJsonPreviewHint,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: _mutedText,
-                height: 1.45,
-              ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: _cardBorder),
-          ),
-          child: SelectableText(
-            _payloadPreview,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _cardBorder),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          key: const PageStorageKey<String>('driver-personal-qr-json-preview'),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          title: Text(
+            _l10n.driverPersonalQrTechnicalDetailsTitle,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   color: _primaryBlueDark,
-                  fontFamily: 'monospace',
-                  height: 1.5,
+                  fontWeight: FontWeight.w800,
                 ),
           ),
+          subtitle: Text(
+            _l10n.driverPersonalQrJsonPreviewHint,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: _mutedText,
+                  height: 1.4,
+                ),
+          ),
+          children: [
+            if (!_hasGeneratedQr)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  _l10n.driverPersonalQrMinimumHint,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: _mutedText,
+                        height: 1.45,
+                      ),
+                ),
+              )
+            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: _cardBorder),
+                ),
+                child: SelectableText(
+                  payloadPreview,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: _primaryBlueDark,
+                        fontFamily: 'monospace',
+                        height: 1.5,
+                      ),
+                ),
+              ),
+          ],
         ),
-      ],
+      ),
     );
   }
 

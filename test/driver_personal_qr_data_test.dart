@@ -30,17 +30,23 @@ void main() {
 
     final payload = jsonDecode(driverPersonalQrDataToJson(data)) as Map;
 
-    expect(payload['customer'], {
+    expect(payload['type'], DriverPersonalQrData.qrType);
+    expect(payload['version'], DriverPersonalQrData.qrVersion);
+    expect(payload['roles'], [
+      'customer_driver',
+      'witness',
+      'injured',
+    ]);
+    expect(payload['person'], {
       'title': 'mr',
-      'first_name': 'Mario',
-      'last_name': 'Rossi',
+      'firstName': 'Mario',
+      'lastName': 'Rossi',
       'email': 'mario@example.com',
       'phone': '+41 79 000 00 00',
       'street': 'Via Roma 12',
       'zip': '6900',
       'city': 'Lugano',
       'country': 'CH',
-      'customer_number': '',
     });
     expect(payload['vehicle'], {
       'brand': 'Volkswagen',
@@ -48,12 +54,12 @@ void main() {
       'plate': 'TI12345',
       'vin': 'WVWZZZ1JZXW000001',
       'mileage': '65000',
-      'year': '2021-05',
+      'firstRegistration': '2021-05',
     });
     expect(payload['insurance'], {
-      'insurance': 'AXA',
-      'policy_nr': 'POL-2026-00124',
-      'claim_nr': 'CLM-8842',
+      'company': 'AXA',
+      'policyNumber': 'POL-2026-00124',
+      'claimNumber': 'CLM-8842',
     });
   });
 
@@ -131,6 +137,55 @@ void main() {
     expect(parsed.cognome, 'Verdi');
     expect(parsed.targa, 'TI54321');
     expect(parsed.assicurazione, 'Zurich');
+  });
+
+  test('filters witness and injured imports down to person-only fields', () {
+    const data = DriverPersonalQrData(
+      courtesy: DriverPersonalQrCourtesy.mr,
+      nome: 'Marco',
+      cognome: 'Neri',
+      indirizzo: 'Via Stazione 8',
+      zip: '6600',
+      city: 'Locarno',
+      country: 'CH',
+      telefono: '+41 76 222 22 22',
+      email: 'marco@example.com',
+      targa: 'GR54321',
+      marca: 'Audi',
+      modello: 'A4',
+      vin: 'WAUZZZ8K1AA123456',
+      kilometraggio: '88000',
+      primaImmatricolazione: '2020-03',
+      assicurazione: 'Helvetia',
+      numeroPolizza: 'HEL-8899',
+      numeroSinistro: 'SIN-123',
+      customerNumber: '',
+    );
+
+    final witness =
+        data.scopedForImportRole(DriverPersonalQrImportRole.witness);
+    final injured =
+        data.scopedForImportRole(DriverPersonalQrImportRole.injured);
+
+    expect(witness.courtesy, isNull);
+    expect(witness.nome, 'Marco');
+    expect(witness.cognome, 'Neri');
+    expect(witness.indirizzo, 'Via Stazione 8');
+    expect(witness.zip, '6600');
+    expect(witness.city, 'Locarno');
+    expect(witness.country, 'CH');
+    expect(witness.telefono, '+41 76 222 22 22');
+    expect(witness.email, isEmpty);
+    expect(witness.targa, isEmpty);
+    expect(witness.assicurazione, isEmpty);
+    expect(witness.vin, isEmpty);
+
+    expect(injured.nome, 'Marco');
+    expect(injured.cognome, 'Neri');
+    expect(injured.telefono, '+41 76 222 22 22');
+    expect(injured.email, isEmpty);
+    expect(injured.modello, isEmpty);
+    expect(injured.numeroPolizza, isEmpty);
   });
 
   test('requires first name, last name and plate to generate the QR', () {
