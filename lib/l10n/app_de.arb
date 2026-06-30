@@ -109,6 +109,7 @@
   "driverPersonalQrJsonPreviewTitle": "QR-Inhalt (JSON)",
   "driverPersonalQrJsonPreviewHint": "Dies ist das lesbare JSON, das im QR codiert ist und vom Werkstatt-Scanner gelesen werden kann.",
   "driverPersonalQrTechnicalDetailsTitle": "Technische Details (JSON)",
+  "driverPersonalQrTechnicalDetailsDescription": "Technische Details, die vom Werkstatt-Scanner verwendet werden.\nNormalerweise müssen sie nicht angezeigt werden.",
   "driverPersonalQrTitleLabel": "Anrede / Titel",
   "driverPersonalQrStreetLabel": "Strasse",
   "driverPersonalQrCountryLabel": "Land",

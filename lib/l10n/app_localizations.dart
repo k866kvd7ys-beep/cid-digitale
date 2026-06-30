@@ -732,6 +732,12 @@ abstract class AppLocalizations {
   /// **'Technische Details (JSON)'**
   String get driverPersonalQrTechnicalDetailsTitle;
 
+  /// No description provided for @driverPersonalQrTechnicalDetailsDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Technische Details, die vom Werkstatt-Scanner verwendet werden.\nNormalerweise müssen sie nicht angezeigt werden.'**
+  String get driverPersonalQrTechnicalDetailsDescription;
+
   /// No description provided for @driverPersonalQrTitleLabel.
   ///
   /// In de, this message translates to:

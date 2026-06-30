@@ -344,6 +344,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Technical details (JSON)';
 
   @override
+  String get driverPersonalQrTechnicalDetailsDescription =>
+      'Technical details used by the workshop scanner.\nNormally there is no need to view them.';
+
+  @override
   String get driverPersonalQrTitleLabel => 'Salutation / Title';
 
   @override

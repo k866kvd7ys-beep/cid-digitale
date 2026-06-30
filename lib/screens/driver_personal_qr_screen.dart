@@ -1284,47 +1284,49 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   Widget _buildJsonPreview() {
     final payloadPreview = _payloadPreview;
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _cardBorder),
-      ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          key: const PageStorageKey<String>('driver-personal-qr-json-preview'),
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          title: Text(
-            _l10n.driverPersonalQrTechnicalDetailsTitle,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: _primaryBlueDark,
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-          subtitle: Text(
-            _l10n.driverPersonalQrJsonPreviewHint,
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        key: const PageStorageKey<String>('driver-personal-qr-json-preview'),
+        controlAffinity: ListTileControlAffinity.leading,
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(top: 10),
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        shape: const Border(),
+        collapsedShape: const Border(),
+        title: Text(
+          _l10n.driverPersonalQrTechnicalDetailsTitle,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: _primaryBlueDark,
+                fontWeight: FontWeight.w800,
+              ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            _l10n.driverPersonalQrTechnicalDetailsDescription,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: _mutedText,
-                  height: 1.4,
+                  height: 1.45,
                 ),
           ),
-          children: [
-            if (!_hasGeneratedQr)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  _l10n.driverPersonalQrMinimumHint,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: _mutedText,
-                        height: 1.45,
-                      ),
-                ),
-              )
-            else
-              Container(
+        ),
+        children: [
+          if (!_hasGeneratedQr)
+            Padding(
+              padding: const EdgeInsets.only(left: 40),
+              child: Text(
+                _l10n.driverPersonalQrMinimumHint,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: _mutedText,
+                      height: 1.45,
+                    ),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(left: 40),
+              child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
@@ -1332,17 +1334,30 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: _cardBorder),
                 ),
-                child: SelectableText(
-                  payloadPreview,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: _primaryBlueDark,
-                        fontFamily: 'monospace',
-                        height: 1.5,
-                      ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _l10n.driverPersonalQrJsonPreviewHint,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: _mutedText,
+                            height: 1.45,
+                          ),
+                    ),
+                    const SizedBox(height: 10),
+                    SelectableText(
+                      payloadPreview,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: _primaryBlueDark,
+                            fontFamily: 'monospace',
+                            height: 1.5,
+                          ),
+                    ),
+                  ],
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

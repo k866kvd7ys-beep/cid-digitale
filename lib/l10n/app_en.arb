@@ -105,6 +105,7 @@
   "driverPersonalQrJsonPreviewTitle": "QR content (JSON)",
   "driverPersonalQrJsonPreviewHint": "This is the readable JSON encoded inside the QR and compatible with the workshop scanner.",
   "driverPersonalQrTechnicalDetailsTitle": "Technical details (JSON)",
+  "driverPersonalQrTechnicalDetailsDescription": "Technical details used by the workshop scanner.\nNormally there is no need to view them.",
   "driverPersonalQrTitleLabel": "Salutation / Title",
   "driverPersonalQrStreetLabel": "Street",
   "driverPersonalQrCountryLabel": "Country",
