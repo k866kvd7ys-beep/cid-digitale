@@ -1328,32 +1328,26 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
               padding: const EdgeInsets.only(left: 40),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(14),
+                constraints: const BoxConstraints(maxHeight: 180),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: _cardBorder),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _l10n.driverPersonalQrJsonPreviewHint,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: _mutedText,
-                            height: 1.45,
-                          ),
-                    ),
-                    const SizedBox(height: 10),
-                    SelectableText(
+                child: Scrollbar(
+                  thumbVisibility: true,
+                  child: SingleChildScrollView(
+                    child: SelectableText(
                       payloadPreview,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: _primaryBlueDark,
                             fontFamily: 'monospace',
-                            height: 1.5,
+                            fontSize: 12,
+                            height: 1.4,
                           ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
