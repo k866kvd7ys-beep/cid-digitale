@@ -14,6 +14,11 @@ void main() {
     expect(witness.indirizzo, isEmpty);
     expect(witness.email, isEmpty);
     expect(witness.nota, isEmpty);
+    expect(witness.posizioneIncidente, isEmpty);
+    expect(witness.rapportoCoinvolti, isEmpty);
+    expect(witness.dichiarazione, isEmpty);
+    expect(witness.disponibileContatto, isFalse);
+    expect(witness.consensoDati, isFalse);
   });
 
   test('witness round-trip preserves every new field and legacy key', () {
@@ -27,6 +32,11 @@ void main() {
       telefono: '000000',
       email: 'persona@example.test',
       nota: 'Nota',
+      posizioneIncidente: 'Marciapiede',
+      rapportoCoinvolti: 'independent',
+      dichiarazione: 'Dichiarazione',
+      disponibileContatto: true,
+      consensoDati: true,
     );
 
     final json = witness.toJson();
@@ -41,6 +51,11 @@ void main() {
     expect(restored.country, 'Paese');
     expect(restored.email, 'persona@example.test');
     expect(restored.nota, 'Nota');
+    expect(restored.posizioneIncidente, 'Marciapiede');
+    expect(restored.rapportoCoinvolti, 'independent');
+    expect(restored.dichiarazione, 'Dichiarazione');
+    expect(restored.disponibileContatto, isTrue);
+    expect(restored.consensoDati, isTrue);
   });
 
   test('legacy injured data keeps working with empty additive fields', () {
@@ -57,6 +72,11 @@ void main() {
     expect(injured.ruolo, isEmpty);
     expect(injured.gravita, isEmpty);
     expect(injured.nota, isEmpty);
+    expect(injured.dataNascita, isEmpty);
+    expect(injured.zonaCorpo, isEmpty);
+    expect(injured.soccorsoSulPosto, isFalse);
+    expect(injured.ambulanzaChiamata, isFalse);
+    expect(injured.consensoDati, isFalse);
   });
 
   test('injured round-trip preserves every new field and legacy key', () {
@@ -75,6 +95,11 @@ void main() {
       trasportatoOspedale: 'yes',
       nomeOspedale: 'Ospedale',
       nota: 'Nota',
+      dataNascita: '2000-01-01',
+      zonaCorpo: 'Braccio',
+      soccorsoSulPosto: true,
+      ambulanzaChiamata: true,
+      consensoDati: true,
     );
 
     final json = injured.toJson();
@@ -94,5 +119,10 @@ void main() {
     expect(restored.trasportatoOspedale, 'yes');
     expect(restored.nomeOspedale, 'Ospedale');
     expect(restored.nota, 'Nota');
+    expect(restored.dataNascita, '2000-01-01');
+    expect(restored.zonaCorpo, 'Braccio');
+    expect(restored.soccorsoSulPosto, isTrue);
+    expect(restored.ambulanzaChiamata, isTrue);
+    expect(restored.consensoDati, isTrue);
   });
 }

@@ -253,6 +253,11 @@ class Testimone {
   final String telefono;
   final String email;
   final String nota;
+  final String posizioneIncidente;
+  final String rapportoCoinvolti;
+  final String dichiarazione;
+  final bool disponibileContatto;
+  final bool consensoDati;
 
   Testimone({
     required this.nome,
@@ -264,6 +269,11 @@ class Testimone {
     this.country = '',
     this.email = '',
     this.nota = '',
+    this.posizioneIncidente = '',
+    this.rapportoCoinvolti = '',
+    this.dichiarazione = '',
+    this.disponibileContatto = false,
+    this.consensoDati = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -276,6 +286,11 @@ class Testimone {
         'country': country,
         'email': email,
         'nota': nota,
+        'posizioneIncidente': posizioneIncidente,
+        'rapportoCoinvolti': rapportoCoinvolti,
+        'dichiarazione': dichiarazione,
+        'disponibileContatto': disponibileContatto,
+        'consensoDati': consensoDati,
       };
 
   factory Testimone.fromJson(Map<String, dynamic> json) {
@@ -289,6 +304,11 @@ class Testimone {
       country: json['country']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       nota: json['nota']?.toString() ?? '',
+      posizioneIncidente: json['posizioneIncidente']?.toString() ?? '',
+      rapportoCoinvolti: json['rapportoCoinvolti']?.toString() ?? '',
+      dichiarazione: json['dichiarazione']?.toString() ?? '',
+      disponibileContatto: json['disponibileContatto'] == true,
+      consensoDati: json['consensoDati'] == true,
     );
   }
 }
@@ -309,6 +329,11 @@ class Ferito {
   final String trasportatoOspedale;
   final String nomeOspedale;
   final String nota;
+  final String dataNascita;
+  final String zonaCorpo;
+  final bool soccorsoSulPosto;
+  final bool ambulanzaChiamata;
+  final bool consensoDati;
 
   Ferito({
     required this.nome,
@@ -325,6 +350,11 @@ class Ferito {
     this.trasportatoOspedale = '',
     this.nomeOspedale = '',
     this.nota = '',
+    this.dataNascita = '',
+    this.zonaCorpo = '',
+    this.soccorsoSulPosto = false,
+    this.ambulanzaChiamata = false,
+    this.consensoDati = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -342,6 +372,11 @@ class Ferito {
         'trasportatoOspedale': trasportatoOspedale,
         'nomeOspedale': nomeOspedale,
         'nota': nota,
+        'dataNascita': dataNascita,
+        'zonaCorpo': zonaCorpo,
+        'soccorsoSulPosto': soccorsoSulPosto,
+        'ambulanzaChiamata': ambulanzaChiamata,
+        'consensoDati': consensoDati,
       };
 
   factory Ferito.fromJson(Map<String, dynamic> json) {
@@ -360,6 +395,11 @@ class Ferito {
       trasportatoOspedale: json['trasportatoOspedale']?.toString() ?? '',
       nomeOspedale: json['nomeOspedale']?.toString() ?? '',
       nota: json['nota']?.toString() ?? '',
+      dataNascita: json['dataNascita']?.toString() ?? '',
+      zonaCorpo: json['zonaCorpo']?.toString() ?? '',
+      soccorsoSulPosto: json['soccorsoSulPosto'] == true,
+      ambulanzaChiamata: json['ambulanzaChiamata'] == true,
+      consensoDati: json['consensoDati'] == true,
     );
   }
 }
@@ -4695,6 +4735,11 @@ class _TestimoneFormData {
   final TextEditingController telefonoController;
   final TextEditingController emailController;
   final TextEditingController notaController;
+  final TextEditingController posizioneIncidenteController;
+  final TextEditingController dichiarazioneController;
+  String rapportoCoinvolti = '';
+  bool disponibileContatto = false;
+  bool consensoDati = false;
 
   _TestimoneFormData({
     required this.nomeController,
@@ -4706,6 +4751,8 @@ class _TestimoneFormData {
     required this.telefonoController,
     required this.emailController,
     required this.notaController,
+    required this.posizioneIncidenteController,
+    required this.dichiarazioneController,
   });
 
   void dispose() {
@@ -4718,6 +4765,8 @@ class _TestimoneFormData {
     telefonoController.dispose();
     emailController.dispose();
     notaController.dispose();
+    posizioneIncidenteController.dispose();
+    dichiarazioneController.dispose();
   }
 }
 
@@ -4732,10 +4781,15 @@ class _FeritoFormData {
   final TextEditingController emailController;
   final TextEditingController nomeOspedaleController;
   final TextEditingController notaController;
+  final TextEditingController dataNascitaController;
+  final TextEditingController zonaCorpoController;
   String ruolo = '';
   String veicoloCollegato = '';
   String gravita = '';
   String trasportatoOspedale = '';
+  bool soccorsoSulPosto = false;
+  bool ambulanzaChiamata = false;
+  bool consensoDati = false;
 
   _FeritoFormData({
     required this.nomeController,
@@ -4748,6 +4802,8 @@ class _FeritoFormData {
     required this.emailController,
     required this.nomeOspedaleController,
     required this.notaController,
+    required this.dataNascitaController,
+    required this.zonaCorpoController,
   });
 
   void dispose() {
@@ -4761,6 +4817,8 @@ class _FeritoFormData {
     emailController.dispose();
     nomeOspedaleController.dispose();
     notaController.dispose();
+    dataNascitaController.dispose();
+    zonaCorpoController.dispose();
   }
 }
 
@@ -5017,6 +5075,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       telefonoController: TextEditingController(),
       emailController: TextEditingController(),
       notaController: TextEditingController(),
+      posizioneIncidenteController: TextEditingController(),
+      dichiarazioneController: TextEditingController(),
     );
   }
 
@@ -5032,6 +5092,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       emailController: TextEditingController(),
       nomeOspedaleController: TextEditingController(),
       notaController: TextEditingController(),
+      dataNascitaController: TextEditingController(),
+      zonaCorpoController: TextEditingController(),
     );
   }
 
@@ -7604,6 +7666,38 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
   }
 
+  Widget _buildPersonSubsectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, bottom: 10),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w700,
+            ),
+      ),
+    );
+  }
+
+  Widget _buildPersonToggle({
+    required String title,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: _incidentCardBorder),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: SwitchListTile.adaptive(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+        title: Text(title),
+        value: value,
+        onChanged: onChanged,
+      ),
+    );
+  }
+
   Widget _buildPersonalDataQrButton({
     required DriverPersonalQrImportRole role,
     required DriverQrDetectedCallback onDetected,
@@ -7705,7 +7799,14 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  _buildPersonSubsectionTitle(
+                    _copyText(
+                      it: 'Dati personali',
+                      de: 'Persönliche Daten',
+                      fr: 'Données personnelles',
+                      en: 'Personal details',
+                    ),
+                  ),
                   _buildResponsivePersonFields([
                     TextFormField(
                       controller: _testimoni[i].nomeController,
@@ -7774,6 +7875,16 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                         ),
                       ),
                     ),
+                  ]),
+                  _buildPersonSubsectionTitle(
+                    _copyText(
+                      it: 'Contatti',
+                      de: 'Kontaktdaten',
+                      fr: 'Coordonnées',
+                      en: 'Contact details',
+                    ),
+                  ),
+                  _buildResponsivePersonFields([
                     TextFormField(
                       controller: _testimoni[i].telefonoController,
                       keyboardType: TextInputType.phone,
@@ -7792,6 +7903,92 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                       decoration: const InputDecoration(labelText: 'E-mail'),
                     ),
                   ]),
+                  _buildPersonSubsectionTitle(
+                    _copyText(
+                      it: 'Posizione e rapporto con i coinvolti',
+                      de: 'Position und Beziehung zu den Beteiligten',
+                      fr: 'Position et lien avec les personnes impliquées',
+                      en: 'Position and relationship to those involved',
+                    ),
+                  ),
+                  _buildResponsivePersonFields([
+                    TextFormField(
+                      controller: _testimoni[i].posizioneIncidenteController,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'Posizione nell’incidente',
+                          de: 'Position am Unfallort',
+                          fr: 'Position lors de l’accident',
+                          en: 'Position at the accident',
+                        ),
+                      ),
+                    ),
+                    _buildPersonDropdown(
+                      label: _copyText(
+                        it: 'Rapporto con i coinvolti',
+                        de: 'Beziehung zu den Beteiligten',
+                        fr: 'Lien avec les personnes impliquées',
+                        en: 'Relationship to those involved',
+                      ),
+                      value: _testimoni[i].rapportoCoinvolti,
+                      options: {
+                        'independent': _copyText(
+                          it: 'Testimone indipendente',
+                          de: 'Unabhängiger Zeuge',
+                          fr: 'Témoin indépendant',
+                          en: 'Independent witness',
+                        ),
+                        'passenger_a': _copyText(
+                          it: 'Passeggero veicolo A',
+                          de: 'Passagier in Fahrzeug A',
+                          fr: 'Passager du véhicule A',
+                          en: 'Passenger in vehicle A',
+                        ),
+                        'passenger_b': _copyText(
+                          it: 'Passeggero veicolo B',
+                          de: 'Passagier in Fahrzeug B',
+                          fr: 'Passager du véhicule B',
+                          en: 'Passenger in vehicle B',
+                        ),
+                        'acquaintance': _copyText(
+                          it: 'Conoscente',
+                          de: 'Bekannter',
+                          fr: 'Connaissance',
+                          en: 'Acquaintance',
+                        ),
+                        'other': _copyText(
+                          it: 'Altro',
+                          de: 'Andere',
+                          fr: 'Autre',
+                          en: 'Other',
+                        ),
+                      },
+                      onChanged: (value) => setState(
+                        () => _testimoni[i].rapportoCoinvolti = value,
+                      ),
+                    ),
+                  ]),
+                  _buildPersonSubsectionTitle(
+                    _copyText(
+                      it: 'Dichiarazione del testimone',
+                      de: 'Zeugenaussage',
+                      fr: 'Déclaration du témoin',
+                      en: 'Witness statement',
+                    ),
+                  ),
+                  TextFormField(
+                    controller: _testimoni[i].dichiarazioneController,
+                    minLines: 3,
+                    maxLines: 6,
+                    decoration: InputDecoration(
+                      labelText: _copyText(
+                        it: 'Dichiarazione',
+                        de: 'Aussage',
+                        fr: 'Déclaration',
+                        en: 'Statement',
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _testimoni[i].notaController,
@@ -7799,13 +7996,47 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                     maxLines: 4,
                     decoration: InputDecoration(
                       labelText: _copyText(
-                        it: 'Nota / dichiarazione breve',
-                        de: 'Kurze Notiz / Aussage',
-                        fr: 'Note / déclaration brève',
-                        en: 'Note / brief statement',
+                        it: 'Nota aggiuntiva',
+                        de: 'Zusätzliche Notiz',
+                        fr: 'Note complémentaire',
+                        en: 'Additional note',
                       ),
                     ),
                   ),
+                  _buildPersonSubsectionTitle(
+                    _copyText(
+                      it: 'Disponibilità e consenso',
+                      de: 'Erreichbarkeit und Einwilligung',
+                      fr: 'Disponibilité et consentement',
+                      en: 'Availability and consent',
+                    ),
+                  ),
+                  _buildResponsivePersonFields([
+                    _buildPersonToggle(
+                      title: _copyText(
+                        it: 'Disponibile a essere ricontattato',
+                        de: 'Für Rückfragen erreichbar',
+                        fr: 'À contacter de nouveau si nécessaire',
+                        en: 'Available for follow-up contact',
+                      ),
+                      value: _testimoni[i].disponibileContatto,
+                      onChanged: (value) => setState(
+                        () => _testimoni[i].disponibileContatto = value,
+                      ),
+                    ),
+                    _buildPersonToggle(
+                      title: _copyText(
+                        it: 'Consenso al trattamento dei dati',
+                        de: 'Einwilligung zur Datenverarbeitung',
+                        fr: 'Consentement au traitement des données',
+                        en: 'Consent to data processing',
+                      ),
+                      value: _testimoni[i].consensoDati,
+                      onChanged: (value) => setState(
+                        () => _testimoni[i].consensoDati = value,
+                      ),
+                    ),
+                  ]),
                   const SizedBox(height: 12),
                   _buildWitnessQrButton(_testimoni[i]),
                 ],
@@ -7874,7 +8105,14 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  _buildPersonSubsectionTitle(
+                    _copyText(
+                      it: 'Dati personali',
+                      de: 'Persönliche Daten',
+                      fr: 'Données personnelles',
+                      en: 'Personal details',
+                    ),
+                  ),
                   _buildResponsivePersonFields([
                     TextFormField(
                       controller: _feriti[i].nomeController,
@@ -7943,6 +8181,16 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                         ),
                       ),
                     ),
+                  ]),
+                  _buildPersonSubsectionTitle(
+                    _copyText(
+                      it: 'Contatti',
+                      de: 'Kontaktdaten',
+                      fr: 'Coordonnées',
+                      en: 'Contact details',
+                    ),
+                  ),
+                  _buildResponsivePersonFields([
                     TextFormField(
                       controller: _feriti[i].telefonoController,
                       keyboardType: TextInputType.phone,
@@ -7960,6 +8208,38 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(labelText: 'E-mail'),
                     ),
+                  ]),
+                  _buildPersonSubsectionTitle(
+                    _copyText(
+                      it: 'Data di nascita',
+                      de: 'Geburtsdatum',
+                      fr: 'Date de naissance',
+                      en: 'Date of birth',
+                    ),
+                  ),
+                  _buildResponsivePersonFields([
+                    TextFormField(
+                      controller: _feriti[i].dataNascitaController,
+                      keyboardType: TextInputType.datetime,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'Data di nascita',
+                          de: 'Geburtsdatum',
+                          fr: 'Date de naissance',
+                          en: 'Date of birth',
+                        ),
+                      ),
+                    ),
+                  ]),
+                  _buildPersonSubsectionTitle(
+                    _copyText(
+                      it: 'Coinvolgimento nell’incidente',
+                      de: 'Beteiligung am Unfall',
+                      fr: 'Implication dans l’accident',
+                      en: 'Involvement in the accident',
+                    ),
+                  ),
+                  _buildResponsivePersonFields([
                     _buildPersonDropdown(
                       label: _copyText(
                         it: 'Ruolo nell’incidente',
@@ -7986,6 +8266,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                           de: 'Fußgänger',
                           fr: 'Piéton',
                           en: 'Pedestrian',
+                        ),
+                        'cyclist': _copyText(
+                          it: 'Ciclista',
+                          de: 'Radfahrer',
+                          fr: 'Cycliste',
+                          en: 'Cyclist',
                         ),
                         'other': _copyText(
                           it: 'Altro',
@@ -8019,14 +8305,35 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                           en: 'Vehicle B',
                         ),
                         'other_none': _copyText(
-                          it: 'Altro / nessuno',
-                          de: 'Andere / keines',
-                          fr: 'Autre / aucun',
-                          en: 'Other / none',
+                          it: 'Nessun veicolo',
+                          de: 'Kein Fahrzeug',
+                          fr: 'Aucun véhicule',
+                          en: 'No vehicle',
                         ),
                       },
                       onChanged: (value) => setState(
                         () => _feriti[i].veicoloCollegato = value,
+                      ),
+                    ),
+                  ]),
+                  _buildPersonSubsectionTitle(
+                    _copyText(
+                      it: 'Condizioni apparenti e soccorso',
+                      de: 'Offensichtlicher Zustand und Hilfeleistung',
+                      fr: 'État apparent et secours',
+                      en: 'Apparent condition and assistance',
+                    ),
+                  ),
+                  _buildResponsivePersonFields([
+                    TextFormField(
+                      controller: _feriti[i].zonaCorpoController,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'Zona del corpo interessata',
+                          de: 'Betroffener Körperbereich',
+                          fr: 'Zone du corps concernée',
+                          en: 'Affected body area',
+                        ),
                       ),
                     ),
                     _buildPersonDropdown(
@@ -8057,15 +8364,49 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                           en: 'Severe',
                         ),
                         'unknown': _copyText(
-                          it: 'Non conosciuta',
-                          de: 'Nicht bekannt',
-                          fr: 'Inconnue',
-                          en: 'Unknown',
+                          it: 'Non indicata',
+                          de: 'Nicht angegeben',
+                          fr: 'Non indiquée',
+                          en: 'Not specified',
                         ),
                       },
                       onChanged: (value) =>
                           setState(() => _feriti[i].gravita = value),
                     ),
+                    _buildPersonToggle(
+                      title: _copyText(
+                        it: 'Soccorso sul posto',
+                        de: 'Hilfe vor Ort',
+                        fr: 'Secours sur place',
+                        en: 'Assistance at the scene',
+                      ),
+                      value: _feriti[i].soccorsoSulPosto,
+                      onChanged: (value) => setState(
+                        () => _feriti[i].soccorsoSulPosto = value,
+                      ),
+                    ),
+                    _buildPersonToggle(
+                      title: _copyText(
+                        it: 'Ambulanza chiamata',
+                        de: 'Krankenwagen gerufen',
+                        fr: 'Ambulance appelée',
+                        en: 'Ambulance called',
+                      ),
+                      value: _feriti[i].ambulanzaChiamata,
+                      onChanged: (value) => setState(
+                        () => _feriti[i].ambulanzaChiamata = value,
+                      ),
+                    ),
+                  ]),
+                  _buildPersonSubsectionTitle(
+                    _copyText(
+                      it: 'Trasporto in ospedale',
+                      de: 'Transport ins Krankenhaus',
+                      fr: 'Transport à l’hôpital',
+                      en: 'Hospital transport',
+                    ),
+                  ),
+                  _buildResponsivePersonFields([
                     _buildPersonDropdown(
                       label: _copyText(
                         it: 'Trasportato in ospedale',
@@ -8098,19 +8439,27 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                         () => _feriti[i].trasportatoOspedale = value,
                       ),
                     ),
-                    TextFormField(
-                      controller: _feriti[i].nomeOspedaleController,
-                      decoration: InputDecoration(
-                        labelText: _copyText(
-                          it: 'Nome ospedale',
-                          de: 'Name des Krankenhauses',
-                          fr: 'Nom de l’hôpital',
-                          en: 'Hospital name',
+                    if (_feriti[i].trasportatoOspedale == 'yes')
+                      TextFormField(
+                        controller: _feriti[i].nomeOspedaleController,
+                        decoration: InputDecoration(
+                          labelText: _copyText(
+                            it: 'Nome ospedale',
+                            de: 'Name des Krankenhauses',
+                            fr: 'Nom de l’hôpital',
+                            en: 'Hospital name',
+                          ),
                         ),
                       ),
-                    ),
                   ]),
-                  const SizedBox(height: 12),
+                  _buildPersonSubsectionTitle(
+                    _copyText(
+                      it: 'Note',
+                      de: 'Notizen',
+                      fr: 'Notes',
+                      en: 'Notes',
+                    ),
+                  ),
                   TextFormField(
                     controller: _feriti[i].notaController,
                     minLines: 2,
@@ -8122,6 +8471,26 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                         fr: 'Note',
                         en: 'Note',
                       ),
+                    ),
+                  ),
+                  _buildPersonSubsectionTitle(
+                    _copyText(
+                      it: 'Consenso trattamento dati',
+                      de: 'Einwilligung zur Datenverarbeitung',
+                      fr: 'Consentement au traitement des données',
+                      en: 'Consent to data processing',
+                    ),
+                  ),
+                  _buildPersonToggle(
+                    title: _copyText(
+                      it: 'Consenso al trattamento dei dati',
+                      de: 'Einwilligung zur Datenverarbeitung',
+                      fr: 'Consentement au traitement des données',
+                      en: 'Consent to data processing',
+                    ),
+                    value: _feriti[i].consensoDati,
+                    onChanged: (value) => setState(
+                      () => _feriti[i].consensoDati = value,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -9016,17 +9385,25 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             final tel = t.telefonoController.text.trim();
             final email = t.emailController.text.trim();
             final nota = t.notaController.text.trim();
+            final posizioneIncidente =
+                t.posizioneIncidenteController.text.trim();
+            final dichiarazione = t.dichiarazioneController.text.trim();
             if ([
-              nome,
-              cognome,
-              indirizzo,
-              zip,
-              city,
-              country,
-              tel,
-              email,
-              nota,
-            ].every((value) => value.isEmpty)) {
+                  nome,
+                  cognome,
+                  indirizzo,
+                  zip,
+                  city,
+                  country,
+                  tel,
+                  email,
+                  nota,
+                  posizioneIncidente,
+                  t.rapportoCoinvolti,
+                  dichiarazione,
+                ].every((value) => value.isEmpty) &&
+                !t.disponibileContatto &&
+                !t.consensoDati) {
               return null;
             }
             return Testimone(
@@ -9039,6 +9416,11 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               telefono: tel,
               email: email,
               nota: nota,
+              posizioneIncidente: posizioneIncidente,
+              rapportoCoinvolti: t.rapportoCoinvolti,
+              dichiarazione: dichiarazione,
+              disponibileContatto: t.disponibileContatto,
+              consensoDati: t.consensoDati,
             );
           })
           .whereType<Testimone>()
@@ -9055,22 +9437,29 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             final email = f.emailController.text.trim();
             final nomeOspedale = f.nomeOspedaleController.text.trim();
             final nota = f.notaController.text.trim();
+            final dataNascita = f.dataNascitaController.text.trim();
+            final zonaCorpo = f.zonaCorpoController.text.trim();
             if ([
-              nome,
-              cognome,
-              indirizzo,
-              zip,
-              city,
-              country,
-              tel,
-              email,
-              f.ruolo,
-              f.veicoloCollegato,
-              f.gravita,
-              f.trasportatoOspedale,
-              nomeOspedale,
-              nota,
-            ].every((value) => value.isEmpty)) {
+                  nome,
+                  cognome,
+                  indirizzo,
+                  zip,
+                  city,
+                  country,
+                  tel,
+                  email,
+                  f.ruolo,
+                  f.veicoloCollegato,
+                  f.gravita,
+                  f.trasportatoOspedale,
+                  nomeOspedale,
+                  nota,
+                  dataNascita,
+                  zonaCorpo,
+                ].every((value) => value.isEmpty) &&
+                !f.soccorsoSulPosto &&
+                !f.ambulanzaChiamata &&
+                !f.consensoDati) {
               return null;
             }
             return Ferito(
@@ -9088,6 +9477,11 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               trasportatoOspedale: f.trasportatoOspedale,
               nomeOspedale: nomeOspedale,
               nota: nota,
+              dataNascita: dataNascita,
+              zonaCorpo: zonaCorpo,
+              soccorsoSulPosto: f.soccorsoSulPosto,
+              ambulanzaChiamata: f.ambulanzaChiamata,
+              consensoDati: f.consensoDati,
             );
           })
           .whereType<Ferito>()
