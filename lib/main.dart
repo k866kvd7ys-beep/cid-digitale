@@ -474,6 +474,43 @@ class Incidente {
     this.emailSendLastAttemptAt = '',
   });
 
+  String _canonicalAddress(String street, String zip, String city) {
+    final locality = [
+      zip.trim(),
+      city.trim(),
+    ].where((value) => value.isNotEmpty).join(' ');
+
+    return [
+      street.trim(),
+      locality,
+    ].where((value) => value.isNotEmpty).join(', ');
+  }
+
+  Map<String, dynamic> _canonicalDriver({
+    required String firstName,
+    required String lastName,
+    required String plate,
+    required String phone,
+    required String email,
+    required String address,
+    required String insurance,
+  }) =>
+      {
+        'first_name': firstName,
+        'last_name': lastName,
+        'plate': plate,
+        'phone': phone,
+        'email': email,
+        'address': address,
+        'insurance': insurance,
+        'policy_number': '',
+        'claim_number': '',
+        'insurance_product': '',
+        'coverage': '',
+        'coverage_modules': <String>[],
+        'avb': '',
+      };
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'dataOra': dataOra.toIso8601String(),
@@ -522,6 +559,27 @@ class Incidente {
         'emailSendStatus': emailSendStatus,
         'emailSendMessage': emailSendMessage,
         'emailSendLastAttemptAt': emailSendLastAttemptAt,
+        'case_type': 'two_vehicle_accident',
+        'damage_type': 'Haftpflichtschaden',
+        'description': descrizione,
+        'driverA': _canonicalDriver(
+          firstName: nomeA,
+          lastName: cognomeA,
+          plate: targaA,
+          phone: telefonoA,
+          email: emailA,
+          address: _canonicalAddress(indirizzoA, zipA, cityA),
+          insurance: assicurazioneA,
+        ),
+        'driverB': _canonicalDriver(
+          firstName: nomeB,
+          lastName: cognomeB,
+          plate: targaB,
+          phone: telefonoB,
+          email: emailB,
+          address: _canonicalAddress(indirizzoB, zipB, cityB),
+          insurance: assicurazioneB,
+        ),
       };
 
   factory Incidente.fromJson(Map<String, dynamic> json) {
