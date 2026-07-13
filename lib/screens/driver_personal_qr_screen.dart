@@ -78,7 +78,8 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   DriverPersonalQrCourtesy? _courtesy;
   Timer? _persistDebounce;
   Future<void>? _draftPersistOperation;
-  bool _loading = true;
+  bool _profileLoaded = false;
+  bool _isLoadingProfile = false;
   bool _hydrating = false;
   bool _deletingProfile = false;
   String? _qrPayload;
@@ -134,7 +135,7 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   void initState() {
     super.initState();
     _attachDraftListeners();
-    _loadSavedDraft();
+    unawaited(_loadSavedProfile());
   }
 
   @override
@@ -153,38 +154,91 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
     }
   }
 
-  Future<void> _loadSavedDraft() async {
+  DriverPersonalQrData? _decodeSavedProfile(String? raw) {
+    final source = raw?.trim() ?? '';
+    if (source.isEmpty) return null;
+
+    try {
+      final decoded = jsonDecode(source);
+      if (decoded is! Map) return null;
+      final data = DriverPersonalQrData.fromMap(
+        Map<String, dynamic>.from(decoded),
+      );
+      return data.hasAnyValue ? data : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _loadSavedProfile() async {
+    if (_profileLoaded || _isLoadingProfile) return;
+
+    _isLoadingProfile = true;
+    debugPrint('[PERSONAL_QR_STORAGE] load started');
+
+    DriverPersonalQrData? restoredProfile;
+    String? restoredQrPayload;
+
     try {
       final prefs = await SharedPreferences.getInstance();
-      final rawDraft = prefs.getString(_storageKey)?.trim();
-      final rawGenerated = prefs.getString(_generatedQrKey)?.trim();
-      final sourceRaw = (rawDraft != null && rawDraft.isNotEmpty)
-          ? rawDraft
-          : (rawGenerated != null && rawGenerated.isNotEmpty
-              ? rawGenerated
-              : '');
+      await prefs.reload();
+      final rawProfile = prefs.getString(_storageKey)?.trim();
+      final rawQr = prefs.getString(_generatedQrKey)?.trim();
+      final profileKeyExists = rawProfile?.isNotEmpty == true;
+      final qrKeyExists = rawQr?.isNotEmpty == true;
 
-      if (sourceRaw.isNotEmpty) {
-        final data = driverPersonalQrDataFromJson(sourceRaw);
-        _hydrateDraft(data);
+      debugPrint(
+        '[PERSONAL_QR_STORAGE] profile key exists=$profileKeyExists',
+      );
+      debugPrint('[PERSONAL_QR_STORAGE] qr key exists=$qrKeyExists');
+
+      final profileFromProfileKey = _decodeSavedProfile(rawProfile);
+      final profileFromQrKey = _decodeSavedProfile(rawQr);
+      restoredProfile = profileFromProfileKey ?? profileFromQrKey;
+
+      if (profileFromQrKey != null && rawQr != null) {
+        restoredQrPayload = rawQr;
+      } else if (restoredProfile != null) {
+        restoredQrPayload = driverPersonalQrDataToJson(restoredProfile);
+        final qrSaved = await prefs.setString(
+          _generatedQrKey,
+          restoredQrPayload,
+        );
+        debugPrint('[PERSONAL_QR_STORAGE] save qr success=$qrSaved');
+      }
+
+      if (profileFromProfileKey == null && restoredProfile != null) {
+        final profileSaved = await prefs.setString(
+          _storageKey,
+          driverPersonalQrDataToJson(restoredProfile),
+        );
+        debugPrint(
+          '[PERSONAL_QR_STORAGE] save profile success=$profileSaved',
+        );
       }
 
       if (!mounted) return;
+      if (restoredProfile != null) {
+        _hydrateDraft(restoredProfile);
+      }
+
       setState(() {
-        _qrPayload = rawGenerated != null && rawGenerated.isNotEmpty
-            ? rawGenerated
-            : null;
-        _loading = false;
+        _qrPayload = restoredQrPayload;
+        _profileLoaded = true;
+        _isLoadingProfile = false;
       });
-      debugPrint('[PERSONAL_PROFILE] loaded=${sourceRaw.isNotEmpty}');
       debugPrint(
-        '[PERSONAL_QR] restored=${rawGenerated?.isNotEmpty == true}',
+        '[PERSONAL_QR_STORAGE] profile restored=${restoredProfile != null}',
       );
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loading = false);
-      debugPrint('[PERSONAL_PROFILE] loaded=false');
-      debugPrint('[PERSONAL_QR] restored=false');
+      setState(() {
+        _profileLoaded = true;
+        _isLoadingProfile = false;
+      });
+      debugPrint('[PERSONAL_QR_STORAGE] profile key exists=false');
+      debugPrint('[PERSONAL_QR_STORAGE] qr key exists=false');
+      debugPrint('[PERSONAL_QR_STORAGE] profile restored=false');
     }
   }
 
@@ -212,23 +266,31 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   }
 
   void _handleDraftChanged() {
-    if (_hydrating) return;
+    if (_hydrating || _isLoadingProfile || !_profileLoaded) return;
     if (mounted) {
       setState(() {});
     }
     _persistDebounce?.cancel();
     _persistDebounce = Timer(const Duration(milliseconds: 350), () {
-      _draftPersistOperation = _persistDraft();
+      final previousOperation = _draftPersistOperation;
+      _draftPersistOperation = () async {
+        await previousOperation;
+        await _persistDraft();
+      }();
       unawaited(_draftPersistOperation);
     });
   }
 
   Future<void> _persistDraft() async {
+    if (_isLoadingProfile || !_profileLoaded || !_draft.hasAnyValue) return;
+
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_storageKey, _currentDraftJson);
-      debugPrint('[PERSONAL_PROFILE] saved=true');
-    } catch (_) {}
+      final success = await prefs.setString(_storageKey, _currentDraftJson);
+      debugPrint('[PERSONAL_QR_STORAGE] save profile success=$success');
+    } catch (_) {
+      debugPrint('[PERSONAL_QR_STORAGE] save profile success=false');
+    }
   }
 
   Future<void> _generateQr() async {
@@ -241,16 +303,28 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
       return;
     }
 
+    bool? profileSaved;
+    bool? qrSaved;
     try {
       final prefs = await SharedPreferences.getInstance();
       final payload = _currentDraftJson;
       final wasUpdate = _hasGeneratedQr;
-      await prefs.setString(_storageKey, payload);
-      await prefs.setString(_generatedQrKey, payload);
+      profileSaved = await prefs.setString(_storageKey, payload);
+      debugPrint(
+        '[PERSONAL_QR_STORAGE] save profile success=$profileSaved',
+      );
+      if (!profileSaved) {
+        throw StateError('Personal profile storage write failed');
+      }
+
+      qrSaved = await prefs.setString(_generatedQrKey, payload);
+      debugPrint('[PERSONAL_QR_STORAGE] save qr success=$qrSaved');
+      if (!qrSaved) {
+        throw StateError('Personal QR storage write failed');
+      }
+
       if (!mounted) return;
       setState(() => _qrPayload = payload);
-      debugPrint('[PERSONAL_PROFILE] saved=true');
-      debugPrint('[PERSONAL_QR] restored=true');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -261,6 +335,12 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
         ),
       );
     } catch (_) {
+      if (profileSaved == null) {
+        debugPrint('[PERSONAL_QR_STORAGE] save profile success=false');
+      }
+      if (qrSaved == null) {
+        debugPrint('[PERSONAL_QR_STORAGE] save qr success=false');
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_l10n.driverPersonalQrSaveError)),
@@ -289,6 +369,7 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
         ],
       ),
     );
+    debugPrint('[PERSONAL_QR_STORAGE] delete confirmed=${confirmed == true}');
     if (confirmed != true || !mounted) return;
 
     setState(() => _deletingProfile = true);
@@ -306,7 +387,6 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
         _qrPayload = null;
         _deletingProfile = false;
       });
-      debugPrint('[PERSONAL_PROFILE] deleted=true');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_l10n.driverPersonalQrDeleteProfileSuccess)),
       );
@@ -1571,7 +1651,7 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
       appBar: AppBar(
         title: Text(_l10n.driverPersonalQrPageTitle),
       ),
-      body: _loading
+      body: _isLoadingProfile || !_profileLoaded
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
               child: Center(
