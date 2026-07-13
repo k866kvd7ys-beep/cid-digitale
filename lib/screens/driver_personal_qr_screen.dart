@@ -77,8 +77,10 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
 
   DriverPersonalQrCourtesy? _courtesy;
   Timer? _persistDebounce;
+  Future<void>? _draftPersistOperation;
   bool _loading = true;
   bool _hydrating = false;
+  bool _deletingProfile = false;
   String? _qrPayload;
 
   AppLocalizations get _l10n => AppLocalizations.of(context)!;
@@ -152,24 +154,38 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   }
 
   Future<void> _loadSavedDraft() async {
-    final prefs = await SharedPreferences.getInstance();
-    final rawDraft = prefs.getString(_storageKey)?.trim();
-    final rawGenerated = prefs.getString(_generatedQrKey)?.trim();
-    final sourceRaw = (rawDraft != null && rawDraft.isNotEmpty)
-        ? rawDraft
-        : (rawGenerated != null && rawGenerated.isNotEmpty ? rawGenerated : '');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final rawDraft = prefs.getString(_storageKey)?.trim();
+      final rawGenerated = prefs.getString(_generatedQrKey)?.trim();
+      final sourceRaw = (rawDraft != null && rawDraft.isNotEmpty)
+          ? rawDraft
+          : (rawGenerated != null && rawGenerated.isNotEmpty
+              ? rawGenerated
+              : '');
 
-    if (sourceRaw.isNotEmpty) {
-      final data = driverPersonalQrDataFromJson(sourceRaw);
-      _hydrateDraft(data);
+      if (sourceRaw.isNotEmpty) {
+        final data = driverPersonalQrDataFromJson(sourceRaw);
+        _hydrateDraft(data);
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _qrPayload = rawGenerated != null && rawGenerated.isNotEmpty
+            ? rawGenerated
+            : null;
+        _loading = false;
+      });
+      debugPrint('[PERSONAL_PROFILE] loaded=${sourceRaw.isNotEmpty}');
+      debugPrint(
+        '[PERSONAL_QR] restored=${rawGenerated?.isNotEmpty == true}',
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      debugPrint('[PERSONAL_PROFILE] loaded=false');
+      debugPrint('[PERSONAL_QR] restored=false');
     }
-
-    if (!mounted) return;
-    setState(() {
-      _qrPayload =
-          rawGenerated != null && rawGenerated.isNotEmpty ? rawGenerated : null;
-      _loading = false;
-    });
   }
 
   void _hydrateDraft(DriverPersonalQrData data) {
@@ -202,7 +218,8 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
     }
     _persistDebounce?.cancel();
     _persistDebounce = Timer(const Duration(milliseconds: 350), () {
-      unawaited(_persistDraft());
+      _draftPersistOperation = _persistDraft();
+      unawaited(_draftPersistOperation);
     });
   }
 
@@ -210,6 +227,7 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_storageKey, _currentDraftJson);
+      debugPrint('[PERSONAL_PROFILE] saved=true');
     } catch (_) {}
   }
 
@@ -231,6 +249,8 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
       await prefs.setString(_generatedQrKey, payload);
       if (!mounted) return;
       setState(() => _qrPayload = payload);
+      debugPrint('[PERSONAL_PROFILE] saved=true');
+      debugPrint('[PERSONAL_QR] restored=true');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -244,6 +264,57 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_l10n.driverPersonalQrSaveError)),
+      );
+    }
+  }
+
+  Future<void> _deleteProfile() async {
+    if (_deletingProfile) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(_l10n.driverPersonalQrDeleteProfileTitle),
+        content: Text(_l10n.driverPersonalQrDeleteProfileMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(_l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+            child: Text(_l10n.driverPersonalQrDeleteProfileConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _deletingProfile = true);
+    _persistDebounce?.cancel();
+
+    try {
+      await _draftPersistOperation;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_storageKey);
+      await prefs.remove(_generatedQrKey);
+
+      _hydrateDraft(const DriverPersonalQrData.empty());
+      if (!mounted) return;
+      setState(() {
+        _qrPayload = null;
+        _deletingProfile = false;
+      });
+      debugPrint('[PERSONAL_PROFILE] deleted=true');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_l10n.driverPersonalQrDeleteProfileSuccess)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _deletingProfile = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_l10n.driverPersonalQrDeleteProfileError)),
       );
     }
   }
@@ -1456,6 +1527,22 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
           _buildSavedDataPreview(),
           const SizedBox(height: 18),
           _buildJsonPreview(),
+          if (_hasSavedDraft || _hasGeneratedQr) ...[
+            const SizedBox(height: 18),
+            OutlinedButton.icon(
+              onPressed: _deletingProfile ? null : _deleteProfile,
+              icon: const Icon(Icons.delete_outline_rounded),
+              label: Text(_l10n.driverPersonalQrDeleteProfileAction),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red.shade700,
+                side: BorderSide(color: Colors.red.shade200),
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

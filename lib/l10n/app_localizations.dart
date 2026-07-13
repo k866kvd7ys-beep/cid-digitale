@@ -708,6 +708,42 @@ abstract class AppLocalizations {
   /// **'Der persönliche QR konnte lokal nicht gespeichert werden.'**
   String get driverPersonalQrSaveError;
 
+  /// No description provided for @driverPersonalQrDeleteProfileAction.
+  ///
+  /// In de, this message translates to:
+  /// **'Profil löschen'**
+  String get driverPersonalQrDeleteProfileAction;
+
+  /// No description provided for @driverPersonalQrDeleteProfileTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Profil löschen?'**
+  String get driverPersonalQrDeleteProfileTitle;
+
+  /// No description provided for @driverPersonalQrDeleteProfileMessage.
+  ///
+  /// In de, this message translates to:
+  /// **'Die gespeicherten persönlichen Daten und der persönliche QR werden von diesem Gerät gelöscht.'**
+  String get driverPersonalQrDeleteProfileMessage;
+
+  /// No description provided for @driverPersonalQrDeleteProfileConfirm.
+  ///
+  /// In de, this message translates to:
+  /// **'Löschen'**
+  String get driverPersonalQrDeleteProfileConfirm;
+
+  /// No description provided for @driverPersonalQrDeleteProfileSuccess.
+  ///
+  /// In de, this message translates to:
+  /// **'Persönliches Profil gelöscht'**
+  String get driverPersonalQrDeleteProfileSuccess;
+
+  /// No description provided for @driverPersonalQrDeleteProfileError.
+  ///
+  /// In de, this message translates to:
+  /// **'Das persönliche Profil konnte nicht gelöscht werden.'**
+  String get driverPersonalQrDeleteProfileError;
+
   /// No description provided for @driverPersonalQrSavedDataPreviewTitle.
   ///
   /// In de, this message translates to:

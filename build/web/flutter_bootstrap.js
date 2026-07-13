@@ -37,7 +37,7 @@ if (!window._flutter) {
 _flutter.buildConfig = {"engineRevision":"13e658725ddaa270601426d1485636157e38c34c","builds":[{"compileTarget":"dart2js","renderer":"canvaskit","mainJsPath":"main.dart.js"},{}]};
 
 
-const cidBuildVersion = "512414706";
+const cidBuildVersion = "2216575265";
 const cidServiceWorkerResetKey = `cid_flutter_sw_reset_${cidBuildVersion}`;
 
 async function resetLegacyFlutterServiceWorkers() {

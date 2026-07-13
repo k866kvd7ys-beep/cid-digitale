@@ -329,6 +329,27 @@ class AppLocalizationsIt extends AppLocalizations {
       'Impossibile salvare localmente il QR personale.';
 
   @override
+  String get driverPersonalQrDeleteProfileAction => 'Elimina profilo';
+
+  @override
+  String get driverPersonalQrDeleteProfileTitle => 'Eliminare il profilo?';
+
+  @override
+  String get driverPersonalQrDeleteProfileMessage =>
+      'I dati personali salvati e il QR personale verranno eliminati da questo dispositivo.';
+
+  @override
+  String get driverPersonalQrDeleteProfileConfirm => 'Elimina';
+
+  @override
+  String get driverPersonalQrDeleteProfileSuccess =>
+      'Profilo personale eliminato';
+
+  @override
+  String get driverPersonalQrDeleteProfileError =>
+      'Impossibile eliminare il profilo personale.';
+
+  @override
   String get driverPersonalQrSavedDataPreviewTitle => 'Anteprima dati salvati';
 
   @override
