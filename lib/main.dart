@@ -245,22 +245,50 @@ List<String> _collectSendRecipients({
 
 class Testimone {
   final String nome;
+  final String cognome;
+  final String indirizzo;
+  final String zip;
+  final String city;
+  final String country;
   final String telefono;
+  final String email;
+  final String nota;
 
   Testimone({
     required this.nome,
     required this.telefono,
+    this.cognome = '',
+    this.indirizzo = '',
+    this.zip = '',
+    this.city = '',
+    this.country = '',
+    this.email = '',
+    this.nota = '',
   });
 
   Map<String, dynamic> toJson() => {
         'nome': nome,
         'telefono': telefono,
+        'cognome': cognome,
+        'indirizzo': indirizzo,
+        'zip': zip,
+        'city': city,
+        'country': country,
+        'email': email,
+        'nota': nota,
       };
 
   factory Testimone.fromJson(Map<String, dynamic> json) {
     return Testimone(
-      nome: json['nome'] ?? '',
-      telefono: json['telefono'] ?? '',
+      nome: json['nome']?.toString() ?? '',
+      telefono: json['telefono']?.toString() ?? '',
+      cognome: json['cognome']?.toString() ?? '',
+      indirizzo: json['indirizzo']?.toString() ?? '',
+      zip: json['zip']?.toString() ?? '',
+      city: json['city']?.toString() ?? '',
+      country: json['country']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      nota: json['nota']?.toString() ?? '',
     );
   }
 }
@@ -268,26 +296,70 @@ class Testimone {
 /// ✅ MODELLO FERITO
 class Ferito {
   final String nome;
+  final String cognome;
   final String indirizzo;
+  final String zip;
+  final String city;
+  final String country;
   final String telefono;
+  final String email;
+  final String ruolo;
+  final String veicoloCollegato;
+  final String gravita;
+  final String trasportatoOspedale;
+  final String nomeOspedale;
+  final String nota;
 
   Ferito({
     required this.nome,
     required this.indirizzo,
     required this.telefono,
+    this.cognome = '',
+    this.zip = '',
+    this.city = '',
+    this.country = '',
+    this.email = '',
+    this.ruolo = '',
+    this.veicoloCollegato = '',
+    this.gravita = '',
+    this.trasportatoOspedale = '',
+    this.nomeOspedale = '',
+    this.nota = '',
   });
 
   Map<String, dynamic> toJson() => {
         'nome': nome,
         'indirizzo': indirizzo,
         'telefono': telefono,
+        'cognome': cognome,
+        'zip': zip,
+        'city': city,
+        'country': country,
+        'email': email,
+        'ruolo': ruolo,
+        'veicoloCollegato': veicoloCollegato,
+        'gravita': gravita,
+        'trasportatoOspedale': trasportatoOspedale,
+        'nomeOspedale': nomeOspedale,
+        'nota': nota,
       };
 
   factory Ferito.fromJson(Map<String, dynamic> json) {
     return Ferito(
-      nome: json['nome'] ?? '',
-      indirizzo: json['indirizzo'] ?? '',
-      telefono: json['telefono'] ?? '',
+      nome: json['nome']?.toString() ?? '',
+      indirizzo: json['indirizzo']?.toString() ?? '',
+      telefono: json['telefono']?.toString() ?? '',
+      cognome: json['cognome']?.toString() ?? '',
+      zip: json['zip']?.toString() ?? '',
+      city: json['city']?.toString() ?? '',
+      country: json['country']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      ruolo: json['ruolo']?.toString() ?? '',
+      veicoloCollegato: json['veicoloCollegato']?.toString() ?? '',
+      gravita: json['gravita']?.toString() ?? '',
+      trasportatoOspedale: json['trasportatoOspedale']?.toString() ?? '',
+      nomeOspedale: json['nomeOspedale']?.toString() ?? '',
+      nota: json['nota']?.toString() ?? '',
     );
   }
 }
@@ -4615,24 +4687,81 @@ class _ImpostazioniOfficinaPageState extends State<ImpostazioniOfficinaPage> {
 
 class _TestimoneFormData {
   final TextEditingController nomeController;
+  final TextEditingController cognomeController;
+  final TextEditingController indirizzoController;
+  final TextEditingController zipController;
+  final TextEditingController cityController;
+  final TextEditingController countryController;
   final TextEditingController telefonoController;
+  final TextEditingController emailController;
+  final TextEditingController notaController;
 
   _TestimoneFormData({
     required this.nomeController,
+    required this.cognomeController,
+    required this.indirizzoController,
+    required this.zipController,
+    required this.cityController,
+    required this.countryController,
     required this.telefonoController,
+    required this.emailController,
+    required this.notaController,
   });
+
+  void dispose() {
+    nomeController.dispose();
+    cognomeController.dispose();
+    indirizzoController.dispose();
+    zipController.dispose();
+    cityController.dispose();
+    countryController.dispose();
+    telefonoController.dispose();
+    emailController.dispose();
+    notaController.dispose();
+  }
 }
 
 class _FeritoFormData {
   final TextEditingController nomeController;
+  final TextEditingController cognomeController;
   final TextEditingController indirizzoController;
+  final TextEditingController zipController;
+  final TextEditingController cityController;
+  final TextEditingController countryController;
   final TextEditingController telefonoController;
+  final TextEditingController emailController;
+  final TextEditingController nomeOspedaleController;
+  final TextEditingController notaController;
+  String ruolo = '';
+  String veicoloCollegato = '';
+  String gravita = '';
+  String trasportatoOspedale = '';
 
   _FeritoFormData({
     required this.nomeController,
+    required this.cognomeController,
     required this.indirizzoController,
+    required this.zipController,
+    required this.cityController,
+    required this.countryController,
     required this.telefonoController,
+    required this.emailController,
+    required this.nomeOspedaleController,
+    required this.notaController,
   });
+
+  void dispose() {
+    nomeController.dispose();
+    cognomeController.dispose();
+    indirizzoController.dispose();
+    zipController.dispose();
+    cityController.dispose();
+    countryController.dispose();
+    telefonoController.dispose();
+    emailController.dispose();
+    nomeOspedaleController.dispose();
+    notaController.dispose();
+  }
 }
 
 class _ConducenteExtraFormData {
@@ -4877,6 +5006,35 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   String? _notaAudioAPath;
   String? _notaAudioBPath;
 
+  _TestimoneFormData _newTestimoneFormData() {
+    return _TestimoneFormData(
+      nomeController: TextEditingController(),
+      cognomeController: TextEditingController(),
+      indirizzoController: TextEditingController(),
+      zipController: TextEditingController(),
+      cityController: TextEditingController(),
+      countryController: TextEditingController(),
+      telefonoController: TextEditingController(),
+      emailController: TextEditingController(),
+      notaController: TextEditingController(),
+    );
+  }
+
+  _FeritoFormData _newFeritoFormData() {
+    return _FeritoFormData(
+      nomeController: TextEditingController(),
+      cognomeController: TextEditingController(),
+      indirizzoController: TextEditingController(),
+      zipController: TextEditingController(),
+      cityController: TextEditingController(),
+      countryController: TextEditingController(),
+      telefonoController: TextEditingController(),
+      emailController: TextEditingController(),
+      nomeOspedaleController: TextEditingController(),
+      notaController: TextEditingController(),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -4895,12 +5053,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     });
     _dataOra = DateTime.now();
     _luogoController.addListener(_onLuogoChanged);
-    _testimoni.add(
-      _TestimoneFormData(
-        nomeController: TextEditingController(),
-        telefonoController: TextEditingController(),
-      ),
-    );
+    _testimoni.add(_newTestimoneFormData());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _luogoController.text.trim().isNotEmpty) return;
       debugPrint('[AccidentGPS] auto-populate on open');
@@ -5164,35 +5317,38 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
   }
 
-  String _personalQrAddress(DriverPersonalQrData data) {
-    final cityLine = [
-      data.zip.trim(),
-      data.city.trim(),
-    ].where((value) => value.isNotEmpty).join(' ');
-    return [
-      data.indirizzo.trim(),
-      cityLine,
-      data.country.trim(),
-    ].where((value) => value.isNotEmpty).join(', ');
-  }
-
   Future<void> _importWitnessQrData(
     DriverPersonalQrData data,
     _TestimoneFormData target,
   ) async {
     final scoped = data.scopedForImportRole(
       DriverPersonalQrImportRole.witness,
+      includeEmail: true,
     );
-    final fullName = scoped.fullName;
-    final phone = scoped.telefono.trim();
-    if (fullName.isEmpty && phone.isEmpty) {
+    final hasCompatibleData = [
+      scoped.nome,
+      scoped.cognome,
+      scoped.indirizzo,
+      scoped.zip,
+      scoped.city,
+      scoped.country,
+      scoped.telefono,
+      scoped.email,
+    ].any((value) => value.trim().isNotEmpty);
+    if (!hasCompatibleData) {
       throw const FormatException('No compatible witness data');
     }
     if (!mounted || !_testimoni.contains(target)) return;
 
     setState(() {
-      _writeDriverQrValue(target.nomeController, fullName);
-      _writeDriverQrValue(target.telefonoController, phone);
+      _writeDriverQrValue(target.nomeController, scoped.nome);
+      _writeDriverQrValue(target.cognomeController, scoped.cognome);
+      _writeDriverQrValue(target.indirizzoController, scoped.indirizzo);
+      _writeDriverQrValue(target.zipController, scoped.zip);
+      _writeDriverQrValue(target.cityController, scoped.city);
+      _writeDriverQrValue(target.countryController, scoped.country);
+      _writeDriverQrValue(target.telefonoController, scoped.telefono);
+      _writeDriverQrValue(target.emailController, scoped.email);
     });
   }
 
@@ -5202,19 +5358,32 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   ) async {
     final scoped = data.scopedForImportRole(
       DriverPersonalQrImportRole.injured,
+      includeEmail: true,
     );
-    final fullName = scoped.fullName;
-    final address = _personalQrAddress(scoped);
-    final phone = scoped.telefono.trim();
-    if (fullName.isEmpty && address.isEmpty && phone.isEmpty) {
+    final hasCompatibleData = [
+      scoped.nome,
+      scoped.cognome,
+      scoped.indirizzo,
+      scoped.zip,
+      scoped.city,
+      scoped.country,
+      scoped.telefono,
+      scoped.email,
+    ].any((value) => value.trim().isNotEmpty);
+    if (!hasCompatibleData) {
       throw const FormatException('No compatible injured data');
     }
     if (!mounted || !_feriti.contains(target)) return;
 
     setState(() {
-      _writeDriverQrValue(target.nomeController, fullName);
-      _writeDriverQrValue(target.indirizzoController, address);
-      _writeDriverQrValue(target.telefonoController, phone);
+      _writeDriverQrValue(target.nomeController, scoped.nome);
+      _writeDriverQrValue(target.cognomeController, scoped.cognome);
+      _writeDriverQrValue(target.indirizzoController, scoped.indirizzo);
+      _writeDriverQrValue(target.zipController, scoped.zip);
+      _writeDriverQrValue(target.cityController, scoped.city);
+      _writeDriverQrValue(target.countryController, scoped.country);
+      _writeDriverQrValue(target.telefonoController, scoped.telefono);
+      _writeDriverQrValue(target.emailController, scoped.email);
     });
   }
 
@@ -5717,26 +5886,13 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       driver.dispose();
     }
     for (final testimone in _testimoni) {
-      testimone.nomeController.dispose();
-      testimone.telefonoController.dispose();
+      testimone.dispose();
     }
     for (final ferito in _feriti) {
-      ferito.nomeController.dispose();
-      ferito.indirizzoController.dispose();
-      ferito.telefonoController.dispose();
+      ferito.dispose();
     }
     _suggestionDebounce?.cancel();
     _luogoController.removeListener(_onLuogoChanged);
-
-    for (final t in _testimoni) {
-      t.nomeController.dispose();
-      t.telefonoController.dispose();
-    }
-    for (final f in _feriti) {
-      f.nomeController.dispose();
-      f.indirizzoController.dispose();
-      f.telefonoController.dispose();
-    }
     unawaited(_audioPlayerSub?.cancel());
     if (_isRecordingAudio) {
       unawaited(_audioRecorder.stop());
@@ -7406,6 +7562,101 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
   }
 
+  Widget _buildResponsivePersonFields(List<Widget> fields) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final twoColumns = constraints.maxWidth >= 680;
+        final fieldWidth =
+            twoColumns ? (constraints.maxWidth - 12) / 2 : constraints.maxWidth;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            for (final field in fields)
+              SizedBox(width: fieldWidth, child: field),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPersonDropdown({
+    required String label,
+    required String value,
+    required Map<String, String> options,
+    required ValueChanged<String> onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      initialValue: value.isEmpty ? null : value,
+      isExpanded: true,
+      decoration: InputDecoration(labelText: label),
+      items: options.entries
+          .map(
+            (entry) => DropdownMenuItem<String>(
+              value: entry.key,
+              child: Text(entry.value, overflow: TextOverflow.ellipsis),
+            ),
+          )
+          .toList(growable: false),
+      onChanged: (selected) {
+        if (selected != null) onChanged(selected);
+      },
+    );
+  }
+
+  Widget _buildPersonalDataQrButton({
+    required DriverPersonalQrImportRole role,
+    required DriverQrDetectedCallback onDetected,
+  }) {
+    return OutlinedButton.icon(
+      onPressed: () => unawaited(
+        _scanPersonalDataQr(role: role, onDetected: onDetected),
+      ),
+      icon: const Icon(Icons.qr_code_scanner_outlined),
+      label: Text(
+        _copyText(
+          it: 'Scansiona QR dati',
+          de: 'Daten-QR scannen',
+          fr: 'Scanner le QR des données',
+          en: 'Scan data QR',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWitnessQrButton(_TestimoneFormData target) {
+    return _buildPersonalDataQrButton(
+      role: DriverPersonalQrImportRole.witness,
+      onDetected: (data) => _importWitnessQrData(data, target),
+    );
+  }
+
+  Widget _buildInjuredQrButton(_FeritoFormData target) {
+    return _buildPersonalDataQrButton(
+      role: DriverPersonalQrImportRole.injured,
+      onDetected: (data) => _importInjuredQrData(data, target),
+    );
+  }
+
+  Widget _buildEmptyPersonMessage(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: _incidentMutedBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _incidentCardBorder),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(
+          color: _incidentMutedText,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
   Widget _buildTestimoniSection() {
     return _buildSectionCard(
       icon: Icons.groups_outlined,
@@ -7413,6 +7664,15 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_testimoni.isEmpty)
+            _buildEmptyPersonMessage(
+              _copyText(
+                it: 'Nessun testimone indicato',
+                de: 'Keine Zeugen angegeben',
+                fr: 'Aucun témoin indiqué',
+                en: 'No witnesses specified',
+              ),
+            ),
           for (int i = 0; i < _testimoni.length; i++) ...[
             _buildInnerCard(
               child: Column(
@@ -7423,94 +7683,143 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                       Expanded(
                         child: Text(
                           '${_copyText(it: 'Testimone', de: 'Zeuge', fr: 'Témoin', en: 'Witness')} ${i + 1}',
-                          style:
-                              Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                       ),
-                      if (_testimoni.length > 1)
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () {
-                            setState(() {
-                              _testimoni[i].nomeController.dispose();
-                              _testimoni[i].telefonoController.dispose();
-                              _testimoni.removeAt(i);
-                            });
-                          },
+                      IconButton(
+                        tooltip: _copyText(
+                          it: 'Elimina testimone',
+                          de: 'Zeugen löschen',
+                          fr: 'Supprimer le témoin',
+                          en: 'Delete witness',
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _testimoni[i].nomeController,
-                          decoration: InputDecoration(
-                            labelText:
-                                '${tx(context, 'Nome testimone')} ${i + 1}',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _testimoni[i].telefonoController,
-                          keyboardType: TextInputType.phone,
-                          decoration: InputDecoration(
-                            labelText:
-                                '${tx(context, 'Telefono testimone')} ${i + 1}',
-                          ),
-                        ),
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () {
+                          final removed = _testimoni[i];
+                          setState(() => _testimoni.removeAt(i));
+                          removed.dispose();
+                        },
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      final target = _testimoni[i];
-                      unawaited(
-                        _scanPersonalDataQr(
-                          role: DriverPersonalQrImportRole.witness,
-                          onDetected: (data) =>
-                              _importWitnessQrData(data, target),
+                  _buildResponsivePersonFields([
+                    TextFormField(
+                      controller: _testimoni[i].nomeController,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'Nome',
+                          de: 'Vorname',
+                          fr: 'Prénom',
+                          en: 'First name',
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.qr_code_scanner_outlined),
-                    label: Text(
-                      _copyText(
-                        it: 'Scansiona QR dati',
-                        de: 'Daten-QR scannen',
-                        fr: 'Scanner le QR des données',
-                        en: 'Scan data QR',
+                      ),
+                    ),
+                    TextFormField(
+                      controller: _testimoni[i].cognomeController,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'Cognome',
+                          de: 'Nachname',
+                          fr: 'Nom',
+                          en: 'Last name',
+                        ),
+                      ),
+                    ),
+                    TextFormField(
+                      controller: _testimoni[i].indirizzoController,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'Indirizzo',
+                          de: 'Adresse',
+                          fr: 'Adresse',
+                          en: 'Address',
+                        ),
+                      ),
+                    ),
+                    TextFormField(
+                      controller: _testimoni[i].zipController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'CAP',
+                          de: 'PLZ',
+                          fr: 'Code postal',
+                          en: 'Postal code',
+                        ),
+                      ),
+                    ),
+                    TextFormField(
+                      controller: _testimoni[i].cityController,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'Città',
+                          de: 'Stadt',
+                          fr: 'Ville',
+                          en: 'City',
+                        ),
+                      ),
+                    ),
+                    TextFormField(
+                      controller: _testimoni[i].countryController,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'Paese',
+                          de: 'Land',
+                          fr: 'Pays',
+                          en: 'Country',
+                        ),
+                      ),
+                    ),
+                    TextFormField(
+                      controller: _testimoni[i].telefonoController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'Telefono',
+                          de: 'Telefon',
+                          fr: 'Téléphone',
+                          en: 'Phone',
+                        ),
+                      ),
+                    ),
+                    TextFormField(
+                      controller: _testimoni[i].emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(labelText: 'E-mail'),
+                    ),
+                  ]),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _testimoni[i].notaController,
+                    minLines: 2,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      labelText: _copyText(
+                        it: 'Nota / dichiarazione breve',
+                        de: 'Kurze Notiz / Aussage',
+                        fr: 'Note / déclaration brève',
+                        en: 'Note / brief statement',
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  _buildWitnessQrButton(_testimoni[i]),
                 ],
               ),
             ),
             if (i != _testimoni.length - 1) const SizedBox(height: 12),
           ],
           const SizedBox(height: 14),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _buildAddOutlinedButton(
-              onPressed: () {
-                setState(() {
-                  _testimoni.add(
-                    _TestimoneFormData(
-                      nomeController: TextEditingController(),
-                      telefonoController: TextEditingController(),
-                    ),
-                  );
-                });
-              },
-              icon: Icons.add,
-              label: tx(context, 'Aggiungi testimone'),
+          _buildAddOutlinedButton(
+            onPressed: () => setState(
+              () => _testimoni.add(_newTestimoneFormData()),
             ),
+            icon: Icons.add,
+            label: tx(context, 'Aggiungi testimone'),
           ),
         ],
       ),
@@ -7525,129 +7834,310 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_feriti.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: _incidentMutedBackground,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _incidentCardBorder),
-              ),
-              child: Text(
-                _copyText(
-                  it: 'Nessun ferito segnalato',
-                  de: 'Keine Verletzten gemeldet',
-                  fr: 'Aucun blessé signalé',
-                  en: 'No injuries reported',
-                ),
-                style: const TextStyle(
-                  color: _incidentMutedText,
-                  fontWeight: FontWeight.w500,
-                ),
+            _buildEmptyPersonMessage(
+              _copyText(
+                it: 'Nessun ferito segnalato',
+                de: 'Keine Verletzten gemeldet',
+                fr: 'Aucun blessé signalé',
+                en: 'No injuries reported',
               ),
             ),
-          if (_feriti.isNotEmpty)
-            ...List.generate(_feriti.length, (i) {
-              return Padding(
-                padding:
-                    EdgeInsets.only(bottom: i == _feriti.length - 1 ? 0 : 12),
-                child: _buildInnerCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          for (int i = 0; i < _feriti.length; i++) ...[
+            _buildInnerCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${_copyText(it: 'Ferito', de: 'Verletzte Person', fr: 'Blessé', en: 'Injured person')} ${i + 1}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () {
-                              setState(() {
-                                _feriti[i].nomeController.dispose();
-                                _feriti[i].indirizzoController.dispose();
-                                _feriti[i].telefonoController.dispose();
-                                _feriti.removeAt(i);
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _feriti[i].nomeController,
-                        decoration: InputDecoration(
-                          labelText: '${tx(context, 'Nome ferito')} ${i + 1}',
+                      Expanded(
+                        child: Text(
+                          '${_copyText(it: 'Ferito', de: 'Verletzte Person', fr: 'Blessé', en: 'Injured person')} ${i + 1}',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _feriti[i].indirizzoController,
-                        decoration: InputDecoration(
-                          labelText:
-                              '${tx(context, 'Indirizzo ferito')} ${i + 1}',
+                      IconButton(
+                        tooltip: _copyText(
+                          it: 'Elimina ferito',
+                          de: 'Verletzte Person löschen',
+                          fr: 'Supprimer le blessé',
+                          en: 'Delete injured person',
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _feriti[i].telefonoController,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          labelText:
-                              '${tx(context, 'Telefono ferito')} ${i + 1}',
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
+                        icon: const Icon(Icons.delete_outline),
                         onPressed: () {
-                          final target = _feriti[i];
-                          unawaited(
-                            _scanPersonalDataQr(
-                              role: DriverPersonalQrImportRole.injured,
-                              onDetected: (data) =>
-                                  _importInjuredQrData(data, target),
-                            ),
-                          );
+                          final removed = _feriti[i];
+                          setState(() => _feriti.removeAt(i));
+                          removed.dispose();
                         },
-                        icon: const Icon(Icons.qr_code_scanner_outlined),
-                        label: Text(
-                          _copyText(
-                            it: 'Scansiona QR dati',
-                            de: 'Daten-QR scannen',
-                            fr: 'Scanner le QR des données',
-                            en: 'Scan data QR',
-                          ),
-                        ),
                       ),
                     ],
                   ),
-                ),
-              );
-            }),
-          const SizedBox(height: 14),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _buildAddOutlinedButton(
-              onPressed: () {
-                setState(() {
-                  _feriti.add(
-                    _FeritoFormData(
-                      nomeController: TextEditingController(),
-                      indirizzoController: TextEditingController(),
-                      telefonoController: TextEditingController(),
+                  const SizedBox(height: 12),
+                  _buildResponsivePersonFields([
+                    TextFormField(
+                      controller: _feriti[i].nomeController,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'Nome',
+                          de: 'Vorname',
+                          fr: 'Prénom',
+                          en: 'First name',
+                        ),
+                      ),
                     ),
-                  );
-                });
-              },
-              icon: Icons.add,
-              label: tx(context, 'Aggiungi ferito'),
+                    TextFormField(
+                      controller: _feriti[i].cognomeController,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'Cognome',
+                          de: 'Nachname',
+                          fr: 'Nom',
+                          en: 'Last name',
+                        ),
+                      ),
+                    ),
+                    TextFormField(
+                      controller: _feriti[i].indirizzoController,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'Indirizzo',
+                          de: 'Adresse',
+                          fr: 'Adresse',
+                          en: 'Address',
+                        ),
+                      ),
+                    ),
+                    TextFormField(
+                      controller: _feriti[i].zipController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'CAP',
+                          de: 'PLZ',
+                          fr: 'Code postal',
+                          en: 'Postal code',
+                        ),
+                      ),
+                    ),
+                    TextFormField(
+                      controller: _feriti[i].cityController,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'Città',
+                          de: 'Stadt',
+                          fr: 'Ville',
+                          en: 'City',
+                        ),
+                      ),
+                    ),
+                    TextFormField(
+                      controller: _feriti[i].countryController,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'Paese',
+                          de: 'Land',
+                          fr: 'Pays',
+                          en: 'Country',
+                        ),
+                      ),
+                    ),
+                    TextFormField(
+                      controller: _feriti[i].telefonoController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'Telefono',
+                          de: 'Telefon',
+                          fr: 'Téléphone',
+                          en: 'Phone',
+                        ),
+                      ),
+                    ),
+                    TextFormField(
+                      controller: _feriti[i].emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(labelText: 'E-mail'),
+                    ),
+                    _buildPersonDropdown(
+                      label: _copyText(
+                        it: 'Ruolo nell’incidente',
+                        de: 'Rolle beim Unfall',
+                        fr: 'Rôle dans l’accident',
+                        en: 'Role in the accident',
+                      ),
+                      value: _feriti[i].ruolo,
+                      options: {
+                        'driver': _copyText(
+                          it: 'Conducente',
+                          de: 'Fahrer',
+                          fr: 'Conducteur',
+                          en: 'Driver',
+                        ),
+                        'passenger': _copyText(
+                          it: 'Passeggero',
+                          de: 'Passagier',
+                          fr: 'Passager',
+                          en: 'Passenger',
+                        ),
+                        'pedestrian': _copyText(
+                          it: 'Pedone',
+                          de: 'Fußgänger',
+                          fr: 'Piéton',
+                          en: 'Pedestrian',
+                        ),
+                        'other': _copyText(
+                          it: 'Altro',
+                          de: 'Andere',
+                          fr: 'Autre',
+                          en: 'Other',
+                        ),
+                      },
+                      onChanged: (value) =>
+                          setState(() => _feriti[i].ruolo = value),
+                    ),
+                    _buildPersonDropdown(
+                      label: _copyText(
+                        it: 'Veicolo collegato',
+                        de: 'Zugeordnetes Fahrzeug',
+                        fr: 'Véhicule associé',
+                        en: 'Linked vehicle',
+                      ),
+                      value: _feriti[i].veicoloCollegato,
+                      options: {
+                        'A': _copyText(
+                          it: 'Veicolo A',
+                          de: 'Fahrzeug A',
+                          fr: 'Véhicule A',
+                          en: 'Vehicle A',
+                        ),
+                        'B': _copyText(
+                          it: 'Veicolo B',
+                          de: 'Fahrzeug B',
+                          fr: 'Véhicule B',
+                          en: 'Vehicle B',
+                        ),
+                        'other_none': _copyText(
+                          it: 'Altro / nessuno',
+                          de: 'Andere / keines',
+                          fr: 'Autre / aucun',
+                          en: 'Other / none',
+                        ),
+                      },
+                      onChanged: (value) => setState(
+                        () => _feriti[i].veicoloCollegato = value,
+                      ),
+                    ),
+                    _buildPersonDropdown(
+                      label: _copyText(
+                        it: 'Gravità apparente',
+                        de: 'Offensichtlicher Schweregrad',
+                        fr: 'Gravité apparente',
+                        en: 'Apparent severity',
+                      ),
+                      value: _feriti[i].gravita,
+                      options: {
+                        'mild': _copyText(
+                          it: 'Lieve',
+                          de: 'Leicht',
+                          fr: 'Légère',
+                          en: 'Mild',
+                        ),
+                        'moderate': _copyText(
+                          it: 'Media',
+                          de: 'Mittel',
+                          fr: 'Moyenne',
+                          en: 'Moderate',
+                        ),
+                        'severe': _copyText(
+                          it: 'Grave',
+                          de: 'Schwer',
+                          fr: 'Grave',
+                          en: 'Severe',
+                        ),
+                        'unknown': _copyText(
+                          it: 'Non conosciuta',
+                          de: 'Nicht bekannt',
+                          fr: 'Inconnue',
+                          en: 'Unknown',
+                        ),
+                      },
+                      onChanged: (value) =>
+                          setState(() => _feriti[i].gravita = value),
+                    ),
+                    _buildPersonDropdown(
+                      label: _copyText(
+                        it: 'Trasportato in ospedale',
+                        de: 'Ins Krankenhaus gebracht',
+                        fr: 'Transporté à l’hôpital',
+                        en: 'Transported to hospital',
+                      ),
+                      value: _feriti[i].trasportatoOspedale,
+                      options: {
+                        'yes': _copyText(
+                          it: 'Sì',
+                          de: 'Ja',
+                          fr: 'Oui',
+                          en: 'Yes',
+                        ),
+                        'no': _copyText(
+                          it: 'No',
+                          de: 'Nein',
+                          fr: 'Non',
+                          en: 'No',
+                        ),
+                        'unknown': _copyText(
+                          it: 'Non conosciuto',
+                          de: 'Nicht bekannt',
+                          fr: 'Inconnu',
+                          en: 'Unknown',
+                        ),
+                      },
+                      onChanged: (value) => setState(
+                        () => _feriti[i].trasportatoOspedale = value,
+                      ),
+                    ),
+                    TextFormField(
+                      controller: _feriti[i].nomeOspedaleController,
+                      decoration: InputDecoration(
+                        labelText: _copyText(
+                          it: 'Nome ospedale',
+                          de: 'Name des Krankenhauses',
+                          fr: 'Nom de l’hôpital',
+                          en: 'Hospital name',
+                        ),
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _feriti[i].notaController,
+                    minLines: 2,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      labelText: _copyText(
+                        it: 'Nota',
+                        de: 'Notiz',
+                        fr: 'Note',
+                        en: 'Note',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildInjuredQrButton(_feriti[i]),
+                ],
+              ),
             ),
+            if (i != _feriti.length - 1) const SizedBox(height: 12),
+          ],
+          const SizedBox(height: 14),
+          _buildAddOutlinedButton(
+            onPressed: () => setState(
+              () => _feriti.add(_newFeritoFormData()),
+            ),
+            icon: Icons.add,
+            label: tx(context, 'Aggiungi ferito'),
           ),
         ],
       ),
@@ -8518,19 +9008,87 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       final List<Testimone> testimoni = _testimoni
           .map((t) {
             final nome = t.nomeController.text.trim();
+            final cognome = t.cognomeController.text.trim();
+            final indirizzo = t.indirizzoController.text.trim();
+            final zip = t.zipController.text.trim();
+            final city = t.cityController.text.trim();
+            final country = t.countryController.text.trim();
             final tel = t.telefonoController.text.trim();
-            if (nome.isEmpty && tel.isEmpty) return null;
-            return Testimone(nome: nome, telefono: tel);
+            final email = t.emailController.text.trim();
+            final nota = t.notaController.text.trim();
+            if ([
+              nome,
+              cognome,
+              indirizzo,
+              zip,
+              city,
+              country,
+              tel,
+              email,
+              nota,
+            ].every((value) => value.isEmpty)) {
+              return null;
+            }
+            return Testimone(
+              nome: nome,
+              cognome: cognome,
+              indirizzo: indirizzo,
+              zip: zip,
+              city: city,
+              country: country,
+              telefono: tel,
+              email: email,
+              nota: nota,
+            );
           })
           .whereType<Testimone>()
           .toList();
       final List<Ferito> feriti = _feriti
           .map((f) {
             final nome = f.nomeController.text.trim();
+            final cognome = f.cognomeController.text.trim();
             final indirizzo = f.indirizzoController.text.trim();
+            final zip = f.zipController.text.trim();
+            final city = f.cityController.text.trim();
+            final country = f.countryController.text.trim();
             final tel = f.telefonoController.text.trim();
-            if (nome.isEmpty && indirizzo.isEmpty && tel.isEmpty) return null;
-            return Ferito(nome: nome, indirizzo: indirizzo, telefono: tel);
+            final email = f.emailController.text.trim();
+            final nomeOspedale = f.nomeOspedaleController.text.trim();
+            final nota = f.notaController.text.trim();
+            if ([
+              nome,
+              cognome,
+              indirizzo,
+              zip,
+              city,
+              country,
+              tel,
+              email,
+              f.ruolo,
+              f.veicoloCollegato,
+              f.gravita,
+              f.trasportatoOspedale,
+              nomeOspedale,
+              nota,
+            ].every((value) => value.isEmpty)) {
+              return null;
+            }
+            return Ferito(
+              nome: nome,
+              cognome: cognome,
+              indirizzo: indirizzo,
+              zip: zip,
+              city: city,
+              country: country,
+              telefono: tel,
+              email: email,
+              ruolo: f.ruolo,
+              veicoloCollegato: f.veicoloCollegato,
+              gravita: f.gravita,
+              trasportatoOspedale: f.trasportatoOspedale,
+              nomeOspedale: nomeOspedale,
+              nota: nota,
+            );
           })
           .whereType<Ferito>()
           .toList();
