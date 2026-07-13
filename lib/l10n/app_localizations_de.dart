@@ -353,6 +353,61 @@ class AppLocalizationsDe extends AppLocalizations {
       'Das persönliche Profil konnte nicht gelöscht werden.';
 
   @override
+  String get personalVehiclesTitle => 'Meine Fahrzeuge';
+
+  @override
+  String get personalVehicleAdd => 'Fahrzeug hinzufügen';
+
+  @override
+  String get personalVehicleEdit => 'Fahrzeug bearbeiten';
+
+  @override
+  String get personalVehicleSave => 'Fahrzeug speichern';
+
+  @override
+  String get personalVehicleDelete => 'Fahrzeug löschen';
+
+  @override
+  String get personalVehicleDeleteConfirm => 'Dieses Fahrzeug löschen?';
+
+  @override
+  String get personalVehicleDeleteMessage =>
+      'Das Fahrzeug wird aus den auf diesem Gerät gespeicherten Daten entfernt.';
+
+  @override
+  String get personalVehiclePrimary => 'Hauptfahrzeug';
+
+  @override
+  String get personalVehicleSetPrimary => 'Als Hauptfahrzeug festlegen';
+
+  @override
+  String get personalVehicleSelect => 'Fahrzeug auswählen';
+
+  @override
+  String get personalVehicleContinueWithSelection =>
+      'Mit diesem Fahrzeug fortfahren';
+
+  @override
+  String get personalVehiclesEmpty => 'Keine Fahrzeuge gespeichert';
+
+  @override
+  String get personalVehicleSaved => 'Fahrzeug gespeichert';
+
+  @override
+  String get personalVehicleDeleted => 'Fahrzeug gelöscht';
+
+  @override
+  String get personalVehiclePlateRequired => 'Gib das Fahrzeugkennzeichen ein.';
+
+  @override
+  String get personalVehicleSaveError =>
+      'Das Fahrzeug konnte nicht gespeichert werden.';
+
+  @override
+  String get personalVehicleDeleteError =>
+      'Das Fahrzeug konnte nicht gelöscht werden.';
+
+  @override
   String get driverPersonalQrSavedDataPreviewTitle =>
       'Vorschau der gespeicherten Daten';
 

@@ -350,6 +350,59 @@ class AppLocalizationsEn extends AppLocalizations {
       'Unable to delete the personal profile.';
 
   @override
+  String get personalVehiclesTitle => 'My vehicles';
+
+  @override
+  String get personalVehicleAdd => 'Add vehicle';
+
+  @override
+  String get personalVehicleEdit => 'Edit vehicle';
+
+  @override
+  String get personalVehicleSave => 'Save vehicle';
+
+  @override
+  String get personalVehicleDelete => 'Delete vehicle';
+
+  @override
+  String get personalVehicleDeleteConfirm => 'Delete this vehicle?';
+
+  @override
+  String get personalVehicleDeleteMessage =>
+      'The vehicle will be removed from the data saved on this device.';
+
+  @override
+  String get personalVehiclePrimary => 'Primary vehicle';
+
+  @override
+  String get personalVehicleSetPrimary => 'Set as primary';
+
+  @override
+  String get personalVehicleSelect => 'Select vehicle';
+
+  @override
+  String get personalVehicleContinueWithSelection =>
+      'Continue with this vehicle';
+
+  @override
+  String get personalVehiclesEmpty => 'No saved vehicles';
+
+  @override
+  String get personalVehicleSaved => 'Vehicle saved';
+
+  @override
+  String get personalVehicleDeleted => 'Vehicle deleted';
+
+  @override
+  String get personalVehiclePlateRequired => 'Enter the vehicle license plate.';
+
+  @override
+  String get personalVehicleSaveError => 'Unable to save the vehicle.';
+
+  @override
+  String get personalVehicleDeleteError => 'Unable to delete the vehicle.';
+
+  @override
   String get driverPersonalQrSavedDataPreviewTitle => 'Saved data preview';
 
   @override

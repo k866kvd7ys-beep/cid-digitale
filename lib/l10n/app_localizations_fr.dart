@@ -358,6 +358,61 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible de supprimer le profil personnel.';
 
   @override
+  String get personalVehiclesTitle => 'Mes véhicules';
+
+  @override
+  String get personalVehicleAdd => 'Ajouter un véhicule';
+
+  @override
+  String get personalVehicleEdit => 'Modifier le véhicule';
+
+  @override
+  String get personalVehicleSave => 'Enregistrer le véhicule';
+
+  @override
+  String get personalVehicleDelete => 'Supprimer le véhicule';
+
+  @override
+  String get personalVehicleDeleteConfirm => 'Supprimer ce véhicule ?';
+
+  @override
+  String get personalVehicleDeleteMessage =>
+      'Le véhicule sera supprimé des données enregistrées sur cet appareil.';
+
+  @override
+  String get personalVehiclePrimary => 'Véhicule principal';
+
+  @override
+  String get personalVehicleSetPrimary => 'Définir comme principal';
+
+  @override
+  String get personalVehicleSelect => 'Sélectionner le véhicule';
+
+  @override
+  String get personalVehicleContinueWithSelection =>
+      'Continuer avec ce véhicule';
+
+  @override
+  String get personalVehiclesEmpty => 'Aucun véhicule enregistré';
+
+  @override
+  String get personalVehicleSaved => 'Véhicule enregistré';
+
+  @override
+  String get personalVehicleDeleted => 'Véhicule supprimé';
+
+  @override
+  String get personalVehiclePlateRequired => 'Saisis la plaque du véhicule.';
+
+  @override
+  String get personalVehicleSaveError =>
+      'Impossible d’enregistrer le véhicule.';
+
+  @override
+  String get personalVehicleDeleteError =>
+      'Impossible de supprimer le véhicule.';
+
+  @override
   String get driverPersonalQrSavedDataPreviewTitle =>
       'Aperçu des données enregistrées';
 

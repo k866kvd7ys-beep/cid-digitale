@@ -744,6 +744,108 @@ abstract class AppLocalizations {
   /// **'Das persönliche Profil konnte nicht gelöscht werden.'**
   String get driverPersonalQrDeleteProfileError;
 
+  /// No description provided for @personalVehiclesTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Meine Fahrzeuge'**
+  String get personalVehiclesTitle;
+
+  /// No description provided for @personalVehicleAdd.
+  ///
+  /// In de, this message translates to:
+  /// **'Fahrzeug hinzufügen'**
+  String get personalVehicleAdd;
+
+  /// No description provided for @personalVehicleEdit.
+  ///
+  /// In de, this message translates to:
+  /// **'Fahrzeug bearbeiten'**
+  String get personalVehicleEdit;
+
+  /// No description provided for @personalVehicleSave.
+  ///
+  /// In de, this message translates to:
+  /// **'Fahrzeug speichern'**
+  String get personalVehicleSave;
+
+  /// No description provided for @personalVehicleDelete.
+  ///
+  /// In de, this message translates to:
+  /// **'Fahrzeug löschen'**
+  String get personalVehicleDelete;
+
+  /// No description provided for @personalVehicleDeleteConfirm.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieses Fahrzeug löschen?'**
+  String get personalVehicleDeleteConfirm;
+
+  /// No description provided for @personalVehicleDeleteMessage.
+  ///
+  /// In de, this message translates to:
+  /// **'Das Fahrzeug wird aus den auf diesem Gerät gespeicherten Daten entfernt.'**
+  String get personalVehicleDeleteMessage;
+
+  /// No description provided for @personalVehiclePrimary.
+  ///
+  /// In de, this message translates to:
+  /// **'Hauptfahrzeug'**
+  String get personalVehiclePrimary;
+
+  /// No description provided for @personalVehicleSetPrimary.
+  ///
+  /// In de, this message translates to:
+  /// **'Als Hauptfahrzeug festlegen'**
+  String get personalVehicleSetPrimary;
+
+  /// No description provided for @personalVehicleSelect.
+  ///
+  /// In de, this message translates to:
+  /// **'Fahrzeug auswählen'**
+  String get personalVehicleSelect;
+
+  /// No description provided for @personalVehicleContinueWithSelection.
+  ///
+  /// In de, this message translates to:
+  /// **'Mit diesem Fahrzeug fortfahren'**
+  String get personalVehicleContinueWithSelection;
+
+  /// No description provided for @personalVehiclesEmpty.
+  ///
+  /// In de, this message translates to:
+  /// **'Keine Fahrzeuge gespeichert'**
+  String get personalVehiclesEmpty;
+
+  /// No description provided for @personalVehicleSaved.
+  ///
+  /// In de, this message translates to:
+  /// **'Fahrzeug gespeichert'**
+  String get personalVehicleSaved;
+
+  /// No description provided for @personalVehicleDeleted.
+  ///
+  /// In de, this message translates to:
+  /// **'Fahrzeug gelöscht'**
+  String get personalVehicleDeleted;
+
+  /// No description provided for @personalVehiclePlateRequired.
+  ///
+  /// In de, this message translates to:
+  /// **'Gib das Fahrzeugkennzeichen ein.'**
+  String get personalVehiclePlateRequired;
+
+  /// No description provided for @personalVehicleSaveError.
+  ///
+  /// In de, this message translates to:
+  /// **'Das Fahrzeug konnte nicht gespeichert werden.'**
+  String get personalVehicleSaveError;
+
+  /// No description provided for @personalVehicleDeleteError.
+  ///
+  /// In de, this message translates to:
+  /// **'Das Fahrzeug konnte nicht gelöscht werden.'**
+  String get personalVehicleDeleteError;
+
   /// No description provided for @driverPersonalQrSavedDataPreviewTitle.
   ///
   /// In de, this message translates to:

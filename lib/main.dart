@@ -38,6 +38,8 @@ import 'services/appointment_requests_service.dart';
 import 'services/incidents_sync_service.dart';
 import 'services/local_image_cache.dart';
 import 'models/driver_personal_qr_data.dart';
+import 'models/personal_vehicle_data.dart';
+import 'services/personal_vehicle_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'qr/qr_payload.dart';
@@ -3055,9 +3057,142 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<PersonalVehicleData?> _showPersonalVehicleSelector(
+    PersonalVehicleCollection collection,
+  ) {
+    var selected = collection.primaryVehicle ?? collection.vehicles.first;
+    return showModalBottomSheet<PersonalVehicleData>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => SafeArea(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 680, maxHeight: 620),
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(26),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.personalVehicleSelect,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: collection.vehicles.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final vehicle = collection.vehicles[index];
+                      final isSelected = vehicle.id == selected.id;
+                      final name = vehicle.displayName.isNotEmpty
+                          ? vehicle.displayName
+                          : vehicle.targa;
+                      return InkWell(
+                        onTap: () => setSheetState(() => selected = vehicle),
+                        borderRadius: BorderRadius.circular(18),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFFEFF6FF)
+                                : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: isSelected
+                                  ? const Color(0xFF2563EB)
+                                  : const Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                isSelected
+                                    ? Icons.check_circle_rounded
+                                    : Icons.directions_car_outlined,
+                                color: isSelected
+                                    ? const Color(0xFF2563EB)
+                                    : const Color(0xFF64748B),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      [
+                                        vehicle.targa,
+                                        vehicle.assicurazione,
+                                      ]
+                                          .where(
+                                            (value) => value.trim().isNotEmpty,
+                                          )
+                                          .join(' · '),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 18),
+                FilledButton(
+                  onPressed: () => Navigator.of(sheetContext).pop(selected),
+                  child: Text(
+                    AppLocalizations.of(context)!
+                        .personalVehicleContinueWithSelection,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _vaiANuovoIncidente() async {
+    PersonalVehicleData? selectedVehicle;
+    try {
+      final collection = await PersonalVehicleStorage().loadOrMigrate();
+      if (!mounted) return;
+      if (collection.vehicles.length == 1) {
+        selectedVehicle = collection.vehicles.first;
+      } else if (collection.vehicles.length > 1) {
+        selectedVehicle = await _showPersonalVehicleSelector(collection);
+        if (selectedVehicle == null || !mounted) return;
+      }
+    } catch (_) {
+      selectedVehicle = null;
+    }
+    if (!mounted) return;
+
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const NuovaPraticaIncidentePage()),
+      MaterialPageRoute(
+        builder: (_) => NuovaPraticaIncidentePage(
+          initialVehicle: selectedVehicle,
+        ),
+      ),
     );
     await caricaIncidenti();
     _refreshHomeData();
@@ -4645,7 +4780,12 @@ enum _GeoPermissionState {
 }
 
 class NuovaPraticaIncidentePage extends StatefulWidget {
-  const NuovaPraticaIncidentePage({super.key});
+  const NuovaPraticaIncidentePage({
+    super.key,
+    this.initialVehicle,
+  });
+
+  final PersonalVehicleData? initialVehicle;
 
   @override
   State<NuovaPraticaIncidentePage> createState() =>
@@ -4741,6 +4881,11 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   void initState() {
     super.initState();
     debugPrint('[AccidentGPS] init NuovaPraticaIncidentePage');
+    final initialVehicle = widget.initialVehicle;
+    if (initialVehicle != null) {
+      _targaAController.text = initialVehicle.targa;
+      _assicurazioneAController.text = initialVehicle.assicurazione;
+    }
     _audioPlayerSub = _audioPlayer.onPlayerComplete.listen((event) {
       if (mounted) {
         setState(() {

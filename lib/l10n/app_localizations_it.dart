@@ -350,6 +350,59 @@ class AppLocalizationsIt extends AppLocalizations {
       'Impossibile eliminare il profilo personale.';
 
   @override
+  String get personalVehiclesTitle => 'I miei veicoli';
+
+  @override
+  String get personalVehicleAdd => 'Aggiungi veicolo';
+
+  @override
+  String get personalVehicleEdit => 'Modifica veicolo';
+
+  @override
+  String get personalVehicleSave => 'Salva veicolo';
+
+  @override
+  String get personalVehicleDelete => 'Elimina veicolo';
+
+  @override
+  String get personalVehicleDeleteConfirm => 'Eliminare questo veicolo?';
+
+  @override
+  String get personalVehicleDeleteMessage =>
+      'Il veicolo verrà rimosso dai dati salvati su questo dispositivo.';
+
+  @override
+  String get personalVehiclePrimary => 'Veicolo principale';
+
+  @override
+  String get personalVehicleSetPrimary => 'Imposta come principale';
+
+  @override
+  String get personalVehicleSelect => 'Seleziona il veicolo';
+
+  @override
+  String get personalVehicleContinueWithSelection =>
+      'Continua con questo veicolo';
+
+  @override
+  String get personalVehiclesEmpty => 'Nessun veicolo salvato';
+
+  @override
+  String get personalVehicleSaved => 'Veicolo salvato';
+
+  @override
+  String get personalVehicleDeleted => 'Veicolo eliminato';
+
+  @override
+  String get personalVehiclePlateRequired => 'Inserisci la targa del veicolo.';
+
+  @override
+  String get personalVehicleSaveError => 'Impossibile salvare il veicolo.';
+
+  @override
+  String get personalVehicleDeleteError => 'Impossibile eliminare il veicolo.';
+
+  @override
   String get driverPersonalQrSavedDataPreviewTitle => 'Anteprima dati salvati';
 
   @override
