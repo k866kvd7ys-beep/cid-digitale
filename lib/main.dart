@@ -5164,6 +5164,107 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
   }
 
+  String _personalQrAddress(DriverPersonalQrData data) {
+    final cityLine = [
+      data.zip.trim(),
+      data.city.trim(),
+    ].where((value) => value.isNotEmpty).join(' ');
+    return [
+      data.indirizzo.trim(),
+      cityLine,
+      data.country.trim(),
+    ].where((value) => value.isNotEmpty).join(', ');
+  }
+
+  Future<void> _importWitnessQrData(
+    DriverPersonalQrData data,
+    _TestimoneFormData target,
+  ) async {
+    final scoped = data.scopedForImportRole(
+      DriverPersonalQrImportRole.witness,
+    );
+    final fullName = scoped.fullName;
+    final phone = scoped.telefono.trim();
+    if (fullName.isEmpty && phone.isEmpty) {
+      throw const FormatException('No compatible witness data');
+    }
+    if (!mounted || !_testimoni.contains(target)) return;
+
+    setState(() {
+      _writeDriverQrValue(target.nomeController, fullName);
+      _writeDriverQrValue(target.telefonoController, phone);
+    });
+  }
+
+  Future<void> _importInjuredQrData(
+    DriverPersonalQrData data,
+    _FeritoFormData target,
+  ) async {
+    final scoped = data.scopedForImportRole(
+      DriverPersonalQrImportRole.injured,
+    );
+    final fullName = scoped.fullName;
+    final address = _personalQrAddress(scoped);
+    final phone = scoped.telefono.trim();
+    if (fullName.isEmpty && address.isEmpty && phone.isEmpty) {
+      throw const FormatException('No compatible injured data');
+    }
+    if (!mounted || !_feriti.contains(target)) return;
+
+    setState(() {
+      _writeDriverQrValue(target.nomeController, fullName);
+      _writeDriverQrValue(target.indirizzoController, address);
+      _writeDriverQrValue(target.telefonoController, phone);
+    });
+  }
+
+  Future<void> _scanPersonalDataQr({
+    required DriverPersonalQrImportRole role,
+    required DriverQrDetectedCallback onDetected,
+  }) async {
+    final imported = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => DriverQrScannerScreen(
+          title: _copyText(
+            it: 'Scansiona QR dati',
+            de: 'Daten-QR scannen',
+            fr: 'Scanner le QR des données',
+            en: 'Scan data QR',
+          ),
+          hint: _copyText(
+            it: 'Inquadra un QR personale per importare i dati disponibili.',
+            de: 'Richten Sie einen persönlichen QR-Code aus, um die verfügbaren Daten zu importieren.',
+            fr: 'Cadrez un QR personnel pour importer les données disponibles.',
+            en: 'Frame a personal QR code to import the available data.',
+          ),
+          invalidMessage: _copyText(
+            it: 'QR personale non valido o senza dati compatibili',
+            de: 'Ungültiger persönlicher QR oder keine kompatiblen Daten',
+            fr: 'QR personnel non valide ou sans données compatibles',
+            en: 'Invalid personal QR or no compatible data',
+          ),
+          onDetected: onDetected,
+        ),
+      ),
+    );
+    if (!mounted || imported != true) return;
+    _mostraSnack(
+      role == DriverPersonalQrImportRole.witness
+          ? _copyText(
+              it: 'Dati del testimone importati correttamente',
+              de: 'Zeugendaten erfolgreich importiert',
+              fr: 'Données du témoin importées avec succès',
+              en: 'Witness data imported successfully',
+            )
+          : _copyText(
+              it: 'Dati del ferito importati correttamente',
+              de: 'Daten der verletzten Person erfolgreich importiert',
+              fr: 'Données du blessé importées avec succès',
+              en: 'Injured person data imported successfully',
+            ),
+    );
+  }
+
   void _setLibrettoPreviewForDriver(
     String key, {
     String? path,
@@ -7366,6 +7467,28 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      final target = _testimoni[i];
+                      unawaited(
+                        _scanPersonalDataQr(
+                          role: DriverPersonalQrImportRole.witness,
+                          onDetected: (data) =>
+                              _importWitnessQrData(data, target),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.qr_code_scanner_outlined),
+                    label: Text(
+                      _copyText(
+                        it: 'Scansiona QR dati',
+                        de: 'Daten-QR scannen',
+                        fr: 'Scanner le QR des données',
+                        en: 'Scan data QR',
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -7478,6 +7601,28 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                         decoration: InputDecoration(
                           labelText:
                               '${tx(context, 'Telefono ferito')} ${i + 1}',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          final target = _feriti[i];
+                          unawaited(
+                            _scanPersonalDataQr(
+                              role: DriverPersonalQrImportRole.injured,
+                              onDetected: (data) =>
+                                  _importInjuredQrData(data, target),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.qr_code_scanner_outlined),
+                        label: Text(
+                          _copyText(
+                            it: 'Scansiona QR dati',
+                            de: 'Daten-QR scannen',
+                            fr: 'Scanner le QR des données',
+                            en: 'Scan data QR',
+                          ),
                         ),
                       ),
                     ],
