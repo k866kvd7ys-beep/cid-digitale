@@ -11192,6 +11192,11 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     late final String injuriesTitle;
     late final String signedLabel;
     late final String missingSignatureLabel;
+    late final String otherObjectsDamageLabel;
+    late final String otherVehiclesDamageLabel;
+    late final String yesLabel;
+    late final String noLabel;
+    late final String notSpecifiedLabel;
     switch (langCode) {
       case 'it':
         claimNumberLabel = 'Numero pratica:';
@@ -11222,6 +11227,11 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         injuriesTitle = 'Feriti';
         signedLabel = 'Firmato digitalmente';
         missingSignatureLabel = 'Firma non presente';
+        otherObjectsDamageLabel = 'Danni materiali ad altri oggetti';
+        otherVehiclesDamageLabel = 'Danni materiali ad altri veicoli';
+        yesLabel = 'Sì';
+        noLabel = 'No';
+        notSpecifiedLabel = 'Non indicato';
         break;
       case 'fr':
         claimNumberLabel = 'Numero de dossier :';
@@ -11252,6 +11262,11 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         injuriesTitle = 'Blessés';
         signedLabel = 'Signé numériquement';
         missingSignatureLabel = 'Signature absente';
+        otherObjectsDamageLabel = 'Dommages matériels à d’autres objets';
+        otherVehiclesDamageLabel = 'Dommages matériels à d’autres véhicules';
+        yesLabel = 'Oui';
+        noLabel = 'Non';
+        notSpecifiedLabel = 'Non indiqué';
         break;
       case 'en':
         claimNumberLabel = 'Claim number:';
@@ -11282,6 +11297,11 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         injuriesTitle = 'Injuries';
         signedLabel = 'Digitally signed';
         missingSignatureLabel = 'Signature not available';
+        otherObjectsDamageLabel = 'Property damage to other objects';
+        otherVehiclesDamageLabel = 'Property damage to other vehicles';
+        yesLabel = 'Yes';
+        noLabel = 'No';
+        notSpecifiedLabel = 'Not specified';
         break;
       case 'de':
       default:
@@ -11313,7 +11333,17 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         injuriesTitle = 'Verletzte';
         signedLabel = 'Digital signiert';
         missingSignatureLabel = 'Unterschrift nicht vorhanden';
+        otherObjectsDamageLabel = 'Sachschäden an anderen Gegenständen';
+        otherVehiclesDamageLabel = 'Sachschäden an anderen Fahrzeugen';
+        yesLabel = 'Ja';
+        noLabel = 'Nein';
+        notSpecifiedLabel = 'Nicht angegeben';
         break;
+    }
+
+    String optionalDamageAnswer(bool? value) {
+      if (value == null) return notSpecifiedLabel;
+      return value ? yesLabel : noLabel;
     }
 
     String responsabilitaPdf;
@@ -11647,6 +11677,14 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                   child: sectionBox(
                     title: damageTitle,
                     children: [
+                      detailLine(
+                        otherObjectsDamageLabel,
+                        optionalDamageAnswer(incidente.otherObjectDamage),
+                      ),
+                      detailLine(
+                        otherVehiclesDamageLabel,
+                        optionalDamageAnswer(incidente.otherVehicleDamage),
+                      ),
                       detailLine(
                         l10n.damageVehicleA,
                         incidente.danniVeicoloA.isEmpty
