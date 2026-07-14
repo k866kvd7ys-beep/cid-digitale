@@ -4980,6 +4980,9 @@ class NuovaPraticaIncidentePage extends StatefulWidget {
 }
 
 class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
+  static const String _personalQrProfileStorageKey =
+      'driver_personal_qr_data_v1';
+
   static const Color _incidentBackground = Color(0xFFF8FAFC);
   static const Color _incidentCardBorder = Color(0xFFE5E7EB);
   static const Color _incidentMutedBackground = Color(0xFFF3F4F6);
@@ -5474,7 +5477,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             fr: 'QR personnel non valide ou sans données compatibles',
             en: 'Invalid personal QR or no compatible data',
           ),
-          onDetected: onDetected,
+          onDetected: (data) async {
+            if (!data.supportedRoles.contains(role.payloadValue)) {
+              throw const FormatException('Unsupported personal QR role');
+            }
+            await onDetected(data);
+          },
         ),
       ),
     );
@@ -5493,6 +5501,61 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               fr: 'Données du blessé importées avec succès',
               en: 'Injured person data imported successfully',
             ),
+    );
+  }
+
+  Future<void> _useMyPersonalProfile({
+    required DriverPersonalQrImportRole role,
+    required DriverQrDetectedCallback onDetected,
+  }) async {
+    DriverPersonalQrData? profile;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_personalQrProfileStorageKey)?.trim() ?? '';
+      if (raw.isNotEmpty) {
+        profile = driverPersonalQrDataFromQrPayload(raw);
+      }
+    } catch (_) {
+      profile = null;
+    }
+
+    if (!mounted) return;
+    if (profile == null ||
+        !profile.supportedRoles.contains(role.payloadValue)) {
+      _mostraSnack(_noSavedPersonalProfileMessage());
+      return;
+    }
+
+    try {
+      await onDetected(profile);
+    } on FormatException {
+      if (mounted) _mostraSnack(_noSavedPersonalProfileMessage());
+      return;
+    }
+    if (!mounted) return;
+    _mostraSnack(
+      role == DriverPersonalQrImportRole.witness
+          ? _copyText(
+              it: 'Dati del testimone importati correttamente',
+              de: 'Zeugendaten erfolgreich importiert',
+              fr: 'Données du témoin importées avec succès',
+              en: 'Witness data imported successfully',
+            )
+          : _copyText(
+              it: 'Dati del ferito importati correttamente',
+              de: 'Daten der verletzten Person erfolgreich importiert',
+              fr: 'Données du blessé importées avec succès',
+              en: 'Injured person data imported successfully',
+            ),
+    );
+  }
+
+  String _noSavedPersonalProfileMessage() {
+    return _copyText(
+      it: 'Nessun profilo personale salvato. Crea prima il tuo QR personale.',
+      de: 'Kein persönliches Profil gespeichert. Erstelle zuerst deinen persönlichen QR.',
+      fr: 'Aucun profil personnel enregistré. Créez d’abord votre QR personnel.',
+      en: 'No personal profile saved. Create your personal QR first.',
     );
   }
 
@@ -7718,17 +7781,120 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
   }
 
-  Widget _buildWitnessQrButton(_TestimoneFormData target) {
-    return _buildPersonalDataQrButton(
-      role: DriverPersonalQrImportRole.witness,
-      onDetected: (data) => _importWitnessQrData(data, target),
+  Widget _buildUseMyProfileButton({
+    required DriverPersonalQrImportRole role,
+    required DriverQrDetectedCallback onDetected,
+  }) {
+    return FilledButton.tonalIcon(
+      onPressed: () => unawaited(
+        _useMyPersonalProfile(role: role, onDetected: onDetected),
+      ),
+      icon: const Icon(Icons.person_outline),
+      label: Text(
+        _copyText(
+          it: 'Usa il mio profilo',
+          de: 'Mein Profil verwenden',
+          fr: 'Utiliser mon profil',
+          en: 'Use my profile',
+        ),
+      ),
     );
   }
 
-  Widget _buildInjuredQrButton(_FeritoFormData target) {
-    return _buildPersonalDataQrButton(
+  Widget _buildPersonCardHeader({
+    required String title,
+    required DriverPersonalQrImportRole role,
+    required DriverQrDetectedCallback onDetected,
+    required VoidCallback onDelete,
+    required String deleteTooltip,
+  }) {
+    final titleWidget = Text(
+      title,
+      style: Theme.of(context)
+          .textTheme
+          .titleSmall
+          ?.copyWith(fontWeight: FontWeight.w700),
+    );
+    final importActions = <Widget>[
+      _buildPersonalDataQrButton(role: role, onDetected: onDetected),
+      _buildUseMyProfileButton(role: role, onDetected: onDetected),
+    ];
+    final deleteButton = IconButton(
+      tooltip: deleteTooltip,
+      icon: const Icon(Icons.delete_outline),
+      onPressed: onDelete,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= 760) {
+          return Row(
+            children: [
+              Expanded(child: titleWidget),
+              Wrap(spacing: 8, runSpacing: 8, children: importActions),
+              const SizedBox(width: 4),
+              deleteButton,
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(child: titleWidget),
+                deleteButton,
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(spacing: 8, runSpacing: 8, children: importActions),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildWitnessCardHeader({
+    required int index,
+    required _TestimoneFormData target,
+  }) {
+    return _buildPersonCardHeader(
+      title:
+          '${_copyText(it: 'Testimone', de: 'Zeuge', fr: 'Témoin', en: 'Witness')} ${index + 1}',
+      role: DriverPersonalQrImportRole.witness,
+      onDetected: (data) => _importWitnessQrData(data, target),
+      deleteTooltip: _copyText(
+        it: 'Elimina testimone',
+        de: 'Zeugen löschen',
+        fr: 'Supprimer le témoin',
+        en: 'Delete witness',
+      ),
+      onDelete: () {
+        setState(() => _testimoni.remove(target));
+        target.dispose();
+      },
+    );
+  }
+
+  Widget _buildInjuredCardHeader({
+    required int index,
+    required _FeritoFormData target,
+  }) {
+    return _buildPersonCardHeader(
+      title:
+          '${_copyText(it: 'Ferito', de: 'Verletzte Person', fr: 'Blessé', en: 'Injured person')} ${index + 1}',
       role: DriverPersonalQrImportRole.injured,
       onDetected: (data) => _importInjuredQrData(data, target),
+      deleteTooltip: _copyText(
+        it: 'Elimina ferito',
+        de: 'Verletzte Person löschen',
+        fr: 'Supprimer le blessé',
+        en: 'Delete injured person',
+      ),
+      onDelete: () {
+        setState(() => _feriti.remove(target));
+        target.dispose();
+      },
     );
   }
 
@@ -7772,32 +7938,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${_copyText(it: 'Testimone', de: 'Zeuge', fr: 'Témoin', en: 'Witness')} ${i + 1}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: _copyText(
-                          it: 'Elimina testimone',
-                          de: 'Zeugen löschen',
-                          fr: 'Supprimer le témoin',
-                          en: 'Delete witness',
-                        ),
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () {
-                          final removed = _testimoni[i];
-                          setState(() => _testimoni.removeAt(i));
-                          removed.dispose();
-                        },
-                      ),
-                    ],
+                  _buildWitnessCardHeader(
+                    index: i,
+                    target: _testimoni[i],
                   ),
                   _buildPersonSubsectionTitle(
                     _copyText(
@@ -8037,8 +8180,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                       ),
                     ),
                   ]),
-                  const SizedBox(height: 12),
-                  _buildWitnessQrButton(_testimoni[i]),
                 ],
               ),
             ),
@@ -8078,32 +8219,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${_copyText(it: 'Ferito', de: 'Verletzte Person', fr: 'Blessé', en: 'Injured person')} ${i + 1}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: _copyText(
-                          it: 'Elimina ferito',
-                          de: 'Verletzte Person löschen',
-                          fr: 'Supprimer le blessé',
-                          en: 'Delete injured person',
-                        ),
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () {
-                          final removed = _feriti[i];
-                          setState(() => _feriti.removeAt(i));
-                          removed.dispose();
-                        },
-                      ),
-                    ],
+                  _buildInjuredCardHeader(
+                    index: i,
+                    target: _feriti[i],
                   ),
                   _buildPersonSubsectionTitle(
                     _copyText(
@@ -8493,8 +8611,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                       () => _feriti[i].consensoDati = value,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  _buildInjuredQrButton(_feriti[i]),
                 ],
               ),
             ),
