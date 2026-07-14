@@ -3484,14 +3484,14 @@ class _HomePageState extends State<HomePage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final availableWidth =
-            (constraints.maxWidth - 24).clamp(0.0, 480.0).toDouble();
+            ((constraints.maxWidth - 24) * 0.75).clamp(0.0, 360.0).toDouble();
 
         return Center(
           child: SizedBox(
             width: availableWidth,
             height: availableWidth * 0.62,
             child: Image.asset(
-              'assets/images/cid_digitale_logo.png',
+              'assets/images/cid_digitale_logo_transparent.png',
               fit: BoxFit.contain,
               semanticLabel: 'CID Digitale',
               errorBuilder: (context, error, stackTrace) => Center(
@@ -3605,68 +3605,49 @@ class _HomePageState extends State<HomePage> {
     return _HomeSurfaceCard(
       radius: 28,
       padding: const EdgeInsets.all(24),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final horizontal = constraints.maxWidth >= 720;
-          final logo = Container(
-            width: horizontal ? 134 : 120,
-            height: horizontal ? 134 : 120,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
-              color: _homeLightBlue,
-              borderRadius: BorderRadius.circular(28),
+              color: const Color(0xFFEEF5FF),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-            padding: const EdgeInsets.all(18),
             child: Image.asset(
-              'assets/images/crashform_logo.png',
+              'assets/images/cid_digitale_symbol.png',
               fit: BoxFit.contain,
             ),
-          );
-
-          final copy = Column(
-            crossAxisAlignment: horizontal
-                ? CrossAxisAlignment.start
-                : CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                textAlign: horizontal ? TextAlign.left : TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: _homeTextDark,
-                      letterSpacing: -0.6,
-                    ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                subtitle,
-                textAlign: horizontal ? TextAlign.left : TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: _homeTextGray,
-                      height: 1.45,
-                    ),
-              ),
-            ],
-          );
-
-          if (!horizontal) {
-            return Column(
-              children: [
-                logo,
-                const SizedBox(height: 18),
-                copy,
-              ],
-            );
-          }
-
-          return Row(
-            children: [
-              logo,
-              const SizedBox(width: 24),
-              Expanded(child: copy),
-            ],
-          );
-        },
+          ),
+          const SizedBox(height: 18),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: _homeTextDark,
+                  letterSpacing: -0.6,
+                ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: _homeTextGray,
+                  height: 1.45,
+                ),
+          ),
+        ],
       ),
     );
   }
@@ -4175,7 +4156,7 @@ class _HomePageState extends State<HomePage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _buildHeader(),
-                        const SizedBox(height: 22),
+                        const SizedBox(height: 32),
                         _buildHeroCard(
                           title: heroTitle,
                           subtitle: heroSubtitle,
