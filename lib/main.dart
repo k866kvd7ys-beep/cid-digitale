@@ -5472,10 +5472,18 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             en: 'Frame a personal QR code to import the available data.',
           ),
           invalidMessage: _copyText(
-            it: 'QR personale non valido o senza dati compatibili',
-            de: 'Ungültiger persönlicher QR oder keine kompatiblen Daten',
-            fr: 'QR personnel non valide ou sans données compatibles',
-            en: 'Invalid personal QR or no compatible data',
+            it: role == DriverPersonalQrImportRole.customerDriver
+                ? 'QR non compatibile con il conducente'
+                : 'QR personale non valido o senza dati compatibili',
+            de: role == DriverPersonalQrImportRole.customerDriver
+                ? 'QR nicht mit dem Fahrer kompatibel'
+                : 'Ungültiger persönlicher QR oder keine kompatiblen Daten',
+            fr: role == DriverPersonalQrImportRole.customerDriver
+                ? 'QR non compatible avec le conducteur'
+                : 'QR personnel non valide ou sans données compatibles',
+            en: role == DriverPersonalQrImportRole.customerDriver
+                ? 'QR not compatible with the driver'
+                : 'Invalid personal QR or no compatible data',
           ),
           onDetected: (data) async {
             if (!data.supportedRoles.contains(role.payloadValue)) {
@@ -5487,21 +5495,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       ),
     );
     if (!mounted || imported != true) return;
-    _mostraSnack(
-      role == DriverPersonalQrImportRole.witness
-          ? _copyText(
-              it: 'Dati del testimone importati correttamente',
-              de: 'Zeugendaten erfolgreich importiert',
-              fr: 'Données du témoin importées avec succès',
-              en: 'Witness data imported successfully',
-            )
-          : _copyText(
-              it: 'Dati del ferito importati correttamente',
-              de: 'Daten der verletzten Person erfolgreich importiert',
-              fr: 'Données du blessé importées avec succès',
-              en: 'Injured person data imported successfully',
-            ),
-    );
+    _mostraSnack(_personalImportSuccessMessage(role));
   }
 
   Future<void> _useMyPersonalProfile({
@@ -5533,21 +5527,33 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       return;
     }
     if (!mounted) return;
-    _mostraSnack(
-      role == DriverPersonalQrImportRole.witness
-          ? _copyText(
-              it: 'Dati del testimone importati correttamente',
-              de: 'Zeugendaten erfolgreich importiert',
-              fr: 'Données du témoin importées avec succès',
-              en: 'Witness data imported successfully',
-            )
-          : _copyText(
-              it: 'Dati del ferito importati correttamente',
-              de: 'Daten der verletzten Person erfolgreich importiert',
-              fr: 'Données du blessé importées avec succès',
-              en: 'Injured person data imported successfully',
-            ),
-    );
+    _mostraSnack(_personalImportSuccessMessage(role));
+  }
+
+  String _personalImportSuccessMessage(DriverPersonalQrImportRole role) {
+    switch (role) {
+      case DriverPersonalQrImportRole.customerDriver:
+        return _copyText(
+          it: 'Dati importati correttamente',
+          de: 'Daten erfolgreich importiert',
+          fr: 'Données importées avec succès',
+          en: 'Data imported successfully',
+        );
+      case DriverPersonalQrImportRole.witness:
+        return _copyText(
+          it: 'Dati del testimone importati correttamente',
+          de: 'Zeugendaten erfolgreich importiert',
+          fr: 'Données du témoin importées avec succès',
+          en: 'Witness data imported successfully',
+        );
+      case DriverPersonalQrImportRole.injured:
+        return _copyText(
+          it: 'Dati del ferito importati correttamente',
+          de: 'Daten der verletzten Person erfolgreich importiert',
+          fr: 'Données du blessé importées avec succès',
+          en: 'Injured person data imported successfully',
+        );
+    }
   }
 
   String _noSavedPersonalProfileMessage() {
@@ -7306,62 +7312,82 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     required String? Function(String?) targaValidator,
     required ValueChanged<_DriverCourtesy?> onCourtesyChanged,
     required VoidCallback onScanQr,
+    DriverQrDetectedCallback? personalQrImporter,
     VoidCallback? onDelete,
   }) {
     return _buildInnerCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _driverTitle(driverKey),
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-              ),
-              if (onDelete != null)
-                IconButton(
-                  tooltip: _copyText(
-                    it: 'Elimina conducente',
-                    de: 'Fahrer entfernen',
-                    fr: 'Supprimer le conducteur',
-                    en: 'Remove driver',
+          if (personalQrImporter != null)
+            _buildPersonCardHeader(
+              title: _driverTitle(driverKey),
+              role: DriverPersonalQrImportRole.customerDriver,
+              onDetected: personalQrImporter,
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _driverTitle(driverKey),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
-                  onPressed: onDelete,
-                  icon: const Icon(Icons.delete_outline),
                 ),
-            ],
-          ),
+                if (onDelete != null)
+                  IconButton(
+                    tooltip: _copyText(
+                      it: 'Elimina conducente',
+                      de: 'Fahrer entfernen',
+                      fr: 'Supprimer le conducteur',
+                      en: 'Remove driver',
+                    ),
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_outline),
+                  ),
+              ],
+            ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildAddOutlinedButton(
-                  onPressed: () => _scattaFotoLibretto(driverKey),
-                  icon: kIsWeb
-                      ? Icons.photo_camera_outlined
-                      : Icons.camera_alt_outlined,
-                  label: tx(context, 'Foto libretto'),
-                ),
+          if (personalQrImporter != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _buildAddOutlinedButton(
+                onPressed: () => _scattaFotoLibretto(driverKey),
+                icon: kIsWeb
+                    ? Icons.photo_camera_outlined
+                    : Icons.camera_alt_outlined,
+                label: tx(context, 'Foto libretto'),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildAddOutlinedButton(
-                  onPressed: onScanQr,
-                  icon: Icons.qr_code_scanner_outlined,
-                  label: _copyText(
-                    it: 'Scansiona QR dati',
-                    de: 'QR-Daten scannen',
-                    fr: 'Scanner QR données',
-                    en: 'Scan data QR',
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: _buildAddOutlinedButton(
+                    onPressed: () => _scattaFotoLibretto(driverKey),
+                    icon: kIsWeb
+                        ? Icons.photo_camera_outlined
+                        : Icons.camera_alt_outlined,
+                    label: tx(context, 'Foto libretto'),
                   ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildAddOutlinedButton(
+                    onPressed: onScanQr,
+                    icon: Icons.qr_code_scanner_outlined,
+                    label: _copyText(
+                      it: 'Scansiona QR dati',
+                      de: 'QR-Daten scannen',
+                      fr: 'Scanner QR données',
+                      en: 'Scan data QR',
+                    ),
+                  ),
+                ),
+              ],
+            ),
           _buildDriverPreview(fotoLibrettoPath, fotoLibrettoBytes),
           const SizedBox(height: 14),
           DropdownButtonFormField<_DriverCourtesy>(
@@ -7563,6 +7589,10 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           setState(() => _driverACourtesy = value);
         },
         onScanQr: () => _scanDriverQr('A'),
+        personalQrImporter: (data) => importDriverQrData(
+          data,
+          DriverTarget.fromKey('A'),
+        ),
       ),
       const SizedBox(height: 16),
       _buildDriverFormCard(
@@ -7598,6 +7628,10 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           setState(() => _driverBCourtesy = value);
         },
         onScanQr: () => _scanDriverQr('B'),
+        personalQrImporter: (data) => importDriverQrData(
+          data,
+          DriverTarget.fromKey('B'),
+        ),
       ),
       const SizedBox(height: 16),
       Align(
@@ -7805,8 +7839,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     required String title,
     required DriverPersonalQrImportRole role,
     required DriverQrDetectedCallback onDetected,
-    required VoidCallback onDelete,
-    required String deleteTooltip,
+    VoidCallback? onDelete,
+    String? deleteTooltip,
   }) {
     final titleWidget = Text(
       title,
@@ -7819,11 +7853,13 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       _buildPersonalDataQrButton(role: role, onDetected: onDetected),
       _buildUseMyProfileButton(role: role, onDetected: onDetected),
     ];
-    final deleteButton = IconButton(
-      tooltip: deleteTooltip,
-      icon: const Icon(Icons.delete_outline),
-      onPressed: onDelete,
-    );
+    final deleteButton = onDelete == null
+        ? null
+        : IconButton(
+            tooltip: deleteTooltip,
+            icon: const Icon(Icons.delete_outline),
+            onPressed: onDelete,
+          );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -7832,8 +7868,10 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             children: [
               Expanded(child: titleWidget),
               Wrap(spacing: 8, runSpacing: 8, children: importActions),
-              const SizedBox(width: 4),
-              deleteButton,
+              if (deleteButton != null) ...[
+                const SizedBox(width: 4),
+                deleteButton,
+              ],
             ],
           );
         }
@@ -7843,7 +7881,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             Row(
               children: [
                 Expanded(child: titleWidget),
-                deleteButton,
+                if (deleteButton != null) deleteButton,
               ],
             ),
             const SizedBox(height: 10),
