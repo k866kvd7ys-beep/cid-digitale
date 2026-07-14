@@ -3480,7 +3480,39 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildHeader(String subtitle) {
+  Widget _buildCidLogo() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth =
+            (constraints.maxWidth - 24).clamp(0.0, 480.0).toDouble();
+
+        return Center(
+          child: SizedBox(
+            width: availableWidth,
+            height: availableWidth * 0.62,
+            child: Image.asset(
+              'assets/images/cid_digitale_logo.png',
+              fit: BoxFit.contain,
+              semanticLabel: 'CID Digitale',
+              errorBuilder: (context, error, stackTrace) => Center(
+                child: Text(
+                  'CID Digitale',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: _homeTextDark,
+                        letterSpacing: -0.8,
+                      ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -3561,24 +3593,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         const SizedBox(height: 18),
-        Text(
-          'CID Digitale',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: _homeTextDark,
-                letterSpacing: -0.8,
-              ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          subtitle,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: _homeTextGray,
-                fontWeight: FontWeight.w500,
-              ),
-        ),
+        _buildCidLogo(),
       ],
     );
   }
@@ -4042,12 +4057,6 @@ class _HomePageState extends State<HomePage> {
       );
     }
     final l10n = AppLocalizations.of(context)!;
-    final headerSubtitle = _copy(
-      it: 'Gestione intelligente degli incidenti',
-      de: 'Intelligente Schadenverwaltung',
-      fr: 'Gestion intelligente des sinistres',
-      en: 'Intelligent accident management',
-    );
     final heroTitle = _copy(
       it: 'Benvenuto nel tuo CID Digitale',
       de: 'Willkommen in deinem digitalen Unfallbericht',
@@ -4165,7 +4174,7 @@ class _HomePageState extends State<HomePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildHeader(headerSubtitle),
+                        _buildHeader(),
                         const SizedBox(height: 22),
                         _buildHeroCard(
                           title: heroTitle,
