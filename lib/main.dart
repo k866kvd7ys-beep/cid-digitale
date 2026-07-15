@@ -3481,6 +3481,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildCidLogo() {
+    const logoAssets = <String, String>{
+      'it': 'assets/images/cid_logo_it.png',
+      'de': 'assets/images/cid_logo_de.png',
+      'en': 'assets/images/cid_logo_en.png',
+      'fr': 'assets/images/cid_logo_fr.png',
+    };
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final logoAsset = logoAssets[languageCode] ?? logoAssets['it']!;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final availableWidth =
@@ -3491,7 +3500,7 @@ class _HomePageState extends State<HomePage> {
             width: availableWidth,
             height: availableWidth * 0.62,
             child: Image.asset(
-              'assets/images/cid_digitale_logo_transparent.png',
+              logoAsset,
               fit: BoxFit.contain,
               semanticLabel: 'CID Digitale',
               errorBuilder: (context, error, stackTrace) => Center(
