@@ -39,13 +39,16 @@ import 'services/incidents_sync_service.dart';
 import 'services/local_image_cache.dart';
 import 'models/driver_personal_qr_data.dart';
 import 'models/personal_vehicle_data.dart';
+import 'models/customer_profile.dart';
 import 'services/personal_vehicle_storage.dart';
+import 'services/customer_auth_service.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'qr/qr_payload.dart';
 import 'package:cid_digitale/widgets/damage_type_picker_sheet.dart';
 import 'widgets/auth/auth_gate.dart';
-import 'screens/auth/login_page.dart';
+import 'screens/auth/customer_profile_page.dart';
+import 'auth/customer_auth_strings.dart';
 import 'web_share_helper.dart'
     show WebShareFile, shareFilesWeb, webUserAgent, webNavigatorShareAvailable;
 import 'screens/my_requests_page.dart';
@@ -1858,7 +1861,16 @@ class _CidDigitaleAppState extends State<CidDigitaleApp>
   }
 }
 
-Widget _homeBuilder(BuildContext context) => const HomePage();
+Widget _homeBuilder(
+  BuildContext context,
+  CustomerProfile profile,
+  CustomerAuthService service,
+) {
+  return HomePage(
+    profile: profile,
+    authService: service,
+  );
+}
 
 /// Traduttore semplice per la HOME //////////////////////////
 String tr(BuildContext context, String key, {Map<String, String>? params}) {
@@ -3046,7 +3058,14 @@ Future<dynamic> _invokeSendCidEmailEdgeFunction({
 /// HOME ////////////////////////////////////////////////////////////////
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({
+    super.key,
+    required this.profile,
+    required this.authService,
+  });
+
+  final CustomerProfile profile;
+  final CustomerAuthService authService;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -3064,6 +3083,7 @@ class _HomePageState extends State<HomePage> {
   final AppointmentRequestsService _appointmentRequestsService =
       AppointmentRequestsService();
   late Future<int?> _openRequestsCountFuture;
+  late CustomerProfile _customerProfile;
 
   String _copy({
     required String it,
@@ -3132,9 +3152,18 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _customerProfile = widget.profile;
     _openRequestsCountFuture = _loadOpenRequestsCount();
     incidentiRevision.addListener(_onIncidentiRevision);
     unawaited(PendingSyncManager.trigger());
+  }
+
+  @override
+  void didUpdateWidget(covariant HomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile != widget.profile) {
+      _customerProfile = widget.profile;
+    }
   }
 
   @override
@@ -3431,22 +3460,49 @@ class _HomePageState extends State<HomePage> {
     _refreshHomeData();
   }
 
+  Future<void> _openCustomerProfile() async {
+    final account = widget.authService.currentAccount;
+    if (account == null) {
+      if (!mounted) return;
+      final strings = CustomerAuthStrings.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            strings.errorFor(
+              const CustomerAuthException(
+                CustomerAuthErrorCode.unauthenticated,
+              ),
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CustomerProfilePage(
+          service: widget.authService,
+          account: account,
+          initialProfile: _customerProfile,
+          isOnboarding: false,
+          onSaved: (profile) {
+            if (mounted) setState(() => _customerProfile = profile);
+          },
+        ),
+      ),
+    );
+  }
+
   Future<void> _exitHome() async {
     try {
-      await Supabase.instance.client.auth.signOut();
+      await widget.authService.signOut();
     } catch (e) {
-      debugPrint('Exit signOut skipped: $e');
+      if (!mounted) return;
+      final strings = CustomerAuthStrings.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.errorFor(e))),
+      );
     }
-
-    if (!mounted) return;
-
-    final target =
-        kIsWeb ? const AuthGate(homeBuilder: _homeBuilder) : const LoginPage();
-
-    await Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => target),
-      (route) => false,
-    );
   }
 
   String _openRequestsBadgeLabel(int count) {
@@ -3522,6 +3578,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildHeader() {
+    final authStrings = CustomerAuthStrings.of(context);
+    final firstName = _customerProfile.firstName.trim();
+    final customerLabel = firstName.isEmpty
+        ? authStrings.profileEditTitle
+        : authStrings.hello(firstName);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -3569,15 +3630,42 @@ class _HomePageState extends State<HomePage> {
             ),
             _topBarShell(
               child: TextButton.icon(
+                onPressed: _openCustomerProfile,
+                icon: const Icon(
+                  Icons.account_circle_outlined,
+                  size: 19,
+                  color: _homeTextDark,
+                ),
+                label: Text(
+                  customerLabel,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _homeTextDark,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(0, 42),
+                  maximumSize: const Size(220, 48),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ),
+            _topBarShell(
+              child: TextButton.icon(
                 onPressed: _exitHome,
                 icon: const Icon(
                   Icons.exit_to_app_rounded,
                   size: 18,
                   color: _homeTextDark,
                 ),
-                label: const Text(
-                  'Exit',
-                  style: TextStyle(
+                label: Text(
+                  authStrings.logout,
+                  style: const TextStyle(
                     color: _homeTextDark,
                     fontWeight: FontWeight.w700,
                   ),

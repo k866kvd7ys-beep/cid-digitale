@@ -1,28 +1,269 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../auth/customer_auth_strings.dart';
+import '../../models/customer_profile.dart';
+import '../../screens/auth/customer_profile_page.dart';
 import '../../screens/auth/login_page.dart';
+import '../../services/customer_auth_service.dart';
+import 'auth_page_shell.dart';
 
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key, required this.homeBuilder});
+typedef AuthenticatedHomeBuilder = Widget Function(
+  BuildContext context,
+  CustomerProfile profile,
+  CustomerAuthService service,
+);
 
-  final WidgetBuilder homeBuilder;
+enum AuthGateStatus {
+  loading,
+  signedOut,
+  profileRequired,
+  authenticated,
+  error,
+}
+
+class AuthGate extends StatefulWidget {
+  const AuthGate({
+    super.key,
+    required this.homeBuilder,
+    this.service,
+  });
+
+  final AuthenticatedHomeBuilder homeBuilder;
+  final CustomerAuthService? service;
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  late final CustomerAuthService _service;
+  StreamSubscription<void>? _authSubscription;
+  AuthGateStatus _status = AuthGateStatus.loading;
+  CustomerAccount? _account;
+  CustomerProfile? _profile;
+  Object? _error;
+  Object? _signedOutError;
+  int _resolution = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _service = widget.service ?? SupabaseCustomerAuthService();
+    _authSubscription = _service.authStateChanges.listen(
+      (_) => _resolveAuthState(),
+      onError: (Object error) {
+        if (!mounted) return;
+        setState(() {
+          _status = AuthGateStatus.error;
+          _error = error;
+        });
+      },
+    );
+    unawaited(_resolveAuthState());
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _resolveAuthState() async {
+    final resolution = ++_resolution;
+    if (mounted) {
+      setState(() {
+        _status = AuthGateStatus.loading;
+        _error = null;
+      });
+    }
+
+    final account = _service.currentAccount;
+    if (account == null) {
+      if (!mounted || resolution != _resolution) return;
+      setState(() {
+        _account = null;
+        _profile = null;
+        _status = AuthGateStatus.signedOut;
+      });
+      return;
+    }
+
+    if (!account.isCustomer) {
+      _signedOutError =
+          const CustomerAuthException(CustomerAuthErrorCode.notCustomer);
+      try {
+        await _service.signOut();
+      } catch (_) {}
+      if (!mounted || resolution != _resolution) return;
+      setState(() {
+        _account = null;
+        _profile = null;
+        _status = AuthGateStatus.signedOut;
+      });
+      return;
+    }
+
+    _signedOutError = null;
+    try {
+      final profile = await _service.loadProfile(account.id);
+      if (!mounted || resolution != _resolution) return;
+      setState(() {
+        _account = account;
+        _profile = profile;
+        _status = profile?.profileCompleted == true
+            ? AuthGateStatus.authenticated
+            : AuthGateStatus.profileRequired;
+      });
+    } catch (error) {
+      if (!mounted || resolution != _resolution) return;
+      setState(() {
+        _account = account;
+        _profile = null;
+        _status = AuthGateStatus.error;
+        _error = error;
+      });
+    }
+  }
+
+  void _profileSaved(CustomerProfile profile) {
+    if (!mounted) return;
+    setState(() {
+      _profile = profile;
+      _status = AuthGateStatus.authenticated;
+      _error = null;
+    });
+  }
+
+  Future<void> _logout() async {
+    setState(() {
+      _status = AuthGateStatus.loading;
+      _error = null;
+    });
+    try {
+      await _service.signOut();
+      if (!mounted) return;
+      setState(() {
+        _account = null;
+        _profile = null;
+        _status = AuthGateStatus.signedOut;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _status = AuthGateStatus.error;
+        _error = error;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // WEB: richiede sessione; MOBILE: bypassa (comportamento attuale)
-    if (kIsWeb) {
-      return StreamBuilder<AuthState>(
-        stream: Supabase.instance.client.auth.onAuthStateChange,
-        builder: (context, snapshot) {
-          final session = Supabase.instance.client.auth.currentSession;
-          if (session == null) return const LoginPage();
-          return homeBuilder(context);
-        },
-      );
+    switch (_status) {
+      case AuthGateStatus.loading:
+        return const _AuthLoadingPage();
+      case AuthGateStatus.signedOut:
+        return LoginPage(
+          service: _service,
+          initialError: _signedOutError,
+          onAuthenticated: _resolveAuthState,
+        );
+      case AuthGateStatus.profileRequired:
+        return CustomerProfilePage(
+          service: _service,
+          account: _account!,
+          initialProfile: _profile,
+          isOnboarding: true,
+          onSaved: _profileSaved,
+        );
+      case AuthGateStatus.authenticated:
+        return widget.homeBuilder(context, _profile!, _service);
+      case AuthGateStatus.error:
+        return _AuthErrorPage(
+          error: _error ??
+              const CustomerAuthException(
+                CustomerAuthErrorCode.generic,
+              ),
+          onRetry: _resolveAuthState,
+          onLogout: _logout,
+        );
     }
+  }
+}
 
-    return homeBuilder(context);
+class _AuthLoadingPage extends StatelessWidget {
+  const _AuthLoadingPage();
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = CustomerAuthStrings.of(context);
+    return AuthPageShell(
+      child: AuthCard(
+        children: [
+          const Center(
+            child: SizedBox.square(
+              dimension: 42,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            strings.loading,
+            key: const Key('auth_loading'),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF475569),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AuthErrorPage extends StatelessWidget {
+  const _AuthErrorPage({
+    required this.error,
+    required this.onRetry,
+    required this.onLogout,
+  });
+
+  final Object error;
+  final VoidCallback onRetry;
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = CustomerAuthStrings.of(context);
+    return AuthPageShell(
+      child: AuthCard(
+        children: [
+          const Icon(
+            Icons.cloud_off_outlined,
+            size: 58,
+            color: Color(0xFFB91C1C),
+          ),
+          const SizedBox(height: 18),
+          AuthErrorBanner(message: strings.errorFor(error)),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            key: const Key('auth_retry'),
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded),
+            label: Text(strings.retry),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: onLogout,
+            child: Text(strings.logout),
+          ),
+        ],
+      ),
+    );
   }
 }
