@@ -25,6 +25,20 @@ const _completeProfile = CustomerProfile(
   profileCompleted: true,
 );
 
+const _workshopAccount = CustomerAccount(
+  id: 'shared-user',
+  email: 'antonio@example.com',
+  role: 'workshop',
+);
+
+const _workshopCustomerProfile = CustomerProfile(
+  userId: 'shared-user',
+  firstName: 'Antonio',
+  lastName: 'Privitera',
+  email: 'antonio@example.com',
+  profileCompleted: true,
+);
+
 Widget _app(Widget home) {
   return MaterialApp(
     locale: const Locale('it'),
@@ -141,8 +155,127 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('profile_save')), findsOneWidget);
-    expect(find.text('Completa il tuo profilo'), findsOneWidget);
+    expect(find.text('Completa il tuo profilo Cliente'), findsOneWidget);
     expect(find.text('HOME'), findsNothing);
+    await service.dispose();
+  });
+
+  testWidgets(
+      'workshop account without customer profile can complete Customer setup',
+      (tester) async {
+    final service = FakeCustomerAuthService(account: _workshopAccount);
+    await tester.pumpWidget(
+      _app(
+        AuthGate(
+          service: service,
+          homeBuilder: (_, __, ___) => const Text('HOME'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Completa il tuo profilo Cliente'), findsOneWidget);
+    expect(find.text('Questo account non è un account Cliente.'), findsNothing);
+    expect(service.signOutCalls, 0);
+    expect(service.account?.role, 'workshop');
+
+    await tester.enterText(
+      find.byKey(const Key('profile_first_name')),
+      'Antonio',
+    );
+    await tester.enterText(
+      find.byKey(const Key('profile_last_name')),
+      'Privitera',
+    );
+    await tester.ensureVisible(find.byKey(const Key('profile_save')));
+    await tester.tap(find.byKey(const Key('profile_save')));
+    await tester.pumpAndSettle();
+
+    expect(service.saveProfileCalls, 1);
+    expect(service.profile?.userId, _workshopAccount.id);
+    expect(service.profile?.profileCompleted, isTrue);
+    expect(service.account?.role, 'workshop');
+    expect(find.text('HOME'), findsOneWidget);
+    await service.dispose();
+  });
+
+  testWidgets('workshop account with customer profile opens the Customer home',
+      (tester) async {
+    final service = FakeCustomerAuthService(
+      account: _workshopAccount,
+      profile: _workshopCustomerProfile,
+    );
+    await tester.pumpWidget(
+      _app(
+        AuthGate(
+          service: service,
+          homeBuilder: (_, profile, __) => Text(
+            'HOME ${profile.displayName}',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('HOME Antonio Privitera'), findsOneWidget);
+    expect(service.account?.role, 'workshop');
+    expect(service.signOutCalls, 0);
+    await service.dispose();
+  });
+
+  testWidgets('existing Auth registration points to login and profile setup',
+      (tester) async {
+    final service = FakeCustomerAuthService()
+      ..signUpError = const CustomerAuthException(
+        CustomerAuthErrorCode.emailAlreadyRegistered,
+      );
+    await tester.pumpWidget(_app(LoginPage(service: service)));
+    await tester.tap(find.text('Registrati'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('register_first_name')),
+      'Antonio',
+    );
+    await tester.enterText(
+      find.byKey(const Key('register_last_name')),
+      'Privitera',
+    );
+    await tester.enterText(
+      find.byKey(const Key('register_email')),
+      'antonio@example.com',
+    );
+    await tester.enterText(
+      find.byKey(const Key('register_password')),
+      'password123',
+    );
+    await tester.enterText(
+      find.byKey(const Key('register_password_confirmation')),
+      'password123',
+    );
+    await tester.ensureVisible(find.byKey(const Key('register_submit')));
+    await tester.tap(find.byKey(const Key('register_submit')));
+    await tester.pumpAndSettle();
+
+    expect(service.signUpCalls, 1);
+    expect(
+      find.text(
+        'Esiste già un account con questa e-mail. '
+        'Accedi con la password esistente per attivare anche il profilo Cliente.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('register_existing_account_login')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const Key('register_existing_account_login')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('login_submit')), findsOneWidget);
+    expect(find.byKey(const Key('register_submit')), findsNothing);
     await service.dispose();
   });
 

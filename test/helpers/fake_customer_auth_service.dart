@@ -8,29 +8,48 @@ class FakeCustomerAuthService implements CustomerAuthService {
     this.account,
     this.profile,
     this.signUpNeedsConfirmation = false,
-  });
+    CustomerAuthState? initialAuthState,
+  }) : initialAuthState = initialAuthState ??
+            CustomerAuthState(
+              event: CustomerAuthEventType.initialSession,
+              hasSession: account != null,
+            );
 
   CustomerAccount? account;
   CustomerProfile? profile;
   bool signUpNeedsConfirmation;
+  CustomerAuthState initialAuthState;
   Object? loadProfileError;
   Object? signInError;
+  Object? signUpError;
   Object? saveProfileError;
+  Object? updatePasswordError;
+  bool? implicitRecoveryResult;
   int signInCalls = 0;
+  int signUpCalls = 0;
   int signOutCalls = 0;
   int loadProfileCalls = 0;
   int saveProfileCalls = 0;
+  int updatePasswordCalls = 0;
   String? lastEmail;
   String? lastPassword;
+  String? lastUpdatedPassword;
 
-  final StreamController<void> _authController =
-      StreamController<void>.broadcast();
+  final StreamController<CustomerAuthState> _authController =
+      StreamController<CustomerAuthState>.broadcast();
 
   @override
   CustomerAccount? get currentAccount => account;
 
   @override
-  Stream<void> get authStateChanges => _authController.stream;
+  Stream<CustomerAuthState> get authStateChanges async* {
+    yield initialAuthState;
+    yield* _authController.stream;
+  }
+
+  void emitAuthState(CustomerAuthState state) {
+    _authController.add(state);
+  }
 
   @override
   Future<CustomerProfile?> loadProfile(String userId) async {
@@ -43,6 +62,11 @@ class FakeCustomerAuthService implements CustomerAuthService {
   @override
   Future<void> sendPasswordReset(String email) async {
     lastEmail = email;
+  }
+
+  @override
+  Future<bool?> recoverPasswordSessionFromUrl(Uri uri) async {
+    return implicitRecoveryResult;
   }
 
   @override
@@ -61,7 +85,12 @@ class FakeCustomerAuthService implements CustomerAuthService {
       firstName: 'Mario',
       lastName: 'Rossi',
     );
-    _authController.add(null);
+    emitAuthState(
+      const CustomerAuthState(
+        event: CustomerAuthEventType.signedIn,
+        hasSession: true,
+      ),
+    );
   }
 
   @override
@@ -69,8 +98,16 @@ class FakeCustomerAuthService implements CustomerAuthService {
     signOutCalls++;
     account = null;
     profile = null;
-    _authController.add(null);
+    emitAuthState(
+      const CustomerAuthState(
+        event: CustomerAuthEventType.signedOut,
+        hasSession: false,
+      ),
+    );
   }
+
+  @override
+  Future<void> signOutPasswordRecovery() => signOut();
 
   @override
   Future<CustomerRegistrationResult> signUp({
@@ -79,8 +116,10 @@ class FakeCustomerAuthService implements CustomerAuthService {
     required String email,
     required String password,
   }) async {
+    signUpCalls++;
     lastEmail = email;
     lastPassword = password;
+    if (signUpError case final error?) throw error;
     if (!signUpNeedsConfirmation) {
       account = CustomerAccount(
         id: 'customer-1',
@@ -89,7 +128,12 @@ class FakeCustomerAuthService implements CustomerAuthService {
         firstName: firstName,
         lastName: lastName,
       );
-      _authController.add(null);
+      emitAuthState(
+        const CustomerAuthState(
+          event: CustomerAuthEventType.signedIn,
+          hasSession: true,
+        ),
+      );
     }
     return CustomerRegistrationResult(
       hasSession: !signUpNeedsConfirmation,
@@ -104,6 +148,19 @@ class FakeCustomerAuthService implements CustomerAuthService {
     CustomerProfileAccessGuard.ensureOwner(account, value.userId);
     profile = value;
     return value;
+  }
+
+  @override
+  Future<void> updatePassword(String password) async {
+    updatePasswordCalls++;
+    lastUpdatedPassword = password;
+    if (updatePasswordError case final error?) throw error;
+    emitAuthState(
+      const CustomerAuthState(
+        event: CustomerAuthEventType.other,
+        hasSession: true,
+      ),
+    );
   }
 
   Future<void> dispose() => _authController.close();

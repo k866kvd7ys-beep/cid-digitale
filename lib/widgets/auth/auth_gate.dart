@@ -2,10 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../auth/recovery_browser_path.dart';
 import '../../auth/customer_auth_strings.dart';
 import '../../models/customer_profile.dart';
 import '../../screens/auth/customer_profile_page.dart';
+import '../../screens/auth/forgot_password_page.dart';
 import '../../screens/auth/login_page.dart';
+import '../../screens/auth/password_recovery_page.dart';
 import '../../services/customer_auth_service.dart';
 import 'auth_page_shell.dart';
 
@@ -20,6 +23,9 @@ enum AuthGateStatus {
   signedOut,
   profileRequired,
   authenticated,
+  passwordRecovery,
+  passwordRecoveryInvalid,
+  forgotPassword,
   error,
 }
 
@@ -28,10 +34,12 @@ class AuthGate extends StatefulWidget {
     super.key,
     required this.homeBuilder,
     this.service,
+    this.passwordRecoveryRoute,
   });
 
   final AuthenticatedHomeBuilder homeBuilder;
   final CustomerAuthService? service;
+  final bool? passwordRecoveryRoute;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -39,35 +47,133 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   late final CustomerAuthService _service;
-  StreamSubscription<void>? _authSubscription;
+  StreamSubscription<CustomerAuthState>? _authSubscription;
   AuthGateStatus _status = AuthGateStatus.loading;
   CustomerAccount? _account;
   CustomerProfile? _profile;
   Object? _error;
   Object? _signedOutError;
+  late bool _isPasswordRecoveryRoute;
+  bool _checkingPasswordRecoveryCallback = false;
+  bool _completingPasswordRecovery = false;
+  bool _showPasswordUpdatedMessage = false;
+  CustomerAuthState? _pendingAuthState;
   int _resolution = 0;
 
   @override
   void initState() {
     super.initState();
     _service = widget.service ?? SupabaseCustomerAuthService();
+    _isPasswordRecoveryRoute =
+        widget.passwordRecoveryRoute ?? isCustomerPasswordRecoveryLocation();
+    _checkingPasswordRecoveryCallback = _isPasswordRecoveryRoute;
     _authSubscription = _service.authStateChanges.listen(
-      (_) => _resolveAuthState(),
+      _handleAuthState,
       onError: (Object error) {
         if (!mounted) return;
         setState(() {
-          _status = AuthGateStatus.error;
-          _error = error;
+          if (_isPasswordRecoveryRoute) {
+            _checkingPasswordRecoveryCallback = false;
+            _status = AuthGateStatus.passwordRecoveryInvalid;
+            _error = null;
+          } else {
+            _status = AuthGateStatus.error;
+            _error = error;
+          }
         });
       },
     );
-    unawaited(_resolveAuthState());
+    if (_isPasswordRecoveryRoute) {
+      unawaited(_initializePasswordRecoveryRoute());
+    }
   }
 
   @override
   void dispose() {
     _authSubscription?.cancel();
     super.dispose();
+  }
+
+  void _handleAuthState(CustomerAuthState state) {
+    if (state.isPasswordRecovery) {
+      if (!mounted) return;
+      setState(() {
+        _isPasswordRecoveryRoute = true;
+        _checkingPasswordRecoveryCallback = false;
+        _pendingAuthState = null;
+        _account = null;
+        _profile = null;
+        _error = null;
+        _signedOutError = null;
+        _showPasswordUpdatedMessage = false;
+        _status = state.hasSession
+            ? AuthGateStatus.passwordRecovery
+            : AuthGateStatus.passwordRecoveryInvalid;
+      });
+      return;
+    }
+
+    if (_isPasswordRecoveryRoute) {
+      if (_checkingPasswordRecoveryCallback) {
+        _pendingAuthState = state;
+        return;
+      }
+      if (_completingPasswordRecovery ||
+          (_status == AuthGateStatus.passwordRecovery &&
+              state.event != CustomerAuthEventType.signedOut)) {
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        _status = AuthGateStatus.passwordRecoveryInvalid;
+        _error = null;
+      });
+      return;
+    }
+
+    unawaited(_resolveAuthState());
+  }
+
+  Future<void> _initializePasswordRecoveryRoute() async {
+    bool? recovered;
+    try {
+      recovered = await _service.recoverPasswordSessionFromUrl(Uri.base);
+    } catch (_) {
+      recovered = false;
+    }
+    if (!mounted ||
+        (!_checkingPasswordRecoveryCallback &&
+            _status == AuthGateStatus.passwordRecovery)) {
+      return;
+    }
+
+    _checkingPasswordRecoveryCallback = false;
+    if (recovered == true) {
+      clearCustomerPasswordRecoveryCredentials();
+      setState(() {
+        _pendingAuthState = null;
+        _account = null;
+        _profile = null;
+        _error = null;
+        _signedOutError = null;
+        _status = AuthGateStatus.passwordRecovery;
+      });
+      return;
+    }
+    if (recovered == false) {
+      setState(() {
+        _pendingAuthState = null;
+        _status = AuthGateStatus.passwordRecoveryInvalid;
+        _error = null;
+      });
+      return;
+    }
+
+    final pendingState = _pendingAuthState;
+    _pendingAuthState = null;
+    if (pendingState != null) {
+      _handleAuthState(pendingState);
+    }
   }
 
   Future<void> _resolveAuthState() async {
@@ -81,21 +187,6 @@ class _AuthGateState extends State<AuthGate> {
 
     final account = _service.currentAccount;
     if (account == null) {
-      if (!mounted || resolution != _resolution) return;
-      setState(() {
-        _account = null;
-        _profile = null;
-        _status = AuthGateStatus.signedOut;
-      });
-      return;
-    }
-
-    if (!account.isCustomer) {
-      _signedOutError =
-          const CustomerAuthException(CustomerAuthErrorCode.notCustomer);
-      try {
-        await _service.signOut();
-      } catch (_) {}
       if (!mounted || resolution != _resolution) return;
       setState(() {
         _account = null;
@@ -158,6 +249,48 @@ class _AuthGateState extends State<AuthGate> {
     }
   }
 
+  Future<void> _completePasswordRecovery() async {
+    _completingPasswordRecovery = true;
+    try {
+      await _service.signOutPasswordRecovery();
+      if (!mounted) return;
+      leaveCustomerPasswordRecoveryLocation();
+      setState(() {
+        _isPasswordRecoveryRoute = false;
+        _completingPasswordRecovery = false;
+        _showPasswordUpdatedMessage = true;
+        _account = null;
+        _profile = null;
+        _error = null;
+        _signedOutError = null;
+        _status = AuthGateStatus.signedOut;
+      });
+    } catch (_) {
+      _completingPasswordRecovery = false;
+      rethrow;
+    }
+  }
+
+  void _requestNewRecoveryEmail() {
+    leaveCustomerPasswordRecoveryLocation();
+    setState(() {
+      _isPasswordRecoveryRoute = false;
+      _showPasswordUpdatedMessage = false;
+      _error = null;
+      _signedOutError = null;
+      _status = AuthGateStatus.forgotPassword;
+    });
+  }
+
+  void _returnToLogin() {
+    if (!mounted) return;
+    setState(() {
+      _status = AuthGateStatus.signedOut;
+      _error = null;
+      _signedOutError = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     switch (_status) {
@@ -167,6 +300,9 @@ class _AuthGateState extends State<AuthGate> {
         return LoginPage(
           service: _service,
           initialError: _signedOutError,
+          initialSuccessMessage: _showPasswordUpdatedMessage
+              ? CustomerAuthStrings.of(context).passwordUpdated
+              : null,
           onAuthenticated: _resolveAuthState,
         );
       case AuthGateStatus.profileRequired:
@@ -179,6 +315,20 @@ class _AuthGateState extends State<AuthGate> {
         );
       case AuthGateStatus.authenticated:
         return widget.homeBuilder(context, _profile!, _service);
+      case AuthGateStatus.passwordRecovery:
+        return PasswordRecoveryPage(
+          service: _service,
+          onCompleted: _completePasswordRecovery,
+        );
+      case AuthGateStatus.passwordRecoveryInvalid:
+        return InvalidPasswordRecoveryPage(
+          onRequestNewEmail: _requestNewRecoveryEmail,
+        );
+      case AuthGateStatus.forgotPassword:
+        return ForgotPasswordPage(
+          service: _service,
+          onBackToLogin: _returnToLogin,
+        );
       case AuthGateStatus.error:
         return _AuthErrorPage(
           error: _error ??

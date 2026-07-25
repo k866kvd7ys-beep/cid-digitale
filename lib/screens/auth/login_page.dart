@@ -13,11 +13,13 @@ class LoginPage extends StatefulWidget {
     this.service,
     this.onAuthenticated,
     this.initialError,
+    this.initialSuccessMessage,
   });
 
   final CustomerAuthService? service;
   final VoidCallback? onAuthenticated;
   final Object? initialError;
+  final String? initialSuccessMessage;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -32,12 +34,14 @@ class _LoginPageState extends State<LoginPage> {
   bool _passwordVisible = false;
   bool _submitted = false;
   Object? _error;
+  String? _successMessage;
 
   @override
   void initState() {
     super.initState();
     _service = widget.service ?? SupabaseCustomerAuthService();
     _error = widget.initialError;
+    _successMessage = widget.initialSuccessMessage;
   }
 
   @override
@@ -51,6 +55,7 @@ class _LoginPageState extends State<LoginPage> {
     setState(() {
       _submitted = true;
       _error = null;
+      _successMessage = null;
     });
     if (!_formKey.currentState!.validate()) return;
 
@@ -106,6 +111,10 @@ class _LoginPageState extends State<LoginPage> {
               if (_error != null) ...[
                 const SizedBox(height: 20),
                 AuthErrorBanner(message: strings.errorFor(_error!)),
+              ],
+              if (_successMessage != null) ...[
+                const SizedBox(height: 20),
+                AuthSuccessBanner(message: _successMessage!),
               ],
               const SizedBox(height: 24),
               TextFormField(

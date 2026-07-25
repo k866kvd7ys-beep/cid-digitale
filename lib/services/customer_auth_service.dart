@@ -2,9 +2,38 @@ import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../config/supabase_config.dart';
 import '../models/customer_profile.dart';
 
 const String customerRole = 'customer';
+const String customerPasswordRecoveryPath = '/reset-password';
+const String customerPasswordRecoveryRedirectUrl =
+    'https://cid-client.vercel.app$customerPasswordRecoveryPath';
+
+bool isExistingAuthAccountSignUpResponse(AuthResponse response) {
+  return response.session == null && response.user?.identities?.isEmpty == true;
+}
+
+enum CustomerAuthEventType {
+  initialSession,
+  passwordRecovery,
+  signedIn,
+  signedOut,
+  other,
+}
+
+class CustomerAuthState {
+  const CustomerAuthState({
+    required this.event,
+    required this.hasSession,
+  });
+
+  final CustomerAuthEventType event;
+  final bool hasSession;
+
+  bool get isPasswordRecovery =>
+      event == CustomerAuthEventType.passwordRecovery;
+}
 
 class CustomerAccount {
   const CustomerAccount({
@@ -59,7 +88,7 @@ class CustomerAuthException implements Exception {
 abstract class CustomerAuthService {
   CustomerAccount? get currentAccount;
 
-  Stream<void> get authStateChanges;
+  Stream<CustomerAuthState> get authStateChanges;
 
   Future<CustomerRegistrationResult> signUp({
     required String firstName,
@@ -74,6 +103,12 @@ abstract class CustomerAuthService {
   });
 
   Future<void> sendPasswordReset(String email);
+
+  Future<bool?> recoverPasswordSessionFromUrl(Uri uri);
+
+  Future<void> updatePassword(String password);
+
+  Future<void> signOutPasswordRecovery();
 
   Future<void> signOut();
 
@@ -103,8 +138,22 @@ class SupabaseCustomerAuthService implements CustomerAuthService {
       _accountFromUser(_client.auth.currentUser);
 
   @override
-  Stream<void> get authStateChanges =>
-      _client.auth.onAuthStateChange.map<void>((_) {});
+  Stream<CustomerAuthState> get authStateChanges {
+    return _client.auth.onAuthStateChange.map((state) {
+      return CustomerAuthState(
+        event: switch (state.event) {
+          AuthChangeEvent.initialSession =>
+            CustomerAuthEventType.initialSession,
+          AuthChangeEvent.passwordRecovery =>
+            CustomerAuthEventType.passwordRecovery,
+          AuthChangeEvent.signedIn => CustomerAuthEventType.signedIn,
+          AuthChangeEvent.signedOut => CustomerAuthEventType.signedOut,
+          _ => CustomerAuthEventType.other,
+        },
+        hasSession: state.session != null,
+      );
+    });
+  }
 
   @override
   Future<CustomerRegistrationResult> signUp({
@@ -123,6 +172,11 @@ class SupabaseCustomerAuthService implements CustomerAuthService {
           'last_name': lastName.trim(),
         },
       );
+      if (isExistingAuthAccountSignUpResponse(response)) {
+        throw const CustomerAuthException(
+          CustomerAuthErrorCode.emailAlreadyRegistered,
+        );
+      }
       return CustomerRegistrationResult(
         hasSession: response.session != null,
         emailConfirmationRequired: response.session == null,
@@ -148,10 +202,6 @@ class SupabaseCustomerAuthService implements CustomerAuthService {
           CustomerAuthErrorCode.unauthenticated,
         );
       }
-      if (!account.isCustomer) {
-        await _client.auth.signOut();
-        throw const CustomerAuthException(CustomerAuthErrorCode.notCustomer);
-      }
     } on CustomerAuthException {
       rethrow;
     } on AuthException catch (error) {
@@ -161,8 +211,68 @@ class SupabaseCustomerAuthService implements CustomerAuthService {
 
   @override
   Future<void> sendPasswordReset(String email) async {
+    final recoveryAuthClient = GoTrueClient(
+      url: '$supabaseUrl/auth/v1',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': 'Bearer $supabaseAnonKey',
+      },
+      autoRefreshToken: false,
+      flowType: AuthFlowType.implicit,
+    );
     try {
-      await _client.auth.resetPasswordForEmail(email.trim().toLowerCase());
+      await recoveryAuthClient.resetPasswordForEmail(
+        email.trim().toLowerCase(),
+        redirectTo: customerPasswordRecoveryRedirectUrl,
+      );
+    } on AuthException catch (error) {
+      throw _translateAuthException(error);
+    } finally {
+      recoveryAuthClient.dispose();
+    }
+  }
+
+  @override
+  Future<bool?> recoverPasswordSessionFromUrl(Uri uri) async {
+    if (uri.queryParameters.containsKey('error') ||
+        uri.fragment.contains('error_description=')) {
+      return false;
+    }
+    if (uri.fragment.isEmpty) return null;
+
+    late final Map<String, String> fragmentParameters;
+    try {
+      fragmentParameters = Uri.splitQueryString(uri.fragment);
+    } on FormatException {
+      return false;
+    }
+    if (fragmentParameters['type'] != 'recovery') return null;
+
+    final refreshToken = fragmentParameters['refresh_token'];
+    if (refreshToken == null || refreshToken.isEmpty) return false;
+    try {
+      final response = await _client.auth.setSession(refreshToken);
+      return response.session != null;
+    } on AuthException {
+      return false;
+    }
+  }
+
+  @override
+  Future<void> updatePassword(String password) async {
+    try {
+      await _client.auth.updateUser(
+        UserAttributes(password: password),
+      );
+    } on AuthException catch (error) {
+      throw _translateAuthException(error);
+    }
+  }
+
+  @override
+  Future<void> signOutPasswordRecovery() async {
+    try {
+      await _client.auth.signOut(scope: SignOutScope.local);
     } on AuthException catch (error) {
       throw _translateAuthException(error);
     }

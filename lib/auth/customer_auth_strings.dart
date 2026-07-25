@@ -198,11 +198,59 @@ class CustomerAuthStrings {
         fr: 'Si l’adresse est enregistrée, vous recevrez bientôt les instructions.',
         en: 'If the address is registered, you will receive reset instructions shortly.',
       );
+  String get newPasswordTitle => _pick(
+        it: 'Crea una nuova password',
+        de: 'Neues Passwort erstellen',
+        fr: 'Créer un nouveau mot de passe',
+        en: 'Create a new password',
+      );
+  String get newPasswordSubtitle => _pick(
+        it: 'Scegli una nuova password sicura per il tuo account.',
+        de: 'Wähle ein neues sicheres Passwort für dein Konto.',
+        fr: 'Choisissez un nouveau mot de passe sécurisé pour votre compte.',
+        en: 'Choose a new secure password for your account.',
+      );
+  String get newPassword => _pick(
+        it: 'Nuova password',
+        de: 'Neues Passwort',
+        fr: 'Nouveau mot de passe',
+        en: 'New password',
+      );
+  String get confirmNewPassword => _pick(
+        it: 'Conferma nuova password',
+        de: 'Neues Passwort bestätigen',
+        fr: 'Confirmer le nouveau mot de passe',
+        en: 'Confirm new password',
+      );
+  String get saveNewPassword => _pick(
+        it: 'Salva nuova password',
+        de: 'Neues Passwort speichern',
+        fr: 'Enregistrer le nouveau mot de passe',
+        en: 'Save new password',
+      );
+  String get passwordUpdated => _pick(
+        it: 'Password aggiornata correttamente. La nuova password è valida sia nel CID Cliente sia nel Tool Officina.',
+        de: 'Passwort erfolgreich aktualisiert. Das neue Passwort gilt sowohl für CID Cliente als auch für das Werkstatt-Tool.',
+        fr: 'Mot de passe mis à jour avec succès. Le nouveau mot de passe est valable pour CID Cliente et l’outil Atelier.',
+        en: 'Password updated successfully. The new password works for both CID Customer and the Workshop Tool.',
+      );
+  String get recoveryLinkInvalid => _pick(
+        it: 'Il link di recupero non è più valido. Richiedi una nuova e-mail.',
+        de: 'Der Wiederherstellungslink ist nicht mehr gültig. Fordere eine neue E-Mail an.',
+        fr: 'Le lien de récupération n’est plus valide. Demandez un nouvel e-mail.',
+        en: 'The recovery link is no longer valid. Request a new email.',
+      );
+  String get requestNewRecoveryEmail => _pick(
+        it: 'Torna a Password dimenticata',
+        de: 'Zurück zu Passwort vergessen',
+        fr: 'Retour à Mot de passe oublié',
+        en: 'Back to Forgot password',
+      );
   String get profileSetupTitle => _pick(
-        it: 'Completa il tuo profilo',
-        de: 'Vervollständige dein Profil',
-        fr: 'Complétez votre profil',
-        en: 'Complete your profile',
+        it: 'Completa il tuo profilo Cliente',
+        de: 'Vervollständige dein Kundenprofil',
+        fr: 'Complétez votre profil Client',
+        en: 'Complete your Customer profile',
       );
   String get profileSetupSubtitle => _pick(
         it: 'Questi dati identificano il tuo account Cliente. Il QR personale resta separato e invariato.',
@@ -304,10 +352,10 @@ class CustomerAuthStrings {
         );
       case CustomerAuthErrorCode.emailAlreadyRegistered:
         return _pick(
-          it: 'Esiste già un account con questa e-mail.',
-          de: 'Für diese E-Mail existiert bereits ein Konto.',
-          fr: 'Un compte existe déjà avec cet e-mail.',
-          en: 'An account already exists for this email.',
+          it: 'Esiste già un account con questa e-mail. Accedi con la password esistente per attivare anche il profilo Cliente.',
+          de: 'Für diese E-Mail existiert bereits ein Konto. Melde dich mit dem bestehenden Passwort an, um auch das Kundenprofil zu aktivieren.',
+          fr: 'Un compte existe déjà avec cet e-mail. Connectez-vous avec le mot de passe existant pour activer aussi le profil Client.',
+          en: 'An account already exists for this email. Sign in with the existing password to activate the Customer profile too.',
         );
       case CustomerAuthErrorCode.weakPassword:
         return passwordTooShort;
@@ -348,4 +396,11 @@ class CustomerAuthStrings {
         );
     }
   }
+
+  String get signInAndCompleteCustomerProfile => _pick(
+        it: 'Accedi e completa il profilo Cliente',
+        de: 'Anmelden und Kundenprofil vervollständigen',
+        fr: 'Se connecter et compléter le profil Client',
+        en: 'Sign in and complete Customer profile',
+      );
 }

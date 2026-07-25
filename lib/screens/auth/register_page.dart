@@ -33,6 +33,11 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _awaitingEmailConfirmation = false;
   Object? _error;
 
+  bool get _emailAlreadyRegistered =>
+      _error is CustomerAuthException &&
+      (_error as CustomerAuthException).code ==
+          CustomerAuthErrorCode.emailAlreadyRegistered;
+
   @override
   void dispose() {
     _firstNameController.dispose();
@@ -103,6 +108,19 @@ class _RegisterPageState extends State<RegisterPage> {
               if (_error != null) ...[
                 const SizedBox(height: 20),
                 AuthErrorBanner(message: strings.errorFor(_error!)),
+                if (_emailAlreadyRegistered) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    key: const Key('register_existing_account_login'),
+                    onPressed:
+                        _loading ? null : () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.login_rounded),
+                    label: Text(strings.signInAndCompleteCustomerProfile),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(50),
+                    ),
+                  ),
+                ],
               ],
               const SizedBox(height: 24),
               TextFormField(

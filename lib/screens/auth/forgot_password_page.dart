@@ -9,9 +9,11 @@ class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({
     super.key,
     required this.service,
+    this.onBackToLogin,
   });
 
   final CustomerAuthService service;
+  final VoidCallback? onBackToLogin;
 
   @override
   State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
@@ -49,6 +51,15 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     }
   }
 
+  void _backToLogin() {
+    final callback = widget.onBackToLogin;
+    if (callback != null) {
+      callback();
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = CustomerAuthStrings.of(context);
@@ -58,7 +69,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           title: strings.resetSentTitle,
           message: strings.resetSentBody,
           actionLabel: strings.backToLogin,
-          onAction: () => Navigator.of(context).pop(),
+          onAction: _backToLogin,
         ),
       );
     }
@@ -118,7 +129,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             ),
             const SizedBox(height: 10),
             TextButton(
-              onPressed: _loading ? null : () => Navigator.of(context).pop(),
+              onPressed: _loading ? null : _backToLogin,
               child: Text(strings.backToLogin),
             ),
           ],
