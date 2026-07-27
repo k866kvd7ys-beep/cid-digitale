@@ -54,26 +54,6 @@ import 'screens/my_requests_page.dart';
 import 'package:crypto/crypto.dart';
 import 'web_ocr_stub.dart' if (dart.library.html) 'web_ocr_html.dart';
 
-class NominatimSuggestion {
-  final String displayName;
-  final double lat;
-  final double lon;
-
-  NominatimSuggestion({
-    required this.displayName,
-    required this.lat,
-    required this.lon,
-  });
-
-  factory NominatimSuggestion.fromJson(Map<String, dynamic> json) {
-    return NominatimSuggestion(
-      displayName: (json['display_name'] as String?) ?? '',
-      lat: double.tryParse(json['lat']?.toString() ?? '') ?? 0,
-      lon: double.tryParse(json['lon']?.toString() ?? '') ?? 0,
-    );
-  }
-}
-
 enum DamagePhotoStatus { local, uploading, uploaded, failed }
 
 class DamagePhotoItem {
@@ -1984,7 +1964,7 @@ const Map<String, Map<String, String>> _tMap = {
   },
   'Posizione in rilevamento...': {
     'it': 'Posizione in rilevamento...',
-    'de': 'Standort wird automatisch ermittelt...',
+    'de': 'Standort wird ermittelt...',
     'fr': 'Localisation en cours...',
     'en': 'Detecting location...',
   },
@@ -1999,6 +1979,24 @@ const Map<String, Map<String, String>> _tMap = {
     'de': 'Meinen Standort verwenden',
     'fr': 'Utiliser ma position',
     'en': 'Use my location',
+  },
+  'Rileva nuovamente la posizione': {
+    'it': 'Rileva nuovamente la posizione',
+    'de': 'Standort erneut ermitteln',
+    'fr': 'Détecter à nouveau la position',
+    'en': 'Detect location again',
+  },
+  'Indirizzo rilevato automaticamente': {
+    'it': 'Indirizzo rilevato automaticamente',
+    'de': 'Automatisch ermittelte Adresse',
+    'fr': 'Adresse détectée automatiquement',
+    'en': 'Automatically detected address',
+  },
+  'Rileva la posizione per continuare': {
+    'it': 'Rileva la posizione per continuare',
+    'de': 'Ermittle den Standort, um fortzufahren',
+    'fr': 'Détectez la position pour continuer',
+    'en': 'Detect the location to continue',
   },
   'Apri mappa': {
     'it': 'Apri mappa',
@@ -2079,6 +2077,17 @@ const Map<String, Map<String, String>> _tMap = {
         'Autorise la localisation pour renseigner automatiquement le lieu de l’accident.',
     'en':
         'Please allow location access to automatically fill the accident location.',
+  },
+  'La posizione non può essere rilevata. Consenti l’accesso alla posizione nelle impostazioni del browser e riprova.':
+      {
+    'it':
+        'La posizione non può essere rilevata. Consenti l’accesso alla posizione nelle impostazioni del browser e riprova.',
+    'de':
+        'Der Standort kann nicht ermittelt werden. Erlaube den Standortzugriff in den Browsereinstellungen und versuche es erneut.',
+    'fr':
+        'La position ne peut pas être détectée. Autorisez l’accès à la localisation dans les paramètres du navigateur, puis réessayez.',
+    'en':
+        'Your location cannot be detected. Allow location access in your browser settings and try again.',
   },
   'Riprova': {
     'it': 'Riprova',
@@ -5044,9 +5053,13 @@ class NuovaPraticaIncidentePage extends StatefulWidget {
   const NuovaPraticaIncidentePage({
     super.key,
     this.initialVehicle,
+    this.locationService = const DeviceLocationService(),
+    this.reverseGeocodingClient,
   });
 
   final PersonalVehicleData? initialVehicle;
+  final DeviceLocationService locationService;
+  final http.Client? reverseGeocodingClient;
 
   @override
   State<NuovaPraticaIncidentePage> createState() =>
@@ -5073,9 +5086,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   String? _addressReadable;
   bool _geoLoading = false;
   String? _geoMessage;
-  final List<NominatimSuggestion> _suggestions = [];
-  bool _suggestionsLoading = false;
-  Timer? _suggestionDebounce;
   bool _validazioneContattiAttiva = true;
   bool? _otherObjectDamage;
   bool? _otherVehicleDamage;
@@ -5191,12 +5201,11 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       }
     });
     _dataOra = DateTime.now();
-    _luogoController.addListener(_onLuogoChanged);
     _testimoni.add(_newTestimoneFormData());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _luogoController.text.trim().isNotEmpty) return;
       debugPrint('[AccidentGPS] auto-populate on open');
-      unawaited(_impostaLuogoAutomatico(forceUpdateField: false));
+      unawaited(_impostaLuogoAutomatico());
     });
   }
 
@@ -5677,20 +5686,17 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
   }
 
-  Future<void> _impostaLuogoAutomatico({bool forceUpdateField = false}) async {
+  Future<void> _impostaLuogoAutomatico() async {
     if (_geoLoading) return;
 
     final enableLocationMessage = tx(context,
         'Attiva la localizzazione sul dispositivo per compilare automaticamente il luogo dell’incidente.');
     final allowLocationMessage = tx(context,
-        'Consenti la posizione in Safari per compilare automaticamente il luogo dell’incidente.');
+        'La posizione non può essere rilevata. Consenti l’accesso alla posizione nelle impostazioni del browser e riprova.');
     final unavailableLocationMessage = tx(context,
         'Non siamo riusciti a ottenere la posizione. Verifica che la geolocalizzazione sia attiva e riprova.');
-    final gpsLabel = tx(context, 'Posizione GPS');
 
-    debugPrint(
-      '[AccidentGPS] start forceUpdateField=$forceUpdateField',
-    );
+    debugPrint('[AccidentGPS] start automatic location detection');
     debugPrint('[AccidentGPS] same workshop GPS method called');
     setState(() {
       _geoLoading = true;
@@ -5698,12 +5704,13 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       _geoPermission = _GeoPermissionState.unknown;
       _geoErrorMessage = null;
       _addressReadable = null;
-      _geoMessage = null;
+      _geoMessage = tx(context, 'Posizione in rilevamento...');
+      _luogoController.clear();
     });
 
     try {
       final locationResult =
-          await _globalDeviceLocationService.requestCurrentPosition();
+          await widget.locationService.requestCurrentPosition();
       final permissionState = _mapPermission(
           locationResult.permission ?? LocationPermission.denied);
       _geoPermission = permissionState;
@@ -5744,31 +5751,14 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         '[AccidentGPS] coordinates received lat=${position.latitude}, lng=${position.longitude}',
       );
 
-      final gpsFallback = _buildGpsLocationLabel(position, gpsLabel: gpsLabel);
       if (!mounted) return;
       setState(() {
-        _geoLoading = false;
         _geoPosition = position;
         _geoErrorMessage = null;
         _addressReadable = null;
-        _geoMessage = null;
-        final currentValue = _luogoController.text.trim();
-        final shouldOverwrite = forceUpdateField ||
-            currentValue.isEmpty ||
-            _isGpsFallbackValue(currentValue, gpsLabel: gpsLabel);
-        if (shouldOverwrite) {
-          _luogoController.text = gpsFallback;
-          debugPrint('[AccidentGPS] field updated $gpsFallback');
-        } else {
-          debugPrint('[AccidentGPS] field updated skipped-manual-value');
-        }
+        _geoMessage = tx(context, 'Indirizzo in caricamento...');
       });
-      unawaited(
-        _caricaIndirizzoDaPosizione(
-          position,
-          forceUpdateField: forceUpdateField,
-        ),
-      );
+      await _caricaIndirizzoDaPosizione(position);
     } catch (e, st) {
       debugPrint('[AccidentGPS] coordinates unavailable exception $e\n$st');
       _setGeoError(
@@ -5776,40 +5766,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         unavailableLocationMessage,
       );
     }
-  }
-
-  String _buildGpsLocationLabel(
-    Position position, {
-    required String gpsLabel,
-  }) {
-    return '$gpsLabel: ${position.latitude.toStringAsFixed(5)}, '
-        '${position.longitude.toStringAsFixed(5)}';
-  }
-
-  bool _isGpsFallbackValue(
-    String value, {
-    required String gpsLabel,
-  }) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) return false;
-    return trimmed.startsWith('$gpsLabel:') ||
-        trimmed.startsWith('Posizione GPS:') ||
-        trimmed.startsWith('LAT:');
-  }
-
-  bool _shouldHideGeoSuggestionPanel() {
-    final currentValue = _luogoController.text.trim();
-    if (_geoPosition == null || currentValue.isEmpty) {
-      return false;
-    }
-
-    final gpsLabel = tx(context, 'Posizione GPS');
-    if (_isGpsFallbackValue(currentValue, gpsLabel: gpsLabel)) {
-      return true;
-    }
-
-    final readableAddress = _addressReadable?.trim() ?? '';
-    return readableAddress.isNotEmpty && currentValue == readableAddress;
   }
 
   void _setGeoError(
@@ -5827,6 +5783,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       _geoErrorMessage = message;
       _addressReadable = null;
       _geoMessage = message;
+      _luogoController.clear();
     });
   }
 
@@ -5845,17 +5802,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     }
   }
 
-  Future<void> _caricaIndirizzoDaPosizione(
-    Position pos, {
-    bool forceUpdateField = true,
-  }) async {
+  Future<void> _caricaIndirizzoDaPosizione(Position pos) async {
     debugPrint(
-      '[AccidentGPS] reverse geocode start lat=${pos.latitude}, lng=${pos.longitude}, forceUpdateField=$forceUpdateField',
+      '[AccidentGPS] reverse geocode start lat=${pos.latitude}, lng=${pos.longitude}',
     );
-    final gpsLabel = tx(context, 'Posizione GPS');
-    setState(() {
-      _addressReadable = null;
-    });
+    final unavailableLocationMessage = tx(context,
+        'Non siamo riusciti a ottenere la posizione. Verifica che la geolocalizzazione sia attiva e riprova.');
 
     final headers = <String, String>{
       'Accept-Language': Localizations.localeOf(context).toLanguageTag(),
@@ -5870,9 +5822,10 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
 
     try {
-      final res = await http.get(uri, headers: headers).timeout(
-            const Duration(seconds: 10),
-          );
+      final request = widget.reverseGeocodingClient == null
+          ? http.get(uri, headers: headers)
+          : widget.reverseGeocodingClient!.get(uri, headers: headers);
+      final res = await request.timeout(const Duration(seconds: 10));
       debugPrint('[AccidentGPS] reverse geocode status ${res.statusCode}');
 
       if (!mounted) return;
@@ -5882,34 +5835,28 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         final addr = _formatNominatimAddress(
           body['address'] as Map<String, dynamic>?,
         );
-        setState(() {
-          if (addr != null && addr.isNotEmpty) {
+        if (addr != null && addr.isNotEmpty) {
+          setState(() {
+            _geoLoading = false;
             _addressReadable = addr;
+            _geoErrorMessage = null;
+            _geoMessage = null;
+            _luogoController.text = addr;
             debugPrint('[AccidentGPS] reverse geocode success $addr');
-            final current = _luogoController.text.trim();
-            if (forceUpdateField ||
-                current.isEmpty ||
-                _isGpsFallbackValue(current, gpsLabel: gpsLabel)) {
-              _luogoController.text = addr;
-              debugPrint('[AccidentGPS] field updated $addr');
-            }
-          } else {
-            _addressReadable = null;
-            debugPrint(
-                '[AccidentGPS] reverse geocode fail address-unavailable');
-          }
-        });
+          });
+          return;
+        }
+        debugPrint('[AccidentGPS] reverse geocode fail address-unavailable');
       } else {
         debugPrint(
           '[AccidentGPS] reverse geocode fail status-${res.statusCode}',
         );
-        setState(() => _addressReadable = null);
       }
     } catch (e, st) {
       debugPrint('[AccidentGPS] reverse geocode fail $e\n$st');
-      if (!mounted) return;
-      setState(() => _addressReadable = null);
     }
+
+    _setGeoError(_geoPermission, unavailableLocationMessage);
   }
 
   String? _formatNominatimAddress(Map<String, dynamic>? address) {
@@ -5974,11 +5921,20 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
   Widget _buildGeoActions() {
     final theme = Theme.of(context);
-    final hideGeoSuggestionPanel = _shouldHideGeoSuggestionPanel();
+    final hasDetectedLocation =
+        _geoPosition != null && (_addressReadable?.trim().isNotEmpty ?? false);
+    final buttonLabel = _geoLoading
+        ? tx(context, 'Posizione in rilevamento...')
+        : _geoErrorMessage != null
+            ? tx(context, 'Riprova')
+            : hasDetectedLocation
+                ? tx(context, 'Rileva nuovamente la posizione')
+                : tx(context, 'Usa la mia posizione');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextButton.icon(
+          key: const Key('accident_location_retry_button'),
           onPressed: _geoLoading ? null : _impostaLuogoAutomatico,
           style: TextButton.styleFrom(
             padding: EdgeInsets.zero,
@@ -5987,72 +5943,37 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             visualDensity: VisualDensity.compact,
           ),
           icon: _geoLoading
-              ? SizedBox(
+              ? const SizedBox(
                   width: 14,
                   height: 14,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.my_location, size: 18),
+              : Icon(
+                  hasDetectedLocation || _geoErrorMessage != null
+                      ? Icons.refresh
+                      : Icons.my_location,
+                  size: 18,
+                ),
           label: Text(
-            tx(context, 'Usa la mia posizione'),
+            buttonLabel,
             style: theme.textTheme.bodySmall?.copyWith(
               color:
                   _geoLoading ? theme.disabledColor : theme.colorScheme.primary,
             ),
           ),
         ),
-        const SizedBox(height: 4),
-        TextButton.icon(
-          onPressed: _apriMappa,
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.zero,
-            minimumSize: const Size(0, 0),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-          ),
-          icon: const Icon(Icons.map_outlined, size: 18),
-          label: Text(
-            tx(context, 'Apri mappa'),
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.primary),
-          ),
-        ),
         if (_geoMessage != null) ...[
           const SizedBox(height: 4),
           Text(
+            key: const Key('accident_location_status'),
             _geoMessage!,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: _geoErrorMessage == null
+                  ? theme.colorScheme.onSurfaceVariant
+                  : theme.colorScheme.error,
+            ),
           ),
         ],
-        if (_suggestionsLoading && !hideGeoSuggestionPanel)
-          const Padding(
-            padding: EdgeInsets.only(top: 4),
-            child: LinearProgressIndicator(minHeight: 2),
-          ),
-        if (_suggestions.isNotEmpty && !hideGeoSuggestionPanel)
-          Container(
-            margin: const EdgeInsets.only(top: 4),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceVariant,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: theme.colorScheme.outlineVariant),
-            ),
-            child: Column(
-              children: _suggestions
-                  .map(
-                    (s) => ListTile(
-                      dense: true,
-                      title: Text(
-                        s.displayName,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      onTap: () => _selezionaSuggerimento(s),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
       ],
     );
   }
@@ -6098,8 +6019,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     for (final ferito in _feriti) {
       ferito.dispose();
     }
-    _suggestionDebounce?.cancel();
-    _luogoController.removeListener(_onLuogoChanged);
     unawaited(_audioPlayerSub?.cancel());
     if (_isRecordingAudio) {
       unawaited(_audioRecorder.stop());
@@ -6168,108 +6087,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(testo)),
     );
-  }
-
-  void _onLuogoChanged() {
-    final query = _luogoController.text.trim();
-    if (query.length < 3) {
-      _suggestionDebounce?.cancel();
-      if (_suggestions.isNotEmpty || _suggestionsLoading) {
-        setState(() {
-          _suggestions.clear();
-          _suggestionsLoading = false;
-        });
-      }
-      return;
-    }
-
-    _suggestionDebounce?.cancel();
-    _suggestionDebounce = Timer(const Duration(milliseconds: 400), () {
-      _fetchSuggestions(query);
-    });
-  }
-
-  Future<void> _fetchSuggestions(String query) async {
-    setState(() {
-      _suggestionsLoading = true;
-    });
-    try {
-      final uri = Uri.parse(
-          'https://nominatim.openstreetmap.org/search?q=$query&format=json&limit=5');
-      final res = await http.get(uri, headers: {
-        'Accept-Language': Localizations.localeOf(context).toLanguageTag(),
-        'User-Agent': 'cid-digitale-client/1.0',
-      }).timeout(const Duration(seconds: 8));
-
-      if (!mounted) return;
-
-      if (res.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(res.body) as List<dynamic>;
-        final parsed = data
-            .take(5)
-            .map((item) =>
-                NominatimSuggestion.fromJson(item as Map<String, dynamic>))
-            .where((s) => s.displayName.isNotEmpty)
-            .toList();
-        setState(() {
-          _suggestions
-            ..clear()
-            ..addAll(parsed);
-          _suggestionsLoading = false;
-        });
-      } else {
-        setState(() {
-          _suggestions..clear();
-          _suggestionsLoading = false;
-        });
-      }
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _suggestions..clear();
-        _suggestionsLoading = false;
-      });
-    }
-  }
-
-  Future<void> _apriMappa() async {
-    final pos = _geoPosition;
-    final uri = pos != null
-        ? Uri.parse(
-            'https://www.google.com/maps?q=${pos.latitude},${pos.longitude}')
-        : Uri.parse('https://www.google.com/maps');
-    final ok = await launchUrl(
-      uri,
-      mode: LaunchMode.externalApplication,
-    );
-    if (!ok && mounted) {
-      _mostraSnack(tx(context, 'Impossibile aprire Google Maps.'));
-    }
-  }
-
-  void _selezionaSuggerimento(NominatimSuggestion s) {
-    final position = Position(
-      latitude: s.lat,
-      longitude: s.lon,
-      timestamp: DateTime.now(),
-      accuracy: 0,
-      altitude: 0,
-      altitudeAccuracy: 0,
-      heading: 0,
-      headingAccuracy: 0,
-      speed: 0,
-      speedAccuracy: 0,
-      isMocked: false,
-    );
-
-    setState(() {
-      _luogoController.text = s.displayName;
-      _geoPosition = position;
-      _addressReadable = s.displayName;
-      _suggestions.clear();
-      _suggestionsLoading = false;
-      _geoMessage = null;
-    });
   }
 
   String _ensureDraftId() {
@@ -7600,13 +7417,25 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           ),
           const SizedBox(height: 16),
           TextFormField(
+            key: const Key('accident_location_field'),
             controller: _luogoController,
+            readOnly: true,
+            showCursor: false,
+            enableInteractiveSelection: false,
+            autocorrect: false,
+            enableSuggestions: false,
             decoration: InputDecoration(
-              hintText: tx(context, 'Es. Autostrada A2, uscita Lugano Nord'),
+              labelText: tx(context, 'Indirizzo rilevato automaticamente'),
+              hintText: _geoLoading
+                  ? tx(context, 'Posizione in rilevamento...')
+                  : tx(context, 'Indirizzo non disponibile'),
+              prefixIcon: const Icon(Icons.location_on_outlined),
+              suffixIcon: const Icon(Icons.lock_outline),
+              filled: true,
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return txStatic("Inserisci il luogo dell'incidente");
+                return tx(context, 'Rileva la posizione per continuare');
               }
               return null;
             },
