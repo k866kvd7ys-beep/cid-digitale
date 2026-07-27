@@ -6,6 +6,7 @@ import 'package:cid_digitale/models/driver_personal_qr_data.dart';
 import 'package:cid_digitale/models/personal_vehicle_data.dart';
 import 'package:cid_digitale/screens/driver_personal_qr_screen.dart';
 import 'package:cid_digitale/services/customer_auth_service.dart';
+import 'package:cid_digitale/services/personal_vehicle_repository.dart';
 import 'package:cid_digitale/services/personal_vehicle_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,6 +14,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/fake_customer_auth_service.dart';
+import 'helpers/fake_personal_vehicle_remote_data_source.dart';
 
 const _account = CustomerAccount(
   id: 'antonio-auth-user-id',
@@ -90,7 +92,8 @@ const _vehicleCollection = PersonalVehicleCollection(
 );
 
 Widget _app(
-  FakeCustomerAuthService service, {
+  FakeCustomerAuthService service,
+  FakePersonalVehicleRemoteDataSource remote, {
   Key? screenKey,
 }) {
   return MaterialApp(
@@ -101,8 +104,17 @@ Widget _app(
     home: DriverPersonalQrScreen(
       key: screenKey,
       authService: service,
+      vehicleRepository: PersonalVehicleRepository(
+        remoteDataSource: remote,
+      ),
     ),
   );
+}
+
+FakePersonalVehicleRemoteDataSource _remoteWithVehicles() {
+  return FakePersonalVehicleRemoteDataSource(
+    authenticatedUserId: _account.id,
+  )..seed(_account.id, _vehicleCollection);
 }
 
 Map<String, Object> _savedQrState() {
@@ -138,9 +150,10 @@ void main() {
       account: _account,
       profile: _completeProfile,
     );
+    final remote = _remoteWithVehicles();
     addTearDown(service.dispose);
 
-    await tester.pumpWidget(_app(service));
+    await tester.pumpWidget(_app(service, remote));
     await tester.pumpAndSettle();
 
     expect(service.loadProfileCalls, 1);
@@ -212,9 +225,12 @@ void main() {
       account: _account,
       profile: _completeProfile,
     );
+    final remote = _remoteWithVehicles();
     addTearDown(service.dispose);
 
-    await tester.pumpWidget(_app(service, screenKey: const ValueKey('first')));
+    await tester.pumpWidget(
+      _app(service, remote, screenKey: const ValueKey('first')),
+    );
     await tester.pumpAndSettle();
 
     service.profile = _completeProfile.copyWith(
@@ -223,7 +239,7 @@ void main() {
       phone: '+41 91 999 99 99',
     );
     await tester.pumpWidget(
-      _app(service, screenKey: const ValueKey('reopened')),
+      _app(service, remote, screenKey: const ValueKey('reopened')),
     );
     await tester.pumpAndSettle();
 
@@ -269,9 +285,10 @@ void main() {
         phone: '',
       ),
     );
+    final remote = _remoteWithVehicles();
     addTearDown(service.dispose);
 
-    await tester.pumpWidget(_app(service));
+    await tester.pumpWidget(_app(service, remote));
     await tester.pumpAndSettle();
 
     expect(
@@ -296,5 +313,86 @@ void main() {
 
     expect(find.text('Profil und Einstellungen'), findsWidgets);
     expect(find.byKey(const Key('profile_save')), findsOneWidget);
+  });
+
+  testWidgets('remote vehicle load error shows retry instead of empty list',
+      (tester) async {
+    tester.view.physicalSize = const Size(400, 2200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final service = FakeCustomerAuthService(
+      account: _account,
+      profile: _completeProfile,
+    );
+    final remote = _remoteWithVehicles()
+      ..loadError = StateError('network unavailable');
+    addTearDown(service.dispose);
+
+    await tester.pumpWidget(_app(service, remote));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('personal_qr_profile_load_error')),
+      findsOneWidget,
+    );
+    expect(find.text('Keine Fahrzeuge gespeichert'), findsNothing);
+
+    remote.loadError = null;
+    await tester.tap(find.byKey(const Key('personal_qr_profile_retry')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('personal_qr_profile_load_error')),
+      findsNothing,
+    );
+    expect(find.textContaining(_firstVehicle.targa), findsWidgets);
+    expect(find.textContaining(_primaryVehicle.targa), findsWidgets);
+  });
+
+  testWidgets('database save error keeps vehicle dialog and entered values',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(400, 2200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final service = FakeCustomerAuthService(
+      account: _account,
+      profile: _completeProfile,
+    );
+    final remote = FakePersonalVehicleRemoteDataSource(
+      authenticatedUserId: _account.id,
+    )..insertError = StateError('database unavailable');
+    addTearDown(service.dispose);
+
+    await tester.pumpWidget(_app(service, remote));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Fahrzeug hinzufügen'));
+    await tester.tap(find.text('Fahrzeug hinzufügen'));
+    await tester.pumpAndSettle();
+
+    final dialog = find.byType(AlertDialog);
+    final fields = find.descendant(
+      of: dialog,
+      matching: find.byType(TextFormField),
+    );
+    expect(dialog, findsOneWidget);
+    await tester.enterText(fields.first, 'TI 98765');
+    await tester.tap(
+      find.byKey(const Key('personal_vehicle_save_button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(dialog, findsOneWidget);
+    expect(
+      tester.widget<TextFormField>(fields.first).controller?.text,
+      'TI 98765',
+    );
+    expect(
+      find.text('Das Fahrzeug konnte nicht gespeichert werden.'),
+      findsOneWidget,
+    );
+    expect(remote.rowsFor(_account.id), isEmpty);
   });
 }

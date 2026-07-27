@@ -137,4 +137,28 @@ void main() {
     expect((payload['insurance'] as Map)['company'], selected.assicurazione);
     expect(payload.containsKey('vehicles'), isFalse);
   });
+
+  test('user-scoped cache metadata matches its exact vehicle collection',
+      () async {
+    final prefs = await SharedPreferences.getInstance();
+    final storage = PersonalVehicleStorage(preferences: prefs);
+    final collection =
+        const PersonalVehicleCollection.empty().upsert(vehicle('one', 'TI1'));
+
+    await storage.saveCacheForUser(
+      userId: 'customer-one',
+      collection: collection,
+      importCompleted: true,
+    );
+    final metadata = await storage.loadCacheMetadata();
+
+    expect(metadata, isNotNull);
+    expect(metadata!.matches('customer-one', collection), isTrue);
+    expect(metadata.matches('customer-two', collection), isFalse);
+    expect(metadata.importCompleted, isTrue);
+
+    await storage.clear();
+    expect((await storage.load()).vehicles, isEmpty);
+    expect(await storage.loadCacheMetadata(), isNull);
+  });
 }

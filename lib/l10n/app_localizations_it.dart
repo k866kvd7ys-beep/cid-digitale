@@ -380,7 +380,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get personalVehicleDeleteMessage =>
-      'Il veicolo verrà rimosso dai dati salvati su questo dispositivo.';
+      'Il veicolo verrà rimosso definitivamente dal tuo account Cliente.';
 
   @override
   String get personalVehiclePrimary => 'Veicolo principale';

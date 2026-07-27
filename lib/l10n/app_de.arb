@@ -120,7 +120,7 @@
   "personalVehicleSave": "Fahrzeug speichern",
   "personalVehicleDelete": "Fahrzeug löschen",
   "personalVehicleDeleteConfirm": "Dieses Fahrzeug löschen?",
-  "personalVehicleDeleteMessage": "Das Fahrzeug wird aus den auf diesem Gerät gespeicherten Daten entfernt.",
+  "personalVehicleDeleteMessage": "Das Fahrzeug wird dauerhaft aus deinem Kundenkonto entfernt.",
   "personalVehiclePrimary": "Hauptfahrzeug",
   "personalVehicleSetPrimary": "Als Hauptfahrzeug festlegen",
   "personalVehicleSelect": "Fahrzeug auswählen",

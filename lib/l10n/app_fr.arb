@@ -116,7 +116,7 @@
   "personalVehicleSave": "Enregistrer le véhicule",
   "personalVehicleDelete": "Supprimer le véhicule",
   "personalVehicleDeleteConfirm": "Supprimer ce véhicule ?",
-  "personalVehicleDeleteMessage": "Le véhicule sera supprimé des données enregistrées sur cet appareil.",
+  "personalVehicleDeleteMessage": "Le véhicule sera définitivement supprimé de ton compte client.",
   "personalVehiclePrimary": "Véhicule principal",
   "personalVehicleSetPrimary": "Définir comme principal",
   "personalVehicleSelect": "Sélectionner le véhicule",

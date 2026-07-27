@@ -801,7 +801,7 @@ abstract class AppLocalizations {
   /// No description provided for @personalVehicleDeleteMessage.
   ///
   /// In de, this message translates to:
-  /// **'Das Fahrzeug wird aus den auf diesem Gerät gespeicherten Daten entfernt.'**
+  /// **'Das Fahrzeug wird dauerhaft aus deinem Kundenkonto entfernt.'**
   String get personalVehicleDeleteMessage;
 
   /// No description provided for @personalVehiclePrimary.

@@ -8,6 +8,7 @@ import 'package:cid_digitale/models/driver_personal_qr_data.dart';
 import 'package:cid_digitale/models/personal_vehicle_data.dart';
 import 'package:cid_digitale/screens/auth/customer_profile_page.dart';
 import 'package:cid_digitale/services/customer_auth_service.dart';
+import 'package:cid_digitale/services/personal_vehicle_repository.dart';
 import 'package:cid_digitale/services/personal_vehicle_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -35,10 +36,12 @@ class DriverPersonalQrScreen extends StatefulWidget {
     super.key,
     required this.authService,
     this.onProfileUpdated,
+    this.vehicleRepository,
   });
 
   final CustomerAuthService authService;
   final ValueChanged<CustomerProfile>? onProfileUpdated;
+  final PersonalVehicleRepository? vehicleRepository;
 
   @override
   State<DriverPersonalQrScreen> createState() => _DriverPersonalQrScreenState();
@@ -65,6 +68,7 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _formAnchorKey = GlobalKey();
   final PersonalVehicleStorage _vehicleStorage = PersonalVehicleStorage();
+  late final PersonalVehicleRepository _vehicleRepository;
 
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _cognomeController = TextEditingController();
@@ -152,6 +156,8 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   @override
   void initState() {
     super.initState();
+    _vehicleRepository =
+        widget.vehicleRepository ?? PersonalVehicleRepository();
     _attachDraftListeners();
     unawaited(_loadSavedProfile());
   }
@@ -229,7 +235,8 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
       final profileFromProfileKey = _decodeSavedProfile(rawProfile);
       final profileFromQrKey = _decodeSavedProfile(rawQr);
       restoredProfile = profileFromProfileKey ?? profileFromQrKey;
-      final vehicleCollection = await _vehicleStorage.loadOrMigrate();
+      final vehicleCollection =
+          await _vehicleRepository.loadForUser(account.id);
       final primaryVehicle = vehicleCollection.primaryVehicle;
       if (primaryVehicle != null) {
         restoredProfile = primaryVehicle.applyToProfile(
@@ -560,7 +567,7 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
     if (mounted) setState(() {});
   }
 
-  Future<PersonalVehicleData?> _showVehicleEditor({
+  Future<bool> _showVehicleEditor({
     PersonalVehicleData? vehicle,
   }) async {
     final formKey = GlobalKey<FormState>();
@@ -578,110 +585,165 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
         TextEditingController(text: vehicle?.numeroPolizza ?? '');
     final claimController =
         TextEditingController(text: vehicle?.numeroSinistro ?? '');
+    var saving = false;
 
-    final result = await showDialog<PersonalVehicleData>(
+    final result = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          vehicle == null
-              ? _l10n.personalVehicleAdd
-              : _l10n.personalVehicleEdit,
-        ),
-        content: SizedBox(
-          width: 620,
-          child: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildTextField(
-                    controller: plateController,
-                    label: _l10n.license_plate_label,
-                    hint: _l10n.license_plate_hint,
-                    textCapitalization: TextCapitalization.characters,
-                    validator: (value) => value?.trim().isEmpty == true
-                        ? _l10n.personalVehiclePlateRequired
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildTextField(
-                    controller: brandController,
-                    label: _l10n.driverPersonalQrBrandLabel,
-                    textCapitalization: TextCapitalization.words,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildTextField(
-                    controller: modelController,
-                    label: _l10n.driverPersonalQrModelLabel,
-                    textCapitalization: TextCapitalization.words,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildTextField(
-                    controller: vinController,
-                    label: _l10n.driverPersonalQrVinLabel,
-                    textCapitalization: TextCapitalization.characters,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildTextField(
-                    controller: mileageController,
-                    label: _l10n.driverPersonalQrMileageLabel,
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildTextField(
-                    controller: firstRegistrationController,
-                    label: _l10n.driverPersonalQrFirstRegistrationLabel,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildTextField(
-                    controller: insuranceController,
-                    label: _l10n.driverPersonalQrInsuranceLabel,
-                    textCapitalization: TextCapitalization.words,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildTextField(
-                    controller: policyController,
-                    label: _l10n.driverPersonalQrPolicyNumberLabel,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildTextField(
-                    controller: claimController,
-                    label: _l10n.driverPersonalQrClaimNumberLabel,
-                  ),
-                ],
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(
+            vehicle == null
+                ? _l10n.personalVehicleAdd
+                : _l10n.personalVehicleEdit,
+          ),
+          content: SizedBox(
+            width: 620,
+            child: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildTextField(
+                      controller: plateController,
+                      label: _l10n.license_plate_label,
+                      hint: _l10n.license_plate_hint,
+                      textCapitalization: TextCapitalization.characters,
+                      validator: (value) => value?.trim().isEmpty == true
+                          ? _l10n.personalVehiclePlateRequired
+                          : null,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTextField(
+                      controller: brandController,
+                      label: _l10n.driverPersonalQrBrandLabel,
+                      textCapitalization: TextCapitalization.words,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTextField(
+                      controller: modelController,
+                      label: _l10n.driverPersonalQrModelLabel,
+                      textCapitalization: TextCapitalization.words,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTextField(
+                      controller: vinController,
+                      label: _l10n.driverPersonalQrVinLabel,
+                      textCapitalization: TextCapitalization.characters,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTextField(
+                      controller: mileageController,
+                      label: _l10n.driverPersonalQrMileageLabel,
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTextField(
+                      controller: firstRegistrationController,
+                      label: _l10n.driverPersonalQrFirstRegistrationLabel,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTextField(
+                      controller: insuranceController,
+                      label: _l10n.driverPersonalQrInsuranceLabel,
+                      textCapitalization: TextCapitalization.words,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTextField(
+                      controller: policyController,
+                      label: _l10n.driverPersonalQrPolicyNumberLabel,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTextField(
+                      controller: claimController,
+                      label: _l10n.driverPersonalQrClaimNumberLabel,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
+          actions: [
+            TextButton(
+              onPressed:
+                  saving ? null : () => Navigator.of(dialogContext).pop(false),
+              child: Text(_l10n.cancel),
+            ),
+            FilledButton(
+              key: const Key('personal_vehicle_save_button'),
+              onPressed: saving
+                  ? null
+                  : () async {
+                      if (formKey.currentState?.validate() != true) return;
+                      final account = widget.authService.currentAccount;
+                      if (account == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(_l10n.personalVehicleSaveError),
+                          ),
+                        );
+                        return;
+                      }
+
+                      final candidate = PersonalVehicleData(
+                        id: vehicle?.id ??
+                            'vehicle_${DateTime.now().microsecondsSinceEpoch}',
+                        targa: plateController.text.trim(),
+                        marca: brandController.text.trim(),
+                        modello: modelController.text.trim(),
+                        vin: vinController.text.trim(),
+                        kilometraggio: mileageController.text.trim(),
+                        primaImmatricolazione:
+                            firstRegistrationController.text.trim(),
+                        assicurazione: insuranceController.text.trim(),
+                        numeroPolizza: policyController.text.trim(),
+                        numeroSinistro: claimController.text.trim(),
+                      );
+
+                      setDialogState(() => saving = true);
+                      PersonalVehicleCollection updated;
+                      try {
+                        updated = await _vehicleRepository.saveVehicle(
+                          userId: account.id,
+                          vehicle: candidate,
+                          currentCollection: _vehicleCollection,
+                        );
+                      } catch (_) {
+                        if (!dialogContext.mounted) return;
+                        setDialogState(() => saving = false);
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(_l10n.personalVehicleSaveError),
+                          ),
+                        );
+                        return;
+                      }
+
+                      if (!mounted || !dialogContext.mounted) return;
+                      setState(() => _vehicleCollection = updated);
+                      if (updated.primaryVehicleId == candidate.id) {
+                        try {
+                          await _syncPrimaryVehicleToProfile();
+                        } catch (_) {
+                          debugPrint(
+                            '[PERSONAL_QR_STORAGE] primary sync failed',
+                          );
+                        }
+                      }
+                      if (!mounted || !dialogContext.mounted) return;
+                      Navigator.of(dialogContext).pop(true);
+                    },
+              child: saving
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(_l10n.personalVehicleSave),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(_l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (formKey.currentState?.validate() != true) return;
-              Navigator.of(dialogContext).pop(
-                PersonalVehicleData(
-                  id: vehicle?.id ??
-                      'vehicle_${DateTime.now().microsecondsSinceEpoch}',
-                  targa: plateController.text.trim(),
-                  marca: brandController.text.trim(),
-                  modello: modelController.text.trim(),
-                  vin: vinController.text.trim(),
-                  kilometraggio: mileageController.text.trim(),
-                  primaImmatricolazione:
-                      firstRegistrationController.text.trim(),
-                  assicurazione: insuranceController.text.trim(),
-                  numeroPolizza: policyController.text.trim(),
-                  numeroSinistro: claimController.text.trim(),
-                ),
-              );
-            },
-            child: Text(_l10n.personalVehicleSave),
-          ),
-        ],
       ),
     );
 
@@ -698,39 +760,34 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
     ]) {
       controller.dispose();
     }
-    return result;
+    return result == true;
   }
 
   Future<void> _addOrEditVehicle([PersonalVehicleData? current]) async {
-    final vehicle = await _showVehicleEditor(vehicle: current);
-    if (vehicle == null || !mounted) return;
-
-    try {
-      final updated = _vehicleCollection.upsert(vehicle);
-      await _vehicleStorage.save(updated);
-      setState(() => _vehicleCollection = updated);
-      if (updated.primaryVehicleId == vehicle.id) {
-        await _syncPrimaryVehicleToProfile();
-      }
-      if (!mounted) return;
+    final saved = await _showVehicleEditor(vehicle: current);
+    if (saved && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_l10n.personalVehicleSaved)),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_l10n.personalVehicleSaveError)),
       );
     }
   }
 
   Future<void> _setPrimaryVehicle(PersonalVehicleData vehicle) async {
     if (_vehicleCollection.primaryVehicleId == vehicle.id) return;
+    final account = widget.authService.currentAccount;
+    if (account == null) return;
     try {
-      final updated = _vehicleCollection.setPrimary(vehicle.id);
-      await _vehicleStorage.save(updated);
+      final updated = await _vehicleRepository.setPrimaryVehicle(
+        userId: account.id,
+        vehicleId: vehicle.id,
+      );
+      if (!mounted) return;
       setState(() => _vehicleCollection = updated);
-      await _syncPrimaryVehicleToProfile();
+      try {
+        await _syncPrimaryVehicleToProfile();
+      } catch (_) {
+        debugPrint('[PERSONAL_QR_STORAGE] primary sync failed');
+      }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -760,12 +817,23 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
     );
     if (confirmed != true || !mounted) return;
 
+    final account = widget.authService.currentAccount;
+    if (account == null) return;
     try {
-      final wasPrimary = _vehicleCollection.primaryVehicleId == vehicle.id;
-      final updated = _vehicleCollection.remove(vehicle.id);
-      await _vehicleStorage.save(updated);
+      final previousPrimaryId = _vehicleCollection.primaryVehicleId;
+      final updated = await _vehicleRepository.deleteVehicle(
+        userId: account.id,
+        vehicleId: vehicle.id,
+      );
+      if (!mounted) return;
       setState(() => _vehicleCollection = updated);
-      if (wasPrimary) await _syncPrimaryVehicleToProfile();
+      if (previousPrimaryId != updated.primaryVehicleId) {
+        try {
+          await _syncPrimaryVehicleToProfile();
+        } catch (_) {
+          debugPrint('[PERSONAL_QR_STORAGE] primary sync failed');
+        }
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_l10n.personalVehicleDeleted)),
