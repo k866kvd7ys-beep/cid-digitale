@@ -26,7 +26,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'ocr_utils.dart';
 import 'scanner_libretto_page.dart';
 import 'config/supabase_config.dart';
-import 'screens/officina/appointments_screen.dart';
 import 'screens/service/service_anmelden_screen.dart';
 import 'screens/service/raeder_wechsel_screen.dart';
 import 'screens/driver_personal_qr_screen.dart';
@@ -4783,23 +4782,6 @@ class _ImpostazioniOfficinaPageState extends State<ImpostazioniOfficinaPage> {
               ),
             ),
             const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const AppointmentsScreen(
-                        workshopId: 'INSERISCI_WORKSHOP_UUID_QUI',
-                      ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.calendar_month_outlined),
-                label: const Text('Kalender'),
-              ),
-            ),
-            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
