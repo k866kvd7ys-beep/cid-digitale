@@ -3454,7 +3454,12 @@ class _HomePageState extends State<HomePage> {
   Future<void> _openPersonalQr() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => const DriverPersonalQrScreen(),
+        builder: (_) => DriverPersonalQrScreen(
+          authService: widget.authService,
+          onProfileUpdated: (profile) {
+            if (mounted) setState(() => _customerProfile = profile);
+          },
+        ),
       ),
     );
     _refreshHomeData();
@@ -5385,6 +5390,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         return _DriverCourtesy.mr;
       case DriverPersonalQrCourtesy.mrs:
         return _DriverCourtesy.mrs;
+      case DriverPersonalQrCourtesy.other:
+        return null;
       case DriverPersonalQrCourtesy.company:
         return _DriverCourtesy.company;
       case null:

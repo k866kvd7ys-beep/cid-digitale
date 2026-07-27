@@ -31,6 +31,7 @@ class FakeCustomerAuthService implements CustomerAuthService {
   int loadProfileCalls = 0;
   int saveProfileCalls = 0;
   int updatePasswordCalls = 0;
+  String? lastLoadedProfileUserId;
   String? lastEmail;
   String? lastPassword;
   String? lastUpdatedPassword;
@@ -54,6 +55,7 @@ class FakeCustomerAuthService implements CustomerAuthService {
   @override
   Future<CustomerProfile?> loadProfile(String userId) async {
     loadProfileCalls++;
+    lastLoadedProfileUserId = userId;
     if (loadProfileError case final error?) throw error;
     CustomerProfileAccessGuard.ensureOwner(account, userId);
     return profile;

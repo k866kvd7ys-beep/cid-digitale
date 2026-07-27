@@ -280,6 +280,18 @@ class AppLocalizationsFr extends AppLocalizations {
       'Renseigne les données du client ou du conducteur pour que l’atelier les retrouve immédiatement.';
 
   @override
+  String get driverPersonalQrProfileSourceNote =>
+      'Ces données sont reprises automatiquement depuis votre profil Client.';
+
+  @override
+  String get driverPersonalQrProfileIncompleteMessage =>
+      'Votre profil Client n’est pas encore complet. Ajoutez les informations manquantes afin que votre QR personnel contienne toutes les données client.';
+
+  @override
+  String get driverPersonalQrProfileMissingFieldsLabel =>
+      'Informations manquantes';
+
+  @override
   String get driverPersonalQrVehicleSectionTitle => 'Données véhicule';
 
   @override

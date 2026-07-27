@@ -606,6 +606,24 @@ abstract class AppLocalizations {
   /// **'Erfasse die Kunden- oder Fahrerdaten, damit die Werkstatt sie sofort übernehmen kann.'**
   String get driverPersonalQrCustomerSectionSubtitle;
 
+  /// No description provided for @driverPersonalQrProfileSourceNote.
+  ///
+  /// In de, this message translates to:
+  /// **'Diese Daten werden automatisch aus deinem Kundenprofil übernommen.'**
+  String get driverPersonalQrProfileSourceNote;
+
+  /// No description provided for @driverPersonalQrProfileIncompleteMessage.
+  ///
+  /// In de, this message translates to:
+  /// **'Dein Kundenprofil ist noch nicht vollständig. Ergänze die fehlenden Angaben, damit dein persönlicher QR alle Kundendaten enthält.'**
+  String get driverPersonalQrProfileIncompleteMessage;
+
+  /// No description provided for @driverPersonalQrProfileMissingFieldsLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Fehlende Angaben'**
+  String get driverPersonalQrProfileMissingFieldsLabel;
+
   /// No description provided for @driverPersonalQrVehicleSectionTitle.
   ///
   /// In de, this message translates to:

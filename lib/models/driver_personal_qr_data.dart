@@ -3,6 +3,7 @@ import 'dart:convert';
 enum DriverPersonalQrCourtesy {
   mr('mr'),
   mrs('mrs'),
+  other('other'),
   company('company');
 
   const DriverPersonalQrCourtesy(this.storageValue);
@@ -23,6 +24,11 @@ DriverPersonalQrCourtesy? driverPersonalQrCourtesyFromString(String? raw) {
     case 'signora':
     case 'madame':
       return DriverPersonalQrCourtesy.mrs;
+    case 'other':
+    case 'andere':
+    case 'altro':
+    case 'autre':
+      return DriverPersonalQrCourtesy.other;
     case 'company':
     case 'firma':
     case 'ditta':

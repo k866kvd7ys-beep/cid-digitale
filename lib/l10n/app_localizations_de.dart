@@ -276,6 +276,17 @@ class AppLocalizationsDe extends AppLocalizations {
       'Erfasse die Kunden- oder Fahrerdaten, damit die Werkstatt sie sofort übernehmen kann.';
 
   @override
+  String get driverPersonalQrProfileSourceNote =>
+      'Diese Daten werden automatisch aus deinem Kundenprofil übernommen.';
+
+  @override
+  String get driverPersonalQrProfileIncompleteMessage =>
+      'Dein Kundenprofil ist noch nicht vollständig. Ergänze die fehlenden Angaben, damit dein persönlicher QR alle Kundendaten enthält.';
+
+  @override
+  String get driverPersonalQrProfileMissingFieldsLabel => 'Fehlende Angaben';
+
+  @override
   String get driverPersonalQrVehicleSectionTitle => 'Fahrzeugdaten';
 
   @override

@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:cid_digitale/auth/customer_auth_strings.dart';
 import 'package:cid_digitale/l10n/app_localizations.dart';
+import 'package:cid_digitale/models/customer_profile.dart';
 import 'package:cid_digitale/models/driver_personal_qr_data.dart';
 import 'package:cid_digitale/models/personal_vehicle_data.dart';
+import 'package:cid_digitale/screens/auth/customer_profile_page.dart';
+import 'package:cid_digitale/services/customer_auth_service.dart';
 import 'package:cid_digitale/services/personal_vehicle_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -27,7 +31,14 @@ class _ResponsiveFieldItem {
 }
 
 class DriverPersonalQrScreen extends StatefulWidget {
-  const DriverPersonalQrScreen({super.key});
+  const DriverPersonalQrScreen({
+    super.key,
+    required this.authService,
+    this.onProfileUpdated,
+  });
+
+  final CustomerAuthService authService;
+  final ValueChanged<CustomerProfile>? onProfileUpdated;
 
   @override
   State<DriverPersonalQrScreen> createState() => _DriverPersonalQrScreenState();
@@ -85,6 +96,8 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   bool _isLoadingProfile = false;
   bool _hydrating = false;
   bool _deletingProfile = false;
+  CustomerProfile? _customerProfile;
+  Object? _profileLoadError;
   String? _qrPayload;
   PersonalVehicleCollection _vehicleCollection =
       const PersonalVehicleCollection.empty();
@@ -178,13 +191,29 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   Future<void> _loadSavedProfile() async {
     if (_profileLoaded || _isLoadingProfile) return;
 
-    _isLoadingProfile = true;
+    setState(() {
+      _isLoadingProfile = true;
+      _profileLoadError = null;
+    });
     debugPrint('[PERSONAL_QR_STORAGE] load started');
 
     DriverPersonalQrData? restoredProfile;
     String? restoredQrPayload;
 
     try {
+      final account = widget.authService.currentAccount;
+      if (account == null) {
+        throw const CustomerAuthException(
+          CustomerAuthErrorCode.unauthenticated,
+        );
+      }
+      final customerProfile = await widget.authService.loadProfile(account.id);
+      if (customerProfile == null) {
+        throw const CustomerAuthException(
+          CustomerAuthErrorCode.profileUnavailable,
+        );
+      }
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.reload();
       final rawProfile = prefs.getString(_storageKey)?.trim();
@@ -208,9 +237,14 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
         );
       }
 
-      if (profileFromQrKey != null && rawQr != null) {
-        restoredQrPayload = rawQr;
-      } else if (restoredProfile != null) {
+      final hadLocalQrData = restoredProfile != null;
+      restoredProfile = _applyCustomerProfile(
+        restoredProfile ?? const DriverPersonalQrData.empty(),
+        customerProfile,
+        account.email,
+      );
+
+      if (profileFromQrKey != null || hadLocalQrData) {
         restoredQrPayload = driverPersonalQrDataToJson(restoredProfile);
         final qrSaved = await prefs.setString(
           _generatedQrKey,
@@ -219,10 +253,8 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
         debugPrint('[PERSONAL_QR_STORAGE] save qr success=$qrSaved');
       }
 
-      final restoredProfileJson = restoredProfile == null
-          ? null
-          : driverPersonalQrDataToJson(restoredProfile);
-      if (restoredProfileJson != null && restoredProfileJson != rawProfile) {
+      final restoredProfileJson = driverPersonalQrDataToJson(restoredProfile);
+      if (restoredProfileJson != rawProfile) {
         final profileSaved = await prefs.setString(
           _storageKey,
           restoredProfileJson,
@@ -233,28 +265,127 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
       }
 
       if (!mounted) return;
-      if (restoredProfile != null) {
-        _hydrateDraft(restoredProfile);
-      }
+      _hydrateDraft(restoredProfile);
 
       setState(() {
+        _customerProfile = customerProfile;
         _qrPayload = restoredQrPayload;
         _vehicleCollection = vehicleCollection;
         _profileLoaded = true;
         _isLoadingProfile = false;
+        _profileLoadError = null;
       });
       debugPrint(
-        '[PERSONAL_QR_STORAGE] profile restored=${restoredProfile != null}',
+        '[PERSONAL_QR_STORAGE] profile restored=true',
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() {
         _profileLoaded = true;
         _isLoadingProfile = false;
+        _profileLoadError = error;
       });
       debugPrint('[PERSONAL_QR_STORAGE] profile key exists=false');
       debugPrint('[PERSONAL_QR_STORAGE] qr key exists=false');
       debugPrint('[PERSONAL_QR_STORAGE] profile restored=false');
+    }
+  }
+
+  DriverPersonalQrData _applyCustomerProfile(
+    DriverPersonalQrData draft,
+    CustomerProfile profile,
+    String accountEmail,
+  ) {
+    return draft.copyWith(
+      courtesy: driverPersonalQrCourtesyFromString(profile.title),
+      nome: profile.firstName,
+      cognome: profile.lastName,
+      indirizzo: profile.street,
+      zip: profile.postalCode,
+      city: profile.city,
+      country: profile.country,
+      telefono: profile.phone,
+      email: accountEmail,
+    );
+  }
+
+  Future<void> _retryProfileLoad() async {
+    if (_isLoadingProfile) return;
+    setState(() {
+      _profileLoaded = false;
+      _profileLoadError = null;
+    });
+    await _loadSavedProfile();
+  }
+
+  Future<void> _openCustomerProfile() async {
+    final account = widget.authService.currentAccount;
+    final profile = _customerProfile;
+    if (account == null || profile == null) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CustomerProfilePage(
+          service: widget.authService,
+          account: account,
+          initialProfile: profile,
+          isOnboarding: false,
+          onSaved: widget.onProfileUpdated,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    await _reloadCustomerProfile();
+  }
+
+  Future<void> _reloadCustomerProfile() async {
+    final account = widget.authService.currentAccount;
+    if (account == null) return;
+
+    try {
+      final profile = await widget.authService.loadProfile(account.id);
+      if (profile == null || !mounted) return;
+
+      final updatedDraft = _applyCustomerProfile(
+        _draft,
+        profile,
+        account.email,
+      );
+      _hydrateDraft(updatedDraft);
+
+      final prefs = await SharedPreferences.getInstance();
+      final payload = driverPersonalQrDataToJson(updatedDraft);
+      final profileSaved = await prefs.setString(_storageKey, payload);
+      debugPrint(
+        '[PERSONAL_QR_STORAGE] save profile success=$profileSaved',
+      );
+      if (!profileSaved) {
+        throw StateError('Personal profile storage write failed');
+      }
+
+      String? updatedQrPayload = _qrPayload;
+      if (_hasGeneratedQr) {
+        final qrSaved = await prefs.setString(_generatedQrKey, payload);
+        debugPrint('[PERSONAL_QR_STORAGE] save qr success=$qrSaved');
+        if (!qrSaved) {
+          throw StateError('Personal QR storage write failed');
+        }
+        updatedQrPayload = payload;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _customerProfile = profile;
+        _qrPayload = updatedQrPayload;
+        _profileLoadError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(CustomerAuthStrings.of(context).errorFor(error)),
+        ),
+      );
     }
   }
 
@@ -888,9 +1019,33 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
         return _l10n.driverPersonalQrTitleMr;
       case DriverPersonalQrCourtesy.mrs:
         return _l10n.driverPersonalQrTitleMrs;
+      case DriverPersonalQrCourtesy.other:
+        return CustomerAuthStrings.of(context).titleOther;
       case DriverPersonalQrCourtesy.company:
         return _l10n.driverPersonalQrTitleCompany;
     }
+  }
+
+  List<String> get _missingCustomerProfileFields {
+    final profile = _customerProfile;
+    if (profile == null) return const [];
+    final strings = CustomerAuthStrings.of(context);
+    final accountEmail = widget.authService.currentAccount?.email ?? '';
+    final fields = <(String, String)>[
+      (strings.title, profile.title),
+      (strings.firstName, profile.firstName),
+      (strings.lastName, profile.lastName),
+      (strings.street, profile.street),
+      (strings.postalCode, profile.postalCode),
+      (strings.city, profile.city),
+      (strings.country, profile.country),
+      (strings.phone, profile.phone),
+      (strings.accountEmail, accountEmail),
+    ];
+    return fields
+        .where((field) => field.$2.trim().isEmpty)
+        .map((field) => field.$1)
+        .toList(growable: false);
   }
 
   Widget _buildCard({
@@ -1098,6 +1253,24 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
     );
   }
 
+  Widget _buildReadOnlyTextField({
+    required Key key,
+    required TextEditingController controller,
+    required String label,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextFormField(
+      key: key,
+      controller: controller,
+      readOnly: true,
+      enableInteractiveSelection: true,
+      keyboardType: keyboardType,
+      decoration: _inputDecoration(label: label).copyWith(
+        prefixIcon: const Icon(Icons.lock_outline_rounded, size: 19),
+      ),
+    );
+  }
+
   Widget _buildResponsiveFieldGrid(List<_ResponsiveFieldItem> items) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1180,91 +1353,221 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
   }
 
   Widget _buildCustomerSection() {
+    final missingFields = _missingCustomerProfileFields;
+    final strings = CustomerAuthStrings.of(context);
+
     return _buildSectionCard(
       icon: Icons.badge_outlined,
       title: _l10n.driverPersonalQrCustomerSectionTitle,
-      subtitle: _l10n.driverPersonalQrCustomerSectionSubtitle,
-      child: _buildResponsiveFieldGrid(
-        [
-          _ResponsiveFieldItem(
-            child: DropdownButtonFormField<DriverPersonalQrCourtesy>(
-              initialValue: _courtesy,
-              isExpanded: true,
-              decoration: _inputDecoration(
-                label: _l10n.driverPersonalQrTitleLabel,
+      subtitle: _l10n.driverPersonalQrProfileSourceNote,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            key: const Key('personal_qr_profile_source_note'),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.verified_user_outlined,
+                  color: _primaryBlue,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _l10n.driverPersonalQrProfileSourceNote,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: _primaryBlueDark,
+                          fontWeight: FontWeight.w600,
+                          height: 1.4,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (missingFields.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              key: const Key('personal_qr_profile_incomplete'),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _warningBackground,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFFED7AA)),
               ),
-              items: DriverPersonalQrCourtesy.values
-                  .map(
-                    (value) => DropdownMenuItem<DriverPersonalQrCourtesy>(
-                      value: value,
-                      child: Text(_courtesyOptionLabel(value)),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                setState(() => _courtesy = value);
-                _handleDraftChanged();
-              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _l10n.driverPersonalQrProfileIncompleteMessage,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: _warningForeground,
+                          fontWeight: FontWeight.w700,
+                          height: 1.4,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${_l10n.driverPersonalQrProfileMissingFieldsLabel}: '
+                    '${missingFields.join(', ')}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: _warningForeground,
+                          height: 1.4,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    key: const Key('personal_qr_edit_profile'),
+                    onPressed: _openCustomerProfile,
+                    icon: const Icon(Icons.manage_accounts_outlined),
+                    label: Text(strings.profileEditTitle),
+                  ),
+                ],
+              ),
             ),
+          ],
+          const SizedBox(height: 16),
+          _buildResponsiveFieldGrid(
+            [
+              _ResponsiveFieldItem(
+                child: InputDecorator(
+                  key: const Key('personal_qr_customer_title'),
+                  decoration: _inputDecoration(
+                    label: _l10n.driverPersonalQrTitleLabel,
+                  ).copyWith(
+                    prefixIcon:
+                        const Icon(Icons.lock_outline_rounded, size: 19),
+                  ),
+                  child: Text(
+                    _courtesy == null ? '-' : _courtesyOptionLabel(_courtesy!),
+                  ),
+                ),
+              ),
+              _ResponsiveFieldItem(
+                child: _buildReadOnlyTextField(
+                  key: const Key('personal_qr_customer_first_name'),
+                  controller: _nomeController,
+                  label: _l10n.firstName,
+                ),
+              ),
+              _ResponsiveFieldItem(
+                child: _buildReadOnlyTextField(
+                  key: const Key('personal_qr_customer_last_name'),
+                  controller: _cognomeController,
+                  label: _l10n.lastName,
+                ),
+              ),
+              _ResponsiveFieldItem(
+                fullWidth: true,
+                child: _buildReadOnlyTextField(
+                  key: const Key('personal_qr_customer_street'),
+                  controller: _indirizzoController,
+                  label: _l10n.driverPersonalQrStreetLabel,
+                ),
+              ),
+              _ResponsiveFieldItem(
+                child: _buildReadOnlyTextField(
+                  key: const Key('personal_qr_customer_postal_code'),
+                  controller: _zipController,
+                  label: _l10n.zip,
+                ),
+              ),
+              _ResponsiveFieldItem(
+                child: _buildReadOnlyTextField(
+                  key: const Key('personal_qr_customer_city'),
+                  controller: _cityController,
+                  label: _l10n.city,
+                ),
+              ),
+              _ResponsiveFieldItem(
+                child: _buildReadOnlyTextField(
+                  key: const Key('personal_qr_customer_country'),
+                  controller: _countryController,
+                  label: _l10n.driverPersonalQrCountryLabel,
+                ),
+              ),
+              _ResponsiveFieldItem(
+                child: _buildReadOnlyTextField(
+                  key: const Key('personal_qr_customer_phone'),
+                  controller: _telefonoController,
+                  label: _l10n.customer_phone,
+                  keyboardType: TextInputType.phone,
+                ),
+              ),
+              _ResponsiveFieldItem(
+                child: _buildReadOnlyTextField(
+                  key: const Key('personal_qr_customer_email'),
+                  controller: _emailController,
+                  label: _l10n.customer_email,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+              ),
+            ],
           ),
-          _ResponsiveFieldItem(
-            child: _buildTextField(
-              controller: _nomeController,
-              label: _l10n.firstName,
-              textCapitalization: TextCapitalization.words,
+          const SizedBox(height: 12),
+          if (missingFields.isEmpty)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: const Key('personal_qr_edit_profile'),
+                onPressed: _openCustomerProfile,
+                icon: const Icon(Icons.manage_accounts_outlined),
+                label: Text(strings.profileEditTitle),
+              ),
             ),
-          ),
-          _ResponsiveFieldItem(
-            child: _buildTextField(
-              controller: _cognomeController,
-              label: _l10n.lastName,
-              textCapitalization: TextCapitalization.words,
-            ),
-          ),
-          _ResponsiveFieldItem(
-            fullWidth: true,
-            child: _buildTextField(
-              controller: _indirizzoController,
-              label: _l10n.driverPersonalQrStreetLabel,
-              textCapitalization: TextCapitalization.words,
-            ),
-          ),
-          _ResponsiveFieldItem(
-            child: _buildTextField(
-              controller: _zipController,
-              label: _l10n.zip,
-              keyboardType: TextInputType.number,
-            ),
-          ),
-          _ResponsiveFieldItem(
-            child: _buildTextField(
-              controller: _cityController,
-              label: _l10n.city,
-              textCapitalization: TextCapitalization.words,
-            ),
-          ),
-          _ResponsiveFieldItem(
-            child: _buildTextField(
-              controller: _countryController,
-              label: _l10n.driverPersonalQrCountryLabel,
-              textCapitalization: TextCapitalization.characters,
-            ),
-          ),
-          _ResponsiveFieldItem(
-            child: _buildTextField(
-              controller: _telefonoController,
-              label: _l10n.customer_phone,
-              keyboardType: TextInputType.phone,
-            ),
-          ),
-          _ResponsiveFieldItem(
-            child: _buildTextField(
-              controller: _emailController,
-              label: _l10n.customer_email,
-              keyboardType: TextInputType.emailAddress,
-            ),
-          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProfileLoadError() {
+    final strings = CustomerAuthStrings.of(context);
+    final error = _profileLoadError ??
+        const CustomerAuthException(CustomerAuthErrorCode.profileUnavailable);
+    return SafeArea(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: _buildCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.cloud_off_outlined,
+                    color: _warningForeground,
+                    size: 42,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    strings.errorFor(error),
+                    key: const Key('personal_qr_profile_load_error'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: _primaryBlueDark,
+                          height: 1.45,
+                        ),
+                  ),
+                  const SizedBox(height: 18),
+                  FilledButton.icon(
+                    key: const Key('personal_qr_profile_retry'),
+                    onPressed: _retryProfileLoad,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: Text(strings.retry),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1958,54 +2261,58 @@ class _DriverPersonalQrScreenState extends State<DriverPersonalQrScreen> {
       ),
       body: _isLoadingProfile || !_profileLoaded
           ? const Center(child: CircularProgressIndicator())
-          : SafeArea(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1240),
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildHeaderCard(),
-                        const SizedBox(height: 18),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final useTwoColumns = constraints.maxWidth >= 1024;
-                            if (!useTwoColumns) {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  _buildFormColumn(),
-                                  const SizedBox(height: 18),
-                                  _buildPreviewCard(),
-                                ],
-                              );
-                            }
+          : _profileLoadError != null
+              ? _buildProfileLoadError()
+              : SafeArea(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1240),
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildHeaderCard(),
+                            const SizedBox(height: 18),
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final useTwoColumns =
+                                    constraints.maxWidth >= 1024;
+                                if (!useTwoColumns) {
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      _buildFormColumn(),
+                                      const SizedBox(height: 18),
+                                      _buildPreviewCard(),
+                                    ],
+                                  );
+                                }
 
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  flex: 11,
-                                  child: _buildFormColumn(),
-                                ),
-                                const SizedBox(width: 18),
-                                Expanded(
-                                  flex: 9,
-                                  child: _buildPreviewCard(),
-                                ),
-                              ],
-                            );
-                          },
+                                return Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      flex: 11,
+                                      child: _buildFormColumn(),
+                                    ),
+                                    const SizedBox(width: 18),
+                                    Expanded(
+                                      flex: 9,
+                                      child: _buildPreviewCard(),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
     );
   }
 }
