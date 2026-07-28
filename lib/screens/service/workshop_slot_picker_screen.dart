@@ -2,11 +2,17 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:cid_digitale/l10n/app_localizations.dart';
+import 'package:cid_digitale/auth/customer_auth_strings.dart';
+import 'package:cid_digitale/models/customer_profile.dart';
+import 'package:cid_digitale/models/personal_vehicle_data.dart';
 import 'package:cid_digitale/models/workshop_model.dart';
 import 'package:cid_digitale/models/appointment_request.dart';
+import 'package:cid_digitale/screens/auth/customer_profile_page.dart';
 import 'package:cid_digitale/screens/my_requests_page.dart';
 import 'package:cid_digitale/services/appointment_requests_service.dart';
+import 'package:cid_digitale/services/customer_auth_service.dart';
 import 'package:cid_digitale/services/local_image_cache.dart';
+import 'package:cid_digitale/services/personal_vehicle_repository.dart';
 import 'package:cid_digitale/utils/service_booking_helper.dart';
 import 'package:cid_digitale/utils/tire_service_type_helper.dart';
 import 'package:cid_digitale/widgets/damage_type_picker_sheet.dart';
@@ -73,6 +79,9 @@ class WorkshopSlotPickerScreen extends StatefulWidget {
   final String? serviceDetail;
   final String? cleaningPackage;
   final List<String> additionalServices;
+  final CustomerAuthService? customerAuthService;
+  final PersonalVehicleRepository? personalVehicleRepository;
+  final AppointmentRequestsService? appointmentRequestsService;
 
   const WorkshopSlotPickerScreen({
     super.key,
@@ -85,6 +94,9 @@ class WorkshopSlotPickerScreen extends StatefulWidget {
     this.serviceDetail,
     this.cleaningPackage,
     this.additionalServices = const [],
+    this.customerAuthService,
+    this.personalVehicleRepository,
+    this.appointmentRequestsService,
   });
 
   @override
@@ -106,6 +118,14 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
   bool _confirmationAccepted = false;
   bool _summaryCardVisible = false;
   bool _submitPressed = false;
+  bool _profileAutofillLoading = false;
+  bool _profileAutofillAttempted = false;
+  Object? _profileAutofillError;
+  CustomerProfile? _loadedCustomerProfile;
+  PersonalVehicleCollection _profileVehicles =
+      const PersonalVehicleCollection.empty();
+  String? _selectedProfileVehicleId;
+  List<String> _missingProfileFields = const [];
   List<DateTime> _bookedSlots = const [];
   final Set<String> _photoLoadingCategories = <String>{};
   late final AnimationController _skeletonController;
@@ -119,7 +139,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
   final _fullDamageDescriptionCtrl = TextEditingController();
   final _otherDamageDescriptionCtrl = TextEditingController();
   late final Listenable _summaryFormListenable;
-  final _appointmentService = AppointmentRequestsService();
+  late final AppointmentRequestsService _appointmentService;
+  late final CustomerAuthService _customerAuthService;
+  late final PersonalVehicleRepository _personalVehicleRepository;
   final _picker = ImagePicker();
   final List<_GlassDamageImageDraft> _glassVehicleDocumentImages = [];
   final List<_GlassDamageImageDraft> _glassCloseGlassImages = [];
@@ -264,6 +286,70 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
         it: 'E-Mail',
         en: 'E-Mail',
         fr: 'E-Mail',
+      );
+
+  String _useProfileLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Mein Profil verwenden',
+        it: 'Usa il mio profilo',
+        en: 'Use my profile',
+        fr: 'Utiliser mon profil',
+      );
+
+  String _profileLoadingLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Profildaten werden geladen...',
+        it: 'Caricamento dati del profilo...',
+        en: 'Loading profile data...',
+        fr: 'Chargement des données du profil...',
+      );
+
+  String _profileAppliedLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Profildaten wurden in die Buchung übernommen.',
+        it: 'I dati del profilo sono stati inseriti nella prenotazione.',
+        en: 'Your profile details were added to the booking.',
+        fr: 'Les données du profil ont été ajoutées à la réservation.',
+      );
+
+  String _profileLoadErrorLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Profil und Fahrzeuge konnten nicht geladen werden. Bitte versuche es erneut.',
+        it: 'Non è stato possibile caricare il profilo e i veicoli. Riprova.',
+        en: 'Your profile and vehicles could not be loaded. Please try again.',
+        fr: 'Le profil et les véhicules n’ont pas pu être chargés. Réessayez.',
+      );
+
+  String _missingProfileDataLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Fehlende Profildaten:',
+        it: 'Dati mancanti nel profilo:',
+        en: 'Missing profile details:',
+        fr: 'Données manquantes dans le profil :',
+      );
+
+  String _editProfileLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Profil und Einstellungen',
+        it: 'Profilo e impostazioni',
+        en: 'Profile and settings',
+        fr: 'Profil et paramètres',
+      );
+
+  String _noVehicleLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Füge ein Fahrzeug hinzu oder wähle eines aus, um das Kennzeichen auszufüllen.',
+        it: 'Aggiungi o seleziona un veicolo per compilare la targa.',
+        en: 'Add or select a vehicle to fill in the license plate.',
+        fr: 'Ajoutez ou sélectionnez un véhicule pour renseigner la plaque.',
+      );
+
+  String _vehicleSelectorLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Fahrzeug für diese Buchung',
+        it: 'Veicolo per questa prenotazione',
+        en: 'Vehicle for this booking',
+        fr: 'Véhicule pour cette réservation',
       );
 
   String _timeTitle(BuildContext context) => _copy(
@@ -1322,6 +1408,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
         _usesDamageDetailsForm &&
         _isLicensePlateMissing;
     return Container(
+      key: const Key('booking_license_plate_card'),
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
@@ -1367,6 +1454,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
                 ),
                 const SizedBox(height: 6),
                 TextField(
+                  key: const Key('booking_plate_field'),
                   controller: _plateCtrl,
                   textCapitalization: TextCapitalization.characters,
                   decoration: InputDecoration(
@@ -1467,6 +1555,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
   @override
   void initState() {
     super.initState();
+    _appointmentService =
+        widget.appointmentRequestsService ?? AppointmentRequestsService();
+    _customerAuthService =
+        widget.customerAuthService ?? SupabaseCustomerAuthService();
+    _personalVehicleRepository =
+        widget.personalVehicleRepository ?? PersonalVehicleRepository();
     _skeletonController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 980),
@@ -1490,7 +1584,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
     _fullDamageDescriptionCtrl.addListener(_onValidationFieldChanged);
     _otherDamageDescriptionCtrl.addListener(_onValidationFieldChanged);
     _loadAvailableSlots(_selectedDay);
-    unawaited(AppointmentRequestsSyncManager.trigger());
+    if (widget.appointmentRequestsService == null) {
+      unawaited(AppointmentRequestsSyncManager.trigger());
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       setState(() {
@@ -3554,6 +3650,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
     ];
 
     return Container(
+      key: const Key('booking_workshop_overview_card'),
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
@@ -3613,6 +3710,331 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
           ],
         ],
       ),
+    );
+  }
+
+  List<String> _findMissingProfileFields(
+    CustomerProfile profile,
+    CustomerAccount account,
+    CustomerAuthStrings strings,
+  ) {
+    final fields = <(String, String)>[
+      (strings.title, profile.title),
+      (strings.firstName, profile.firstName),
+      (strings.lastName, profile.lastName),
+      (strings.street, profile.street),
+      (strings.postalCode, profile.postalCode),
+      (strings.city, profile.city),
+      (strings.country, profile.country),
+      (strings.phone, profile.phone),
+      (strings.accountEmail, account.email),
+    ];
+    return fields
+        .where((field) => field.$2.trim().isEmpty)
+        .map((field) => field.$1)
+        .toList(growable: false);
+  }
+
+  void _setControllerFromProfile(
+    TextEditingController controller,
+    String value,
+  ) {
+    final normalized = value.trim();
+    if (normalized.isNotEmpty) {
+      controller.text = normalized;
+    }
+  }
+
+  Future<void> _useCustomerProfile() async {
+    if (_profileAutofillLoading) return;
+
+    final strings = CustomerAuthStrings.of(context);
+    setState(() {
+      _profileAutofillLoading = true;
+      _profileAutofillAttempted = false;
+      _profileAutofillError = null;
+      _missingProfileFields = const [];
+    });
+
+    try {
+      final account = _customerAuthService.currentAccount;
+      if (account == null) {
+        throw const CustomerAuthException(
+          CustomerAuthErrorCode.unauthenticated,
+        );
+      }
+
+      final profile = await _customerAuthService.loadProfile(account.id);
+      if (profile == null) {
+        throw const CustomerAuthException(
+          CustomerAuthErrorCode.profileUnavailable,
+        );
+      }
+      final vehicles = await _personalVehicleRepository.loadForUser(account.id);
+      if (!mounted) return;
+
+      final selectedVehicle = vehicles.primaryVehicle;
+      _setControllerFromProfile(_nameCtrl, profile.displayName);
+      _setControllerFromProfile(_phoneCtrl, profile.phone);
+      _setControllerFromProfile(_emailCtrl, account.email);
+      if (selectedVehicle != null) {
+        _plateCtrl.text = selectedVehicle.targa.trim();
+      }
+
+      setState(() {
+        _profileAutofillLoading = false;
+        _profileAutofillAttempted = true;
+        _profileAutofillError = null;
+        _loadedCustomerProfile = profile;
+        _profileVehicles = vehicles;
+        _selectedProfileVehicleId = selectedVehicle?.id;
+        _missingProfileFields = _findMissingProfileFields(
+          profile,
+          account,
+          strings,
+        );
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _profileAutofillLoading = false;
+        _profileAutofillAttempted = true;
+        _profileAutofillError = error;
+        _loadedCustomerProfile = null;
+        _profileVehicles = const PersonalVehicleCollection.empty();
+        _selectedProfileVehicleId = null;
+        _missingProfileFields = const [];
+      });
+    }
+  }
+
+  void _selectProfileVehicle(String? vehicleId) {
+    if (vehicleId == null) return;
+    PersonalVehicleData? selected;
+    for (final vehicle in _profileVehicles.vehicles) {
+      if (vehicle.id == vehicleId) {
+        selected = vehicle;
+        break;
+      }
+    }
+    if (selected == null) return;
+
+    setState(() {
+      _selectedProfileVehicleId = selected!.id;
+      _plateCtrl.text = selected.targa.trim();
+    });
+  }
+
+  String _profileVehicleLabel(PersonalVehicleData vehicle) {
+    final label = [
+      vehicle.targa.trim(),
+      vehicle.displayName,
+    ].where((part) => part.isNotEmpty).join(' · ');
+    return label.isEmpty ? vehicle.id : label;
+  }
+
+  Future<void> _openCustomerProfileSettings() async {
+    final account = _customerAuthService.currentAccount;
+    final profile = _loadedCustomerProfile;
+    if (account == null || profile == null) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => CustomerProfilePage(
+          service: _customerAuthService,
+          account: account,
+          initialProfile: profile,
+          isOnboarding: false,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    await _useCustomerProfile();
+  }
+
+  Widget _buildProfileAutofillStatus(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasError = _profileAutofillError != null;
+    final hasMissingProfileData = _missingProfileFields.isNotEmpty;
+    final hasNoVehicles = _profileAutofillAttempted &&
+        !hasError &&
+        _profileVehicles.vehicles.isEmpty;
+    final showSuccess = _profileAutofillAttempted &&
+        !hasError &&
+        !hasMissingProfileData &&
+        !hasNoVehicles;
+
+    if (!hasError && !hasMissingProfileData && !hasNoVehicles && !showSuccess) {
+      return const SizedBox.shrink();
+    }
+
+    final color = hasError
+        ? theme.colorScheme.error
+        : hasMissingProfileData || hasNoVehicles
+            ? const Color(0xFFB45309)
+            : const Color(0xFF15803D);
+    final background = hasError
+        ? theme.colorScheme.errorContainer.withValues(alpha: 0.55)
+        : hasMissingProfileData || hasNoVehicles
+            ? const Color(0xFFFFF7ED)
+            : const Color(0xFFF0FDF4);
+
+    return Container(
+      key: const Key('booking_profile_status'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.30)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            hasError
+                ? Icons.error_outline
+                : hasMissingProfileData || hasNoVehicles
+                    ? Icons.info_outline
+                    : Icons.check_circle_outline,
+            color: color,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (hasError)
+                  Text(
+                    _profileLoadErrorLabel(context),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                if (showSuccess)
+                  Text(
+                    _profileAppliedLabel(context),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                if (hasMissingProfileData) ...[
+                  Text(
+                    '${_missingProfileDataLabel(context)} '
+                    '${_missingProfileFields.join(', ')}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  TextButton(
+                    key: const Key('booking_edit_profile_button'),
+                    onPressed: _openCustomerProfileSettings,
+                    style: TextButton.styleFrom(
+                      foregroundColor: color,
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 28),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(_editProfileLabel(context)),
+                  ),
+                ],
+                if (hasNoVehicles)
+                  Text(
+                    _noVehicleLabel(context),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileAutofillSection(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.tonalIcon(
+            key: const Key('booking_use_profile_button'),
+            onPressed: _profileAutofillLoading ? null : _useCustomerProfile,
+            icon: _profileAutofillLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.person_outline_rounded),
+            label: Text(
+              _profileAutofillLoading
+                  ? _profileLoadingLabel(context)
+                  : _useProfileLabel(context),
+            ),
+          ),
+        ),
+        if (_profileVehicles.vehicles.length > 1) ...[
+          const SizedBox(height: 10),
+          Text(
+            _vehicleSelectorLabel(context),
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          DropdownButtonFormField<String>(
+            key: const Key('booking_vehicle_selector'),
+            initialValue: _selectedProfileVehicleId,
+            isExpanded: true,
+            decoration: _premiumFieldDec(
+              context,
+              _vehicleSelectorLabel(context),
+            ),
+            items: _profileVehicles.vehicles
+                .map(
+                  (vehicle) => DropdownMenuItem<String>(
+                    value: vehicle.id,
+                    child: Text(
+                      _profileVehicleLabel(vehicle),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: _selectProfileVehicle,
+          ),
+        ],
+        if (_profileAutofillAttempted) ...[
+          const SizedBox(height: 10),
+          _buildProfileAutofillStatus(context),
+        ],
+        if (_profileAutofillError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              _copy(
+                context: context,
+                de: 'Mit der Schaltfläche oben kannst du es erneut versuchen.',
+                it: 'Puoi riprovare con il pulsante qui sopra.',
+                en: 'You can retry using the button above.',
+                fr: 'Vous pouvez réessayer avec le bouton ci-dessus.',
+              ),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -4435,9 +4857,12 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
                     children: [
                       _buildAppointmentOverviewCard(context),
                       const SizedBox(height: 12),
+                      _buildProfileAutofillSection(context),
+                      const SizedBox(height: 12),
                       _licensePlateCard(context),
                       const SizedBox(height: 12),
                       TextField(
+                        key: const Key('booking_name_field'),
                         controller: _nameCtrl,
                         textInputAction: TextInputAction.next,
                         decoration: _premiumFieldDec(
@@ -4456,6 +4881,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
                             children: [
                               Expanded(
                                 child: TextField(
+                                  key: const Key('booking_phone_field'),
                                   controller: _phoneCtrl,
                                   textInputAction: TextInputAction.next,
                                   keyboardType: TextInputType.phone,
@@ -4469,6 +4895,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
                               const SizedBox(width: 10),
                               Expanded(
                                 child: TextField(
+                                  key: const Key('booking_email_field'),
                                   controller: _emailCtrl,
                                   textInputAction: TextInputAction.done,
                                   keyboardType: TextInputType.emailAddress,
