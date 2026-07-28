@@ -3825,12 +3825,19 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
     });
   }
 
-  String _profileVehicleLabel(PersonalVehicleData vehicle) {
+  String _profileVehicleLabel(
+    BuildContext context,
+    PersonalVehicleData vehicle,
+  ) {
+    final vehicleName = vehicle.displayName;
+    final isPrimary = vehicle.id == _profileVehicles.primaryVehicleId;
     final label = [
-      vehicle.targa.trim(),
-      vehicle.displayName,
+      if (vehicleName.isNotEmpty) vehicleName,
+      if (isPrimary) AppLocalizations.of(context)!.personalVehiclePrimary,
     ].where((part) => part.isNotEmpty).join(' · ');
-    return label.isEmpty ? vehicle.id : label;
+    return label.isEmpty
+        ? AppLocalizations.of(context)!.personalVehicleSelect
+        : label;
   }
 
   Future<void> _openCustomerProfileSettings() async {
@@ -4005,7 +4012,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
                   (vehicle) => DropdownMenuItem<String>(
                     value: vehicle.id,
                     child: Text(
-                      _profileVehicleLabel(vehicle),
+                      _profileVehicleLabel(context, vehicle),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -4877,36 +4884,34 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  key: const Key('booking_phone_field'),
-                                  controller: _phoneCtrl,
-                                  textInputAction: TextInputAction.next,
-                                  keyboardType: TextInputType.phone,
-                                  decoration: _premiumFieldDec(
-                                    context,
-                                    _phoneHint(context),
-                                    isError: showContactError,
-                                  ),
-                                ),
+                          SizedBox(
+                            width: double.infinity,
+                            child: TextField(
+                              key: const Key('booking_phone_field'),
+                              controller: _phoneCtrl,
+                              textInputAction: TextInputAction.next,
+                              keyboardType: TextInputType.phone,
+                              decoration: _premiumFieldDec(
+                                context,
+                                _phoneHint(context),
+                                isError: showContactError,
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: TextField(
-                                  key: const Key('booking_email_field'),
-                                  controller: _emailCtrl,
-                                  textInputAction: TextInputAction.done,
-                                  keyboardType: TextInputType.emailAddress,
-                                  decoration: _premiumFieldDec(
-                                    context,
-                                    _emailHint(context),
-                                    isError: showContactError,
-                                  ),
-                                ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: TextField(
+                              key: const Key('booking_email_field'),
+                              controller: _emailCtrl,
+                              textInputAction: TextInputAction.done,
+                              keyboardType: TextInputType.emailAddress,
+                              decoration: _premiumFieldDec(
+                                context,
+                                _emailHint(context),
+                                isError: showContactError,
                               ),
-                            ],
+                            ),
                           ),
                           if (showContactError) ...[
                             const SizedBox(height: 6),

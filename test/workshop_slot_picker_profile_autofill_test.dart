@@ -19,7 +19,7 @@ import 'helpers/fake_personal_vehicle_remote_data_source.dart';
 
 const _account = CustomerAccount(
   id: 'booking-customer',
-  email: 'account@example.com',
+  email: 'antonio.privitera@example.com',
   role: customerRole,
   firstName: 'Antonio',
   lastName: 'Privitera',
@@ -142,8 +142,9 @@ Future<void> _pumpBooking(
   required FakeCustomerAuthService authService,
   required PersonalVehicleRepository vehicleRepository,
   Locale locale = const Locale('it'),
+  Size physicalSize = const Size(900, 2200),
 }) async {
-  tester.view.physicalSize = const Size(900, 2200);
+  tester.view.physicalSize = physicalSize;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -171,6 +172,18 @@ Future<void> _useProfile(WidgetTester tester) async {
 
 String _fieldValue(WidgetTester tester, String key) {
   return tester.widget<TextField>(find.byKey(Key(key))).controller!.text;
+}
+
+List<String> _vehicleSelectorLabels(WidgetTester tester) {
+  final dropdown = tester.widget<DropdownButton<String>>(
+    find.descendant(
+      of: find.byKey(const Key('booking_vehicle_selector')),
+      matching: find.byType(DropdownButton<String>),
+    ),
+  );
+  return dropdown.items!
+      .map((item) => (item.child as Text).data!)
+      .toList(growable: false);
 }
 
 void _expectNoRemoteMutations(FakePersonalVehicleRemoteDataSource remote) {
@@ -210,6 +223,7 @@ void main() {
       tester,
       authService: auth,
       vehicleRepository: _repository(remote),
+      physicalSize: const Size(390, 2400),
     );
 
     final overview = find.byKey(const Key('booking_workshop_overview_card'));
@@ -235,6 +249,17 @@ void main() {
       findsOneWidget,
     );
 
+    final nameRect =
+        tester.getRect(find.byKey(const Key('booking_name_field')));
+    final phoneRect =
+        tester.getRect(find.byKey(const Key('booking_phone_field')));
+    final emailRect =
+        tester.getRect(find.byKey(const Key('booking_email_field')));
+    expect(phoneRect.width, closeTo(nameRect.width, 0.01));
+    expect(emailRect.width, closeTo(nameRect.width, 0.01));
+    expect(phoneRect.top, greaterThan(nameRect.bottom));
+    expect(emailRect.top, greaterThan(phoneRect.bottom));
+
     await tester.enterText(
       find.byKey(const Key('booking_name_field')),
       'Nome modificato solo per la prenotazione',
@@ -243,11 +268,24 @@ void main() {
       find.byKey(const Key('booking_plate_field')),
       'TI99999',
     );
+    await tester.enterText(
+      find.byKey(const Key('booking_phone_field')),
+      '+41 79 999 99 99',
+    );
+    await tester.enterText(
+      find.byKey(const Key('booking_email_field')),
+      'prenotazione@example.com',
+    );
     expect(
       _fieldValue(tester, 'booking_name_field'),
       'Nome modificato solo per la prenotazione',
     );
     expect(_fieldValue(tester, 'booking_plate_field'), 'TI99999');
+    expect(_fieldValue(tester, 'booking_phone_field'), '+41 79 999 99 99');
+    expect(
+      _fieldValue(tester, 'booking_email_field'),
+      'prenotazione@example.com',
+    );
     expect(auth.saveProfileCalls, 0);
     _expectNoRemoteMutations(remote);
   });
@@ -283,6 +321,18 @@ void main() {
       find.byKey(const Key('booking_vehicle_selector')),
     );
     expect(selector.initialValue, _primaryVehicle.id);
+    expect(
+      _vehicleSelectorLabels(tester),
+      const ['Volvo XC40', 'BMW X3 · Veicolo principale'],
+    );
+    expect(
+      _vehicleSelectorLabels(tester).join(' '),
+      isNot(contains(_firstVehicle.targa)),
+    );
+    expect(
+      _vehicleSelectorLabels(tester).join(' '),
+      isNot(contains(_primaryVehicle.targa)),
+    );
 
     selector.onChanged!.call(_firstVehicle.id);
     await tester.pump();
@@ -409,11 +459,11 @@ void main() {
 
   testWidgets('use-profile button has all four required translations',
       (tester) async {
-    final translations = <Locale, String>{
-      const Locale('it'): 'Usa il mio profilo',
-      const Locale('de'): 'Mein Profil verwenden',
-      const Locale('fr'): 'Utiliser mon profil',
-      const Locale('en'): 'Use my profile',
+    final translations = <Locale, (String, String)>{
+      const Locale('it'): ('Usa il mio profilo', 'Veicolo principale'),
+      const Locale('de'): ('Mein Profil verwenden', 'Hauptfahrzeug'),
+      const Locale('fr'): ('Utiliser mon profil', 'Véhicule principal'),
+      const Locale('en'): ('Use my profile', 'Primary vehicle'),
     };
 
     for (final entry in translations.entries) {
@@ -423,7 +473,13 @@ void main() {
       );
       final remote = FakePersonalVehicleRemoteDataSource(
         authenticatedUserId: _account.id,
-      );
+      )..seed(
+          _account.id,
+          const PersonalVehicleCollection(
+            primaryVehicleId: 'vehicle-primary',
+            vehicles: [_firstVehicle, _primaryVehicle],
+          ),
+        );
 
       await _pumpBooking(
         tester,
@@ -431,7 +487,12 @@ void main() {
         vehicleRepository: _repository(remote),
         locale: entry.key,
       );
-      expect(find.text(entry.value), findsOneWidget);
+      expect(find.text(entry.value.$1), findsOneWidget);
+      await _useProfile(tester);
+      expect(
+        _vehicleSelectorLabels(tester),
+        ['Volvo XC40', 'BMW X3 · ${entry.value.$2}'],
+      );
       await auth.dispose();
     }
   });
