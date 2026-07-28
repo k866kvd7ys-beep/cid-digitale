@@ -154,6 +154,20 @@
   "driverPersonalQrUseAsCustomerDriver": "Als Kunde/Fahrer verwenden",
   "driverPersonalQrUseAsWitness": "Als Zeuge verwenden",
   "driverPersonalQrUseAsInjured": "Als verletzte Person verwenden",
+  "preferredWorkshopTitle": "Bevorzugte Werkstatt",
+  "preferredWorkshopNone": "Keine bevorzugte Werkstatt ausgewählt.",
+  "preferredWorkshopChoose": "Werkstatt auswählen",
+  "preferredWorkshopEdit": "Werkstatt ändern",
+  "preferredWorkshopRemove": "Entfernen",
+  "preferredWorkshopYours": "Deine bevorzugte Werkstatt",
+  "preferredWorkshopUse": "Diese Werkstatt verwenden",
+  "preferredWorkshopSaved": "Bevorzugte Werkstatt gespeichert.",
+  "preferredWorkshopRemoved": "Bevorzugte Werkstatt entfernt.",
+  "preferredWorkshopLoadError": "Die bevorzugte Werkstatt konnte nicht geladen werden.",
+  "preferredWorkshopSaveError": "Die bevorzugte Werkstatt konnte nicht gespeichert werden.",
+  "preferredWorkshopOpen": "Geöffnet",
+  "preferredWorkshopClosed": "Geschlossen",
+  "preferredWorkshopStatusUnavailable": "Status nicht verfügbar",
   "@pdfLiabilityAccordingToParties": {
     "placeholders": {
       "driver": {}

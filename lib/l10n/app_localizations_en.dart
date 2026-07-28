@@ -484,4 +484,48 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get driverPersonalQrUseAsInjured => 'Use as injured person';
+
+  @override
+  String get preferredWorkshopTitle => 'Preferred workshop';
+
+  @override
+  String get preferredWorkshopNone => 'No preferred workshop selected.';
+
+  @override
+  String get preferredWorkshopChoose => 'Choose workshop';
+
+  @override
+  String get preferredWorkshopEdit => 'Change workshop';
+
+  @override
+  String get preferredWorkshopRemove => 'Remove';
+
+  @override
+  String get preferredWorkshopYours => 'Your preferred workshop';
+
+  @override
+  String get preferredWorkshopUse => 'Use this workshop';
+
+  @override
+  String get preferredWorkshopSaved => 'Preferred workshop saved.';
+
+  @override
+  String get preferredWorkshopRemoved => 'Preferred workshop removed.';
+
+  @override
+  String get preferredWorkshopLoadError =>
+      'The preferred workshop could not be loaded.';
+
+  @override
+  String get preferredWorkshopSaveError =>
+      'The preferred workshop could not be saved.';
+
+  @override
+  String get preferredWorkshopOpen => 'Open';
+
+  @override
+  String get preferredWorkshopClosed => 'Closed';
+
+  @override
+  String get preferredWorkshopStatusUnavailable => 'Status unavailable';
 }

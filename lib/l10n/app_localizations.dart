@@ -1001,6 +1001,90 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Als verletzte Person verwenden'**
   String get driverPersonalQrUseAsInjured;
+
+  /// No description provided for @preferredWorkshopTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Bevorzugte Werkstatt'**
+  String get preferredWorkshopTitle;
+
+  /// No description provided for @preferredWorkshopNone.
+  ///
+  /// In de, this message translates to:
+  /// **'Keine bevorzugte Werkstatt ausgewählt.'**
+  String get preferredWorkshopNone;
+
+  /// No description provided for @preferredWorkshopChoose.
+  ///
+  /// In de, this message translates to:
+  /// **'Werkstatt auswählen'**
+  String get preferredWorkshopChoose;
+
+  /// No description provided for @preferredWorkshopEdit.
+  ///
+  /// In de, this message translates to:
+  /// **'Werkstatt ändern'**
+  String get preferredWorkshopEdit;
+
+  /// No description provided for @preferredWorkshopRemove.
+  ///
+  /// In de, this message translates to:
+  /// **'Entfernen'**
+  String get preferredWorkshopRemove;
+
+  /// No description provided for @preferredWorkshopYours.
+  ///
+  /// In de, this message translates to:
+  /// **'Deine bevorzugte Werkstatt'**
+  String get preferredWorkshopYours;
+
+  /// No description provided for @preferredWorkshopUse.
+  ///
+  /// In de, this message translates to:
+  /// **'Diese Werkstatt verwenden'**
+  String get preferredWorkshopUse;
+
+  /// No description provided for @preferredWorkshopSaved.
+  ///
+  /// In de, this message translates to:
+  /// **'Bevorzugte Werkstatt gespeichert.'**
+  String get preferredWorkshopSaved;
+
+  /// No description provided for @preferredWorkshopRemoved.
+  ///
+  /// In de, this message translates to:
+  /// **'Bevorzugte Werkstatt entfernt.'**
+  String get preferredWorkshopRemoved;
+
+  /// No description provided for @preferredWorkshopLoadError.
+  ///
+  /// In de, this message translates to:
+  /// **'Die bevorzugte Werkstatt konnte nicht geladen werden.'**
+  String get preferredWorkshopLoadError;
+
+  /// No description provided for @preferredWorkshopSaveError.
+  ///
+  /// In de, this message translates to:
+  /// **'Die bevorzugte Werkstatt konnte nicht gespeichert werden.'**
+  String get preferredWorkshopSaveError;
+
+  /// No description provided for @preferredWorkshopOpen.
+  ///
+  /// In de, this message translates to:
+  /// **'Geöffnet'**
+  String get preferredWorkshopOpen;
+
+  /// No description provided for @preferredWorkshopClosed.
+  ///
+  /// In de, this message translates to:
+  /// **'Geschlossen'**
+  String get preferredWorkshopClosed;
+
+  /// No description provided for @preferredWorkshopStatusUnavailable.
+  ///
+  /// In de, this message translates to:
+  /// **'Status nicht verfügbar'**
+  String get preferredWorkshopStatusUnavailable;
 }
 
 class _AppLocalizationsDelegate

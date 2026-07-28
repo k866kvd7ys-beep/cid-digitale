@@ -497,4 +497,48 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get driverPersonalQrUseAsInjured => 'Utiliser comme blessé';
+
+  @override
+  String get preferredWorkshopTitle => 'Atelier préféré';
+
+  @override
+  String get preferredWorkshopNone => 'Aucun atelier préféré sélectionné.';
+
+  @override
+  String get preferredWorkshopChoose => 'Choisir un atelier';
+
+  @override
+  String get preferredWorkshopEdit => 'Modifier l’atelier';
+
+  @override
+  String get preferredWorkshopRemove => 'Supprimer';
+
+  @override
+  String get preferredWorkshopYours => 'Votre atelier préféré';
+
+  @override
+  String get preferredWorkshopUse => 'Utiliser cet atelier';
+
+  @override
+  String get preferredWorkshopSaved => 'Atelier préféré enregistré.';
+
+  @override
+  String get preferredWorkshopRemoved => 'Atelier préféré supprimé.';
+
+  @override
+  String get preferredWorkshopLoadError =>
+      'Impossible de charger l’atelier préféré.';
+
+  @override
+  String get preferredWorkshopSaveError =>
+      'Impossible d’enregistrer l’atelier préféré.';
+
+  @override
+  String get preferredWorkshopOpen => 'Ouvert';
+
+  @override
+  String get preferredWorkshopClosed => 'Fermé';
+
+  @override
+  String get preferredWorkshopStatusUnavailable => 'Statut indisponible';
 }

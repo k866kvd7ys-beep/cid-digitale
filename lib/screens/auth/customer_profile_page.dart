@@ -1,10 +1,17 @@
+import 'dart:async';
+
+import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 import '../../auth/customer_auth_strings.dart';
 import '../../auth/customer_auth_validators.dart';
 import '../../models/customer_profile.dart';
+import '../../models/workshop_model.dart';
+import '../../screens/service/workshop_selector_screen.dart';
 import '../../services/customer_auth_service.dart';
+import '../../services/preferred_workshop_repository.dart';
 import '../../widgets/auth/auth_page_shell.dart';
+import '../../widgets/preferred_workshop_card.dart';
 
 class CustomerProfilePage extends StatefulWidget {
   const CustomerProfilePage({
@@ -14,6 +21,7 @@ class CustomerProfilePage extends StatefulWidget {
     required this.isOnboarding,
     this.initialProfile,
     this.onSaved,
+    this.preferredWorkshopRepository,
   });
 
   final CustomerAuthService service;
@@ -21,6 +29,7 @@ class CustomerProfilePage extends StatefulWidget {
   final CustomerProfile? initialProfile;
   final bool isOnboarding;
   final ValueChanged<CustomerProfile>? onSaved;
+  final PreferredWorkshopRepository? preferredWorkshopRepository;
 
   @override
   State<CustomerProfilePage> createState() => _CustomerProfilePageState();
@@ -40,6 +49,11 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
   bool _submitted = false;
   bool _saved = false;
   Object? _error;
+  PreferredWorkshopRepository? _preferredWorkshopRepository;
+  WorkshopModel? _preferredWorkshop;
+  bool _preferredWorkshopLoading = false;
+  bool _preferredWorkshopLoadFailed = false;
+  bool _preferredWorkshopSaveFailed = false;
 
   @override
   void initState() {
@@ -59,6 +73,11 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
     _cityController = TextEditingController(text: profile?.city ?? '');
     _countryController = TextEditingController(text: profile?.country ?? '');
     _phoneController = TextEditingController(text: profile?.phone ?? '');
+    if (!widget.isOnboarding) {
+      _preferredWorkshopRepository = widget.preferredWorkshopRepository ??
+          SupabasePreferredWorkshopRepository();
+      unawaited(_loadPreferredWorkshop());
+    }
   }
 
   @override
@@ -115,6 +134,128 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<void> _loadPreferredWorkshop() async {
+    setState(() {
+      _preferredWorkshopLoading = true;
+      _preferredWorkshopLoadFailed = false;
+      _preferredWorkshopSaveFailed = false;
+    });
+    try {
+      final workshop = await _preferredWorkshopRepository!.load();
+      if (!mounted) return;
+      setState(() {
+        _preferredWorkshop = workshop;
+        _preferredWorkshopLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _preferredWorkshopLoading = false;
+        _preferredWorkshopLoadFailed = true;
+      });
+    }
+  }
+
+  Future<void> _choosePreferredWorkshop() async {
+    final l10n = AppLocalizations.of(context)!;
+    final selected = await Navigator.of(context).push<WorkshopModel>(
+      MaterialPageRoute(
+        builder: (_) => WorkshopSelectorScreen(
+          title: l10n.preferredWorkshopTitle,
+          serviceType: 'preferred_workshop',
+          selectionOnly: true,
+          preselectedWorkshop: _preferredWorkshop,
+        ),
+      ),
+    );
+    if (selected == null || !mounted) return;
+
+    setState(() {
+      _preferredWorkshopLoading = true;
+      _preferredWorkshopLoadFailed = false;
+      _preferredWorkshopSaveFailed = false;
+    });
+    try {
+      await _preferredWorkshopRepository!.save(selected);
+      if (!mounted) return;
+      setState(() {
+        _preferredWorkshop = selected;
+        _preferredWorkshopLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.preferredWorkshopSaved)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _preferredWorkshopLoading = false;
+        _preferredWorkshopSaveFailed = true;
+      });
+    }
+  }
+
+  Future<void> _removePreferredWorkshop() async {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() {
+      _preferredWorkshopLoading = true;
+      _preferredWorkshopLoadFailed = false;
+      _preferredWorkshopSaveFailed = false;
+    });
+    try {
+      await _preferredWorkshopRepository!.remove();
+      if (!mounted) return;
+      setState(() {
+        _preferredWorkshop = null;
+        _preferredWorkshopLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.preferredWorkshopRemoved)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _preferredWorkshopLoading = false;
+        _preferredWorkshopSaveFailed = true;
+      });
+    }
+  }
+
+  Widget _preferredWorkshopSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      key: const Key('preferred_workshop_section'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_preferredWorkshopLoadFailed || _preferredWorkshopSaveFailed) ...[
+          AuthErrorBanner(
+            message: _preferredWorkshopLoadFailed
+                ? l10n.preferredWorkshopLoadError
+                : l10n.preferredWorkshopSaveError,
+          ),
+          const SizedBox(height: 12),
+        ],
+        PreferredWorkshopCard(
+          key: const Key('profile_preferred_workshop_card'),
+          title: l10n.preferredWorkshopTitle,
+          workshop: _preferredWorkshop,
+          emptyMessage: l10n.preferredWorkshopNone,
+          primaryActionLabel: _preferredWorkshop == null
+              ? l10n.preferredWorkshopChoose
+              : l10n.preferredWorkshopEdit,
+          onPrimaryAction: _choosePreferredWorkshop,
+          secondaryActionLabel:
+              _preferredWorkshop == null ? null : l10n.preferredWorkshopRemove,
+          onSecondaryAction:
+              _preferredWorkshop == null ? null : _removePreferredWorkshop,
+          openLabel: l10n.preferredWorkshopOpen,
+          closedLabel: l10n.preferredWorkshopClosed,
+          statusUnavailableLabel: l10n.preferredWorkshopStatusUnavailable,
+          busy: _preferredWorkshopLoading,
+        ),
+      ],
+    );
   }
 
   Widget _field({
@@ -332,6 +473,10 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
               : const Icon(Icons.save_outlined),
           label: Text(_saving ? strings.saving : strings.saveProfile),
         ),
+        if (!widget.isOnboarding) ...[
+          const SizedBox(height: 24),
+          _preferredWorkshopSection(context),
+        ],
       ],
     );
 

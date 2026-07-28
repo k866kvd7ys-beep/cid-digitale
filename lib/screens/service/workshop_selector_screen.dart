@@ -1,9 +1,12 @@
 import 'dart:async';
 
+import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:cid_digitale/models/workshop_model.dart';
 import 'package:cid_digitale/services/device_location_service.dart';
 import 'package:cid_digitale/services/places_workshop_search_service.dart';
+import 'package:cid_digitale/services/preferred_workshop_repository.dart';
 import 'package:cid_digitale/services/workshop_catalog_service.dart';
+import 'package:cid_digitale/widgets/preferred_workshop_card.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
@@ -51,6 +54,8 @@ class WorkshopSelectorScreen extends StatefulWidget {
     this.cleaningPackage,
     this.additionalServices = const [],
     this.preselectedWorkshop,
+    this.selectionOnly = false,
+    this.preferredWorkshopRepository,
   });
 
   final String title;
@@ -62,6 +67,8 @@ class WorkshopSelectorScreen extends StatefulWidget {
   final String? cleaningPackage;
   final List<String> additionalServices;
   final WorkshopModel? preselectedWorkshop;
+  final bool selectionOnly;
+  final PreferredWorkshopRepository? preferredWorkshopRepository;
 
   @override
   State<WorkshopSelectorScreen> createState() => _WorkshopSelectorScreenState();
@@ -87,7 +94,9 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
   List<WorkshopModel> _nearbyRemoteWorkshops = const [];
   List<WorkshopModel> _textRemoteWorkshops = const [];
   WorkshopModel? _selectedWorkshop;
+  WorkshopModel? _preferredWorkshop;
   Position? _currentPosition;
+  PreferredWorkshopRepository? _preferredWorkshopRepository;
 
   String _query = '';
   bool _isLoadingCatalog = true;
@@ -246,9 +255,15 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedWorkshop = widget.preselectedWorkshop;
+    _selectedWorkshop =
+        widget.selectionOnly ? null : widget.preselectedWorkshop;
     _searchController.addListener(_handleSearchChanged);
     _loadCatalog();
+    if (!widget.selectionOnly) {
+      _preferredWorkshopRepository = widget.preferredWorkshopRepository ??
+          SupabasePreferredWorkshopRepository();
+      unawaited(_loadPreferredWorkshop());
+    }
   }
 
   @override
@@ -268,6 +283,16 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
       _catalogWorkshops = _withDistance(workshops, _currentPosition);
       _isLoadingCatalog = false;
     });
+  }
+
+  Future<void> _loadPreferredWorkshop() async {
+    try {
+      final workshop = await _preferredWorkshopRepository!.load();
+      if (!mounted) return;
+      setState(() => _preferredWorkshop = workshop);
+    } catch (_) {
+      // The normal workshop search remains fully available.
+    }
   }
 
   void _handleSearchChanged() {
@@ -510,6 +535,12 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
     );
   }
 
+  void _usePreferredWorkshop() {
+    final workshop = _preferredWorkshop;
+    if (workshop == null) return;
+    setState(() => _selectedWorkshop = workshop);
+  }
+
   List<WorkshopModel> _visibleWorkshops() {
     final localMatches = _query.trim().isEmpty
         ? _catalogWorkshops
@@ -647,7 +678,7 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
               ),
         ),
       ),
-      bottomNavigationBar: SafeArea(
+      bottomNavigationBar: widget.selectionOnly ? null : SafeArea(
         minimum: const EdgeInsets.fromLTRB(20, 12, 20, 20),
         child: Container(
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
@@ -833,6 +864,29 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
                           ),
                         ),
                         const SizedBox(height: 18),
+                        if (_preferredWorkshop != null) ...[
+                          PreferredWorkshopCard(
+                            key: const Key(
+                              'booking_preferred_workshop_card',
+                            ),
+                            title: AppLocalizations.of(context)!
+                                .preferredWorkshopYours,
+                            workshop: _preferredWorkshop,
+                            emptyMessage: AppLocalizations.of(context)!
+                                .preferredWorkshopNone,
+                            primaryActionLabel: AppLocalizations.of(context)!
+                                .preferredWorkshopUse,
+                            onPrimaryAction: _usePreferredWorkshop,
+                            openLabel: AppLocalizations.of(context)!
+                                .preferredWorkshopOpen,
+                            closedLabel: AppLocalizations.of(context)!
+                                .preferredWorkshopClosed,
+                            statusUnavailableLabel:
+                                AppLocalizations.of(context)!
+                                    .preferredWorkshopStatusUnavailable,
+                          ),
+                          const SizedBox(height: 18),
+                        ],
                         if (_isSearchingNearby)
                           _NoticeCard(
                             icon: Icons.radar_rounded,
@@ -903,6 +957,7 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
                         else
                           ...workshops.map(
                             (workshop) => Padding(
+                              key: Key('workshop_option_${workshop.id}'),
                               padding: const EdgeInsets.only(bottom: 12),
                               child: _WorkshopOptionCard(
                                 workshop: workshop,
@@ -913,9 +968,13 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
                                 selectLabel: _selectLabel,
                                 selectedLabel: _selectedLabel,
                                 onSelect: () {
-                                  setState(() {
-                                    _selectedWorkshop = workshop;
-                                  });
+                                  if (widget.selectionOnly) {
+                                    Navigator.of(context).pop(workshop);
+                                  } else {
+                                    setState(() {
+                                      _selectedWorkshop = workshop;
+                                    });
+                                  }
                                 },
                               ),
                             ),

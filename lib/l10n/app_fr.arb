@@ -150,6 +150,20 @@
   "driverPersonalQrUseAsCustomerDriver": "Utiliser comme client/conducteur",
   "driverPersonalQrUseAsWitness": "Utiliser comme témoin",
   "driverPersonalQrUseAsInjured": "Utiliser comme blessé",
+  "preferredWorkshopTitle": "Atelier préféré",
+  "preferredWorkshopNone": "Aucun atelier préféré sélectionné.",
+  "preferredWorkshopChoose": "Choisir un atelier",
+  "preferredWorkshopEdit": "Modifier l’atelier",
+  "preferredWorkshopRemove": "Supprimer",
+  "preferredWorkshopYours": "Votre atelier préféré",
+  "preferredWorkshopUse": "Utiliser cet atelier",
+  "preferredWorkshopSaved": "Atelier préféré enregistré.",
+  "preferredWorkshopRemoved": "Atelier préféré supprimé.",
+  "preferredWorkshopLoadError": "Impossible de charger l’atelier préféré.",
+  "preferredWorkshopSaveError": "Impossible d’enregistrer l’atelier préféré.",
+  "preferredWorkshopOpen": "Ouvert",
+  "preferredWorkshopClosed": "Fermé",
+  "preferredWorkshopStatusUnavailable": "Statut indisponible",
   "@pdfLiabilityAccordingToParties": {
     "placeholders": {
       "driver": {}

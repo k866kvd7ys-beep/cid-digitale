@@ -491,4 +491,48 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get driverPersonalQrUseAsInjured => 'Als verletzte Person verwenden';
+
+  @override
+  String get preferredWorkshopTitle => 'Bevorzugte Werkstatt';
+
+  @override
+  String get preferredWorkshopNone => 'Keine bevorzugte Werkstatt ausgewählt.';
+
+  @override
+  String get preferredWorkshopChoose => 'Werkstatt auswählen';
+
+  @override
+  String get preferredWorkshopEdit => 'Werkstatt ändern';
+
+  @override
+  String get preferredWorkshopRemove => 'Entfernen';
+
+  @override
+  String get preferredWorkshopYours => 'Deine bevorzugte Werkstatt';
+
+  @override
+  String get preferredWorkshopUse => 'Diese Werkstatt verwenden';
+
+  @override
+  String get preferredWorkshopSaved => 'Bevorzugte Werkstatt gespeichert.';
+
+  @override
+  String get preferredWorkshopRemoved => 'Bevorzugte Werkstatt entfernt.';
+
+  @override
+  String get preferredWorkshopLoadError =>
+      'Die bevorzugte Werkstatt konnte nicht geladen werden.';
+
+  @override
+  String get preferredWorkshopSaveError =>
+      'Die bevorzugte Werkstatt konnte nicht gespeichert werden.';
+
+  @override
+  String get preferredWorkshopOpen => 'Geöffnet';
+
+  @override
+  String get preferredWorkshopClosed => 'Geschlossen';
+
+  @override
+  String get preferredWorkshopStatusUnavailable => 'Status nicht verfügbar';
 }

@@ -484,4 +484,48 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get driverPersonalQrUseAsInjured => 'Usa come ferito';
+
+  @override
+  String get preferredWorkshopTitle => 'Officina preferita';
+
+  @override
+  String get preferredWorkshopNone => 'Nessuna officina preferita selezionata.';
+
+  @override
+  String get preferredWorkshopChoose => 'Scegli officina';
+
+  @override
+  String get preferredWorkshopEdit => 'Modifica officina';
+
+  @override
+  String get preferredWorkshopRemove => 'Rimuovi';
+
+  @override
+  String get preferredWorkshopYours => 'La tua officina preferita';
+
+  @override
+  String get preferredWorkshopUse => 'Usa questa officina';
+
+  @override
+  String get preferredWorkshopSaved => 'Officina preferita salvata.';
+
+  @override
+  String get preferredWorkshopRemoved => 'Officina preferita rimossa.';
+
+  @override
+  String get preferredWorkshopLoadError =>
+      'Non è stato possibile caricare l\'officina preferita.';
+
+  @override
+  String get preferredWorkshopSaveError =>
+      'Non è stato possibile salvare l\'officina preferita.';
+
+  @override
+  String get preferredWorkshopOpen => 'Aperto';
+
+  @override
+  String get preferredWorkshopClosed => 'Chiuso';
+
+  @override
+  String get preferredWorkshopStatusUnavailable => 'Stato non disponibile';
 }

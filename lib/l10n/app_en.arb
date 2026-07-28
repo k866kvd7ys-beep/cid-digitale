@@ -150,6 +150,20 @@
   "driverPersonalQrUseAsCustomerDriver": "Use as customer/driver",
   "driverPersonalQrUseAsWitness": "Use as witness",
   "driverPersonalQrUseAsInjured": "Use as injured person",
+  "preferredWorkshopTitle": "Preferred workshop",
+  "preferredWorkshopNone": "No preferred workshop selected.",
+  "preferredWorkshopChoose": "Choose workshop",
+  "preferredWorkshopEdit": "Change workshop",
+  "preferredWorkshopRemove": "Remove",
+  "preferredWorkshopYours": "Your preferred workshop",
+  "preferredWorkshopUse": "Use this workshop",
+  "preferredWorkshopSaved": "Preferred workshop saved.",
+  "preferredWorkshopRemoved": "Preferred workshop removed.",
+  "preferredWorkshopLoadError": "The preferred workshop could not be loaded.",
+  "preferredWorkshopSaveError": "The preferred workshop could not be saved.",
+  "preferredWorkshopOpen": "Open",
+  "preferredWorkshopClosed": "Closed",
+  "preferredWorkshopStatusUnavailable": "Status unavailable",
   "@pdfLiabilityAccordingToParties": {
     "placeholders": {
       "driver": {}
