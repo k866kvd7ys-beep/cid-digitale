@@ -9,7 +9,6 @@ import {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const RESEND_TEST_RECIPIENT = "antonio.privitera1984@gmail.com";
 // TODO: sostituire il mittente Resend con email professionale del dominio quando disponibile.
 const FROM_EMAIL = "CID Digitale <onboarding@resend.dev>";
 const MAX_BOOKLET_PHOTOS = 2;
@@ -184,7 +183,6 @@ async function downloadAsAttachment(
       "SEND CID EMAIL fetch attachment failed",
       JSON.stringify({
         logLabel,
-        url,
         status: resp.status,
       }),
     );
@@ -195,7 +193,8 @@ async function downloadAsAttachment(
   const contentType = resp.headers.get("content-type") ?? contentTypeHint;
   const bytes = new Uint8Array(await resp.arrayBuffer());
   console.log(
-    `SEND CID EMAIL attachment fetched: mode=${logLabel} url=${url} bytes=${bytes.length}`,
+    "SEND CID EMAIL attachment fetched",
+    JSON.stringify({ logLabel, bytes: bytes.length }),
   );
   return {
     filename,
@@ -222,15 +221,15 @@ async function createSignedOptimizedJpegUrl(
     if (error || !data?.signedUrl) {
       console.error(
         "SEND CID EMAIL jpeg transform signed url error",
-        JSON.stringify({ bucket, path, error }),
+        JSON.stringify({ hasStorageError: Boolean(error) }),
       );
       return null;
     }
     return data.signedUrl;
-  } catch (err) {
+  } catch (_err) {
     console.error(
       "SEND CID EMAIL jpeg transform signed url unexpected error",
-      JSON.stringify({ bucket, path, err }),
+      JSON.stringify({ failed: true }),
     );
     return null;
   }
@@ -290,7 +289,9 @@ async function downloadAttachmentBytes(
       return { attachment: downloaded };
     }
   } catch (err) {
-    console.error("SEND CID EMAIL attachment download error", err);
+    console.error("SEND CID EMAIL attachment download error", {
+      failureReason: storage ? "compression_error" : "download_error",
+    });
     return {
       attachment: null,
       failureReason: storage ? "compression_error" : "download_error",
@@ -481,9 +482,9 @@ function collectCategoryPayloadAttachmentCandidates(
 
 const findPdfReference = (obj: Record<string, any> | null | undefined) => {
   if (!obj) return null;
-  for (const [key, value] of Object.entries(obj)) {
+  for (const value of Object.values(obj)) {
     if (typeof value === "string" && value.toLowerCase().includes(".pdf")) {
-      console.log("SEND CID EMAIL pdf reference found:", { key, value });
+      console.log("SEND CID EMAIL pdf reference found", { found: true });
       return value;
     }
   }
@@ -1265,8 +1266,8 @@ const resolveSignatureImageBytes = async (value: string) => {
         return new Uint8Array(await response.arrayBuffer());
       }
     }
-  } catch (err) {
-    console.error("SEND CID EMAIL signature download error", err);
+  } catch (_err) {
+    console.error("SEND CID EMAIL signature download error", { failed: true });
   }
 
   return null;
@@ -2059,13 +2060,15 @@ async function savePdfToStorage(
       contentType: "application/pdf",
     });
     if (error) {
-      console.error("SEND CID EMAIL pdf upload error", error);
+      console.error("SEND CID EMAIL pdf upload error", { failed: true });
       return null;
     }
-    console.log("SEND CID EMAIL pdf saved to storage", { bucket, path });
+    console.log("SEND CID EMAIL pdf saved to storage", { saved: true });
     return { bucket, path };
-  } catch (err) {
-    console.error("SEND CID EMAIL pdf upload unexpected error", err);
+  } catch (_err) {
+    console.error("SEND CID EMAIL pdf upload unexpected error", {
+      failed: true,
+    });
     return null;
   }
 }
@@ -2084,7 +2087,9 @@ async function handleRequest(req: Request): Promise<Response> {
 
   try {
     const { claimId } = await req.json();
-    console.log("[CIDEmail] start", JSON.stringify({ claimId }));
+    console.log("[CIDEmail] start", JSON.stringify({
+      hasClaimId: Boolean(claimId),
+    }));
     if (!claimId) {
       return Response.json(
         { error: "Missing claimId", success: false },
@@ -2100,11 +2105,16 @@ async function handleRequest(req: Request): Promise<Response> {
       .eq("id", claimId)
       .single();
 
-    console.log("SEND CID EMAIL claim row:", claimRow);
-    console.log("SEND CID EMAIL claim error:", claimError);
+    console.log("SEND CID EMAIL claim lookup", {
+      found: Boolean(claimRow),
+      hasError: Boolean(claimError),
+    });
 
     if (claimError || !claimRow) {
-      console.error("Claim fetch error", claimError);
+      console.error("Claim fetch error", {
+        found: Boolean(claimRow),
+        hasError: Boolean(claimError),
+      });
       return new Response(
         JSON.stringify({
           success: false,
@@ -2120,13 +2130,17 @@ async function handleRequest(req: Request): Promise<Response> {
     }
 
     const payload = (claimRow?.payload_json ?? {}) as Record<string, any>;
-    console.log("SEND CID EMAIL payload keys:", Object.keys(payload));
+    console.log("SEND CID EMAIL payload ready", {
+      fieldCount: Object.keys(payload).length,
+    });
     const lang = detectPayloadLanguage(payload);
     const displayClaimId = formatClaimDisplayId(
       claimId,
       payload?.dataOra ?? claimRow?.created_at,
     );
-    console.log("[CIDEmail] displayId", displayClaimId);
+    console.log("[CIDEmail] displayId ready", {
+      available: Boolean(displayClaimId),
+    });
     console.log("LANG_USED", lang);
     console.log(
       "SIGNATURE_KEYS_SCAN",
@@ -2138,7 +2152,7 @@ async function handleRequest(req: Request): Promise<Response> {
             "signature",
             "unterschrift",
           ]).map((match) => match.path),
-        )],
+        )].length,
       ),
     );
     console.log(
@@ -2153,7 +2167,7 @@ async function handleRequest(req: Request): Promise<Response> {
             "liability",
             "fault",
           ]).map((match) => match.path),
-        )],
+        )].length,
       ),
     );
 
@@ -2171,13 +2185,18 @@ async function handleRequest(req: Request): Promise<Response> {
       claimRow?.email,
     );
 
-    console.log("[CIDEmail] recipient", JSON.stringify(recipients));
+    console.log("[CIDEmail] recipients ready", JSON.stringify({
+      recipientCount: recipients.length,
+      hasEmailA: Boolean(payload?.emailA ?? claimRow?.emailA),
+      hasEmailB: Boolean(payload?.emailB ?? claimRow?.emailB),
+    }));
 
     if (recipients.length === 0) {
       console.error("[CIDEmail] error full", {
         error: "NO_VALID_RECIPIENTS",
-        emailA: payload?.emailA ?? null,
-        emailB: payload?.emailB ?? null,
+        recipientCount: recipients.length,
+        hasEmailA: Boolean(payload?.emailA ?? claimRow?.emailA),
+        hasEmailB: Boolean(payload?.emailB ?? claimRow?.emailB),
       });
       return new Response(
         JSON.stringify({
@@ -2218,16 +2237,15 @@ async function handleRequest(req: Request): Promise<Response> {
       if (!encodedPdf) {
         throw new Error("PDF_ENCODE_FAILED");
       }
-      const pdfFilename = `cid-digitale-${displayClaimId}.pdf`;
       attachments.push(encodedPdf.attachment);
       totalAttachmentBytes += encodedPdf.payloadBytes;
       pdfAttached = true;
       console.log("[CIDEmail] pdf attached", JSON.stringify({
-        filename: pdfFilename,
+        attachmentCount: attachments.length,
         totalAttachmentBytes,
       }));
-    } catch (err) {
-      console.error("SEND CID EMAIL pdf generation failed", err);
+    } catch (_err) {
+      console.error("SEND CID EMAIL pdf generation failed", { failed: true });
       try {
         const fallbackPdfBytes = await generateFallbackPdf(displayClaimId, payload);
         await savePdfToStorage(fallbackPdfBytes, claimId);
@@ -2241,13 +2259,15 @@ async function handleRequest(req: Request): Promise<Response> {
           totalAttachmentBytes += encodedFallbackPdf.payloadBytes;
           pdfAttached = true;
           console.log("[CIDEmail] pdf attached", JSON.stringify({
-            filename: `cid-digitale-${displayClaimId}.pdf`,
+            attachmentCount: attachments.length,
             totalAttachmentBytes,
             fallback: true,
           }));
         }
-      } catch (fallbackErr) {
-        console.error("SEND CID EMAIL fallback pdf generation failed", fallbackErr);
+      } catch (_fallbackErr) {
+        console.error("SEND CID EMAIL fallback pdf generation failed", {
+          failed: true,
+        });
       }
     }
 
@@ -2307,15 +2327,13 @@ async function handleRequest(req: Request): Promise<Response> {
             reducedAttachments = true;
             if (downloadResult.failureReason === "compression_error") {
               console.error("[CIDEmail] photo skipped compression error", JSON.stringify({
-                attachmentKey: candidate.attachmentKey,
                 category: candidate.category,
-                detail: downloadResult.detail ?? null,
+                hasDetail: Boolean(downloadResult.detail),
               }));
             } else {
               console.error("[CIDEmail] photo skipped download error", JSON.stringify({
-                attachmentKey: candidate.attachmentKey,
                 category: candidate.category,
-                detail: downloadResult.detail ?? null,
+                hasDetail: Boolean(downloadResult.detail),
               }));
             }
             continue;
@@ -2334,9 +2352,8 @@ async function handleRequest(req: Request): Promise<Response> {
           if (!encodedAttachment) {
             reducedAttachments = true;
             console.error("[CIDEmail] photo skipped compression error", JSON.stringify({
-              attachmentKey: candidate.attachmentKey,
               category: candidate.category,
-              detail: "encode_failed",
+              reason: "encode_failed",
             }));
             continue;
           }
@@ -2346,7 +2363,6 @@ async function handleRequest(req: Request): Promise<Response> {
               MAX_EMAIL_ATTACHMENT_BYTES
           ) {
             console.log("[CIDEmail] photo skipped size limit", JSON.stringify({
-              attachmentKey: candidate.attachmentKey,
               bytes: encodedAttachment.payloadBytes,
               category: candidate.category,
               currentTotalBytes: totalAttachmentBytes,
@@ -2363,24 +2379,21 @@ async function handleRequest(req: Request): Promise<Response> {
           if (candidate.category === "booklet") {
             bookletAttachedCount += 1;
             console.log("[CIDEmail] booklet photo attached", JSON.stringify({
-              attachmentKey: candidate.attachmentKey,
-              filename: attachmentFilename,
+              attachmentCount: attachments.length,
               totalAttachmentBytes,
             }));
           } else {
             damageAttachedCount += 1;
             console.log("[CIDEmail] damage photo attached", JSON.stringify({
-              attachmentKey: candidate.attachmentKey,
-              filename: attachmentFilename,
+              attachmentCount: attachments.length,
               totalAttachmentBytes,
             }));
           }
-        } catch (err) {
+        } catch (_err) {
           reducedAttachments = true;
           console.error("[CIDEmail] photo skipped compression error", JSON.stringify({
-            attachmentKey: candidate.attachmentKey,
             category: candidate.category,
-            detail: String(err),
+            failed: true,
           }));
         }
       }
@@ -2393,9 +2406,8 @@ async function handleRequest(req: Request): Promise<Response> {
       .eq("claim_id", claimId);
 
     console.log("CLAIM_ATTACHMENTS_DB_COUNT:", dbAttachments?.length ?? 0);
-    console.log("CLAIM_ATTACHMENTS_ROWS:", JSON.stringify(dbAttachments));
     if (dbAttachmentsError) {
-      console.error("CLAIM_ATTACHMENT_DOWNLOAD_ERROR:", dbAttachmentsError);
+      console.error("CLAIM_ATTACHMENT_DOWNLOAD_ERROR:", { failed: true });
     }
 
     if (dbAttachments && dbAttachments.length > 0) {
@@ -2447,9 +2459,7 @@ async function handleRequest(req: Request): Promise<Response> {
     );
     console.log(
       "LIBRETTO_LOGIC_FOUND:",
-      JSON.stringify(
-        bookletPayloadAttachmentCandidates,
-      ),
+      JSON.stringify({ count: bookletPayloadAttachmentCandidates.length }),
     );
     for (const candidate of bookletPayloadAttachmentCandidates) {
       queuePhotoCandidate(
@@ -2469,9 +2479,7 @@ async function handleRequest(req: Request): Promise<Response> {
     );
     console.log(
       "DAMAGE_LOGIC_FOUND:",
-      JSON.stringify(
-        damagePayloadAttachmentCandidates,
-      ),
+      JSON.stringify({ count: damagePayloadAttachmentCandidates.length }),
     );
     for (const candidate of damagePayloadAttachmentCandidates) {
       queuePhotoCandidate(
@@ -2485,7 +2493,9 @@ async function handleRequest(req: Request): Promise<Response> {
     await attachPhotoCandidates(bookletCandidates, MAX_BOOKLET_PHOTOS);
     await attachPhotoCandidates(damageCandidates, MAX_DAMAGE_PHOTOS);
 
-    console.log("EMAIL_ATTACHMENTS_FINAL:", attachments.map((a) => a.filename));
+    console.log("EMAIL_ATTACHMENTS_FINAL:", {
+      attachmentCount: attachments.length,
+    });
 
     const copy = getLocalizedCopy(lang, displayClaimId);
 
@@ -2582,10 +2592,8 @@ async function handleRequest(req: Request): Promise<Response> {
     const safeAttachments = attachments;
 
     console.log("[CIDEmail] payload ready", JSON.stringify({
-      claimId,
-      displayClaimId,
       lang,
-      recipients,
+      recipientCount: recipients.length,
       totalAttachmentBytes,
       subjectLength: safeSubject.length,
       textLength: safeTextBody.length,
@@ -2607,14 +2615,18 @@ async function handleRequest(req: Request): Promise<Response> {
     }
 
     const resendFrom = FROM_EMAIL;
-    const resendTo = [RESEND_TEST_RECIPIENT];
+    const resendTo = recipients;
     const resendCc: string[] = [];
     const resendBcc: string[] = [];
 
-    console.log("[CIDEmail] RESEND_FROM:", resendFrom);
-    console.log("[CIDEmail] RESEND_TO:", resendTo);
-    console.log("[CIDEmail] RESEND_CC:", resendCc.length > 0 ? resendCc : null);
-    console.log("[CIDEmail] RESEND_BCC:", resendBcc.length > 0 ? resendBcc : null);
+    console.log("[CIDEmail] sender ready", {
+      configured: Boolean(resendFrom),
+    });
+    console.log("[CIDEmail] recipients selected", {
+      recipientCount: resendTo.length,
+      ccCount: resendCc.length,
+      bccCount: resendBcc.length,
+    });
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -2644,8 +2656,8 @@ async function handleRequest(req: Request): Promise<Response> {
       // keep raw body
     }
     console.log("[CIDEmail] resend response", JSON.stringify({
+      ok: res.ok,
       status: res.status,
-      body: resendResponseBody,
     }));
 
     if (!res.ok) {
@@ -2654,7 +2666,6 @@ async function handleRequest(req: Request): Promise<Response> {
         : null;
       console.error("[CIDEmail] error full", {
         status: res.status,
-        body: resendResponseBody,
       });
       return new Response(
         JSON.stringify({
@@ -2671,8 +2682,7 @@ async function handleRequest(req: Request): Promise<Response> {
     }
 
     console.log("[CIDEmail] send success", JSON.stringify({
-      claimId,
-      displayClaimId,
+      recipientCount: recipients.length,
       attachmentsCount: attachments.length,
       totalAttachmentBytes,
     }));
@@ -2692,8 +2702,8 @@ async function handleRequest(req: Request): Promise<Response> {
         headers: { "Content-Type": "application/json" },
       },
     );
-  } catch (err) {
-    console.error("[CIDEmail] error full", err);
+  } catch (_err) {
+    console.error("[CIDEmail] error full", { failed: true });
     return Response.json(
       { error: "Unexpected error", success: false },
       { status: 500 },
