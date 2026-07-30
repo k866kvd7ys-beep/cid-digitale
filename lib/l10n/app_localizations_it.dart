@@ -18,6 +18,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get faultLiabilityHintB => 'Secondo voi è colpevole il conducente B.';
 
   @override
+  String get accidentDetailsLiabilityInstruction =>
+      'Seleziona il conducente ritenuto responsabile.';
+
+  @override
+  String get accidentDetailsSignAndSendAction =>
+      'Firma e invia automaticamente';
+
+  @override
+  String get accidentDetailsAutomaticEmailInfo =>
+      'Dopo entrambe le firme, la pratica viene inviata automaticamente via e-mail al conducente A e al conducente B.';
+
+  @override
   String get integrityNotVerifiedWarning =>
       'Attenzione: integrità non verificata (dati o allegati potrebbero essere cambiati).';
 

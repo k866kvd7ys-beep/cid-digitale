@@ -10470,20 +10470,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
   }
 
   String _labelResponsabilita() {
-    final l10n = AppLocalizations.of(context)!;
-    switch (incidente.colpevole) {
-      case 'A':
-        return l10n.faultLiabilityHintA;
-      case 'B':
-        return l10n.faultLiabilityHintB;
-      default:
-        return _detailText(
-          it: 'Responsabilità non selezionata.',
-          de: 'Haftung nicht ausgewählt.',
-          fr: 'Responsabilité non sélectionnée.',
-          en: 'Liability not selected.',
-        );
-    }
+    return AppLocalizations.of(context)!.accidentDetailsLiabilityInstruction;
   }
 
   String _detailText({
@@ -13380,13 +13367,18 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                             : () => _sendCidAutomatically(incidente.id),
                         icon: const Icon(Icons.send),
                         label: Text(
-                          _detailText(
-                            it: 'Invia automaticamente pratica',
-                            de: 'Schadenakte automatisch senden',
-                            fr: 'Envoyer automatiquement le dossier',
-                            en: 'Send claim automatically',
-                          ),
+                          l10n.accidentDetailsSignAndSendAction,
+                          textAlign: TextAlign.center,
                         ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.accidentDetailsAutomaticEmailInfo,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        height: 1.35,
+                        color: Colors.black54,
                       ),
                     ),
                     const SizedBox(height: 8),

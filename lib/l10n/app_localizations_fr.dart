@@ -20,6 +20,18 @@ class AppLocalizationsFr extends AppLocalizations {
       'Selon vous, le conducteur B est responsable.';
 
   @override
+  String get accidentDetailsLiabilityInstruction =>
+      'Sélectionnez le conducteur considéré comme responsable.';
+
+  @override
+  String get accidentDetailsSignAndSendAction =>
+      'Signer et envoyer automatiquement';
+
+  @override
+  String get accidentDetailsAutomaticEmailInfo =>
+      'Après les deux signatures, le dossier est automatiquement envoyé par e-mail au conducteur A et au conducteur B.';
+
+  @override
   String get integrityNotVerifiedWarning =>
       'Attention : intégrité non vérifiée (données ou pièces jointes peuvent avoir été modifiées).';
 

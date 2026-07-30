@@ -120,6 +120,24 @@ abstract class AppLocalizations {
   /// **'Eurer Meinung nach ist Fahrer B schuld.'**
   String get faultLiabilityHintB;
 
+  /// No description provided for @accidentDetailsLiabilityInstruction.
+  ///
+  /// In de, this message translates to:
+  /// **'Wählen Sie den Fahrer aus, der als verantwortlich gilt.'**
+  String get accidentDetailsLiabilityInstruction;
+
+  /// No description provided for @accidentDetailsSignAndSendAction.
+  ///
+  /// In de, this message translates to:
+  /// **'Unterschreiben und automatisch senden'**
+  String get accidentDetailsSignAndSendAction;
+
+  /// No description provided for @accidentDetailsAutomaticEmailInfo.
+  ///
+  /// In de, this message translates to:
+  /// **'Nach beiden Unterschriften wird der Bericht automatisch per E-Mail an Fahrer A und Fahrer B gesendet.'**
+  String get accidentDetailsAutomaticEmailInfo;
+
   /// No description provided for @integrityNotVerifiedWarning.
   ///
   /// In de, this message translates to:
