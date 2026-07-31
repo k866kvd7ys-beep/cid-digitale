@@ -127,6 +127,18 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     );
   }
 
+  String _serviceDetailFieldLabel(AppointmentRequest request) {
+    return workshopServiceDetailFieldLabel(
+      normalizeWorkshopServiceLocale(request.locale),
+      request.serviceSelectionKey,
+    );
+  }
+
+  String? _wheelRepairDescription(AppointmentRequest request) {
+    if (request.serviceSelectionKey != workshopServiceWheelRepair) return null;
+    return workshopWheelDescriptionFromServiceDetail(request.serviceDetail);
+  }
+
   String? _additionalServicesLabel(AppointmentRequest request) {
     if (request.additionalServices.isEmpty) return null;
     final locale = normalizeWorkshopServiceLocale(request.locale);
@@ -371,12 +383,16 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                   ),
                         ),
                       ],
-                      if (request.serviceSelectionKey ==
-                              workshopServiceClimate &&
+                      if ((request.serviceSelectionKey ==
+                                  workshopServiceClimate ||
+                              request.serviceSelectionKey ==
+                                  workshopServiceWheelRepair ||
+                              request.serviceSelectionKey ==
+                                  workshopServiceOther) &&
                           _serviceDetailLabel(request) != null) ...[
                         const SizedBox(height: 6),
                         Text(
-                          '${workshopInspectionSelectionFieldLabel(normalizeWorkshopServiceLocale(request.locale))}: ${_serviceDetailLabel(request)!}',
+                          '${_serviceDetailFieldLabel(request)}: ${_serviceDetailLabel(request)!}',
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
                                     fontWeight: FontWeight.w600,
@@ -384,6 +400,20 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                         .colorScheme
                                         .onSurface
                                         .withOpacity(0.82),
+                                  ),
+                        ),
+                      ],
+                      if (_wheelRepairDescription(request) != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          '${workshopWheelDescriptionFieldLabel(normalizeWorkshopServiceLocale(request.locale))}: ${_wheelRepairDescription(request)!}',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.82),
                                   ),
                         ),
                       ],

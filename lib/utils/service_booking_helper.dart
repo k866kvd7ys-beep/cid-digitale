@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 const String workshopServiceInspection = 'service_inspection';
@@ -8,6 +11,13 @@ const String workshopServiceAlignment = 'vehicle_alignment';
 const String workshopServiceMfk = 'mfk_preparation';
 const String workshopServiceBattery = 'battery_check';
 const String workshopServiceFluids = 'fluid_level_check';
+const String workshopServiceWheelRepair = 'wheel_repair';
+const String workshopServiceOther = 'other_service_request';
+const String workshopWheelTypeStandardPainted = 'standard_painted';
+const String workshopWheelTypeDiamondCut = 'diamond_cut';
+const String workshopWheelTypeTwoTone = 'two_tone';
+const String workshopWheelTypeSpecialFinish = 'special_finish';
+const String workshopWheelTypeAssessmentRequired = 'assessment_required';
 const String workshopInspectionDetail30000 = 'service_30000';
 const String workshopInspectionDetail60000 = 'service_60000';
 const String workshopInspectionDetailOver60000 = 'service_over_60000';
@@ -35,6 +45,16 @@ const List<String> visibleWorkshopServiceKeys = <String>[
   workshopServiceMfk,
   workshopServiceBattery,
   workshopServiceFluids,
+  workshopServiceWheelRepair,
+  workshopServiceOther,
+];
+
+const List<String> workshopWheelRepairTypeKeys = <String>[
+  workshopWheelTypeStandardPainted,
+  workshopWheelTypeDiamondCut,
+  workshopWheelTypeTwoTone,
+  workshopWheelTypeSpecialFinish,
+  workshopWheelTypeAssessmentRequired,
 ];
 
 String normalizeWorkshopServiceLocale(String? raw) {
@@ -67,6 +87,10 @@ String _copy(
     default:
       return de;
   }
+}
+
+AppLocalizations _serviceLocalizations(String locale) {
+  return lookupAppLocalizations(Locale(normalizeWorkshopServiceLocale(locale)));
 }
 
 String workshopServiceSelectionTitle(String locale) => _copy(
@@ -151,6 +175,10 @@ String workshopServiceLabel(String locale, String? serviceKey) {
         en: 'Level check and fluid top-up',
         fr: 'Contrôle des niveaux et appoint des liquides',
       );
+    case workshopServiceWheelRepair:
+      return _serviceLocalizations(locale).workshopServiceWheelRepairTitle;
+    case workshopServiceOther:
+      return _serviceLocalizations(locale).workshopServiceOtherTitle;
     default:
       return _copy(
         locale,
@@ -228,6 +256,11 @@ String workshopServiceDescription(String locale, String serviceKey) {
         en: 'Check fluid levels and top up operating fluids.',
         fr: 'Contrôle des niveaux et appoint des liquides essentiels.',
       );
+    case workshopServiceWheelRepair:
+      return _serviceLocalizations(locale)
+          .workshopServiceWheelRepairDescription;
+    case workshopServiceOther:
+      return _serviceLocalizations(locale).workshopServiceOtherDescription;
     default:
       return '';
   }
@@ -251,6 +284,10 @@ IconData workshopServiceIcon(String serviceKey) {
       return Icons.battery_charging_full_rounded;
     case workshopServiceFluids:
       return Icons.opacity_rounded;
+    case workshopServiceWheelRepair:
+      return Icons.tire_repair_outlined;
+    case workshopServiceOther:
+      return Icons.more_horiz_rounded;
     default:
       return Icons.build_rounded;
   }
@@ -374,8 +411,90 @@ String? workshopServiceDetailLabel(
     return workshopClimateDetailLabel(locale, serviceDetail);
   }
 
+  if (serviceSelectionKey == workshopServiceWheelRepair) {
+    final wheelType = workshopWheelTypeFromServiceDetail(serviceDetail);
+    return wheelType == null
+        ? null
+        : workshopWheelRepairTypeLabel(locale, wheelType);
+  }
+
+  if (serviceSelectionKey == workshopServiceOther) {
+    return serviceDetail!.trim();
+  }
+
   return null;
 }
+
+String workshopServiceDetailFieldLabel(
+  String locale,
+  String? serviceSelectionKey,
+) {
+  final l10n = _serviceLocalizations(locale);
+  if (serviceSelectionKey == workshopServiceWheelRepair) {
+    return l10n.wheelRepairTypeLabel;
+  }
+  if (serviceSelectionKey == workshopServiceOther) {
+    return l10n.otherServiceQuestion;
+  }
+  return workshopInspectionSelectionFieldLabel(locale);
+}
+
+String workshopWheelRepairTypeLabel(String locale, String wheelType) {
+  final l10n = _serviceLocalizations(locale);
+  switch (wheelType) {
+    case workshopWheelTypeStandardPainted:
+      return l10n.wheelRepairTypeStandardPainted;
+    case workshopWheelTypeDiamondCut:
+      return l10n.wheelRepairTypeDiamondCut;
+    case workshopWheelTypeTwoTone:
+      return l10n.wheelRepairTypeTwoTone;
+    case workshopWheelTypeSpecialFinish:
+      return l10n.wheelRepairTypeSpecialFinish;
+    case workshopWheelTypeAssessmentRequired:
+    default:
+      return l10n.wheelRepairTypeAssessmentRequired;
+  }
+}
+
+String encodeWorkshopWheelRepairDetail({
+  required String wheelType,
+  String? description,
+}) {
+  final normalizedType = workshopWheelRepairTypeKeys.contains(wheelType)
+      ? wheelType
+      : workshopWheelTypeAssessmentRequired;
+  final normalizedDescription = description?.trim() ?? '';
+  return jsonEncode({
+    'wheelType': normalizedType,
+    if (normalizedDescription.isNotEmpty) 'description': normalizedDescription,
+  });
+}
+
+Map<String, dynamic> _decodeWorkshopWheelRepairDetail(String? detail) {
+  final raw = detail?.trim() ?? '';
+  if (raw.isEmpty) return const <String, dynamic>{};
+  try {
+    final decoded = jsonDecode(raw);
+    if (decoded is Map<String, dynamic>) return decoded;
+    if (decoded is Map) return Map<String, dynamic>.from(decoded);
+  } catch (_) {}
+  return <String, dynamic>{'wheelType': raw};
+}
+
+String? workshopWheelTypeFromServiceDetail(String? detail) {
+  final decoded = _decodeWorkshopWheelRepairDetail(detail);
+  final wheelType = decoded['wheelType']?.toString().trim() ?? '';
+  return wheelType.isEmpty ? null : wheelType;
+}
+
+String? workshopWheelDescriptionFromServiceDetail(String? detail) {
+  final decoded = _decodeWorkshopWheelRepairDetail(detail);
+  final description = decoded['description']?.toString().trim() ?? '';
+  return description.isEmpty ? null : description;
+}
+
+String workshopWheelDescriptionFieldLabel(String locale) =>
+    _serviceLocalizations(locale).wheelRepairDamageDescriptionLabel;
 
 String workshopInspectionAdditionalNote(String locale) => _copy(
       locale,

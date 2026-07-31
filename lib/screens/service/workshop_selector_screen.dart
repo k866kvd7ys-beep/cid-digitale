@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:cid_digitale/models/workshop_model.dart';
 import 'package:cid_digitale/services/device_location_service.dart';
+import 'package:cid_digitale/services/appointment_requests_service.dart';
 import 'package:cid_digitale/services/places_workshop_search_service.dart';
 import 'package:cid_digitale/services/preferred_workshop_repository.dart';
 import 'package:cid_digitale/services/workshop_catalog_service.dart';
@@ -23,6 +24,7 @@ Future<void> openWorkshopSelectionStep(
   String? serviceDetail,
   String? cleaningPackage,
   List<String> additionalServices = const [],
+  List<AppointmentRequestImageInput> wheelRepairImages = const [],
   WorkshopModel? preselectedWorkshop,
 }) {
   return Navigator.of(context).push(
@@ -36,6 +38,7 @@ Future<void> openWorkshopSelectionStep(
         serviceDetail: serviceDetail,
         cleaningPackage: cleaningPackage,
         additionalServices: additionalServices,
+        wheelRepairImages: wheelRepairImages,
         preselectedWorkshop: preselectedWorkshop,
       ),
     ),
@@ -53,6 +56,7 @@ class WorkshopSelectorScreen extends StatefulWidget {
     this.serviceDetail,
     this.cleaningPackage,
     this.additionalServices = const [],
+    this.wheelRepairImages = const [],
     this.preselectedWorkshop,
     this.selectionOnly = false,
     this.preferredWorkshopRepository,
@@ -66,6 +70,7 @@ class WorkshopSelectorScreen extends StatefulWidget {
   final String? serviceDetail;
   final String? cleaningPackage;
   final List<String> additionalServices;
+  final List<AppointmentRequestImageInput> wheelRepairImages;
   final WorkshopModel? preselectedWorkshop;
   final bool selectionOnly;
   final PreferredWorkshopRepository? preferredWorkshopRepository;
@@ -529,6 +534,7 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
           serviceDetail: widget.serviceDetail,
           cleaningPackage: widget.cleaningPackage,
           additionalServices: widget.additionalServices,
+          wheelRepairImages: widget.wheelRepairImages,
           selectedWorkshop: workshop,
         ),
       ),

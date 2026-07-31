@@ -1103,6 +1103,198 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Status nicht verfügbar'**
   String get preferredWorkshopStatusUnavailable;
+
+  /// No description provided for @workshopServiceWheelRepairTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Felgenreparatur'**
+  String get workshopServiceWheelRepairTitle;
+
+  /// No description provided for @workshopServiceWheelRepairDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Professionelle Beurteilung und Aufbereitung beschädigter Felgen.'**
+  String get workshopServiceWheelRepairDescription;
+
+  /// No description provided for @workshopServiceOtherTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Andere Anfrage'**
+  String get workshopServiceOtherTitle;
+
+  /// No description provided for @workshopServiceOtherDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Beschreiben Sie den gewünschten Service manuell.'**
+  String get workshopServiceOtherDescription;
+
+  /// No description provided for @wheelRepairIntro.
+  ///
+  /// In de, this message translates to:
+  /// **'Wählen Sie den Felgentyp aus und laden Sie Fotos des Schadens hoch. Die ausgewählte Werkstatt kann die Bilder vor dem Termin prüfen.'**
+  String get wheelRepairIntro;
+
+  /// No description provided for @wheelRepairTypeLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Felgentyp'**
+  String get wheelRepairTypeLabel;
+
+  /// No description provided for @wheelRepairTypeStandardPainted.
+  ///
+  /// In de, this message translates to:
+  /// **'Standard lackierte Felge'**
+  String get wheelRepairTypeStandardPainted;
+
+  /// No description provided for @wheelRepairTypeDiamondCut.
+  ///
+  /// In de, this message translates to:
+  /// **'Diamond-Cut-Felge'**
+  String get wheelRepairTypeDiamondCut;
+
+  /// No description provided for @wheelRepairTypeTwoTone.
+  ///
+  /// In de, this message translates to:
+  /// **'Zweifarbige Felge'**
+  String get wheelRepairTypeTwoTone;
+
+  /// No description provided for @wheelRepairTypeSpecialFinish.
+  ///
+  /// In de, this message translates to:
+  /// **'Felge mit Spezialfinish'**
+  String get wheelRepairTypeSpecialFinish;
+
+  /// No description provided for @wheelRepairTypeAssessmentRequired.
+  ///
+  /// In de, this message translates to:
+  /// **'Ich bin nicht sicher, Bewertung erforderlich'**
+  String get wheelRepairTypeAssessmentRequired;
+
+  /// No description provided for @wheelRepairPhotosTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Fotos der Felge'**
+  String get wheelRepairPhotosTitle;
+
+  /// No description provided for @wheelRepairPhotosInfo.
+  ///
+  /// In de, this message translates to:
+  /// **'Laden Sie mindestens ein vollständiges Foto der Felge und eine Nahaufnahme des Schadens hoch.'**
+  String get wheelRepairPhotosInfo;
+
+  /// No description provided for @wheelRepairPhotoFull.
+  ///
+  /// In de, this message translates to:
+  /// **'Vollständiges Foto der Felge'**
+  String get wheelRepairPhotoFull;
+
+  /// No description provided for @wheelRepairPhotoCloseUp.
+  ///
+  /// In de, this message translates to:
+  /// **'Nahaufnahme des Schadens'**
+  String get wheelRepairPhotoCloseUp;
+
+  /// No description provided for @wheelRepairPhotoSecondAngle.
+  ///
+  /// In de, this message translates to:
+  /// **'Zweite Perspektive'**
+  String get wheelRepairPhotoSecondAngle;
+
+  /// No description provided for @wheelRepairPhotoAdditional.
+  ///
+  /// In de, this message translates to:
+  /// **'Optionales zusätzliches Foto'**
+  String get wheelRepairPhotoAdditional;
+
+  /// No description provided for @wheelRepairRecommended.
+  ///
+  /// In de, this message translates to:
+  /// **'Empfohlen'**
+  String get wheelRepairRecommended;
+
+  /// No description provided for @wheelRepairOptional.
+  ///
+  /// In de, this message translates to:
+  /// **'Optional'**
+  String get wheelRepairOptional;
+
+  /// No description provided for @wheelRepairAddPhoto.
+  ///
+  /// In de, this message translates to:
+  /// **'Foto hinzufügen'**
+  String get wheelRepairAddPhoto;
+
+  /// No description provided for @wheelRepairTakePhoto.
+  ///
+  /// In de, this message translates to:
+  /// **'Foto aufnehmen'**
+  String get wheelRepairTakePhoto;
+
+  /// No description provided for @wheelRepairChoosePhoto.
+  ///
+  /// In de, this message translates to:
+  /// **'Aus Galerie auswählen'**
+  String get wheelRepairChoosePhoto;
+
+  /// No description provided for @wheelRepairViewPhoto.
+  ///
+  /// In de, this message translates to:
+  /// **'Foto anzeigen'**
+  String get wheelRepairViewPhoto;
+
+  /// No description provided for @wheelRepairRemovePhoto.
+  ///
+  /// In de, this message translates to:
+  /// **'Foto entfernen'**
+  String get wheelRepairRemovePhoto;
+
+  /// No description provided for @wheelRepairPhotoLimit.
+  ///
+  /// In de, this message translates to:
+  /// **'Sie können maximal 6 Fotos hochladen.'**
+  String get wheelRepairPhotoLimit;
+
+  /// No description provided for @wheelRepairUnsupportedPhoto.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieses Bildformat wird nicht unterstützt.'**
+  String get wheelRepairUnsupportedPhoto;
+
+  /// No description provided for @wheelRepairPhotoError.
+  ///
+  /// In de, this message translates to:
+  /// **'Das Foto konnte nicht hinzugefügt werden. Bitte versuchen Sie es erneut.'**
+  String get wheelRepairPhotoError;
+
+  /// No description provided for @wheelRepairDamageDescriptionLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Beschreiben Sie den Schaden kurz'**
+  String get wheelRepairDamageDescriptionLabel;
+
+  /// No description provided for @continueToWorkshopSelection.
+  ///
+  /// In de, this message translates to:
+  /// **'Weiter zur Werkstattauswahl'**
+  String get continueToWorkshopSelection;
+
+  /// No description provided for @otherServiceQuestion.
+  ///
+  /// In de, this message translates to:
+  /// **'Welchen Service wünschen Sie?'**
+  String get otherServiceQuestion;
+
+  /// No description provided for @otherServicePlaceholder.
+  ///
+  /// In de, this message translates to:
+  /// **'Beschreiben Sie kurz den gewünschten Service…'**
+  String get otherServicePlaceholder;
+
+  /// No description provided for @otherServiceRequired.
+  ///
+  /// In de, this message translates to:
+  /// **'Beschreiben Sie den gewünschten Service, um fortzufahren.'**
+  String get otherServiceRequired;
 }
 
 class _AppLocalizationsDelegate

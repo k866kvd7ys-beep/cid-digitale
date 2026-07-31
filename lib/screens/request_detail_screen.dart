@@ -50,6 +50,9 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   bool get _isParkingDamageRequest =>
       request.serviceType == 'damage_parking' ||
       request.damageType == 'damage_parking';
+  bool get _isWheelRepairRequest =>
+      request.serviceType == 'service_anmelden' &&
+      request.serviceSelectionKey == workshopServiceWheelRepair;
   bool get _hasDamagePhotoSections =>
       _isGlassDamageRequest ||
       _isHailDamageRequest ||
@@ -57,6 +60,8 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       _isComprehensiveDamageRequest ||
       _isOtherDamageRequest ||
       _isParkingDamageRequest;
+  bool get _hasRequestPhotoSections =>
+      _hasDamagePhotoSections || _isWheelRepairRequest;
   bool get _supportsPremiumWorkshopPdf => _hasDamagePhotoSections;
   bool get _isTireRequest => isTireAppointmentService(request.serviceType);
   String get _tireLocaleCode => tireLocaleCode(context);
@@ -106,6 +111,11 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         normalizeWorkshopServiceLocale(request.locale),
       );
 
+  String get _serviceDetailFieldLabel => workshopServiceDetailFieldLabel(
+        normalizeWorkshopServiceLocale(request.locale),
+        request.serviceSelectionKey,
+      );
+
   String get _serviceDetailLabel =>
       workshopServiceDetailLabel(
         normalizeWorkshopServiceLocale(request.locale),
@@ -114,6 +124,9 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         serviceDetail: request.serviceDetail,
       ) ??
       '-';
+
+  String? get _wheelRepairDescription =>
+      workshopWheelDescriptionFromServiceDetail(request.serviceDetail);
 
   String get _additionalServicesFieldLabel =>
       workshopAdditionalServicesFieldLabel(
@@ -1493,6 +1506,26 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   }
 
   Widget _photosSection() {
+    if (_isWheelRepairRequest) {
+      final wheelPhotos = _otherProblemImageSources();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 12),
+          if (wheelPhotos.isNotEmpty)
+            _photoSection(
+              title: AppLocalizations.of(context)!.wheelRepairPhotosTitle,
+              images: wheelPhotos,
+            )
+          else
+            Text(
+              _noPhotosText,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+        ],
+      );
+    }
+
     if (_isHailDamageRequest) {
       final hailVehicleDocumentImages = _hailVehicleDocumentImageSources();
       final hailDamageImages = _hailDamageImageSources();
@@ -2047,11 +2080,25 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                           if (request.serviceType ==
                                   workshopServiceInspection ||
                               (request.serviceType == 'service_anmelden' &&
-                                  request.serviceSelectionKey ==
-                                      workshopServiceClimate))
+                                  (request.serviceSelectionKey ==
+                                          workshopServiceClimate ||
+                                      request.serviceSelectionKey ==
+                                          workshopServiceWheelRepair ||
+                                      request.serviceSelectionKey ==
+                                          workshopServiceOther)))
                             _row(
-                              _serviceInspectionDetailFieldLabel,
+                              request.serviceType == workshopServiceInspection
+                                  ? _serviceInspectionDetailFieldLabel
+                                  : _serviceDetailFieldLabel,
                               _serviceDetailLabel,
+                            ),
+                          if (_isWheelRepairRequest &&
+                              _wheelRepairDescription != null)
+                            _row(
+                              workshopWheelDescriptionFieldLabel(
+                                normalizeWorkshopServiceLocale(request.locale),
+                              ),
+                              _wheelRepairDescription!,
                             ),
                           if (request.serviceType == workshopServiceInspection)
                             _row(
@@ -2167,7 +2214,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                             const SizedBox(height: 4),
                             Text(request.notes ?? ''),
                           ],
-                          if (_hasDamagePhotoSections) _photosSection(),
+                          if (_hasRequestPhotoSections) _photosSection(),
                         ],
                       ),
                     ),

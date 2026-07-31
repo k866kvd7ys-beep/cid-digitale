@@ -1,4 +1,6 @@
 import 'package:cid_digitale/screens/service/workshop_selector_screen.dart';
+import 'package:cid_digitale/screens/service/workshop_service_details_screen.dart';
+import 'package:cid_digitale/services/appointment_requests_service.dart';
 import 'package:cid_digitale/utils/service_booking_helper.dart';
 import 'package:flutter/material.dart';
 
@@ -36,6 +38,7 @@ class ServiceAnmeldenScreen extends StatelessWidget {
     String? serviceDetail,
     String? cleaningPackage,
     List<String> additionalServices = const [],
+    List<AppointmentRequestImageInput> wheelRepairImages = const [],
   }) {
     openWorkshopSelectionStep(
       context,
@@ -45,6 +48,7 @@ class ServiceAnmeldenScreen extends StatelessWidget {
       serviceDetail: serviceDetail,
       cleaningPackage: cleaningPackage,
       additionalServices: additionalServices,
+      wheelRepairImages: wheelRepairImages,
     );
   }
 
@@ -194,6 +198,41 @@ class ServiceAnmeldenScreen extends StatelessWidget {
                           workshopServiceLabel(locale, serviceKey),
                           serviceType: 'service_anmelden',
                           serviceSelectionKey: serviceKey,
+                        ),
+                      ),
+                    ),
+                  );
+                  return;
+                }
+
+                if (serviceKey == workshopServiceWheelRepair) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => WheelRepairServiceScreen(
+                        onContinue: (draft) => _openBooking(
+                          context,
+                          workshopServiceLabel(locale, serviceKey),
+                          serviceType: 'service_anmelden',
+                          serviceSelectionKey: serviceKey,
+                          serviceDetail: draft.encodedServiceDetail,
+                          wheelRepairImages: draft.photos,
+                        ),
+                      ),
+                    ),
+                  );
+                  return;
+                }
+
+                if (serviceKey == workshopServiceOther) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => OtherWorkshopServiceScreen(
+                        onContinue: (description) => _openBooking(
+                          context,
+                          workshopServiceLabel(locale, serviceKey),
+                          serviceType: 'service_anmelden',
+                          serviceSelectionKey: serviceKey,
+                          serviceDetail: description,
                         ),
                       ),
                     ),

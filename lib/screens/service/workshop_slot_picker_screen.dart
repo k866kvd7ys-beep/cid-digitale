@@ -79,6 +79,7 @@ class WorkshopSlotPickerScreen extends StatefulWidget {
   final String? serviceDetail;
   final String? cleaningPackage;
   final List<String> additionalServices;
+  final List<AppointmentRequestImageInput> wheelRepairImages;
   final CustomerAuthService? customerAuthService;
   final PersonalVehicleRepository? personalVehicleRepository;
   final AppointmentRequestsService? appointmentRequestsService;
@@ -94,6 +95,7 @@ class WorkshopSlotPickerScreen extends StatefulWidget {
     this.serviceDetail,
     this.cleaningPackage,
     this.additionalServices = const [],
+    this.wheelRepairImages = const [],
     this.customerAuthService,
     this.personalVehicleRepository,
     this.appointmentRequestsService,
@@ -184,6 +186,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
   bool get _isOtherDamage => widget.serviceType == 'damage_other';
   bool get _isParkingDamage => widget.serviceType == 'damage_parking';
   bool get _isTireService => isTireAppointmentService(widget.serviceType);
+  bool get _isWheelRepairService =>
+      widget.serviceType == 'service_anmelden' &&
+      widget.serviceSelectionKey == workshopServiceWheelRepair;
   bool get _usesDamageDetailsForm =>
       _isGlassDamage ||
       _isHailDamage ||
@@ -4778,7 +4783,9 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
             : const [],
         otherDamageProblemImages: _isOtherDamage
             ? _otherProblemImages.map((e) => e.toInput()).toList()
-            : const [],
+            : _isWheelRepairService
+                ? widget.wheelRepairImages
+                : const [],
         otherDamageCurrentKmImages: _isOtherDamage
             ? _otherCurrentKmImages.map((e) => e.toInput()).toList()
             : const [],

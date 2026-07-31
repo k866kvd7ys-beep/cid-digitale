@@ -553,4 +553,112 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get preferredWorkshopStatusUnavailable => 'Statut indisponible';
+
+  @override
+  String get workshopServiceWheelRepairTitle => 'Réparation de jantes';
+
+  @override
+  String get workshopServiceWheelRepairDescription =>
+      'Évaluation et remise en état professionnelle des jantes endommagées.';
+
+  @override
+  String get workshopServiceOtherTitle => 'Autre';
+
+  @override
+  String get workshopServiceOtherDescription =>
+      'Décrivez manuellement le service souhaité.';
+
+  @override
+  String get wheelRepairIntro =>
+      'Sélectionnez le type de jante et téléchargez des photos du dommage. L’atelier choisi pourra examiner les images avant le rendez-vous.';
+
+  @override
+  String get wheelRepairTypeLabel => 'Type de jante';
+
+  @override
+  String get wheelRepairTypeStandardPainted => 'Jante peinte standard';
+
+  @override
+  String get wheelRepairTypeDiamondCut => 'Jante Diamond Cut';
+
+  @override
+  String get wheelRepairTypeTwoTone => 'Jante bicolore';
+
+  @override
+  String get wheelRepairTypeSpecialFinish => 'Jante avec finition spéciale';
+
+  @override
+  String get wheelRepairTypeAssessmentRequired =>
+      'Je ne sais pas, évaluation demandée';
+
+  @override
+  String get wheelRepairPhotosTitle => 'Photos de la jante';
+
+  @override
+  String get wheelRepairPhotosInfo =>
+      'Téléchargez au moins une photo complète de la jante et une photo rapprochée du dommage.';
+
+  @override
+  String get wheelRepairPhotoFull => 'Photo complète de la jante';
+
+  @override
+  String get wheelRepairPhotoCloseUp => 'Photo rapprochée du dommage';
+
+  @override
+  String get wheelRepairPhotoSecondAngle => 'Deuxième angle';
+
+  @override
+  String get wheelRepairPhotoAdditional => 'Photo supplémentaire facultative';
+
+  @override
+  String get wheelRepairRecommended => 'Recommandée';
+
+  @override
+  String get wheelRepairOptional => 'Facultative';
+
+  @override
+  String get wheelRepairAddPhoto => 'Ajouter une photo';
+
+  @override
+  String get wheelRepairTakePhoto => 'Prendre une photo';
+
+  @override
+  String get wheelRepairChoosePhoto => 'Choisir dans la galerie';
+
+  @override
+  String get wheelRepairViewPhoto => 'Afficher la photo';
+
+  @override
+  String get wheelRepairRemovePhoto => 'Supprimer la photo';
+
+  @override
+  String get wheelRepairPhotoLimit =>
+      'Vous pouvez télécharger au maximum 6 photos.';
+
+  @override
+  String get wheelRepairUnsupportedPhoto =>
+      'Ce format d’image n’est pas pris en charge.';
+
+  @override
+  String get wheelRepairPhotoError =>
+      'Impossible d’ajouter la photo. Veuillez réessayer.';
+
+  @override
+  String get wheelRepairDamageDescriptionLabel =>
+      'Décrivez brièvement le dommage';
+
+  @override
+  String get continueToWorkshopSelection =>
+      'Continuer vers le choix de l’atelier';
+
+  @override
+  String get otherServiceQuestion => 'Quel service souhaitez-vous ?';
+
+  @override
+  String get otherServicePlaceholder =>
+      'Décrivez brièvement le service demandé…';
+
+  @override
+  String get otherServiceRequired =>
+      'Décrivez le service souhaité pour continuer.';
 }
