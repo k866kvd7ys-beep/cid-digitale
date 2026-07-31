@@ -170,29 +170,109 @@ class OfficinaConfig {
 
   factory OfficinaConfig.fromJson(Map<String, dynamic> json) {
     return OfficinaConfig(
-      carroNumero: json['carroNumero'] ?? '',
-      concessionariaNumero: json['concessionariaNumero'] ?? '',
-      concessionariaEmail: json['concessionariaEmail'] ?? '',
+      carroNumero: json['carroNumero']?.toString() ?? '',
+      concessionariaNumero:
+          json['concessionariaNumero']?.toString() ?? '',
+      concessionariaEmail: json['concessionariaEmail']?.toString() ?? '',
     );
   }
 }
 
 OfficinaConfig configOfficina = OfficinaConfig.empty();
 
-Future<void> caricaConfigOfficina() async {
-  final prefs = await SharedPreferences.getInstance();
-  final stored = prefs.getString('config_officina');
-  if (stored != null) {
-    configOfficina = OfficinaConfig.fromJson(jsonDecode(stored));
+abstract class OfficinaConfigRepository {
+  Future<OfficinaConfig> loadForUser(String userId);
+
+  Future<void> saveForUser(String userId, OfficinaConfig config);
+}
+
+class SharedPreferencesOfficinaConfigRepository
+    implements OfficinaConfigRepository {
+  const SharedPreferencesOfficinaConfigRepository();
+
+  static const String legacyStorageKey = 'config_officina';
+  static const String legacyOwnerKey = 'config_officina_legacy_owner_v2';
+
+  static String storageKeyForUser(String userId) {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) {
+      throw ArgumentError.value(userId, 'userId');
+    }
+    return 'config_officina_v2_$normalizedUserId';
+  }
+
+  OfficinaConfig _decode(String raw) {
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map) {
+      throw const FormatException('Invalid workshop settings payload.');
+    }
+    return OfficinaConfig.fromJson(Map<String, dynamic>.from(decoded));
+  }
+
+  @override
+  Future<OfficinaConfig> loadForUser(String userId) async {
+    final normalizedUserId = userId.trim();
+    final prefs = await SharedPreferences.getInstance();
+    final scopedKey = storageKeyForUser(normalizedUserId);
+    final scoped = prefs.getString(scopedKey);
+    if (scoped != null) return _decode(scoped);
+
+    final legacy = prefs.getString(legacyStorageKey);
+    final legacyOwner = prefs.getString(legacyOwnerKey)?.trim();
+    if (legacy == null ||
+        (legacyOwner != null && legacyOwner != normalizedUserId)) {
+      return OfficinaConfig.empty();
+    }
+
+    final migrated = _decode(legacy);
+    if (legacyOwner == null) {
+      final ownerSaved = await prefs.setString(
+        legacyOwnerKey,
+        normalizedUserId,
+      );
+      if (!ownerSaved) {
+        throw StateError('Unable to assign legacy workshop settings.');
+      }
+    }
+    final migratedSaved = await prefs.setString(
+      scopedKey,
+      jsonEncode(migrated.toJson()),
+    );
+    if (!migratedSaved) {
+      throw StateError('Unable to migrate workshop settings.');
+    }
+    return migrated;
+  }
+
+  @override
+  Future<void> saveForUser(String userId, OfficinaConfig config) async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = await prefs.setString(
+      storageKeyForUser(userId),
+      jsonEncode(config.toJson()),
+    );
+    if (!saved) {
+      throw StateError('Unable to save workshop settings.');
+    }
   }
 }
 
-Future<void> salvaConfigOfficina() async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setString(
-    'config_officina',
-    jsonEncode(configOfficina.toJson()),
-  );
+const OfficinaConfigRepository _defaultOfficinaConfigRepository =
+    SharedPreferencesOfficinaConfigRepository();
+
+Future<OfficinaConfig> caricaConfigOfficina({
+  required String userId,
+  OfficinaConfigRepository repository = _defaultOfficinaConfigRepository,
+}) {
+  return repository.loadForUser(userId);
+}
+
+Future<void> salvaConfigOfficina({
+  required String userId,
+  required OfficinaConfig config,
+  OfficinaConfigRepository repository = _defaultOfficinaConfigRepository,
+}) {
+  return repository.saveForUser(userId, config);
 }
 
 bool _isValidSendEmail(String? value) {
@@ -1752,7 +1832,6 @@ Future<void> main() async {
     debugPrint('Supabase init failed: $e');
   }
   await caricaIncidenti();
-  await caricaConfigOfficina();
   linguaSelezionata.value = await caricaLinguaPreferita();
   runApp(const CidDigitaleApp());
 }
@@ -2463,6 +2542,34 @@ const Map<String, Map<String, String>> _tMap = {
     'fr': 'Email carrosserie / concessionnaire',
     'en': 'Body shop / dealer email',
   },
+  'Caricamento impostazioni officina…': {
+    'it': 'Caricamento impostazioni officina…',
+    'de': 'Werkstatteinstellungen werden geladen…',
+    'fr': 'Chargement des réglages du garage…',
+    'en': 'Loading workshop settings…',
+  },
+  'Impossibile caricare le impostazioni officina. Riprova.': {
+    'it': 'Impossibile caricare le impostazioni officina. Riprova.',
+    'de':
+        'Die Werkstatteinstellungen konnten nicht geladen werden. Bitte erneut versuchen.',
+    'fr':
+        'Impossible de charger les réglages du garage. Veuillez réessayer.',
+    'en': 'Workshop settings could not be loaded. Please try again.',
+  },
+  'Impostazioni officina salvate.': {
+    'it': 'Impostazioni officina salvate.',
+    'de': 'Werkstatteinstellungen gespeichert.',
+    'fr': 'Réglages du garage enregistrés.',
+    'en': 'Workshop settings saved.',
+  },
+  'Impossibile salvare le impostazioni officina. Riprova.': {
+    'it': 'Impossibile salvare le impostazioni officina. Riprova.',
+    'de':
+        'Die Werkstatteinstellungen konnten nicht gespeichert werden. Bitte erneut versuchen.',
+    'fr':
+        'Impossible d’enregistrer les réglages du garage. Veuillez réessayer.',
+    'en': 'Workshop settings could not be saved. Please try again.',
+  },
   'Nome conducente A': {
     'it': 'Nome conducente A',
     'de': 'Name Fahrer A',
@@ -3090,6 +3197,8 @@ class _HomePageState extends State<HomePage> {
 
   final AppointmentRequestsService _appointmentRequestsService =
       AppointmentRequestsService();
+  final OfficinaConfigRepository _officinaConfigRepository =
+      _defaultOfficinaConfigRepository;
   late Future<int?> _openRequestsCountFuture;
   late CustomerProfile _customerProfile;
 
@@ -3162,6 +3271,8 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _customerProfile = widget.profile;
     _openRequestsCountFuture = _loadOpenRequestsCount();
+    configOfficina = OfficinaConfig.empty();
+    unawaited(_loadOfficinaConfigForCurrentUser());
     incidentiRevision.addListener(_onIncidentiRevision);
     unawaited(PendingSyncManager.trigger());
   }
@@ -3183,6 +3294,22 @@ class _HomePageState extends State<HomePage> {
   void _onIncidentiRevision() {
     if (!mounted) return;
     setState(() {});
+  }
+
+  Future<void> _loadOfficinaConfigForCurrentUser() async {
+    final account = widget.authService.currentAccount;
+    if (account == null) return;
+    final userId = account.id;
+    try {
+      final loaded = await caricaConfigOfficina(
+        userId: userId,
+        repository: _officinaConfigRepository,
+      );
+      if (!mounted || widget.authService.currentAccount?.id != userId) return;
+      setState(() => configOfficina = loaded);
+    } catch (error) {
+      debugPrint('Workshop settings unavailable: $error');
+    }
   }
 
   Future<int?> _loadOpenRequestsCount() async {
@@ -3348,9 +3475,16 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _vaiAImpostazioni() async {
+    if (widget.authService.currentAccount == null) return;
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ImpostazioniOfficinaPage()),
+      MaterialPageRoute(
+        builder: (_) => ImpostazioniOfficinaPage(
+          authService: widget.authService,
+          repository: _officinaConfigRepository,
+        ),
+      ),
     );
+    if (!mounted) return;
     setState(() {});
   }
 
@@ -4710,7 +4844,14 @@ class _HomeQuickActionPillState extends State<_HomeQuickActionPill> {
 /// IMPOSTAZIONI OFFICINA ///////////////////////////////////////////////
 
 class ImpostazioniOfficinaPage extends StatefulWidget {
-  const ImpostazioniOfficinaPage({super.key});
+  const ImpostazioniOfficinaPage({
+    super.key,
+    required this.authService,
+    this.repository = _defaultOfficinaConfigRepository,
+  });
+
+  final CustomerAuthService authService;
+  final OfficinaConfigRepository repository;
 
   @override
   State<ImpostazioniOfficinaPage> createState() =>
@@ -4718,18 +4859,22 @@ class ImpostazioniOfficinaPage extends StatefulWidget {
 }
 
 class _ImpostazioniOfficinaPageState extends State<ImpostazioniOfficinaPage> {
-  late TextEditingController _carroController;
-  late TextEditingController _concessionariaNumeroController;
-  late TextEditingController _concessionariaEmailController;
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _carroController;
+  late final TextEditingController _concessionariaNumeroController;
+  late final TextEditingController _concessionariaEmailController;
+  bool _isLoading = true;
+  bool _isSaving = false;
+  bool _loadFailed = false;
+  bool _saveFailed = false;
 
   @override
   void initState() {
     super.initState();
-    _carroController = TextEditingController(text: configOfficina.carroNumero);
-    _concessionariaNumeroController =
-        TextEditingController(text: configOfficina.concessionariaNumero);
-    _concessionariaEmailController =
-        TextEditingController(text: configOfficina.concessionariaEmail);
+    _carroController = TextEditingController();
+    _concessionariaNumeroController = TextEditingController();
+    _concessionariaEmailController = TextEditingController();
+    unawaited(_load());
   }
 
   @override
@@ -4740,18 +4885,115 @@ class _ImpostazioniOfficinaPageState extends State<ImpostazioniOfficinaPage> {
     super.dispose();
   }
 
+  String? get _currentUserId {
+    final userId = widget.authService.currentAccount?.id.trim() ?? '';
+    return userId.isEmpty ? null : userId;
+  }
+
+  void _applyConfig(OfficinaConfig config) {
+    _carroController.text = config.carroNumero;
+    _concessionariaNumeroController.text = config.concessionariaNumero;
+    _concessionariaEmailController.text = config.concessionariaEmail;
+  }
+
+  Future<void> _load() async {
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _loadFailed = false;
+      });
+    }
+    final userId = _currentUserId;
+    if (userId == null) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _loadFailed = true;
+      });
+      return;
+    }
+
+    try {
+      final loaded = await caricaConfigOfficina(
+        userId: userId,
+        repository: widget.repository,
+      );
+      if (!mounted || _currentUserId != userId) return;
+      _applyConfig(loaded);
+      configOfficina = loaded;
+      setState(() {
+        _isLoading = false;
+        _loadFailed = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _loadFailed = true;
+      });
+    }
+  }
+
+  String? _validatePhone(String? value) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) return null;
+    final validCharacters = RegExp(r'^[0-9+()\-./\s]+$').hasMatch(trimmed);
+    final digitCount = RegExp(r'\d').allMatches(trimmed).length;
+    if (!validCharacters || digitCount < 3) {
+      return tx(context, 'Numero di telefono non valido');
+    }
+    return null;
+  }
+
+  String? _validateEmail(String? value) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) return null;
+    return _isValidSendEmail(trimmed)
+        ? null
+        : tx(context, 'Email non valida');
+  }
+
   Future<void> _salva() async {
-    configOfficina = OfficinaConfig(
+    if (_isLoading || _isSaving) return;
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final userId = _currentUserId;
+    if (userId == null) {
+      setState(() => _saveFailed = true);
+      return;
+    }
+
+    final updated = OfficinaConfig(
       carroNumero: _carroController.text.trim(),
       concessionariaNumero: _concessionariaNumeroController.text.trim(),
       concessionariaEmail: _concessionariaEmailController.text.trim(),
     );
-    await salvaConfigOfficina();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Impostazioni salvate.')),
-    );
-    Navigator.of(context).pop();
+    setState(() {
+      _isSaving = true;
+      _saveFailed = false;
+    });
+
+    try {
+      await salvaConfigOfficina(
+        userId: userId,
+        config: updated,
+        repository: widget.repository,
+      );
+      if (!mounted || _currentUserId != userId) return;
+      configOfficina = updated;
+      _applyConfig(updated);
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(tx(context, 'Impostazioni officina salvate.')),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+        _saveFailed = true;
+      });
+    }
   }
 
   @override
@@ -4762,44 +5004,102 @@ class _ImpostazioniOfficinaPageState extends State<ImpostazioniOfficinaPage> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextFormField(
-              controller: _carroController,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: tx(context, 'Numero carro attrezzi'),
-                hintText: tx(context, 'Es. +41...'),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              if (_isLoading) ...[
+                const LinearProgressIndicator(minHeight: 3),
+                const SizedBox(height: 8),
+                Text(tx(context, 'Caricamento impostazioni officina…')),
+                const SizedBox(height: 16),
+              ],
+              if (_loadFailed) ...[
+                Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.redAccent),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        tx(
+                          context,
+                          'Impossibile caricare le impostazioni officina. Riprova.',
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _isLoading ? null : _load,
+                      child: Text(tx(context, 'Riprova')),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+              TextFormField(
+                key: const Key('workshop_settings_tow_number'),
+                controller: _carroController,
+                enabled: !_isLoading && !_isSaving,
+                keyboardType: TextInputType.phone,
+                validator: _validatePhone,
+                decoration: InputDecoration(
+                  labelText: tx(context, 'Numero carro attrezzi'),
+                  hintText: tx(context, 'Es. +41...'),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _concessionariaNumeroController,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: tx(context, 'Numero carrozzeria / concessionaria'),
-                hintText: tx(context, 'Es. +41...'),
+              const SizedBox(height: 16),
+              TextFormField(
+                key: const Key('workshop_settings_dealer_number'),
+                controller: _concessionariaNumeroController,
+                enabled: !_isLoading && !_isSaving,
+                keyboardType: TextInputType.phone,
+                validator: _validatePhone,
+                decoration: InputDecoration(
+                  labelText:
+                      tx(context, 'Numero carrozzeria / concessionaria'),
+                  hintText: tx(context, 'Es. +41...'),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _concessionariaEmailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                labelText: tx(context, 'Email carrozzeria / concessionaria'),
-                hintText: tx(context, 'nome@email.ch'),
+              const SizedBox(height: 16),
+              TextFormField(
+                key: const Key('workshop_settings_dealer_email'),
+                controller: _concessionariaEmailController,
+                enabled: !_isLoading && !_isSaving,
+                keyboardType: TextInputType.emailAddress,
+                validator: _validateEmail,
+                decoration: InputDecoration(
+                  labelText:
+                      tx(context, 'Email carrozzeria / concessionaria'),
+                  hintText: tx(context, 'nome@email.ch'),
+                ),
               ),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _salva,
-                icon: const Icon(Icons.save),
-                label: Text(tx(context, 'Salva impostazioni')),
+              if (_saveFailed) ...[
+                const SizedBox(height: 12),
+                Text(
+                  tx(
+                    context,
+                    'Impossibile salvare le impostazioni officina. Riprova.',
+                  ),
+                  style: const TextStyle(color: Colors.redAccent),
+                ),
+              ],
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  key: const Key('workshop_settings_save'),
+                  onPressed: _isLoading || _isSaving ? null : _salva,
+                  icon: _isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save),
+                  label: Text(tx(context, 'Salva impostazioni')),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
