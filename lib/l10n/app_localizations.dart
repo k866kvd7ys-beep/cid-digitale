@@ -498,6 +498,192 @@ abstract class AppLocalizations {
   /// **'Als verantwortlich ausgewählt: {driver}'**
   String customerIncidentResponsibleDriver(String driver);
 
+  /// No description provided for @supportTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'CID Digitale Support'**
+  String get supportTitle;
+
+  /// No description provided for @supportHomeDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Melden Sie ein Problem, stellen Sie eine Frage oder senden Sie uns einen Vorschlag.'**
+  String get supportHomeDescription;
+
+  /// No description provided for @supportHowCanWeHelp.
+  ///
+  /// In de, this message translates to:
+  /// **'Wie können wir Ihnen helfen?'**
+  String get supportHowCanWeHelp;
+
+  /// No description provided for @supportIntroDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Beschreiben Sie Ihr Anliegen. Unser Team antwortet Ihnen per E-Mail.'**
+  String get supportIntroDescription;
+
+  /// No description provided for @supportRequestType.
+  ///
+  /// In de, this message translates to:
+  /// **'Art der Anfrage'**
+  String get supportRequestType;
+
+  /// No description provided for @supportRequestProblem.
+  ///
+  /// In de, this message translates to:
+  /// **'Problem melden'**
+  String get supportRequestProblem;
+
+  /// No description provided for @supportRequestQuestion.
+  ///
+  /// In de, this message translates to:
+  /// **'Frage stellen'**
+  String get supportRequestQuestion;
+
+  /// No description provided for @supportRequestSuggestion.
+  ///
+  /// In de, this message translates to:
+  /// **'Vorschlag senden'**
+  String get supportRequestSuggestion;
+
+  /// No description provided for @supportSubject.
+  ///
+  /// In de, this message translates to:
+  /// **'Betreff'**
+  String get supportSubject;
+
+  /// No description provided for @supportDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Beschreibung'**
+  String get supportDescription;
+
+  /// No description provided for @supportReplyEmail.
+  ///
+  /// In de, this message translates to:
+  /// **'Antwort-E-Mail'**
+  String get supportReplyEmail;
+
+  /// No description provided for @supportAttachmentsOptional.
+  ///
+  /// In de, this message translates to:
+  /// **'Optionale Anhänge'**
+  String get supportAttachmentsOptional;
+
+  /// No description provided for @supportAttachmentRules.
+  ///
+  /// In de, this message translates to:
+  /// **'Maximal 3 Bilder im Format JPG, JPEG, PNG oder WEBP. Höchstens 5 MB pro Bild.'**
+  String get supportAttachmentRules;
+
+  /// No description provided for @supportAttachScreenshot.
+  ///
+  /// In de, this message translates to:
+  /// **'Screenshot anhängen'**
+  String get supportAttachScreenshot;
+
+  /// No description provided for @supportTakePhoto.
+  ///
+  /// In de, this message translates to:
+  /// **'Foto aufnehmen'**
+  String get supportTakePhoto;
+
+  /// No description provided for @supportChooseGallery.
+  ///
+  /// In de, this message translates to:
+  /// **'Aus Galerie auswählen'**
+  String get supportChooseGallery;
+
+  /// No description provided for @supportRemoveAttachment.
+  ///
+  /// In de, this message translates to:
+  /// **'Anhang entfernen'**
+  String get supportRemoveAttachment;
+
+  /// No description provided for @supportAttachmentLimit.
+  ///
+  /// In de, this message translates to:
+  /// **'Sie können maximal 3 Bilder anhängen.'**
+  String get supportAttachmentLimit;
+
+  /// No description provided for @supportAttachmentTooLarge.
+  ///
+  /// In de, this message translates to:
+  /// **'Das Bild überschreitet die Grenze von 5 MB.'**
+  String get supportAttachmentTooLarge;
+
+  /// No description provided for @supportAttachmentUnsupported.
+  ///
+  /// In de, this message translates to:
+  /// **'Nicht unterstütztes Format. Verwenden Sie JPG, JPEG, PNG oder WEBP.'**
+  String get supportAttachmentUnsupported;
+
+  /// No description provided for @supportAttachmentReadError.
+  ///
+  /// In de, this message translates to:
+  /// **'Das Bild konnte nicht gelesen werden. Versuchen Sie es erneut.'**
+  String get supportAttachmentReadError;
+
+  /// No description provided for @supportSendRequest.
+  ///
+  /// In de, this message translates to:
+  /// **'Anfrage senden'**
+  String get supportSendRequest;
+
+  /// No description provided for @supportRetrySend.
+  ///
+  /// In de, this message translates to:
+  /// **'Erneut senden'**
+  String get supportRetrySend;
+
+  /// No description provided for @supportRequestSent.
+  ///
+  /// In de, this message translates to:
+  /// **'Anfrage gesendet'**
+  String get supportRequestSent;
+
+  /// No description provided for @supportThankYou.
+  ///
+  /// In de, this message translates to:
+  /// **'Vielen Dank. Wir haben Ihre Anfrage erhalten und antworten Ihnen per E-Mail.'**
+  String get supportThankYou;
+
+  /// No description provided for @supportBackHome.
+  ///
+  /// In de, this message translates to:
+  /// **'Zurück zur Startseite'**
+  String get supportBackHome;
+
+  /// No description provided for @supportSubmissionError.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Anfrage konnte nicht vollständig gesendet werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.'**
+  String get supportSubmissionError;
+
+  /// No description provided for @supportValidationRequired.
+  ///
+  /// In de, this message translates to:
+  /// **'Pflichtfeld.'**
+  String get supportValidationRequired;
+
+  /// No description provided for @supportValidationMinimum.
+  ///
+  /// In de, this message translates to:
+  /// **'Geben Sie mindestens {count} Zeichen ein.'**
+  String supportValidationMinimum(int count);
+
+  /// No description provided for @supportValidationMaximum.
+  ///
+  /// In de, this message translates to:
+  /// **'Geben Sie höchstens {count} Zeichen ein.'**
+  String supportValidationMaximum(int count);
+
+  /// No description provided for @supportInvalidEmail.
+  ///
+  /// In de, this message translates to:
+  /// **'Geben Sie eine gültige E-Mail-Adresse ein.'**
+  String get supportInvalidEmail;
+
   /// No description provided for @my_requests_filter_all.
   ///
   /// In de, this message translates to:

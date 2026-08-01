@@ -31,6 +31,7 @@ import 'screens/service/raeder_wechsel_screen.dart';
 import 'screens/driver_personal_qr_screen.dart';
 import 'screens/driver_qr_scanner_screen.dart';
 import 'screens/service/workshop_selector_screen.dart';
+import 'screens/support_request_screen.dart';
 import 'services/device_location_service.dart';
 import 'services/supabase_service.dart';
 import 'services/appointment_requests_service.dart';
@@ -3671,6 +3672,19 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _openSupportRequest() async {
+    final account = widget.authService.currentAccount;
+    if (account == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SupportRequestScreen(
+          account: account,
+          profile: _customerProfile,
+        ),
+      ),
+    );
+  }
+
   Future<void> _exitHome() async {
     try {
       await widget.authService.signOut();
@@ -4144,6 +4158,20 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildSupportCard(AppLocalizations l10n) {
+    return KeyedSubtree(
+      key: const Key('home-support-card'),
+      child: _HomeActionCard(
+        icon: Icons.support_agent_rounded,
+        iconColor: _homePrimary,
+        iconBackgroundColor: _homeLightBlue,
+        title: l10n.supportTitle,
+        subtitle: l10n.supportHomeDescription,
+        onTap: _openSupportRequest,
+      ),
+    );
+  }
+
   String _damageLabel(AppLocalizations l10n, DamageType type) {
     switch (type) {
       case DamageType.glass:
@@ -4464,6 +4492,8 @@ class _HomePageState extends State<HomePage> {
                           findNearbyLabel,
                           emergencyLabel,
                         ),
+                        const SizedBox(height: 18),
+                        _buildSupportCard(l10n),
                       ],
                     ),
                   ),

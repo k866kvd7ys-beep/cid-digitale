@@ -215,6 +215,110 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get supportTitle => 'CID Digitale Support';
+
+  @override
+  String get supportHomeDescription =>
+      'Report a problem, ask a question or send us a suggestion.';
+
+  @override
+  String get supportHowCanWeHelp => 'How can we help you?';
+
+  @override
+  String get supportIntroDescription =>
+      'Describe your request and our team will reply by email.';
+
+  @override
+  String get supportRequestType => 'Request type';
+
+  @override
+  String get supportRequestProblem => 'Report a problem';
+
+  @override
+  String get supportRequestQuestion => 'Ask a question';
+
+  @override
+  String get supportRequestSuggestion => 'Send a suggestion';
+
+  @override
+  String get supportSubject => 'Subject';
+
+  @override
+  String get supportDescription => 'Description';
+
+  @override
+  String get supportReplyEmail => 'Reply email';
+
+  @override
+  String get supportAttachmentsOptional => 'Optional attachments';
+
+  @override
+  String get supportAttachmentRules =>
+      'Maximum 3 JPG, JPEG, PNG or WEBP images. Maximum size: 5 MB per image.';
+
+  @override
+  String get supportAttachScreenshot => 'Attach screenshot';
+
+  @override
+  String get supportTakePhoto => 'Take a photo';
+
+  @override
+  String get supportChooseGallery => 'Choose from gallery';
+
+  @override
+  String get supportRemoveAttachment => 'Remove attachment';
+
+  @override
+  String get supportAttachmentLimit => 'You can attach up to 3 images.';
+
+  @override
+  String get supportAttachmentTooLarge => 'The image exceeds the 5 MB limit.';
+
+  @override
+  String get supportAttachmentUnsupported =>
+      'Unsupported format. Use JPG, JPEG, PNG or WEBP.';
+
+  @override
+  String get supportAttachmentReadError =>
+      'The image could not be read. Try again.';
+
+  @override
+  String get supportSendRequest => 'Send request';
+
+  @override
+  String get supportRetrySend => 'Retry sending';
+
+  @override
+  String get supportRequestSent => 'Request sent';
+
+  @override
+  String get supportThankYou =>
+      'Thank you. We received your request and will reply by email.';
+
+  @override
+  String get supportBackHome => 'Back to Home';
+
+  @override
+  String get supportSubmissionError =>
+      'The request could not be sent completely. Check your connection and try again.';
+
+  @override
+  String get supportValidationRequired => 'Required field.';
+
+  @override
+  String supportValidationMinimum(int count) {
+    return 'Enter at least $count characters.';
+  }
+
+  @override
+  String supportValidationMaximum(int count) {
+    return 'Do not exceed $count characters.';
+  }
+
+  @override
+  String get supportInvalidEmail => 'Enter a valid email address.';
+
+  @override
   String get my_requests_filter_all => 'All';
 
   @override

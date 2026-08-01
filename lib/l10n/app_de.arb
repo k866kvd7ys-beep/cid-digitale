@@ -73,6 +73,47 @@
       }
     }
   },
+  "supportTitle": "CID Digitale Support",
+  "supportHomeDescription": "Melden Sie ein Problem, stellen Sie eine Frage oder senden Sie uns einen Vorschlag.",
+  "supportHowCanWeHelp": "Wie können wir Ihnen helfen?",
+  "supportIntroDescription": "Beschreiben Sie Ihr Anliegen. Unser Team antwortet Ihnen per E-Mail.",
+  "supportRequestType": "Art der Anfrage",
+  "supportRequestProblem": "Problem melden",
+  "supportRequestQuestion": "Frage stellen",
+  "supportRequestSuggestion": "Vorschlag senden",
+  "supportSubject": "Betreff",
+  "supportDescription": "Beschreibung",
+  "supportReplyEmail": "Antwort-E-Mail",
+  "supportAttachmentsOptional": "Optionale Anhänge",
+  "supportAttachmentRules": "Maximal 3 Bilder im Format JPG, JPEG, PNG oder WEBP. Höchstens 5 MB pro Bild.",
+  "supportAttachScreenshot": "Screenshot anhängen",
+  "supportTakePhoto": "Foto aufnehmen",
+  "supportChooseGallery": "Aus Galerie auswählen",
+  "supportRemoveAttachment": "Anhang entfernen",
+  "supportAttachmentLimit": "Sie können maximal 3 Bilder anhängen.",
+  "supportAttachmentTooLarge": "Das Bild überschreitet die Grenze von 5 MB.",
+  "supportAttachmentUnsupported": "Nicht unterstütztes Format. Verwenden Sie JPG, JPEG, PNG oder WEBP.",
+  "supportAttachmentReadError": "Das Bild konnte nicht gelesen werden. Versuchen Sie es erneut.",
+  "supportSendRequest": "Anfrage senden",
+  "supportRetrySend": "Erneut senden",
+  "supportRequestSent": "Anfrage gesendet",
+  "supportThankYou": "Vielen Dank. Wir haben Ihre Anfrage erhalten und antworten Ihnen per E-Mail.",
+  "supportBackHome": "Zurück zur Startseite",
+  "supportSubmissionError": "Die Anfrage konnte nicht vollständig gesendet werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+  "supportValidationRequired": "Pflichtfeld.",
+  "supportValidationMinimum": "Geben Sie mindestens {count} Zeichen ein.",
+  "@supportValidationMinimum": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "supportValidationMaximum": "Geben Sie höchstens {count} Zeichen ein.",
+  "@supportValidationMaximum": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "supportInvalidEmail": "Geben Sie eine gültige E-Mail-Adresse ein.",
   "my_requests_filter_all": "Alle",
   "my_requests_filter_service": "Service",
   "my_requests_filter_tires": "Reifenwechsel",

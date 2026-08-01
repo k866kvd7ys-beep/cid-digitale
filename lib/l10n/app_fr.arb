@@ -73,6 +73,47 @@
       }
     }
   },
+  "supportTitle": "Assistance CID Digitale",
+  "supportHomeDescription": "Signalez un problème, posez une question ou envoyez-nous une suggestion.",
+  "supportHowCanWeHelp": "Comment pouvons-nous vous aider ?",
+  "supportIntroDescription": "Décrivez votre demande. Notre équipe vous répondra par e-mail.",
+  "supportRequestType": "Type de demande",
+  "supportRequestProblem": "Signaler un problème",
+  "supportRequestQuestion": "Poser une question",
+  "supportRequestSuggestion": "Envoyer une suggestion",
+  "supportSubject": "Objet",
+  "supportDescription": "Description",
+  "supportReplyEmail": "E-mail de réponse",
+  "supportAttachmentsOptional": "Pièces jointes facultatives",
+  "supportAttachmentRules": "Maximum 3 images JPG, JPEG, PNG ou WEBP. Taille maximale : 5 Mo par image.",
+  "supportAttachScreenshot": "Joindre une capture d’écran",
+  "supportTakePhoto": "Prendre une photo",
+  "supportChooseGallery": "Choisir dans la galerie",
+  "supportRemoveAttachment": "Supprimer la pièce jointe",
+  "supportAttachmentLimit": "Vous pouvez joindre au maximum 3 images.",
+  "supportAttachmentTooLarge": "L’image dépasse la limite de 5 Mo.",
+  "supportAttachmentUnsupported": "Format non pris en charge. Utilisez JPG, JPEG, PNG ou WEBP.",
+  "supportAttachmentReadError": "Impossible de lire l’image. Réessayez.",
+  "supportSendRequest": "Envoyer la demande",
+  "supportRetrySend": "Réessayer l’envoi",
+  "supportRequestSent": "Demande envoyée",
+  "supportThankYou": "Merci. Nous avons reçu votre demande et vous répondrons par e-mail.",
+  "supportBackHome": "Retour à l’accueil",
+  "supportSubmissionError": "Impossible de terminer l’envoi. Vérifiez votre connexion et réessayez.",
+  "supportValidationRequired": "Champ obligatoire.",
+  "supportValidationMinimum": "Saisissez au moins {count} caractères.",
+  "@supportValidationMinimum": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "supportValidationMaximum": "Ne dépassez pas {count} caractères.",
+  "@supportValidationMaximum": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "supportInvalidEmail": "Saisissez une adresse e-mail valide.",
   "my_requests_filter_all": "Tous",
   "my_requests_filter_service": "Service",
   "my_requests_filter_tires": "Changement de pneus",

@@ -216,6 +216,112 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get supportTitle => 'CID Digitale Support';
+
+  @override
+  String get supportHomeDescription =>
+      'Melden Sie ein Problem, stellen Sie eine Frage oder senden Sie uns einen Vorschlag.';
+
+  @override
+  String get supportHowCanWeHelp => 'Wie können wir Ihnen helfen?';
+
+  @override
+  String get supportIntroDescription =>
+      'Beschreiben Sie Ihr Anliegen. Unser Team antwortet Ihnen per E-Mail.';
+
+  @override
+  String get supportRequestType => 'Art der Anfrage';
+
+  @override
+  String get supportRequestProblem => 'Problem melden';
+
+  @override
+  String get supportRequestQuestion => 'Frage stellen';
+
+  @override
+  String get supportRequestSuggestion => 'Vorschlag senden';
+
+  @override
+  String get supportSubject => 'Betreff';
+
+  @override
+  String get supportDescription => 'Beschreibung';
+
+  @override
+  String get supportReplyEmail => 'Antwort-E-Mail';
+
+  @override
+  String get supportAttachmentsOptional => 'Optionale Anhänge';
+
+  @override
+  String get supportAttachmentRules =>
+      'Maximal 3 Bilder im Format JPG, JPEG, PNG oder WEBP. Höchstens 5 MB pro Bild.';
+
+  @override
+  String get supportAttachScreenshot => 'Screenshot anhängen';
+
+  @override
+  String get supportTakePhoto => 'Foto aufnehmen';
+
+  @override
+  String get supportChooseGallery => 'Aus Galerie auswählen';
+
+  @override
+  String get supportRemoveAttachment => 'Anhang entfernen';
+
+  @override
+  String get supportAttachmentLimit => 'Sie können maximal 3 Bilder anhängen.';
+
+  @override
+  String get supportAttachmentTooLarge =>
+      'Das Bild überschreitet die Grenze von 5 MB.';
+
+  @override
+  String get supportAttachmentUnsupported =>
+      'Nicht unterstütztes Format. Verwenden Sie JPG, JPEG, PNG oder WEBP.';
+
+  @override
+  String get supportAttachmentReadError =>
+      'Das Bild konnte nicht gelesen werden. Versuchen Sie es erneut.';
+
+  @override
+  String get supportSendRequest => 'Anfrage senden';
+
+  @override
+  String get supportRetrySend => 'Erneut senden';
+
+  @override
+  String get supportRequestSent => 'Anfrage gesendet';
+
+  @override
+  String get supportThankYou =>
+      'Vielen Dank. Wir haben Ihre Anfrage erhalten und antworten Ihnen per E-Mail.';
+
+  @override
+  String get supportBackHome => 'Zurück zur Startseite';
+
+  @override
+  String get supportSubmissionError =>
+      'Die Anfrage konnte nicht vollständig gesendet werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.';
+
+  @override
+  String get supportValidationRequired => 'Pflichtfeld.';
+
+  @override
+  String supportValidationMinimum(int count) {
+    return 'Geben Sie mindestens $count Zeichen ein.';
+  }
+
+  @override
+  String supportValidationMaximum(int count) {
+    return 'Geben Sie höchstens $count Zeichen ein.';
+  }
+
+  @override
+  String get supportInvalidEmail =>
+      'Geben Sie eine gültige E-Mail-Adresse ein.';
+
+  @override
   String get my_requests_filter_all => 'Alle';
 
   @override

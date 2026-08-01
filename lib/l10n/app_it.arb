@@ -73,6 +73,47 @@
       }
     }
   },
+  "supportTitle": "Assistenza CID Digitale",
+  "supportHomeDescription": "Segnala un problema, fai una domanda o inviaci un suggerimento.",
+  "supportHowCanWeHelp": "Come possiamo aiutarti?",
+  "supportIntroDescription": "Descrivi la tua richiesta e il nostro team ti risponderà tramite e-mail.",
+  "supportRequestType": "Tipo di richiesta",
+  "supportRequestProblem": "Segnala un problema",
+  "supportRequestQuestion": "Fai una domanda",
+  "supportRequestSuggestion": "Invia un suggerimento",
+  "supportSubject": "Oggetto",
+  "supportDescription": "Descrizione",
+  "supportReplyEmail": "E-mail di risposta",
+  "supportAttachmentsOptional": "Allegati facoltativi",
+  "supportAttachmentRules": "Massimo 3 immagini JPG, JPEG, PNG o WEBP. Dimensione massima: 5 MB per immagine.",
+  "supportAttachScreenshot": "Allega screenshot",
+  "supportTakePhoto": "Scatta una fotografia",
+  "supportChooseGallery": "Scegli dalla galleria",
+  "supportRemoveAttachment": "Rimuovi allegato",
+  "supportAttachmentLimit": "Puoi allegare al massimo 3 immagini.",
+  "supportAttachmentTooLarge": "L’immagine supera il limite di 5 MB.",
+  "supportAttachmentUnsupported": "Formato non supportato. Usa JPG, JPEG, PNG o WEBP.",
+  "supportAttachmentReadError": "Non è stato possibile leggere l’immagine. Riprova.",
+  "supportSendRequest": "Invia richiesta",
+  "supportRetrySend": "Riprova invio",
+  "supportRequestSent": "Richiesta inviata",
+  "supportThankYou": "Grazie. Abbiamo ricevuto la tua richiesta e ti risponderemo tramite e-mail.",
+  "supportBackHome": "Torna alla Home",
+  "supportSubmissionError": "Non è stato possibile completare l’invio. Controlla la connessione e riprova.",
+  "supportValidationRequired": "Campo obbligatorio.",
+  "supportValidationMinimum": "Inserisci almeno {count} caratteri.",
+  "@supportValidationMinimum": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "supportValidationMaximum": "Non superare {count} caratteri.",
+  "@supportValidationMaximum": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "supportInvalidEmail": "Inserisci un indirizzo e-mail valido.",
   "my_requests_filter_all": "Tutti",
   "my_requests_filter_service": "Service",
   "my_requests_filter_tires": "Cambio gomme",

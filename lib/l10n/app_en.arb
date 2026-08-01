@@ -73,6 +73,47 @@
       }
     }
   },
+  "supportTitle": "CID Digitale Support",
+  "supportHomeDescription": "Report a problem, ask a question or send us a suggestion.",
+  "supportHowCanWeHelp": "How can we help you?",
+  "supportIntroDescription": "Describe your request and our team will reply by email.",
+  "supportRequestType": "Request type",
+  "supportRequestProblem": "Report a problem",
+  "supportRequestQuestion": "Ask a question",
+  "supportRequestSuggestion": "Send a suggestion",
+  "supportSubject": "Subject",
+  "supportDescription": "Description",
+  "supportReplyEmail": "Reply email",
+  "supportAttachmentsOptional": "Optional attachments",
+  "supportAttachmentRules": "Maximum 3 JPG, JPEG, PNG or WEBP images. Maximum size: 5 MB per image.",
+  "supportAttachScreenshot": "Attach screenshot",
+  "supportTakePhoto": "Take a photo",
+  "supportChooseGallery": "Choose from gallery",
+  "supportRemoveAttachment": "Remove attachment",
+  "supportAttachmentLimit": "You can attach up to 3 images.",
+  "supportAttachmentTooLarge": "The image exceeds the 5 MB limit.",
+  "supportAttachmentUnsupported": "Unsupported format. Use JPG, JPEG, PNG or WEBP.",
+  "supportAttachmentReadError": "The image could not be read. Try again.",
+  "supportSendRequest": "Send request",
+  "supportRetrySend": "Retry sending",
+  "supportRequestSent": "Request sent",
+  "supportThankYou": "Thank you. We received your request and will reply by email.",
+  "supportBackHome": "Back to Home",
+  "supportSubmissionError": "The request could not be sent completely. Check your connection and try again.",
+  "supportValidationRequired": "Required field.",
+  "supportValidationMinimum": "Enter at least {count} characters.",
+  "@supportValidationMinimum": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "supportValidationMaximum": "Do not exceed {count} characters.",
+  "@supportValidationMaximum": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "supportInvalidEmail": "Enter a valid email address.",
   "my_requests_filter_all": "All",
   "my_requests_filter_service": "Service",
   "my_requests_filter_tires": "Tire Change",

@@ -219,6 +219,111 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get supportTitle => 'Assistance CID Digitale';
+
+  @override
+  String get supportHomeDescription =>
+      'Signalez un problème, posez une question ou envoyez-nous une suggestion.';
+
+  @override
+  String get supportHowCanWeHelp => 'Comment pouvons-nous vous aider ?';
+
+  @override
+  String get supportIntroDescription =>
+      'Décrivez votre demande. Notre équipe vous répondra par e-mail.';
+
+  @override
+  String get supportRequestType => 'Type de demande';
+
+  @override
+  String get supportRequestProblem => 'Signaler un problème';
+
+  @override
+  String get supportRequestQuestion => 'Poser une question';
+
+  @override
+  String get supportRequestSuggestion => 'Envoyer une suggestion';
+
+  @override
+  String get supportSubject => 'Objet';
+
+  @override
+  String get supportDescription => 'Description';
+
+  @override
+  String get supportReplyEmail => 'E-mail de réponse';
+
+  @override
+  String get supportAttachmentsOptional => 'Pièces jointes facultatives';
+
+  @override
+  String get supportAttachmentRules =>
+      'Maximum 3 images JPG, JPEG, PNG ou WEBP. Taille maximale : 5 Mo par image.';
+
+  @override
+  String get supportAttachScreenshot => 'Joindre une capture d’écran';
+
+  @override
+  String get supportTakePhoto => 'Prendre une photo';
+
+  @override
+  String get supportChooseGallery => 'Choisir dans la galerie';
+
+  @override
+  String get supportRemoveAttachment => 'Supprimer la pièce jointe';
+
+  @override
+  String get supportAttachmentLimit =>
+      'Vous pouvez joindre au maximum 3 images.';
+
+  @override
+  String get supportAttachmentTooLarge => 'L’image dépasse la limite de 5 Mo.';
+
+  @override
+  String get supportAttachmentUnsupported =>
+      'Format non pris en charge. Utilisez JPG, JPEG, PNG ou WEBP.';
+
+  @override
+  String get supportAttachmentReadError =>
+      'Impossible de lire l’image. Réessayez.';
+
+  @override
+  String get supportSendRequest => 'Envoyer la demande';
+
+  @override
+  String get supportRetrySend => 'Réessayer l’envoi';
+
+  @override
+  String get supportRequestSent => 'Demande envoyée';
+
+  @override
+  String get supportThankYou =>
+      'Merci. Nous avons reçu votre demande et vous répondrons par e-mail.';
+
+  @override
+  String get supportBackHome => 'Retour à l’accueil';
+
+  @override
+  String get supportSubmissionError =>
+      'Impossible de terminer l’envoi. Vérifiez votre connexion et réessayez.';
+
+  @override
+  String get supportValidationRequired => 'Champ obligatoire.';
+
+  @override
+  String supportValidationMinimum(int count) {
+    return 'Saisissez au moins $count caractères.';
+  }
+
+  @override
+  String supportValidationMaximum(int count) {
+    return 'Ne dépassez pas $count caractères.';
+  }
+
+  @override
+  String get supportInvalidEmail => 'Saisissez une adresse e-mail valide.';
+
+  @override
   String get my_requests_filter_all => 'Tous';
 
   @override
