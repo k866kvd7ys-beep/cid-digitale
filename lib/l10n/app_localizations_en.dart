@@ -182,6 +182,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get empty_appointments => 'No appointments yet';
 
   @override
+  String get customerIncidentLoading => 'Loading accidents…';
+
+  @override
+  String get customerIncidentLoadError =>
+      'Unable to load the accident claims. Check your connection and try again.';
+
+  @override
+  String get customerIncidentRetry => 'Try again';
+
+  @override
+  String get customerIncidentEmpty => 'No accidents saved.';
+
+  @override
+  String get customerIncidentLocalDraft => 'Local draft';
+
+  @override
+  String get customerIncidentRefresh => 'Refresh list';
+
+  @override
+  String get customerIncidentStatusLabel => 'Status';
+
+  @override
+  String get customerIncidentStatusReleased => 'Approved';
+
+  @override
+  String get customerIncidentStatusWaitingApproval => 'Awaiting approval';
+
+  @override
+  String customerIncidentResponsibleDriver(String driver) {
+    return 'Driver considered responsible: $driver';
+  }
+
+  @override
   String get my_requests_filter_all => 'All';
 
   @override

@@ -438,6 +438,66 @@ abstract class AppLocalizations {
   /// **'Noch keine Termine'**
   String get empty_appointments;
 
+  /// No description provided for @customerIncidentLoading.
+  ///
+  /// In de, this message translates to:
+  /// **'Unfälle werden geladen…'**
+  String get customerIncidentLoading;
+
+  /// No description provided for @customerIncidentLoadError.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Unfallakten konnten nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.'**
+  String get customerIncidentLoadError;
+
+  /// No description provided for @customerIncidentRetry.
+  ///
+  /// In de, this message translates to:
+  /// **'Erneut versuchen'**
+  String get customerIncidentRetry;
+
+  /// No description provided for @customerIncidentEmpty.
+  ///
+  /// In de, this message translates to:
+  /// **'Keine Unfälle gespeichert.'**
+  String get customerIncidentEmpty;
+
+  /// No description provided for @customerIncidentLocalDraft.
+  ///
+  /// In de, this message translates to:
+  /// **'Lokaler Entwurf'**
+  String get customerIncidentLocalDraft;
+
+  /// No description provided for @customerIncidentRefresh.
+  ///
+  /// In de, this message translates to:
+  /// **'Liste aktualisieren'**
+  String get customerIncidentRefresh;
+
+  /// No description provided for @customerIncidentStatusLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Status'**
+  String get customerIncidentStatusLabel;
+
+  /// No description provided for @customerIncidentStatusReleased.
+  ///
+  /// In de, this message translates to:
+  /// **'Freigegeben'**
+  String get customerIncidentStatusReleased;
+
+  /// No description provided for @customerIncidentStatusWaitingApproval.
+  ///
+  /// In de, this message translates to:
+  /// **'Wartet auf Freigabe'**
+  String get customerIncidentStatusWaitingApproval;
+
+  /// No description provided for @customerIncidentResponsibleDriver.
+  ///
+  /// In de, this message translates to:
+  /// **'Als verantwortlich ausgewählt: {driver}'**
+  String customerIncidentResponsibleDriver(String driver);
+
   /// No description provided for @my_requests_filter_all.
   ///
   /// In de, this message translates to:

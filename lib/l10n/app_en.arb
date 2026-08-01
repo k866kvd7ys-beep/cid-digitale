@@ -56,6 +56,23 @@
   "tab_appointments": "Appointments",
   "tab_incidents": "Accidents",
   "empty_appointments": "No appointments yet",
+  "customerIncidentLoading": "Loading accidents…",
+  "customerIncidentLoadError": "Unable to load the accident claims. Check your connection and try again.",
+  "customerIncidentRetry": "Try again",
+  "customerIncidentEmpty": "No accidents saved.",
+  "customerIncidentLocalDraft": "Local draft",
+  "customerIncidentRefresh": "Refresh list",
+  "customerIncidentStatusLabel": "Status",
+  "customerIncidentStatusReleased": "Approved",
+  "customerIncidentStatusWaitingApproval": "Awaiting approval",
+  "customerIncidentResponsibleDriver": "Driver considered responsible: {driver}",
+  "@customerIncidentResponsibleDriver": {
+    "placeholders": {
+      "driver": {
+        "type": "String"
+      }
+    }
+  },
   "my_requests_filter_all": "All",
   "my_requests_filter_service": "Service",
   "my_requests_filter_tires": "Tire Change",

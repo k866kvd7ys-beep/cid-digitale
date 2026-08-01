@@ -34,6 +34,7 @@ import 'screens/service/workshop_selector_screen.dart';
 import 'services/device_location_service.dart';
 import 'services/supabase_service.dart';
 import 'services/appointment_requests_service.dart';
+import 'services/customer_incident_history_repository.dart';
 import 'services/incidents_sync_service.dart';
 import 'services/local_image_cache.dart';
 import 'models/driver_personal_qr_data.dart';
@@ -857,12 +858,30 @@ class Incidente {
 
 List<Incidente> incidentiSalvati = [];
 final ValueNotifier<int> incidentiRevision = ValueNotifier<int>(0);
+const String _legacyIncidentStorageKey = 'incidenti';
+const String _incidentStorageKeyPrefix = 'customerIncidents';
 const String _pendingSyncQueueKey = 'pendingSyncQueue';
 const int _maxPendingSyncAttempts = 3;
 
-Future<void> caricaIncidenti() async {
+String? _currentIncidentStorageUserId() {
+  try {
+    return Supabase.instance.client.auth.currentUser?.id;
+  } catch (_) {
+    return null;
+  }
+}
+
+String _incidentStorageKey(String? userId) {
+  final normalizedUserId = userId?.trim() ?? '';
+  return normalizedUserId.isEmpty
+      ? _legacyIncidentStorageKey
+      : '$_incidentStorageKeyPrefix:$normalizedUserId';
+}
+
+Future<void> caricaIncidenti({String? userId}) async {
   final prefs = await SharedPreferences.getInstance();
-  final stored = prefs.getString('incidenti');
+  final storageUserId = userId ?? _currentIncidentStorageUserId();
+  final stored = prefs.getString(_incidentStorageKey(storageUserId));
   if (stored == null) {
     incidentiSalvati = [];
     incidentiRevision.value++;
@@ -903,10 +922,11 @@ Future<void> caricaIncidenti() async {
   }
 }
 
-Future<void> salvaIncidenti() async {
+Future<void> salvaIncidenti({String? userId}) async {
   final prefs = await SharedPreferences.getInstance();
+  final storageUserId = userId ?? _currentIncidentStorageUserId();
   await prefs.setString(
-    'incidenti',
+    _incidentStorageKey(storageUserId),
     jsonEncode(incidentiSalvati.map((e) => e.toJson()).toList()),
   );
   incidentiRevision.value++;
@@ -3270,6 +3290,10 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _customerProfile = widget.profile;
+    final account = widget.authService.currentAccount;
+    if (account != null) {
+      unawaited(caricaIncidenti(userId: account.id));
+    }
     _openRequestsCountFuture = _loadOpenRequestsCount();
     configOfficina = OfficinaConfig.empty();
     unawaited(_loadOfficinaConfigForCurrentUser());
@@ -3583,10 +3607,17 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _openMyRequests() async {
+    final incidentHistoryKey = GlobalKey<_StoricoPageState>();
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => const MyRequestsPage(
-          incidentsTab: StoricoPage(embedOnlyBody: true),
+        builder: (_) => MyRequestsPage(
+          incidentsTab: StoricoPage(
+            key: incidentHistoryKey,
+            embedOnlyBody: true,
+          ),
+          onIncidentsTabSelected: () {
+            incidentHistoryKey.currentState?.refreshAfterTabSelected();
+          },
         ),
       ),
     );
@@ -3643,6 +3674,8 @@ class _HomePageState extends State<HomePage> {
   Future<void> _exitHome() async {
     try {
       await widget.authService.signOut();
+      incidentiSalvati = [];
+      incidentiRevision.value++;
     } catch (e) {
       if (!mounted) return;
       final strings = CustomerAuthStrings.of(context);
@@ -10132,73 +10165,352 @@ class _DashedRRectPainter extends CustomPainter {
 
 class StoricoPage extends StatefulWidget {
   final bool embedOnlyBody;
+  final CustomerIncidentHistoryRepository? historyRepository;
+  final CustomerIncidentHistorySession? historySession;
 
-  const StoricoPage({super.key, this.embedOnlyBody = false});
+  const StoricoPage({
+    super.key,
+    this.embedOnlyBody = false,
+    this.historyRepository,
+    this.historySession,
+  });
 
   @override
   State<StoricoPage> createState() => _StoricoPageState();
 }
 
 class _StoricoPageState extends State<StoricoPage> {
+  late final CustomerIncidentHistoryRepository _historyRepository;
+  late final CustomerIncidentHistorySession _historySession;
+  StreamSubscription<String?>? _userSubscription;
+  List<_CustomerIncidentHistoryViewItem> _items = const [];
+  String? _activeUserId;
+  bool _isLoading = true;
+  bool _loadCompleted = false;
+  bool _loadFailed = false;
+  int _loadGeneration = 0;
+
   @override
-  Widget build(BuildContext context) {
-    final body = incidentiSalvati.isEmpty
-        ? Center(child: Text(tx(context, 'Nessun incidente salvato.')))
-        : ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: incidentiSalvati.length,
-            itemBuilder: (context, index) {
-              final inc = incidentiSalvati[index];
-              final dataOra = formatDataOraLocale(context, inc.dataOra);
-              final indirizzoACompleto =
-                  formatFullAddress(inc.indirizzoA, inc.zipA, inc.cityA);
-              final indirizzoBCompleto =
-                  formatFullAddress(inc.indirizzoB, inc.zipB, inc.cityB);
+  void initState() {
+    super.initState();
+    _historyRepository =
+        widget.historyRepository ?? CustomerIncidentHistoryRepository();
+    _historySession =
+        widget.historySession ?? SupabaseCustomerIncidentHistorySession();
+    _activeUserId = _historySession.currentUserId;
+    _userSubscription = _historySession.userChanges.listen(_handleUserChange);
+    final userId = _activeUserId;
+    if (userId == null || userId.isEmpty) {
+      _isLoading = false;
+      _loadCompleted = true;
+      _loadFailed = true;
+    } else {
+      unawaited(_loadHistory(userId: userId));
+    }
+  }
 
-              String resp;
-              if (inc.colpevole == 'A') {
-                resp = 'Resp: A';
-              } else if (inc.colpevole == 'B') {
-                resp = 'Resp: B';
-              } else {
-                resp = 'Resp: n/d';
-              }
+  @override
+  void dispose() {
+    _loadGeneration++;
+    _userSubscription?.cancel();
+    super.dispose();
+  }
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+  void _handleUserChange(String? userId) {
+    final normalizedUserId = userId?.trim();
+    if (normalizedUserId == _activeUserId) return;
+
+    _loadGeneration++;
+    _activeUserId = normalizedUserId;
+    incidentiSalvati = [];
+    incidentiRevision.value++;
+    if (mounted) {
+      setState(() {
+        _items = const [];
+        _isLoading = normalizedUserId != null;
+        _loadCompleted = normalizedUserId == null;
+        _loadFailed = normalizedUserId == null;
+      });
+    }
+    if (normalizedUserId != null && normalizedUserId.isNotEmpty) {
+      unawaited(_loadHistory(userId: normalizedUserId));
+    }
+  }
+
+  Future<void> _loadHistory({
+    required String userId,
+    bool showFullLoading = true,
+  }) async {
+    final generation = ++_loadGeneration;
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        if (showFullLoading && _items.isEmpty) _loadCompleted = false;
+      });
+    }
+
+    await caricaIncidenti(userId: userId);
+    final localPayloads = incidentiSalvati
+        .map((incident) => incident.toJson())
+        .toList(growable: false);
+    final result = await _historyRepository.loadForUser(
+      userId: userId,
+      localPayloads: localPayloads,
+    );
+    if (!mounted || generation != _loadGeneration || _activeUserId != userId) {
+      return;
+    }
+
+    final viewItems = <_CustomerIncidentHistoryViewItem>[];
+    for (final entry in result.entries) {
+      try {
+        viewItems.add(
+          _CustomerIncidentHistoryViewItem(
+            entry: entry,
+            incident: Incidente.fromJson(entry.incidentPayload),
+          ),
+        );
+      } catch (error) {
+        debugPrint('Incident history payload skipped: $error');
+      }
+    }
+
+    incidentiSalvati = viewItems.map((item) => item.incident).toList();
+    incidentiRevision.value++;
+    setState(() {
+      _items = viewItems;
+      _isLoading = false;
+      _loadCompleted = true;
+      _loadFailed = !result.remoteSucceeded;
+    });
+  }
+
+  Future<void> _retry() async {
+    final userId = _activeUserId;
+    if (userId == null || userId.isEmpty) return;
+    await _loadHistory(userId: userId, showFullLoading: _items.isEmpty);
+  }
+
+  void refreshAfterTabSelected() {
+    unawaited(_retry());
+  }
+
+  String _statusLabel(
+    AppLocalizations l10n,
+    CustomerIncidentHistoryEntry entry,
+  ) {
+    if (entry.isLocalDraft) return l10n.customerIncidentLocalDraft;
+    switch (entry.status.trim().toLowerCase()) {
+      case 'freigegeben':
+        return l10n.customerIncidentStatusReleased;
+      case 'warten_auf_freigabe':
+        return l10n.customerIncidentStatusWaitingApproval;
+      default:
+        return entry.status.trim().isEmpty ? '-' : entry.status.trim();
+    }
+  }
+
+  String _driverSummary(
+    String name,
+    String plate,
+    String insurance,
+  ) {
+    return [name, plate, insurance]
+        .where((value) => value.trim().isNotEmpty)
+        .join(' · ');
+  }
+
+  Widget _stateList({required Widget child}) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      children: [
+        const SizedBox(height: 72),
+        Center(child: child),
+      ],
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    if (_isLoading && !_loadCompleted && _items.isEmpty) {
+      return _stateList(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(l10n.customerIncidentLoading),
+          ],
+        ),
+      );
+    }
+
+    if (_loadFailed && _items.isEmpty) {
+      return _stateList(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off_outlined, size: 44),
+            const SizedBox(height: 12),
+            Text(
+              l10n.customerIncidentLoadError,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              key: const Key('customer-incident-retry'),
+              onPressed: _isLoading ? null : _retry,
+              icon: const Icon(Icons.refresh),
+              label: Text(l10n.customerIncidentRetry),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_loadCompleted && !_loadFailed && _items.isEmpty) {
+      return _stateList(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.description_outlined, size: 44),
+            const SizedBox(height: 12),
+            Text(
+              l10n.customerIncidentEmpty,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final extraRows = _loadFailed ? 2 : 1;
+    return RefreshIndicator(
+      onRefresh: _retry,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        itemCount: _items.length + extraRows,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  key: const Key('customer-incident-refresh'),
+                  onPressed: _isLoading ? null : _retry,
+                  icon: _isLoading
+                      ? const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh),
+                  label: Text(l10n.customerIncidentRefresh),
                 ),
-                child: ListTile(
-                  leading: const Icon(Icons.description_outlined),
-                  title: Text('$dataOra - ${inc.luogo}'),
-                  subtitle: Text(
-                    'A: ${formatNomeCompleto(inc.nomeA, inc.cognomeA)} (${inc.targaA})'
-                    '${inc.telefonoA.isNotEmpty ? ' · ${inc.telefonoA}' : ''}'
-                    '${indirizzoACompleto.isNotEmpty ? ' · $indirizzoACompleto' : ''}'
-                    '${inc.emailA.isNotEmpty ? '\n   ${inc.emailA}' : ''}\n'
-                    'B: ${formatNomeCompleto(inc.nomeB, inc.cognomeB)} (${inc.targaB})'
-                    '${inc.telefonoB.isNotEmpty ? ' · ${inc.telefonoB}' : ''}'
-                    '${indirizzoBCompleto.isNotEmpty ? ' · $indirizzoBCompleto' : ''}'
-                    '${inc.emailB.isNotEmpty ? '\n   ${inc.emailB}' : ''}\n'
-                    '$resp\n'
-                    'Cod. officina: ${inc.codiceOfficina}',
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => DettaglioIncidentePage(
-                          incidente: inc,
-                          readOnly: true,
+              ],
+            );
+          }
+          if (_loadFailed && index == 1) {
+            return Card(
+              color: Theme.of(context).colorScheme.errorContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    const Icon(Icons.cloud_off_outlined),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(l10n.customerIncidentLoadError)),
+                    IconButton(
+                      tooltip: l10n.customerIncidentRetry,
+                      onPressed: _isLoading ? null : _retry,
+                      icon: const Icon(Icons.refresh),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final itemIndex = index - extraRows;
+          final item = _items[itemIndex];
+          final inc = item.incident;
+          final dataOra = formatDataOraLocale(context, inc.dataOra);
+          final driverA = _driverSummary(
+            formatNomeCompleto(inc.nomeA, inc.cognomeA),
+            inc.targaA,
+            inc.assicurazioneA,
+          );
+          final driverB = _driverSummary(
+            formatNomeCompleto(inc.nomeB, inc.cognomeB),
+            inc.targaB,
+            inc.assicurazioneB,
+          );
+          final responsibleDriver = switch (inc.colpevole) {
+            'A' => l10n.labelDriverA,
+            'B' => l10n.labelDriverB,
+            _ => '',
+          };
+
+          return Card(
+            key: Key('customer-incident-${item.entry.id}'),
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ListTile(
+              leading: const Icon(Icons.description_outlined),
+              title: Text(
+                formatClaimDisplayId(inc),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('$dataOra · ${inc.luogo}'),
+                    if (driverA.isNotEmpty)
+                      Text('${l10n.labelDriverA}: $driverA'),
+                    if (driverB.isNotEmpty)
+                      Text('${l10n.labelDriverB}: $driverB'),
+                    Text(
+                      '${l10n.customerIncidentStatusLabel}: '
+                      '${_statusLabel(l10n, item.entry)}',
+                    ),
+                    if (responsibleDriver.isNotEmpty)
+                      Text(
+                        l10n.customerIncidentResponsibleDriver(
+                          responsibleDriver,
                         ),
                       ),
-                    );
-                  },
+                  ],
                 ),
-              );
-            },
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => DettaglioIncidentePage(
+                      incidente: inc,
+                      readOnly: true,
+                      claimStatus: item.entry.status,
+                      claimCreatedAt: item.entry.createdAt,
+                    ),
+                  ),
+                );
+                if (mounted) await _retry();
+              },
+            ),
           );
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final body = _buildBody(context);
 
     if (widget.embedOnlyBody) return body;
 
@@ -10209,6 +10521,16 @@ class _StoricoPageState extends State<StoricoPage> {
       body: body,
     );
   }
+}
+
+class _CustomerIncidentHistoryViewItem {
+  const _CustomerIncidentHistoryViewItem({
+    required this.entry,
+    required this.incident,
+  });
+
+  final CustomerIncidentHistoryEntry entry;
+  final Incidente incident;
 }
 
 /// PAGINA FIRMA ////////////////////////////////////////////////////////
@@ -10704,11 +11026,15 @@ class _QrCarrozzeriaPageState extends State<QrCarrozzeriaPage> {
 class DettaglioIncidentePage extends StatefulWidget {
   final Incidente incidente;
   final bool readOnly;
+  final String claimStatus;
+  final DateTime? claimCreatedAt;
 
   const DettaglioIncidentePage({
     super.key,
     required this.incidente,
     this.readOnly = false,
+    this.claimStatus = '',
+    this.claimCreatedAt,
   });
 
   @override

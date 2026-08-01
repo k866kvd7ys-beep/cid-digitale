@@ -56,6 +56,23 @@
   "tab_appointments": "Termine",
   "tab_incidents": "Unfälle",
   "empty_appointments": "Noch keine Termine",
+  "customerIncidentLoading": "Unfälle werden geladen…",
+  "customerIncidentLoadError": "Die Unfallakten konnten nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.",
+  "customerIncidentRetry": "Erneut versuchen",
+  "customerIncidentEmpty": "Keine Unfälle gespeichert.",
+  "customerIncidentLocalDraft": "Lokaler Entwurf",
+  "customerIncidentRefresh": "Liste aktualisieren",
+  "customerIncidentStatusLabel": "Status",
+  "customerIncidentStatusReleased": "Freigegeben",
+  "customerIncidentStatusWaitingApproval": "Wartet auf Freigabe",
+  "customerIncidentResponsibleDriver": "Als verantwortlich ausgewählt: {driver}",
+  "@customerIncidentResponsibleDriver": {
+    "placeholders": {
+      "driver": {
+        "type": "String"
+      }
+    }
+  },
   "my_requests_filter_all": "Alle",
   "my_requests_filter_service": "Service",
   "my_requests_filter_tires": "Reifenwechsel",

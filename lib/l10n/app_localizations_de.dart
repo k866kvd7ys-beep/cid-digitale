@@ -183,6 +183,39 @@ class AppLocalizationsDe extends AppLocalizations {
   String get empty_appointments => 'Noch keine Termine';
 
   @override
+  String get customerIncidentLoading => 'Unfälle werden geladen…';
+
+  @override
+  String get customerIncidentLoadError =>
+      'Die Unfallakten konnten nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.';
+
+  @override
+  String get customerIncidentRetry => 'Erneut versuchen';
+
+  @override
+  String get customerIncidentEmpty => 'Keine Unfälle gespeichert.';
+
+  @override
+  String get customerIncidentLocalDraft => 'Lokaler Entwurf';
+
+  @override
+  String get customerIncidentRefresh => 'Liste aktualisieren';
+
+  @override
+  String get customerIncidentStatusLabel => 'Status';
+
+  @override
+  String get customerIncidentStatusReleased => 'Freigegeben';
+
+  @override
+  String get customerIncidentStatusWaitingApproval => 'Wartet auf Freigabe';
+
+  @override
+  String customerIncidentResponsibleDriver(String driver) {
+    return 'Als verantwortlich ausgewählt: $driver';
+  }
+
+  @override
   String get my_requests_filter_all => 'Alle';
 
   @override

@@ -9,39 +9,78 @@ import 'package:cid_digitale/utils/tire_service_type_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-class MyRequestsPage extends StatelessWidget {
+class MyRequestsPage extends StatefulWidget {
   const MyRequestsPage({
     super.key,
     this.incidentsTab = const SizedBox.shrink(),
     this.initialTabIndex = 0,
+    this.onIncidentsTabSelected,
   });
 
   final Widget incidentsTab;
   final int initialTabIndex;
+  final VoidCallback? onIncidentsTabSelected;
+
+  @override
+  State<MyRequestsPage> createState() => _MyRequestsPageState();
+}
+
+class _MyRequestsPageState extends State<MyRequestsPage>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  late int _lastSettledTabIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastSettledTabIndex = widget.initialTabIndex;
+    _tabController = TabController(
+      length: 2,
+      initialIndex: widget.initialTabIndex,
+      vsync: this,
+    )..addListener(_handleTabSelection);
+  }
+
+  @override
+  void dispose() {
+    _tabController
+      ..removeListener(_handleTabSelection)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleTabSelection() {
+    if (_tabController.indexIsChanging ||
+        _tabController.index == _lastSettledTabIndex) {
+      return;
+    }
+    _lastSettledTabIndex = _tabController.index;
+    if (_lastSettledTabIndex == 1) {
+      widget.onIncidentsTabSelected?.call();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return DefaultTabController(
-      length: 2,
-      initialIndex: initialTabIndex,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.my_requests_title),
-          bottom: TabBar(
-            tabs: [
-              Tab(text: l10n.tab_appointments),
-              Tab(text: l10n.tab_incidents),
-            ],
-          ),
-        ),
-        body: TabBarView(
-          children: [
-            const _AppointmentsTab(),
-            incidentsTab,
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.my_requests_title),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(text: l10n.tab_appointments),
+            Tab(text: l10n.tab_incidents),
           ],
         ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          const _AppointmentsTab(),
+          widget.incidentsTab,
+        ],
       ),
     );
   }

@@ -56,6 +56,23 @@
   "tab_appointments": "Rendez-vous",
   "tab_incidents": "Accidents",
   "empty_appointments": "Aucun rendez-vous",
+  "customerIncidentLoading": "Chargement des accidents…",
+  "customerIncidentLoadError": "Impossible de charger les dossiers d’accident. Vérifiez votre connexion et réessayez.",
+  "customerIncidentRetry": "Réessayer",
+  "customerIncidentEmpty": "Aucun accident enregistré.",
+  "customerIncidentLocalDraft": "Brouillon local",
+  "customerIncidentRefresh": "Actualiser la liste",
+  "customerIncidentStatusLabel": "Statut",
+  "customerIncidentStatusReleased": "Validé",
+  "customerIncidentStatusWaitingApproval": "En attente de validation",
+  "customerIncidentResponsibleDriver": "Conducteur considéré comme responsable : {driver}",
+  "@customerIncidentResponsibleDriver": {
+    "placeholders": {
+      "driver": {
+        "type": "String"
+      }
+    }
+  },
   "my_requests_filter_all": "Tous",
   "my_requests_filter_service": "Service",
   "my_requests_filter_tires": "Changement de pneus",

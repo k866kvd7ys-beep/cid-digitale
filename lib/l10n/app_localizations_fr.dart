@@ -185,6 +185,40 @@ class AppLocalizationsFr extends AppLocalizations {
   String get empty_appointments => 'Aucun rendez-vous';
 
   @override
+  String get customerIncidentLoading => 'Chargement des accidents…';
+
+  @override
+  String get customerIncidentLoadError =>
+      'Impossible de charger les dossiers d’accident. Vérifiez votre connexion et réessayez.';
+
+  @override
+  String get customerIncidentRetry => 'Réessayer';
+
+  @override
+  String get customerIncidentEmpty => 'Aucun accident enregistré.';
+
+  @override
+  String get customerIncidentLocalDraft => 'Brouillon local';
+
+  @override
+  String get customerIncidentRefresh => 'Actualiser la liste';
+
+  @override
+  String get customerIncidentStatusLabel => 'Statut';
+
+  @override
+  String get customerIncidentStatusReleased => 'Validé';
+
+  @override
+  String get customerIncidentStatusWaitingApproval =>
+      'En attente de validation';
+
+  @override
+  String customerIncidentResponsibleDriver(String driver) {
+    return 'Conducteur considéré comme responsable : $driver';
+  }
+
+  @override
   String get my_requests_filter_all => 'Tous';
 
   @override

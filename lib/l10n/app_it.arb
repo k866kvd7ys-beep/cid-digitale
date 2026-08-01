@@ -56,6 +56,23 @@
   "tab_appointments": "Appuntamenti",
   "tab_incidents": "Incidenti",
   "empty_appointments": "Nessun appuntamento",
+  "customerIncidentLoading": "Caricamento incidenti…",
+  "customerIncidentLoadError": "Impossibile caricare le pratiche incidente. Controlla la connessione e riprova.",
+  "customerIncidentRetry": "Riprova",
+  "customerIncidentEmpty": "Nessun incidente salvato.",
+  "customerIncidentLocalDraft": "Bozza locale",
+  "customerIncidentRefresh": "Aggiorna elenco",
+  "customerIncidentStatusLabel": "Stato",
+  "customerIncidentStatusReleased": "Approvata",
+  "customerIncidentStatusWaitingApproval": "In attesa di approvazione",
+  "customerIncidentResponsibleDriver": "Conducente ritenuto responsabile: {driver}",
+  "@customerIncidentResponsibleDriver": {
+    "placeholders": {
+      "driver": {
+        "type": "String"
+      }
+    }
+  },
   "my_requests_filter_all": "Tutti",
   "my_requests_filter_service": "Service",
   "my_requests_filter_tires": "Cambio gomme",

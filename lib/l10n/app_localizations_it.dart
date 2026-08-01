@@ -181,6 +181,40 @@ class AppLocalizationsIt extends AppLocalizations {
   String get empty_appointments => 'Nessun appuntamento';
 
   @override
+  String get customerIncidentLoading => 'Caricamento incidenti…';
+
+  @override
+  String get customerIncidentLoadError =>
+      'Impossibile caricare le pratiche incidente. Controlla la connessione e riprova.';
+
+  @override
+  String get customerIncidentRetry => 'Riprova';
+
+  @override
+  String get customerIncidentEmpty => 'Nessun incidente salvato.';
+
+  @override
+  String get customerIncidentLocalDraft => 'Bozza locale';
+
+  @override
+  String get customerIncidentRefresh => 'Aggiorna elenco';
+
+  @override
+  String get customerIncidentStatusLabel => 'Stato';
+
+  @override
+  String get customerIncidentStatusReleased => 'Approvata';
+
+  @override
+  String get customerIncidentStatusWaitingApproval =>
+      'In attesa di approvazione';
+
+  @override
+  String customerIncidentResponsibleDriver(String driver) {
+    return 'Conducente ritenuto responsabile: $driver';
+  }
+
+  @override
   String get my_requests_filter_all => 'Tutti';
 
   @override
