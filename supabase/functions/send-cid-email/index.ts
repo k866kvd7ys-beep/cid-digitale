@@ -5,6 +5,7 @@ import {
   StandardFonts,
   rgb,
 } from "https://esm.sh/pdf-lib@1.17.1";
+import { formatIncidentDateTime } from "./incident_datetime.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -770,33 +771,7 @@ const stringOrDash = (value: unknown) => {
   return "-";
 };
 
-const formatDisplayDateTime = (value: unknown, lang: SupportedLang) => {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    return stringOrDash(value);
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value.trim();
-  }
-
-  const localeByLang: Record<SupportedLang, string> = {
-    de: "de-CH",
-    it: "it-CH",
-    fr: "fr-CH",
-    en: "en-CH",
-  };
-
-  return new Intl.DateTimeFormat(localeByLang[lang], {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "Europe/Zurich",
-  }).format(parsed).replace(",", "");
-};
+const formatDisplayDateTime = formatIncidentDateTime;
 
 const formatUtcTimestamp = (value: unknown) => {
   if (typeof value !== "string" || value.trim().length === 0) {
