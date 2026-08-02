@@ -33,6 +33,7 @@ import 'screens/driver_qr_scanner_screen.dart';
 import 'screens/service/workshop_selector_screen.dart';
 import 'screens/support_request_screen.dart';
 import 'services/device_location_service.dart';
+import 'services/claim_draft_creation_guard.dart';
 import 'services/supabase_service.dart';
 import 'services/appointment_requests_service.dart';
 import 'services/customer_incident_history_repository.dart';
@@ -5503,6 +5504,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   String? _fotoLibrettoBCacheKey;
   final List<DamagePhotoItem> _damagePhotos = [];
   String? _draftClaimId;
+  final ClaimDraftCreationGuard _draftCreationGuard = ClaimDraftCreationGuard();
   final AudioRecorder _audioRecorder = AudioRecorder();
   final AudioPlayer _audioPlayer = AudioPlayer();
   StreamSubscription<void>? _audioPlayerSub;
@@ -6457,6 +6459,31 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return _draftClaimId!;
   }
 
+  Future<String> _ensureRemoteDraftClaimId() {
+    final localDraftId = _ensureDraftId();
+    return _draftCreationGuard.resolve(
+      existingClaimId: _draftClaimId,
+      isPersistedClaimId: QrPayload.looksLikeUuid,
+      createClaim: () async {
+        final workshopCode = localDraftId.length > 6
+            ? localDraftId.substring(localDraftId.length - 6)
+            : localDraftId.padLeft(6, '0');
+        final claimId = (await _supabaseService.rpcCreateClaimDraft(
+          workshopCode: workshopCode,
+          payload: const <String, dynamic>{},
+        ))
+            .trim();
+        if (!QrPayload.looksLikeUuid(claimId)) {
+          throw Exception(
+            'create_claim_draft ha restituito un id non UUID: $claimId',
+          );
+        }
+        return claimId;
+      },
+      onClaimCreated: (claimId) => _draftClaimId = claimId,
+    );
+  }
+
   List<String> get _damageUploadedUrls => _damagePhotos
       .where((e) =>
           e.status == DamagePhotoStatus.uploaded &&
@@ -7172,23 +7199,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       // OCR disattivato: il libretto viene solo allegato e mostrato in preview.
 
       if (kind == 'libretto') {
-        if (!QrPayload.looksLikeUuid(uploadClaimId)) {
-          final workshopCode = claimId.length > 6
-              ? claimId.substring(claimId.length - 6)
-              : claimId.padLeft(6, '0');
-          final realClaimId = (await _supabaseService.rpcCreateClaimDraft(
-            workshopCode: workshopCode,
-            payload: const <String, dynamic>{},
-          ))
-              .trim();
-          if (!QrPayload.looksLikeUuid(realClaimId)) {
-            throw Exception(
-              'create_claim_draft ha restituito un id non UUID: $realClaimId',
-            );
-          }
-          _draftClaimId = realClaimId;
-          uploadClaimId = realClaimId;
-        }
+        uploadClaimId = await _ensureRemoteDraftClaimId();
         debugPrint('UPLOAD LIBRETTO USING REAL CLAIM ID: $uploadClaimId');
       }
 
@@ -9789,6 +9800,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       }
 
       debugPrint('SAVE STEP 2: build payload');
+      await _draftCreationGuard.waitForPendingCreation();
       _draftClaimId ??= DateTime.now().millisecondsSinceEpoch.toString();
       draftId = _draftClaimId!;
 
