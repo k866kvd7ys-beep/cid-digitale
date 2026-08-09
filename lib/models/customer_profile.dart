@@ -1,3 +1,5 @@
+import 'customer_legal_acceptance.dart';
+
 class CustomerProfile {
   const CustomerProfile({
     required this.userId,
@@ -11,6 +13,7 @@ class CustomerProfile {
     this.country = '',
     this.phone = '',
     this.profileCompleted = false,
+    this.legalAcceptance,
     this.createdAt,
     this.updatedAt,
   });
@@ -26,6 +29,7 @@ class CustomerProfile {
   final String phone;
   final String email;
   final bool profileCompleted;
+  final CustomerLegalAcceptance? legalAcceptance;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -51,12 +55,16 @@ class CustomerProfile {
       phone: map['phone']?.toString() ?? '',
       email: map['email']?.toString() ?? '',
       profileCompleted: map['profile_completed'] == true,
+      legalAcceptance: CustomerLegalAcceptance.fromMap(map),
       createdAt: parseDate(map['created_at']),
       updatedAt: parseDate(map['updated_at']),
     );
   }
 
   Map<String, dynamic> toUpsertMap() {
+    // Consent fields are intentionally not client-writable. The database
+    // trigger copies the complete acceptance from Auth metadata once and then
+    // preserves it on every subsequent profile update.
     return {
       'user_id': userId,
       'title': title.trim(),
@@ -83,6 +91,7 @@ class CustomerProfile {
     String? phone,
     String? email,
     bool? profileCompleted,
+    CustomerLegalAcceptance? legalAcceptance,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -98,6 +107,7 @@ class CustomerProfile {
       phone: phone ?? this.phone,
       email: email ?? this.email,
       profileCompleted: profileCompleted ?? this.profileCompleted,
+      legalAcceptance: legalAcceptance ?? this.legalAcceptance,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

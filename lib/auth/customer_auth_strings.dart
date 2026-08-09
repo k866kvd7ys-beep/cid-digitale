@@ -331,6 +331,61 @@ class CustomerAuthStrings {
         en: 'Hello, $firstName',
       );
 
+  String get privacyPolicy => _pick(
+        it: 'Privacy Policy',
+        de: 'Datenschutzerklärung',
+        fr: 'Politique de confidentialité',
+        en: 'Privacy Policy',
+      );
+  String get termsOfUse => _pick(
+        it: 'Termini d’uso',
+        de: 'Nutzungsbedingungen',
+        fr: 'Conditions d’utilisation',
+        en: 'Terms of Use',
+      );
+  String get privacyAcceptancePrefix => _pick(
+        it: 'Ho letto e accetto la',
+        de: 'Ich habe die',
+        fr: 'J’ai lu et j’accepte la',
+        en: 'I have read and accept the',
+      );
+  String get privacyAcceptanceSuffix => _pick(
+        it: '',
+        de: 'gelesen und akzeptiere sie.',
+        fr: '',
+        en: '',
+      );
+  String get termsAcceptancePrefix => _pick(
+        it: 'Ho letto e accetto i',
+        de: 'Ich habe die',
+        fr: 'J’ai lu et j’accepte les',
+        en: 'I have read and accept the',
+      );
+  String get termsAcceptanceSuffix => _pick(
+        it: '',
+        de: 'gelesen und akzeptiere sie.',
+        fr: '',
+        en: '',
+      );
+  String get legalAcceptanceRequired => _pick(
+        it: 'Devi accettare per continuare.',
+        de: 'Du musst zustimmen, um fortzufahren.',
+        fr: 'Vous devez accepter pour continuer.',
+        en: 'You must accept to continue.',
+      );
+  String get legalDocumentsTitle => _pick(
+        it: 'Privacy e condizioni',
+        de: 'Datenschutz und Bedingungen',
+        fr: 'Confidentialité et conditions',
+        en: 'Privacy and terms',
+      );
+  String get legalDocumentsSubtitle => _pick(
+        it: 'Consulta in qualsiasi momento i documenti applicabili al tuo account Cliente.',
+        de: 'Lies jederzeit die für dein Kundenkonto geltenden Dokumente.',
+        fr: 'Consultez à tout moment les documents applicables à votre compte Client.',
+        en: 'Review the documents applying to your Customer account at any time.',
+      );
+
   String errorFor(Object error) {
     final code = error is CustomerAuthException
         ? error.code

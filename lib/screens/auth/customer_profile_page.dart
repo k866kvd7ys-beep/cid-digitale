@@ -7,6 +7,7 @@ import '../../auth/customer_auth_strings.dart';
 import '../../auth/customer_auth_validators.dart';
 import '../../models/customer_profile.dart';
 import '../../models/workshop_model.dart';
+import '../../screens/legal/legal_document_page.dart';
 import '../../screens/service/workshop_selector_screen.dart';
 import '../../services/customer_auth_service.dart';
 import '../../services/preferred_workshop_repository.dart';
@@ -476,6 +477,8 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
         if (!widget.isOnboarding) ...[
           const SizedBox(height: 24),
           _preferredWorkshopSection(context),
+          const SizedBox(height: 24),
+          const LegalDocumentsPanel(),
         ],
       ],
     );

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../auth/customer_auth_strings.dart';
 import '../../auth/customer_auth_validators.dart';
+import '../../models/customer_legal_acceptance.dart';
+import '../../screens/legal/legal_document_page.dart';
 import '../../services/customer_auth_service.dart';
 import '../../widgets/auth/auth_page_shell.dart';
 
@@ -30,6 +32,9 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _passwordVisible = false;
   bool _confirmationVisible = false;
   bool _submitted = false;
+  bool _privacyAccepted = false;
+  bool _termsAccepted = false;
+  CustomerLegalAcceptance? _legalAcceptance;
   bool _awaitingEmailConfirmation = false;
   Object? _error;
 
@@ -49,11 +54,15 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> _register() async {
+    if (_loading) return;
     setState(() {
       _submitted = true;
       _error = null;
     });
     if (!_formKey.currentState!.validate()) return;
+
+    final legalAcceptance =
+        _legalAcceptance ??= CustomerLegalAcceptance.acceptedNow();
 
     setState(() => _loading = true);
     try {
@@ -62,6 +71,7 @@ class _RegisterPageState extends State<RegisterPage> {
         lastName: _lastNameController.text,
         email: _emailController.text,
         password: _passwordController.text,
+        legalAcceptance: legalAcceptance,
       );
       if (!mounted) return;
       if (result.emailConfirmationRequired) {
@@ -75,6 +85,95 @@ class _RegisterPageState extends State<RegisterPage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Widget _legalAcceptanceField({
+    required Key key,
+    required bool value,
+    required String prefix,
+    required String linkLabel,
+    required String suffix,
+    required LegalDocumentType documentType,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final strings = CustomerAuthStrings.of(context);
+    final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: const Color(0xFF334155),
+          height: 1.35,
+        );
+    return FormField<bool>(
+      key: key,
+      initialValue: value,
+      validator: (accepted) =>
+          accepted == true ? null : strings.legalAcceptanceRequired,
+      builder: (field) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Checkbox(
+                    value: value,
+                    onChanged: _loading
+                        ? null
+                        : (checked) {
+                            final accepted = checked ?? false;
+                            onChanged(accepted);
+                            field.didChange(accepted);
+                          },
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 7),
+                    child: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text('$prefix ', style: textStyle),
+                        TextButton(
+                          onPressed: () =>
+                              openLegalDocument(context, documentType),
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(0, 34),
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            linkLabel,
+                            style: const TextStyle(
+                              decoration: TextDecoration.underline,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        if (suffix.isNotEmpty)
+                          Text(' $suffix', style: textStyle),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (field.errorText != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 52, top: 2),
+                child: Text(
+                  field.errorText!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -223,6 +322,26 @@ class _RegisterPageState extends State<RegisterPage> {
                   requiredMessage: strings.requiredField,
                   mismatchMessage: strings.passwordMismatch,
                 ),
+              ),
+              const SizedBox(height: 18),
+              _legalAcceptanceField(
+                key: const Key('register_privacy_acceptance'),
+                value: _privacyAccepted,
+                prefix: strings.privacyAcceptancePrefix,
+                linkLabel: strings.privacyPolicy,
+                suffix: strings.privacyAcceptanceSuffix,
+                documentType: LegalDocumentType.privacyPolicy,
+                onChanged: (value) => setState(() => _privacyAccepted = value),
+              ),
+              const SizedBox(height: 8),
+              _legalAcceptanceField(
+                key: const Key('register_terms_acceptance'),
+                value: _termsAccepted,
+                prefix: strings.termsAcceptancePrefix,
+                linkLabel: strings.termsOfUse,
+                suffix: strings.termsAcceptanceSuffix,
+                documentType: LegalDocumentType.termsOfUse,
+                onChanged: (value) => setState(() => _termsAccepted = value),
               ),
               const SizedBox(height: 22),
               FilledButton(

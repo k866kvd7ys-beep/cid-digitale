@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/supabase_config.dart';
+import '../models/customer_legal_acceptance.dart';
 import '../models/customer_profile.dart';
 
 const String customerRole = 'customer';
@@ -95,6 +96,7 @@ abstract class CustomerAuthService {
     required String lastName,
     required String email,
     required String password,
+    required CustomerLegalAcceptance legalAcceptance,
   });
 
   Future<void> signIn({
@@ -161,6 +163,7 @@ class SupabaseCustomerAuthService implements CustomerAuthService {
     required String lastName,
     required String email,
     required String password,
+    required CustomerLegalAcceptance legalAcceptance,
   }) async {
     try {
       final response = await _client.auth.signUp(
@@ -170,6 +173,7 @@ class SupabaseCustomerAuthService implements CustomerAuthService {
           'role': customerRole,
           'first_name': firstName.trim(),
           'last_name': lastName.trim(),
+          ...legalAcceptance.toAuthMetadata(),
         },
       );
       if (isExistingAuthAccountSignUpResponse(response)) {

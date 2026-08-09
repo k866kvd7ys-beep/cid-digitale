@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cid_digitale/models/customer_legal_acceptance.dart';
 import 'package:cid_digitale/models/customer_profile.dart';
 import 'package:cid_digitale/services/customer_auth_service.dart';
 
@@ -24,6 +25,7 @@ class FakeCustomerAuthService implements CustomerAuthService {
   Object? signUpError;
   Object? saveProfileError;
   Object? updatePasswordError;
+  Completer<void>? signUpBlocker;
   bool? implicitRecoveryResult;
   int signInCalls = 0;
   int signUpCalls = 0;
@@ -35,6 +37,9 @@ class FakeCustomerAuthService implements CustomerAuthService {
   String? lastEmail;
   String? lastPassword;
   String? lastUpdatedPassword;
+  CustomerLegalAcceptance? lastLegalAcceptance;
+  CustomerLegalAcceptance? pendingLegalAcceptance;
+  final List<CustomerLegalAcceptance> legalAcceptanceCalls = [];
 
   final StreamController<CustomerAuthState> _authController =
       StreamController<CustomerAuthState>.broadcast();
@@ -117,11 +122,16 @@ class FakeCustomerAuthService implements CustomerAuthService {
     required String lastName,
     required String email,
     required String password,
+    required CustomerLegalAcceptance legalAcceptance,
   }) async {
     signUpCalls++;
     lastEmail = email;
     lastPassword = password;
+    lastLegalAcceptance = legalAcceptance;
+    legalAcceptanceCalls.add(legalAcceptance);
+    await signUpBlocker?.future;
     if (signUpError case final error?) throw error;
+    pendingLegalAcceptance = legalAcceptance;
     if (!signUpNeedsConfirmation) {
       account = CustomerAccount(
         id: 'customer-1',
@@ -148,8 +158,10 @@ class FakeCustomerAuthService implements CustomerAuthService {
     saveProfileCalls++;
     if (saveProfileError case final error?) throw error;
     CustomerProfileAccessGuard.ensureOwner(account, value.userId);
-    profile = value;
-    return value;
+    final persistedAcceptance =
+        profile?.legalAcceptance ?? pendingLegalAcceptance;
+    profile = value.copyWith(legalAcceptance: persistedAcceptance);
+    return profile!;
   }
 
   @override

@@ -253,6 +253,18 @@ void main() {
       find.byKey(const Key('register_password_confirmation')),
       'password123',
     );
+    final privacyAcceptance = find.descendant(
+      of: find.byKey(const Key('register_privacy_acceptance')),
+      matching: find.byType(Checkbox),
+    );
+    await tester.ensureVisible(privacyAcceptance);
+    await tester.tap(privacyAcceptance);
+    final termsAcceptance = find.descendant(
+      of: find.byKey(const Key('register_terms_acceptance')),
+      matching: find.byType(Checkbox),
+    );
+    await tester.ensureVisible(termsAcceptance);
+    await tester.tap(termsAcceptance);
     await tester.ensureVisible(find.byKey(const Key('register_submit')));
     await tester.tap(find.byKey(const Key('register_submit')));
     await tester.pumpAndSettle();
