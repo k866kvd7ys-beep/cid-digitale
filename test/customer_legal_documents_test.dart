@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cid_digitale/auth/customer_auth_strings.dart';
 import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:cid_digitale/models/customer_legal_acceptance.dart';
 import 'package:cid_digitale/models/customer_profile.dart';
@@ -72,22 +73,28 @@ Finder _acceptanceCheckbox(String key) {
   );
 }
 
-Future<void> _acceptBothDocuments(WidgetTester tester) async {
-  final privacy = _acceptanceCheckbox('register_privacy_acceptance');
-  await tester.ensureVisible(privacy);
-  await tester.tap(privacy);
-  final terms = _acceptanceCheckbox('register_terms_acceptance');
-  await tester.ensureVisible(terms);
-  await tester.tap(terms);
+Future<void> _acceptLegalDocuments(WidgetTester tester) async {
+  final acceptance = _acceptanceCheckbox('register_legal_acceptance');
+  await tester.ensureVisible(acceptance);
+  await tester.tap(acceptance);
 }
 
 void main() {
-  testWidgets('registration requires both separate legal acceptances',
+  testWidgets('registration requires the single legal acceptance',
       (tester) async {
     final service = FakeCustomerAuthService(signUpNeedsConfirmation: true);
     addTearDown(service.dispose);
     await tester.pumpWidget(_app(RegisterPage(service: service)));
     await _fillValidRegistration(tester);
+
+    final acceptance = _acceptanceCheckbox('register_legal_acceptance');
+    expect(acceptance, findsOneWidget);
+    expect(tester.widget<Checkbox>(acceptance).value, isFalse);
+    expect(
+      find.byKey(const Key('register_privacy_acceptance')),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('register_terms_acceptance')), findsNothing);
 
     final submit = find.byKey(const Key('register_submit'));
     await tester.ensureVisible(submit);
@@ -95,21 +102,10 @@ void main() {
     await tester.pump();
 
     expect(service.signUpCalls, 0);
-    expect(find.text('Devi accettare per continuare.'), findsNWidgets(2));
-
-    final privacy = _acceptanceCheckbox('register_privacy_acceptance');
-    await tester.ensureVisible(privacy);
-    await tester.tap(privacy);
-    await tester.ensureVisible(submit);
-    await tester.tap(submit);
-    await tester.pump();
-
-    expect(service.signUpCalls, 0);
     expect(find.text('Devi accettare per continuare.'), findsOneWidget);
 
-    final terms = _acceptanceCheckbox('register_terms_acceptance');
-    await tester.ensureVisible(terms);
-    await tester.tap(terms);
+    await tester.ensureVisible(acceptance);
+    await tester.tap(acceptance);
     await tester.ensureVisible(submit);
     await tester.tap(submit);
     await tester.pumpAndSettle();
@@ -121,8 +117,60 @@ void main() {
       isTrue,
     );
     expect(service.lastLegalAcceptance!.termsAcceptedAt.isUtc, isTrue);
+    expect(
+      service.lastLegalAcceptance!.termsAcceptedAt,
+      service.lastLegalAcceptance!.privacyAcceptedAt,
+    );
     expect(service.lastLegalAcceptance!.privacyVersion, '2026-08-08');
     expect(service.lastLegalAcceptance!.termsVersion, '2026-08-08');
+  });
+
+  test('registration legal acceptance copy is localized in IT DE FR and EN',
+      () {
+    const expected = <String, List<String>>{
+      'it': [
+        'Ho preso visione della',
+        'Privacy Policy',
+        'e accetto i',
+        'Termini d’uso',
+        '.',
+      ],
+      'de': [
+        'Ich habe die',
+        'Datenschutzerklärung',
+        'zur Kenntnis genommen und akzeptiere die',
+        'Nutzungsbedingungen',
+        '.',
+      ],
+      'fr': [
+        'J’ai pris connaissance de la',
+        'Politique de confidentialité',
+        'et j’accepte les',
+        'Conditions d’utilisation',
+        '.',
+      ],
+      'en': [
+        'I have read the',
+        'Privacy Policy',
+        'and accept the',
+        'Terms of Use',
+        '.',
+      ],
+    };
+
+    for (final entry in expected.entries) {
+      final strings = CustomerAuthStrings(entry.key);
+      expect(
+        [
+          strings.legalAcceptancePrefix,
+          strings.privacyPolicy,
+          strings.legalAcceptanceMiddle,
+          strings.termsOfUse,
+          strings.legalAcceptanceSuffix,
+        ],
+        entry.value,
+      );
+    }
   });
 
   testWidgets('registration retry reuses the original acceptance timestamp',
@@ -134,7 +182,7 @@ void main() {
     addTearDown(service.dispose);
     await tester.pumpWidget(_app(RegisterPage(service: service)));
     await _fillValidRegistration(tester);
-    await _acceptBothDocuments(tester);
+    await _acceptLegalDocuments(tester);
 
     final submit = find.byKey(const Key('register_submit'));
     await tester.ensureVisible(submit);
@@ -166,7 +214,7 @@ void main() {
     });
     await tester.pumpWidget(_app(RegisterPage(service: service)));
     await _fillValidRegistration(tester);
-    await _acceptBothDocuments(tester);
+    await _acceptLegalDocuments(tester);
 
     final submit = find.byKey(const Key('register_submit'));
     await tester.ensureVisible(submit);

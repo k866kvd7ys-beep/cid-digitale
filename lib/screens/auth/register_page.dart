@@ -32,8 +32,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _passwordVisible = false;
   bool _confirmationVisible = false;
   bool _submitted = false;
-  bool _privacyAccepted = false;
-  bool _termsAccepted = false;
+  bool _legalAccepted = false;
   CustomerLegalAcceptance? _legalAcceptance;
   bool _awaitingEmailConfirmation = false;
   Object? _error;
@@ -91,9 +90,10 @@ class _RegisterPageState extends State<RegisterPage> {
     required Key key,
     required bool value,
     required String prefix,
-    required String linkLabel,
+    required String privacyLinkLabel,
+    required String middle,
+    required String termsLinkLabel,
     required String suffix,
-    required LegalDocumentType documentType,
     required ValueChanged<bool> onChanged,
   }) {
     final strings = CustomerAuthStrings.of(context);
@@ -136,23 +136,43 @@ class _RegisterPageState extends State<RegisterPage> {
                       children: [
                         Text('$prefix ', style: textStyle),
                         TextButton(
-                          onPressed: () =>
-                              openLegalDocument(context, documentType),
+                          onPressed: () => openLegalDocument(
+                            context,
+                            LegalDocumentType.privacyPolicy,
+                          ),
                           style: TextButton.styleFrom(
                             minimumSize: const Size(0, 34),
                             padding: const EdgeInsets.symmetric(horizontal: 2),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           child: Text(
-                            linkLabel,
+                            privacyLinkLabel,
                             style: const TextStyle(
                               decoration: TextDecoration.underline,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
-                        if (suffix.isNotEmpty)
-                          Text(' $suffix', style: textStyle),
+                        Text(' $middle ', style: textStyle),
+                        TextButton(
+                          onPressed: () => openLegalDocument(
+                            context,
+                            LegalDocumentType.termsOfUse,
+                          ),
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(0, 34),
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            termsLinkLabel,
+                            style: const TextStyle(
+                              decoration: TextDecoration.underline,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        if (suffix.isNotEmpty) Text(suffix, style: textStyle),
                       ],
                     ),
                   ),
@@ -325,23 +345,14 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               const SizedBox(height: 18),
               _legalAcceptanceField(
-                key: const Key('register_privacy_acceptance'),
-                value: _privacyAccepted,
-                prefix: strings.privacyAcceptancePrefix,
-                linkLabel: strings.privacyPolicy,
-                suffix: strings.privacyAcceptanceSuffix,
-                documentType: LegalDocumentType.privacyPolicy,
-                onChanged: (value) => setState(() => _privacyAccepted = value),
-              ),
-              const SizedBox(height: 8),
-              _legalAcceptanceField(
-                key: const Key('register_terms_acceptance'),
-                value: _termsAccepted,
-                prefix: strings.termsAcceptancePrefix,
-                linkLabel: strings.termsOfUse,
-                suffix: strings.termsAcceptanceSuffix,
-                documentType: LegalDocumentType.termsOfUse,
-                onChanged: (value) => setState(() => _termsAccepted = value),
+                key: const Key('register_legal_acceptance'),
+                value: _legalAccepted,
+                prefix: strings.legalAcceptancePrefix,
+                privacyLinkLabel: strings.privacyPolicy,
+                middle: strings.legalAcceptanceMiddle,
+                termsLinkLabel: strings.termsOfUse,
+                suffix: strings.legalAcceptanceSuffix,
+                onChanged: (value) => setState(() => _legalAccepted = value),
               ),
               const SizedBox(height: 22),
               FilledButton(

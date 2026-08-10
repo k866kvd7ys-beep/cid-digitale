@@ -343,29 +343,23 @@ class CustomerAuthStrings {
         fr: 'Conditions d’utilisation',
         en: 'Terms of Use',
       );
-  String get privacyAcceptancePrefix => _pick(
-        it: 'Ho letto e accetto la',
+  String get legalAcceptancePrefix => _pick(
+        it: 'Ho preso visione della',
         de: 'Ich habe die',
-        fr: 'J’ai lu et j’accepte la',
-        en: 'I have read and accept the',
+        fr: 'J’ai pris connaissance de la',
+        en: 'I have read the',
       );
-  String get privacyAcceptanceSuffix => _pick(
-        it: '',
-        de: 'gelesen und akzeptiere sie.',
-        fr: '',
-        en: '',
+  String get legalAcceptanceMiddle => _pick(
+        it: 'e accetto i',
+        de: 'zur Kenntnis genommen und akzeptiere die',
+        fr: 'et j’accepte les',
+        en: 'and accept the',
       );
-  String get termsAcceptancePrefix => _pick(
-        it: 'Ho letto e accetto i',
-        de: 'Ich habe die',
-        fr: 'J’ai lu et j’accepte les',
-        en: 'I have read and accept the',
-      );
-  String get termsAcceptanceSuffix => _pick(
-        it: '',
-        de: 'gelesen und akzeptiere sie.',
-        fr: '',
-        en: '',
+  String get legalAcceptanceSuffix => _pick(
+        it: '.',
+        de: '.',
+        fr: '.',
+        en: '.',
       );
   String get legalAcceptanceRequired => _pick(
         it: 'Devi accettare per continuare.',
