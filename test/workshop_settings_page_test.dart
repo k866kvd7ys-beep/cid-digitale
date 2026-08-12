@@ -6,7 +6,10 @@ import 'package:cid_digitale/services/customer_auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'helpers/fake_customer_auth_service.dart';
 
@@ -139,6 +142,11 @@ void main() {
 
   tearDown(() async {
     await authService.dispose();
+  });
+
+  test('page uses the server-authoritative repository by default', () {
+    final page = ImpostazioniOfficinaPage(authService: authService);
+    expect(page.repository, isA<SupabaseOfficinaConfigRepository>());
   });
 
   testWidgets('shows loading while reading the authenticated user settings',
@@ -525,5 +533,125 @@ void main() {
       ),
       isNull,
     );
+  });
+
+  test(
+      'Supabase repository survives refresh, login, update and intentional clear',
+      () async {
+    Map<String, dynamic>? serverSettings;
+    final requests = <http.Request>[];
+    final client = SupabaseClient(
+      'https://workshop-settings-test.supabase.co',
+      'workshop-settings-test-anon-key',
+      accessToken: () async => 'customer-access-token',
+      httpClient: MockClient((request) async {
+        requests.add(request);
+        expect(request.url.path, '/rest/v1/customer_profiles');
+        expect(request.url.queryParameters['user_id'], 'eq.${_accountA.id}');
+
+        if (request.method == 'GET') {
+          return http.Response(
+            jsonEncode({'workshop_settings': serverSettings}),
+            200,
+            headers: {'content-type': 'application/json'},
+            request: request,
+          );
+        }
+        if (request.method == 'PATCH') {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          expect(body.keys, {'workshop_settings'});
+          serverSettings = Map<String, dynamic>.from(
+            body['workshop_settings'] as Map,
+          );
+          return http.Response(
+            jsonEncode({'workshop_settings': serverSettings}),
+            200,
+            headers: {'content-type': 'application/json'},
+            request: request,
+          );
+        }
+        return http.Response('Unsupported method', 405);
+      }),
+    );
+    addTearDown(client.dispose);
+
+    final firstSession = SupabaseOfficinaConfigRepository(
+      client: client,
+      cacheRepository: null,
+    );
+    await firstSession.saveForUser(_accountA.id, _config());
+
+    final afterRefreshAndLogin = SupabaseOfficinaConfigRepository(
+      client: client,
+      cacheRepository: null,
+    );
+    final reloaded = await afterRefreshAndLogin.loadForUser(_accountA.id);
+    expect(reloaded.toJson(), _config().toJson());
+
+    final modified = _config(tow: '+41 91 999 99 99');
+    await afterRefreshAndLogin.saveForUser(_accountA.id, modified);
+    final modifiedReload = await SupabaseOfficinaConfigRepository(
+      client: client,
+      cacheRepository: null,
+    ).loadForUser(_accountA.id);
+    expect(modifiedReload.toJson(), modified.toJson());
+
+    await afterRefreshAndLogin.saveForUser(
+      _accountA.id,
+      _config(workshop: '', email: ''),
+    );
+    final clearedReload = await SupabaseOfficinaConfigRepository(
+      client: client,
+      cacheRepository: null,
+    ).loadForUser(_accountA.id);
+    expect(clearedReload.carroNumero, _towNumber);
+    expect(clearedReload.concessionariaNumero, isEmpty);
+    expect(clearedReload.concessionariaEmail, isEmpty);
+
+    expect(
+        requests.where((request) => request.method == 'PATCH'), hasLength(3));
+    expect(requests.where((request) => request.method == 'GET'), hasLength(3));
+  });
+
+  test(
+      'Supabase repository migrates existing local settings only when remote is null',
+      () async {
+    Map<String, dynamic>? serverSettings;
+    var patchCount = 0;
+    final cache = _FakeOfficinaConfigRepository(
+      initialValues: {_accountA.id: _config()},
+    );
+    final client = SupabaseClient(
+      'https://workshop-settings-migration-test.supabase.co',
+      'workshop-settings-migration-test-anon-key',
+      accessToken: () async => 'customer-access-token',
+      httpClient: MockClient((request) async {
+        if (request.method == 'PATCH') {
+          patchCount++;
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          serverSettings = Map<String, dynamic>.from(
+            body['workshop_settings'] as Map,
+          );
+        }
+        return http.Response(
+          jsonEncode({'workshop_settings': serverSettings}),
+          200,
+          headers: {'content-type': 'application/json'},
+          request: request,
+        );
+      }),
+    );
+    addTearDown(client.dispose);
+    final repository = SupabaseOfficinaConfigRepository(
+      client: client,
+      cacheRepository: cache,
+    );
+
+    expect((await repository.loadForUser(_accountA.id)).toJson(),
+        _config().toJson());
+    expect(patchCount, 1);
+    expect((await repository.loadForUser(_accountA.id)).toJson(),
+        _config().toJson());
+    expect(patchCount, 1);
   });
 }

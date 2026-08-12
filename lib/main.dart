@@ -260,8 +260,113 @@ class SharedPreferencesOfficinaConfigRepository
   }
 }
 
+class SupabaseOfficinaConfigRepository implements OfficinaConfigRepository {
+  const SupabaseOfficinaConfigRepository({
+    SupabaseClient? client,
+    this.cacheRepository = const SharedPreferencesOfficinaConfigRepository(),
+  }) : _clientOverride = client;
+
+  final SupabaseClient? _clientOverride;
+  final OfficinaConfigRepository? cacheRepository;
+
+  SupabaseClient get _client => _clientOverride ?? Supabase.instance.client;
+
+  String _normalizedUserId(String userId) {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) {
+      throw ArgumentError.value(userId, 'userId');
+    }
+    return normalized;
+  }
+
+  OfficinaConfig _normalizedConfig(OfficinaConfig config) {
+    return OfficinaConfig(
+      carroNumero: config.carroNumero.trim(),
+      concessionariaNumero: config.concessionariaNumero.trim(),
+      concessionariaEmail: config.concessionariaEmail.trim(),
+    );
+  }
+
+  bool _hasValues(OfficinaConfig config) {
+    return config.carroNumero.isNotEmpty ||
+        config.concessionariaNumero.isNotEmpty ||
+        config.concessionariaEmail.isNotEmpty;
+  }
+
+  Future<void> _cacheBestEffort(
+    String userId,
+    OfficinaConfig config,
+  ) async {
+    try {
+      await cacheRepository?.saveForUser(userId, config);
+    } catch (_) {
+      // The server remains authoritative if the optional local cache fails.
+    }
+  }
+
+  Future<OfficinaConfig> _loadCachedBestEffort(String userId) async {
+    try {
+      return await cacheRepository?.loadForUser(userId) ??
+          OfficinaConfig.empty();
+    } catch (_) {
+      return OfficinaConfig.empty();
+    }
+  }
+
+  @override
+  Future<OfficinaConfig> loadForUser(String userId) async {
+    final normalizedUserId = _normalizedUserId(userId);
+    final response = await _client
+        .from('customer_profiles')
+        .select('workshop_settings')
+        .eq('user_id', normalizedUserId)
+        .single();
+    final stored = response['workshop_settings'];
+    if (stored is Map) {
+      final config = _normalizedConfig(
+        OfficinaConfig.fromJson(Map<String, dynamic>.from(stored)),
+      );
+      await _cacheBestEffort(normalizedUserId, config);
+      return config;
+    }
+
+    final cached = _normalizedConfig(
+      await _loadCachedBestEffort(normalizedUserId),
+    );
+    if (_hasValues(cached)) {
+      await saveForUser(normalizedUserId, cached);
+      return cached;
+    }
+    return OfficinaConfig.empty();
+  }
+
+  @override
+  Future<void> saveForUser(String userId, OfficinaConfig config) async {
+    final normalizedUserId = _normalizedUserId(userId);
+    final normalizedConfig = _normalizedConfig(config);
+    final response = await _client
+        .from('customer_profiles')
+        .update({'workshop_settings': normalizedConfig.toJson()})
+        .eq('user_id', normalizedUserId)
+        .select('workshop_settings')
+        .single();
+    final stored = response['workshop_settings'];
+    if (stored is! Map) {
+      throw StateError('Workshop settings were not persisted.');
+    }
+    final persisted = _normalizedConfig(
+      OfficinaConfig.fromJson(Map<String, dynamic>.from(stored)),
+    );
+    if (jsonEncode(persisted.toJson()) !=
+        jsonEncode(normalizedConfig.toJson())) {
+      throw StateError('Persisted workshop settings do not match.');
+    }
+    await _cacheBestEffort(normalizedUserId, persisted);
+  }
+}
+
 const OfficinaConfigRepository _defaultOfficinaConfigRepository =
-    SharedPreferencesOfficinaConfigRepository();
+    SupabaseOfficinaConfigRepository();
 
 Future<OfficinaConfig> caricaConfigOfficina({
   required String userId,
