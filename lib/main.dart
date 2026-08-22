@@ -653,8 +653,7 @@ class ConducenteAggiuntivo {
       modello: json['modello']?.toString() ?? '',
       vin: json['vin']?.toString() ?? '',
       kilometraggio: json['kilometraggio']?.toString() ?? '',
-      primaImmatricolazione:
-          json['primaImmatricolazione']?.toString() ?? '',
+      primaImmatricolazione: json['primaImmatricolazione']?.toString() ?? '',
       assicurazione: json['assicurazione']?.toString() ?? '',
       numeroPolizza: json['numeroPolizza']?.toString() ?? '',
       numeroSinistro: json['numeroSinistro']?.toString() ?? '',
@@ -5759,12 +5758,16 @@ class NuovaPraticaIncidentePage extends StatefulWidget {
     this.customerPrefillLoader,
     this.locationService = const DeviceLocationService(),
     this.reverseGeocodingClient,
+    this.imagePicker,
+    this.damagePhotoOcrReader,
   });
 
   final PersonalVehicleData? initialVehicle;
   final CustomerIncidentPrefillLoader? customerPrefillLoader;
   final DeviceLocationService locationService;
   final http.Client? reverseGeocodingClient;
+  final ImagePicker? imagePicker;
+  final Future<void> Function(String imagePath)? damagePhotoOcrReader;
 
   @override
   State<NuovaPraticaIncidentePage> createState() =>
@@ -5781,6 +5784,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   static const Color _incidentMutedText = Color(0xFF4B5563);
   static const Color _incidentDropBorder = Color(0xFF93C5FD);
   static const double _incidentSectionSpacing = 20;
+  static const int _maxDamagePhotos = 4;
 
   final _formKey = GlobalKey<FormState>();
 
@@ -5856,7 +5860,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
   late DateTime _dataOra;
 
-  final ImagePicker _picker = ImagePicker();
+  late final ImagePicker _picker;
   final SupabaseService _supabaseService = SupabaseService();
   String? _fotoLibrettoAPath;
   String? _fotoLibrettoBPath;
@@ -5914,6 +5918,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   @override
   void initState() {
     super.initState();
+    _picker = widget.imagePicker ?? ImagePicker();
     debugPrint('[AccidentGPS] init NuovaPraticaIncidentePage');
     final initialVehicle = widget.initialVehicle;
     if (initialVehicle != null) {
@@ -5928,7 +5933,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       }
     });
     _dataOra = DateTime.now();
-    _testimoni.add(_newTestimoneFormData());
     if (widget.customerPrefillLoader != null) {
       _customerPrefillLoading = true;
       _customerPrefillFuture = _loadCustomerPrefill();
@@ -6045,8 +6049,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: vehicles.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: 10),
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
                         final vehicle = vehicles[index];
                         final vehicleName = vehicle.displayName.trim();
@@ -6058,8 +6061,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                           key: Key(
                             'incident_profile_vehicle_option_${vehicle.id}',
                           ),
-                          onTap: () =>
-                              Navigator.of(sheetContext).pop(vehicle),
+                          onTap: () => Navigator.of(sheetContext).pop(vehicle),
                           borderRadius: BorderRadius.circular(16),
                           child: Container(
                             padding: const EdgeInsets.all(14),
@@ -6278,8 +6280,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         modelloController: _modelloAController,
         vinController: _vinAController,
         kilometraggioController: _kilometraggioAController,
-        primaImmatricolazioneController:
-            _primaImmatricolazioneAController,
+        primaImmatricolazioneController: _primaImmatricolazioneAController,
         assicurazioneController: _assicurazioneAController,
         numeroPolizzaController: _numeroPolizzaAController,
         numeroSinistroController: _numeroSinistroAController,
@@ -6301,8 +6302,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         modelloController: _modelloBController,
         vinController: _vinBController,
         kilometraggioController: _kilometraggioBController,
-        primaImmatricolazioneController:
-            _primaImmatricolazioneBController,
+        primaImmatricolazioneController: _primaImmatricolazioneBController,
         assicurazioneController: _assicurazioneBController,
         numeroPolizzaController: _numeroPolizzaBController,
         numeroSinistroController: _numeroSinistroBController,
@@ -6325,8 +6325,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       modelloController: driver.modelloController,
       vinController: driver.vinController,
       kilometraggioController: driver.kilometraggioController,
-      primaImmatricolazioneController:
-          driver.primaImmatricolazioneController,
+      primaImmatricolazioneController: driver.primaImmatricolazioneController,
       assicurazioneController: driver.assicurazioneController,
       numeroPolizzaController: driver.numeroPolizzaController,
       numeroSinistroController: driver.numeroSinistroController,
@@ -7095,6 +7094,25 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
   }
 
+  bool _ensureDamagePhotoCapacity() {
+    if (_damagePhotos.length < _maxDamagePhotos) return true;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          _copyText(
+            it: 'Puoi aggiungere al massimo 4 foto del danno.',
+            de: 'Du kannst maximal 4 Schadenfotos hinzufügen.',
+            fr: 'Vous pouvez ajouter au maximum 4 photos des dommages.',
+            en: 'You can add up to 4 damage photos.',
+          ),
+        ),
+      ),
+    );
+    return false;
+  }
+
   String _ensureDraftId() {
     _draftClaimId ??= DateTime.now().millisecondsSinceEpoch.toString();
     return _draftClaimId!;
@@ -7782,6 +7800,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           '[Damage] bytes length=${bytes.length} platform=${kIsWeb ? 'web' : 'mobile'} kind=$kind');
 
       if (kind == 'damage') {
+        if (!_ensureDamagePhotoCapacity()) return;
         String? cacheKey;
         if (kIsWeb) {
           cacheKey =
@@ -7963,11 +7982,13 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   }
 
   Widget _buildInnerCard({
+    Key? key,
     required Widget child,
     Color? backgroundColor,
     EdgeInsetsGeometry padding = const EdgeInsets.all(16),
   }) {
     return Container(
+      key: key,
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
@@ -8024,11 +8045,13 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   }
 
   Widget _buildAddOutlinedButton({
+    Key? key,
     required VoidCallback onPressed,
     required IconData icon,
     required String label,
   }) {
     return OutlinedButton.icon(
+      key: key,
       onPressed: onPressed,
       icon: Icon(icon, size: 18),
       label: Text(label),
@@ -8239,6 +8262,89 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
   }
 
+  Widget _buildDriverVehicleSummary({
+    required String driverKey,
+    required TextEditingController marcaController,
+    required TextEditingController modelloController,
+    required TextEditingController targaController,
+    required TextEditingController assicurazioneController,
+  }) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        marcaController,
+        modelloController,
+        targaController,
+        assicurazioneController,
+      ]),
+      builder: (context, _) {
+        final vehicleName = [
+          marcaController.text.trim(),
+          modelloController.text.trim(),
+        ].where((value) => value.isNotEmpty).join(' ');
+        final vehicleDetails = [
+          targaController.text.trim(),
+          assicurazioneController.text.trim(),
+        ].where((value) => value.isNotEmpty).join(' · ');
+        if (vehicleName.isEmpty && vehicleDetails.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Container(
+            key: Key('incident_driver_${driverKey}_vehicle_summary'),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.directions_car_outlined,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (vehicleName.isNotEmpty)
+                        Text(
+                          vehicleName,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                        ),
+                      if (vehicleDetails.isNotEmpty) ...[
+                        if (vehicleName.isNotEmpty) const SizedBox(height: 2),
+                        Text(
+                          vehicleDetails,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: _incidentMutedText,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildDriverFormCard({
     required String driverKey,
     required _DriverCourtesy? courtesy,
@@ -8311,6 +8417,13 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                   ),
               ],
             ),
+          _buildDriverVehicleSummary(
+            driverKey: driverKey,
+            marcaController: marcaController,
+            modelloController: modelloController,
+            targaController: targaController,
+            assicurazioneController: assicurazioneController,
+          ),
           const SizedBox(height: 12),
           if (personalQrImporter != null)
             Align(
@@ -8720,9 +8833,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                   }
                 }
               },
-              validator: (_) => selected == null
-                  ? _vehicleSelectionRequiredMessage()
-                  : null,
+              validator: (_) =>
+                  selected == null ? _vehicleSelectionRequiredMessage() : null,
             ),
           if (selected != null) ...[
             const SizedBox(height: 12),
@@ -8786,8 +8898,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         modelloController: _modelloAController,
         vinController: _vinAController,
         kilometraggioController: _kilometraggioAController,
-        primaImmatricolazioneController:
-            _primaImmatricolazioneAController,
+        primaImmatricolazioneController: _primaImmatricolazioneAController,
         assicurazioneController: _assicurazioneAController,
         numeroPolizzaController: _numeroPolizzaAController,
         telefonoController: _telefonoAController,
@@ -8834,8 +8945,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         modelloController: _modelloBController,
         vinController: _vinBController,
         kilometraggioController: _kilometraggioBController,
-        primaImmatricolazioneController:
-            _primaImmatricolazioneBController,
+        primaImmatricolazioneController: _primaImmatricolazioneBController,
         assicurazioneController: _assicurazioneBController,
         numeroPolizzaController: _numeroPolizzaBController,
         telefonoController: _telefonoBController,
@@ -9226,20 +9336,18 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return _buildSectionCard(
       icon: Icons.groups_outlined,
       title: tx(context, 'Testimoni (se presenti)'),
+      subtitle: _copyText(
+        it: 'Aggiungi solo le persone che hanno assistito all’incidente.',
+        de: 'Füge nur Personen hinzu, die den Unfall beobachtet haben.',
+        fr: 'Ajoutez uniquement les personnes ayant assisté à l’accident.',
+        en: 'Add only people who witnessed the accident.',
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_testimoni.isEmpty)
-            _buildEmptyPersonMessage(
-              _copyText(
-                it: 'Nessun testimone indicato',
-                de: 'Keine Zeugen angegeben',
-                fr: 'Aucun témoin indiqué',
-                en: 'No witnesses specified',
-              ),
-            ),
           for (int i = 0; i < _testimoni.length; i++) ...[
             _buildInnerCard(
+              key: Key('incident_witness_form_$i'),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -9490,8 +9598,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             ),
             if (i != _testimoni.length - 1) const SizedBox(height: 12),
           ],
-          const SizedBox(height: 14),
+          if (_testimoni.isNotEmpty) const SizedBox(height: 14),
           _buildAddOutlinedButton(
+            key: const Key('incident_add_witness'),
             onPressed: () => setState(
               () => _testimoni.add(_newTestimoneFormData()),
             ),
@@ -9507,6 +9616,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     return _buildSectionCard(
       icon: Icons.healing_outlined,
       title: tx(context, 'Feriti (se presenti)'),
+      subtitle: _copyText(
+        it: 'Segnala qui eventuali persone ferite nell’incidente.',
+        de: 'Melde hier Personen, die beim Unfall verletzt wurden.',
+        fr: 'Signalez ici les personnes blessées lors de l’accident.',
+        en: 'Report anyone injured in the accident here.',
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -9521,6 +9636,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             ),
           for (int i = 0; i < _feriti.length; i++) ...[
             _buildInnerCard(
+              key: Key('incident_injured_form_$i'),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -9923,6 +10039,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           ],
           const SizedBox(height: 14),
           _buildAddOutlinedButton(
+            key: const Key('incident_add_injured'),
             onPressed: () => setState(
               () => _feriti.add(_newFeritoFormData()),
             ),
@@ -9948,11 +10065,13 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               Icon(icon,
                   size: 18, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
               ),
             ],
           ),
@@ -10038,13 +10157,50 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   }
 
   Widget _buildFotoDannoSection() {
+    final damagePhotoCount = _damagePhotos.length;
     return _buildSectionCard(
       icon: Icons.photo_camera_back_outlined,
       title: tx(context, 'Foto del danno'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _copyText(
+                    it: 'Massimo 4 foto',
+                    de: 'Maximal 4 Fotos',
+                    fr: 'Maximum 4 photos',
+                    en: 'Maximum 4 photos',
+                  ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: _incidentMutedText,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+              Container(
+                key: const Key('incident_damage_photo_counter'),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: _incidentMutedBackground,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: _incidentCardBorder),
+                ),
+                child: Text(
+                  '$damagePhotoCount/$_maxDamagePhotos',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           InkWell(
+            key: const Key('incident_add_damage_photo'),
             borderRadius: BorderRadius.circular(16),
             onTap: () => _scattaFotoDanno(),
             child: CustomPaint(
@@ -10702,16 +10858,21 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
   Future<void> _scattaFotoDanno() async {
     debugPrint('[Damage] add photo tapped');
+    if (!_ensureDamagePhotoCapacity()) return;
     if (kIsWeb) {
       await _pickAndUploadImage(kind: 'damage');
       return;
     }
     try {
-      final foto =
-          await _picker.pickImage(source: ImageSource.camera, imageQuality: 80);
+      final foto = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+        maxWidth: 2000,
+      );
       if (foto == null) return;
 
-      final bytes = await File(foto.path).readAsBytes();
+      final bytes = await foto.readAsBytes();
+      if (!_ensureDamagePhotoCapacity()) return;
       final item = DamagePhotoItem(
         status: DamagePhotoStatus.local,
         bytes: bytes,
@@ -10731,7 +10892,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       _mostraSnack(
         'Foto del danno aggiunta. Provo a leggere la targa con l\'AI...',
       );
-      await _leggiTargaDaFotoDanno(foto.path);
+      final testReader = widget.damagePhotoOcrReader;
+      if (testReader != null) {
+        await testReader(foto.path);
+      } else {
+        await _leggiTargaDaFotoDanno(foto.path);
+      }
     } catch (_) {
       _mostraSnack('Errore nello scatto della foto del danno.');
     }
@@ -10961,8 +11127,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         modelloA: _modelloAController.text.trim(),
         vinA: _vinAController.text.trim(),
         kilometraggioA: _kilometraggioAController.text.trim(),
-        primaImmatricolazioneA:
-            _primaImmatricolazioneAController.text.trim(),
+        primaImmatricolazioneA: _primaImmatricolazioneAController.text.trim(),
         assicurazioneA: _assicurazioneAController.text.trim(),
         numeroPolizzaA: _numeroPolizzaAController.text.trim(),
         numeroSinistroA: _numeroSinistroAController.text.trim(),
@@ -10978,8 +11143,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         modelloB: _modelloBController.text.trim(),
         vinB: _vinBController.text.trim(),
         kilometraggioB: _kilometraggioBController.text.trim(),
-        primaImmatricolazioneB:
-            _primaImmatricolazioneBController.text.trim(),
+        primaImmatricolazioneB: _primaImmatricolazioneBController.text.trim(),
         assicurazioneB: _assicurazioneBController.text.trim(),
         numeroPolizzaB: _numeroPolizzaBController.text.trim(),
         numeroSinistroB: _numeroSinistroBController.text.trim(),
@@ -11390,9 +11554,8 @@ class _StoricoPageState extends State<StoricoPage> {
     String plate,
     String insurance,
   ) {
-    final vehicle = [brand, model]
-        .where((value) => value.trim().isNotEmpty)
-        .join(' ');
+    final vehicle =
+        [brand, model].where((value) => value.trim().isNotEmpty).join(' ');
     return [name, vehicle, plate, insurance]
         .where((value) => value.trim().isNotEmpty)
         .join(' · ');
@@ -12467,9 +12630,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
   }
 
   String _detailVehicleName(String brand, String model) {
-    final value = [brand.trim(), model.trim()]
-        .where((part) => part.isNotEmpty)
-        .join(' ');
+    final value =
+        [brand.trim(), model.trim()].where((part) => part.isNotEmpty).join(' ');
     return value.isEmpty ? '-' : value;
   }
 
@@ -12537,8 +12699,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
             ),
             policyNumber,
           ),
-          if (vin.trim().isNotEmpty)
-            valueLine('VIN', vin),
+          if (vin.trim().isNotEmpty) valueLine('VIN', vin),
           if (mileage.trim().isNotEmpty)
             valueLine(
               _detailText(
@@ -13462,17 +13623,15 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                     fr: 'Assurance',
                     en: 'Insurance',
                   ),
-                  insuranceValue: driver.assicurazione.isEmpty
-                      ? '-'
-                      : driver.assicurazione,
+                  insuranceValue:
+                      driver.assicurazione.isEmpty ? '-' : driver.assicurazione,
                   phoneLabel: pdfVehicleText(
                     it: 'Telefono',
                     de: 'Telefon',
                     fr: 'Téléphone',
                     en: 'Phone',
                   ),
-                  phoneValue:
-                      driver.telefono.isEmpty ? '-' : driver.telefono,
+                  phoneValue: driver.telefono.isEmpty ? '-' : driver.telefono,
                   emailLabel: 'Email',
                   emailValue: driver.email.isEmpty ? '-' : driver.email,
                   addressLabel: pdfVehicleText(
@@ -13486,9 +13645,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                     driver.zip,
                     driver.city,
                   ),
-                  policyNumber: driver.numeroPolizza.isEmpty
-                      ? '-'
-                      : driver.numeroPolizza,
+                  policyNumber:
+                      driver.numeroPolizza.isEmpty ? '-' : driver.numeroPolizza,
                   vin: driver.vin,
                   mileage: driver.kilometraggio,
                   firstRegistration: driver.primaImmatricolazione,

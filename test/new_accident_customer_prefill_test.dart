@@ -142,7 +142,7 @@ void main() {
       findsNothing,
     );
     expect(find.text('Volvo XC40'), findsWidgets);
-    expect(find.text('TI11111 · AXA'), findsOneWidget);
+    expect(find.text('TI11111 · AXA'), findsNWidgets(2));
     expect(
       _field(tester, 'incident_driver_A_plate').controller?.text,
       'TI11111',
