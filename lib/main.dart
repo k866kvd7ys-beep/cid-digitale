@@ -43,6 +43,7 @@ import 'services/incidents_sync_service.dart';
 import 'services/local_image_cache.dart';
 import 'services/cid_email_function_client.dart';
 import 'models/driver_personal_qr_data.dart';
+import 'models/customer_incident_event.dart';
 import 'models/personal_vehicle_data.dart';
 import 'models/customer_profile.dart';
 import 'services/customer_auth_service.dart';
@@ -719,6 +720,10 @@ class Incidente {
   final String descrizione;
   final String danniVeicoloA;
   final String danniVeicoloB;
+  final String incidentEventType;
+  final String incidentEventSubtype;
+  final bool hasStructuredIncidentEvent;
+  final String legacyDamageType;
   final bool? otherObjectDamage;
   final bool? otherVehicleDamage;
 
@@ -791,6 +796,10 @@ class Incidente {
     required this.descrizione,
     required this.danniVeicoloA,
     required this.danniVeicoloB,
+    this.incidentEventType = '',
+    this.incidentEventSubtype = '',
+    this.hasStructuredIncidentEvent = false,
+    this.legacyDamageType = 'Haftpflichtschaden',
     required this.otherObjectDamage,
     required this.otherVehicleDamage,
     required this.testimoni,
@@ -826,6 +835,16 @@ class Incidente {
       locality,
     ].where((value) => value.isNotEmpty).join(', ');
   }
+
+  String get _storedIncidentEventType {
+    final normalized = normalizeCustomerIncidentEventType(incidentEventType);
+    return normalized.isEmpty
+        ? CustomerIncidentEventType.collision.code
+        : normalized;
+  }
+
+  String get _storedIncidentEventSubtype =>
+      normalizeCustomerIncidentEventSubtype(incidentEventSubtype);
 
   Map<String, dynamic> _canonicalDriver({
     required String firstName,
@@ -916,6 +935,13 @@ class Incidente {
         'descrizione': descrizione,
         'danniVeicoloA': danniVeicoloA,
         'danniVeicoloB': danniVeicoloB,
+        if (hasStructuredIncidentEvent) ...{
+          'incidentEventType': _storedIncidentEventType,
+          'incidentEventSubtype': _storedIncidentEventSubtype,
+          'damage_subtype': _storedIncidentEventSubtype,
+          'damage_classification':
+              classifyCustomerIncidentEvent(_storedIncidentEventType).toJson(),
+        },
         'otherObjectDamage': otherObjectDamage,
         'otherVehicleDamage': otherVehicleDamage,
         'testimoni': testimoni.map((t) => t.toJson()).toList(),
@@ -940,7 +966,9 @@ class Incidente {
         'emailSendMessage': emailSendMessage,
         'emailSendLastAttemptAt': emailSendLastAttemptAt,
         'case_type': 'two_vehicle_accident',
-        'damage_type': 'Haftpflichtschaden',
+        'damage_type': hasStructuredIncidentEvent
+            ? _storedIncidentEventType
+            : legacyDamageType,
         'description': descrizione,
         'driverA': _canonicalDriver(
           firstName: nomeA,
@@ -1032,6 +1060,25 @@ class Incidente {
     final vehicleB = mapValue(driverB['vehicle']);
     final insuranceA = mapValue(driverA['insurance_details']);
     final insuranceB = mapValue(driverB['insurance_details']);
+    final hasStructuredIncidentEvent = json.containsKey('incidentEventType') ||
+        json.containsKey('incident_event_type');
+    final legacyDamageType =
+        json['damage_type']?.toString().trim() ?? 'Haftpflichtschaden';
+    final incidentEventType = normalizeCustomerIncidentEventType(
+      hasStructuredIncidentEvent
+          ? firstValue([
+              json['incidentEventType'],
+              json['incident_event_type'],
+            ])
+          : legacyDamageType,
+    );
+    final incidentEventSubtype = normalizeCustomerIncidentEventSubtype(
+      firstValue([
+        json['incidentEventSubtype'],
+        json['incident_event_subtype'],
+        json['damage_subtype'],
+      ]),
+    );
 
     return Incidente(
       id: json['id']?.toString() ?? '',
@@ -1110,6 +1157,10 @@ class Incidente {
       descrizione: json['descrizione'] ?? '',
       danniVeicoloA: json['danniVeicoloA'] ?? '',
       danniVeicoloB: json['danniVeicoloB'] ?? '',
+      incidentEventType: incidentEventType,
+      incidentEventSubtype: incidentEventSubtype,
+      hasStructuredIncidentEvent: hasStructuredIncidentEvent,
+      legacyDamageType: legacyDamageType,
       otherObjectDamage: json['otherObjectDamage'] is bool
           ? json['otherObjectDamage'] as bool
           : null,
@@ -1713,6 +1764,10 @@ Future<Incidente> aggiornaHashIncidente(Incidente inc) async {
     descrizione: inc.descrizione,
     danniVeicoloA: inc.danniVeicoloA,
     danniVeicoloB: inc.danniVeicoloB,
+    incidentEventType: inc.incidentEventType,
+    incidentEventSubtype: inc.incidentEventSubtype,
+    hasStructuredIncidentEvent: inc.hasStructuredIncidentEvent,
+    legacyDamageType: inc.legacyDamageType,
     otherObjectDamage: inc.otherObjectDamage,
     otherVehicleDamage: inc.otherVehicleDamage,
     testimoni: inc.testimoni,
@@ -1783,6 +1838,10 @@ Incidente _copyIncidenteWithEmailSendState(
     descrizione: inc.descrizione,
     danniVeicoloA: inc.danniVeicoloA,
     danniVeicoloB: inc.danniVeicoloB,
+    incidentEventType: inc.incidentEventType,
+    incidentEventSubtype: inc.incidentEventSubtype,
+    hasStructuredIncidentEvent: inc.hasStructuredIncidentEvent,
+    legacyDamageType: inc.legacyDamageType,
     otherObjectDamage: inc.otherObjectDamage,
     otherVehicleDamage: inc.otherVehicleDamage,
     testimoni: inc.testimoni,
@@ -3865,7 +3924,10 @@ class _HomePageState extends State<HomePage> {
                 case DamageType.parking:
                   return l10n.damage_parking;
                 case DamageType.comprehensive:
-                  return l10n.damage_comprehensive;
+                  return customerIncidentEventLabel(
+                    CustomerIncidentEventType.collision,
+                    Localizations.localeOf(context).languageCode,
+                  );
                 case DamageType.other:
                   return _damageOtherLabel(context);
               }
@@ -4485,7 +4547,10 @@ class _HomePageState extends State<HomePage> {
       case DamageType.parking:
         return l10n.damage_parking;
       case DamageType.comprehensive:
-        return l10n.damage_comprehensive;
+        return customerIncidentEventLabel(
+          CustomerIncidentEventType.collision,
+          Localizations.localeOf(context).languageCode,
+        );
       case DamageType.other:
         return _damageOtherLabel(context);
     }
@@ -5849,6 +5914,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   final _descrizioneController = TextEditingController();
   final _damageVehicleAController = TextEditingController();
   final _damageVehicleBController = TextEditingController();
+  CustomerIncidentEventType? _selectedIncidentEventType;
+  CustomerIncidentEventSubtype? _selectedIncidentEventSubtype;
 
   final List<_TestimoneFormData> _testimoni = [];
   final List<_FeritoFormData> _feriti = [];
@@ -10088,6 +10155,139 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
   }
 
+  Widget _buildIncidentEventSelection() {
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final selectedType = _selectedIncidentEventType;
+    final subtypes = selectedType == null
+        ? const <CustomerIncidentEventSubtype>[]
+        : customerIncidentSubtypesFor(selectedType);
+    final isNaturalEvent =
+        selectedType == CustomerIncidentEventType.naturalEvent;
+
+    return _buildInnerCard(
+      key: const Key('incident_event_selection'),
+      backgroundColor: const Color(0xFFF8FAFC),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _copyText(
+              it: 'Cosa è successo?',
+              de: 'Was ist passiert?',
+              fr: 'Que s’est-il passé ?',
+              en: 'What happened?',
+            ),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _copyText(
+              it: 'Scegli l’evento che descrive meglio ciò che è accaduto.',
+              de: 'Wähle das Ereignis, das am besten beschreibt, was passiert ist.',
+              fr: 'Choisissez l’événement qui décrit le mieux ce qui s’est passé.',
+              en: 'Choose the event that best describes what happened.',
+            ),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: _incidentMutedText,
+                  height: 1.35,
+                ),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<CustomerIncidentEventType>(
+            key: const Key('incident_event_type'),
+            initialValue: selectedType,
+            isExpanded: true,
+            menuMaxHeight: 420,
+            decoration: InputDecoration(
+              labelText: _copyText(
+                it: 'Tipo di evento',
+                de: 'Ereignisart',
+                fr: 'Type d’événement',
+                en: 'Event type',
+              ),
+            ),
+            items: customerIncidentEventTypes
+                .map(
+                  (type) => DropdownMenuItem(
+                    value: type,
+                    child: Text(
+                      customerIncidentEventLabel(type, languageCode),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (value) {
+              setState(() {
+                _selectedIncidentEventType = value;
+                _selectedIncidentEventSubtype = null;
+              });
+            },
+            validator: (value) => value == null
+                ? _copyText(
+                    it: 'Seleziona cosa è successo.',
+                    de: 'Wähle aus, was passiert ist.',
+                    fr: 'Sélectionnez ce qui s’est passé.',
+                    en: 'Select what happened.',
+                  )
+                : null,
+          ),
+          if (subtypes.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            DropdownButtonFormField<CustomerIncidentEventSubtype>(
+              key: ValueKey('incident_event_subtype_${selectedType!.code}'),
+              initialValue: _selectedIncidentEventSubtype,
+              isExpanded: true,
+              menuMaxHeight: 360,
+              decoration: InputDecoration(
+                labelText: isNaturalEvent
+                    ? _copyText(
+                        it: 'Evento naturale',
+                        de: 'Naturereignis',
+                        fr: 'Événement naturel',
+                        en: 'Natural event',
+                      )
+                    : _copyText(
+                        it: 'Tipo di furto',
+                        de: 'Art des Diebstahls',
+                        fr: 'Type de vol',
+                        en: 'Type of theft',
+                      ),
+              ),
+              items: subtypes
+                  .map(
+                    (subtype) => DropdownMenuItem(
+                      value: subtype,
+                      child: Text(
+                        customerIncidentEventSubtypeLabel(
+                          subtype,
+                          languageCode,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: (value) {
+                setState(() => _selectedIncidentEventSubtype = value);
+              },
+              validator: (value) => value == null
+                  ? _copyText(
+                      it: 'Seleziona una voce.',
+                      de: 'Wähle eine Option aus.',
+                      fr: 'Sélectionnez une option.',
+                      en: 'Select an option.',
+                    )
+                  : null,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildDanniSection() {
     return _buildSectionCard(
       icon: Icons.car_repair_outlined,
@@ -10095,6 +10295,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildIncidentEventSelection(),
+          const SizedBox(height: 16),
           Text(
             tx(context, 'Descrizione incidente'),
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -11155,6 +11357,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         descrizione: _descrizioneController.text.trim(),
         danniVeicoloA: _damageVehicleAController.text.trim(),
         danniVeicoloB: _damageVehicleBController.text.trim(),
+        incidentEventType: _selectedIncidentEventType!.code,
+        incidentEventSubtype: _selectedIncidentEventSubtype?.code ?? '',
+        hasStructuredIncidentEvent: true,
         otherObjectDamage: _otherObjectDamage,
         otherVehicleDamage: _otherVehicleDamage,
         testimoni: testimoni,
@@ -14674,6 +14879,10 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       descrizione: incidente.descrizione,
       danniVeicoloA: incidente.danniVeicoloA,
       danniVeicoloB: incidente.danniVeicoloB,
+      incidentEventType: incidente.incidentEventType,
+      incidentEventSubtype: incidente.incidentEventSubtype,
+      hasStructuredIncidentEvent: incidente.hasStructuredIncidentEvent,
+      legacyDamageType: incidente.legacyDamageType,
       otherObjectDamage: incidente.otherObjectDamage,
       otherVehicleDamage: incidente.otherVehicleDamage,
       testimoni: incidente.testimoni,
@@ -14767,6 +14976,10 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         descrizione: incidente.descrizione,
         danniVeicoloA: incidente.danniVeicoloA,
         danniVeicoloB: incidente.danniVeicoloB,
+        incidentEventType: incidente.incidentEventType,
+        incidentEventSubtype: incidente.incidentEventSubtype,
+        hasStructuredIncidentEvent: incidente.hasStructuredIncidentEvent,
+        legacyDamageType: incidente.legacyDamageType,
         otherObjectDamage: incidente.otherObjectDamage,
         otherVehicleDamage: incidente.otherVehicleDamage,
         testimoni: incidente.testimoni,
