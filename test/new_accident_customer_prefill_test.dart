@@ -138,6 +138,12 @@ void main() {
       findsOneWidget,
     );
     expect(
+      find.byKey(const Key('incident_vehicle_selector')),
+      findsNothing,
+    );
+    expect(find.text('Volvo XC40'), findsWidgets);
+    expect(find.text('TI11111 · AXA'), findsOneWidget);
+    expect(
       _field(tester, 'incident_driver_A_plate').controller?.text,
       'TI11111',
     );
@@ -167,6 +173,22 @@ void main() {
       _field(tester, 'incident_driver_A_policy').controller?.text,
       'POL-ONE',
     );
+    expect(
+      _field(tester, 'incident_driver_A_vin').controller?.text,
+      'VIN-ONE',
+    );
+    expect(
+      _field(tester, 'incident_driver_A_mileage').controller?.text,
+      '42000',
+    );
+    expect(
+      _field(tester, 'incident_driver_A_first_registration').controller?.text,
+      '2022',
+    );
+    expect(
+      find.byKey(const Key('incident_driver_A_claim')),
+      findsNothing,
+    );
   });
 
   testWidgets('multiple vehicles require selection and update plate insurance',
@@ -182,6 +204,7 @@ void main() {
     await tester.pumpWidget(_app(loader));
     await tester.pumpAndSettle();
 
+    expect(find.text('Seleziona il veicolo coinvolto'), findsOneWidget);
     expect(
       _field(tester, 'incident_driver_A_plate').controller?.text,
       isEmpty,
@@ -255,6 +278,123 @@ void main() {
       _field(tester, 'incident_driver_A_policy').controller?.text,
       'POL-TWO',
     );
-    expect(find.textContaining('POL-TWO'), findsWidgets);
+  });
+
+  testWidgets(
+      'use profile requires an explicit vehicle choice and keeps A and B independent',
+      (tester) async {
+    tester.view.physicalSize = const Size(760, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final loader = _FakePrefillLoader(
+      Future.value(_prefill(const [_vehicleOne, _vehicleTwo])),
+    );
+
+    await tester.pumpWidget(_app(loader));
+    await tester.pumpAndSettle();
+
+    final useProfileA = find.text('Usa il mio profilo').at(0);
+    await tester.ensureVisible(useProfileA);
+    await tester.tap(useProfileA);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('incident_profile_vehicle_picker')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const Key('incident_profile_vehicle_option_vehicle-one')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      _field(tester, 'incident_driver_A_first_name').controller?.text,
+      'Anna',
+    );
+    expect(
+      _field(tester, 'incident_driver_A_brand').controller?.text,
+      'Volvo',
+    );
+    expect(
+      _field(tester, 'incident_driver_A_vin').controller?.text,
+      'VIN-ONE',
+    );
+
+    final useProfileB = find.text('Usa il mio profilo').at(1);
+    await tester.ensureVisible(useProfileB);
+    await tester.tap(useProfileB);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('incident_profile_vehicle_option_vehicle-two')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      _field(tester, 'incident_driver_B_brand').controller?.text,
+      'BMW',
+    );
+    expect(
+      _field(tester, 'incident_driver_B_plate').controller?.text,
+      'TI22222',
+    );
+    expect(
+      _field(tester, 'incident_driver_B_policy').controller?.text,
+      'POL-TWO',
+    );
+    expect(
+      _field(tester, 'incident_driver_A_brand').controller?.text,
+      'Volvo',
+    );
+    expect(
+      _field(tester, 'incident_driver_A_plate').controller?.text,
+      'TI11111',
+    );
+  });
+
+  testWidgets('no saved vehicles keeps complete manual entry available',
+      (tester) async {
+    tester.view.physicalSize = const Size(760, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final loader = _FakePrefillLoader(Future.value(_prefill(const [])));
+
+    await tester.pumpWidget(_app(loader));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('incident_vehicle_selector')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('incident_selected_vehicle_summary')),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('incident_driver_A_brand')), findsOneWidget);
+    expect(find.byKey(const Key('incident_driver_A_model')), findsOneWidget);
+    expect(find.byKey(const Key('incident_driver_A_plate')), findsOneWidget);
+    expect(
+      find.byKey(const Key('incident_driver_A_insurance')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('incident_driver_A_policy')), findsOneWidget);
+    expect(find.byKey(const Key('incident_driver_A_vin')), findsOneWidget);
+    expect(find.byKey(const Key('incident_driver_A_mileage')), findsOneWidget);
+    expect(
+      find.byKey(const Key('incident_driver_A_first_registration')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('incident_driver_A_claim')),
+      findsNothing,
+    );
+
+    _field(tester, 'incident_driver_A_brand').controller?.text = 'Toyota';
+    _field(tester, 'incident_driver_A_model').controller?.text = 'Corolla';
+    expect(
+      _field(tester, 'incident_driver_A_brand').controller?.text,
+      'Toyota',
+    );
   });
 }

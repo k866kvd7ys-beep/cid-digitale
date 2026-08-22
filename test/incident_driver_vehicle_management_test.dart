@@ -191,6 +191,14 @@ void main() {
     );
     expect(_field(tester, 'incident_driver_B_vin').controller?.text, 'VIN-B');
     expect(_field(tester, 'incident_driver_A_brand').controller?.text, isEmpty);
+    expect(
+      find.byKey(const Key('incident_driver_A_claim')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('incident_driver_B_claim')),
+      findsNothing,
+    );
   });
 
   testWidgets(
@@ -243,6 +251,19 @@ void main() {
       _field(tester, 'incident_driver_A_brand').controller?.text,
       'Toyota',
     );
+    expect(
+      find.byKey(const Key('incident_driver_A_claim')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('incident_driver_B_claim')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('incident_driver_C_claim')),
+      findsNothing,
+    );
+    expect(find.textContaining('Numero sinistro veicolo'), findsNothing);
   });
 
   test('incident payload round-trip keeps every driver vehicle and old data',
