@@ -3613,51 +3613,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  String _damageOtherLabel(BuildContext context) {
-    switch (Localizations.localeOf(context).languageCode) {
-      case 'it':
-        return 'Altro';
-      case 'en':
-        return 'Other';
-      case 'fr':
-        return 'Autre';
-      case 'de':
-      default:
-        return 'Sonstiges';
-    }
-  }
-
-  String? _damageCardSubtitle(BuildContext context, DamageType type) {
-    switch (type) {
-      case DamageType.comprehensive:
-        switch (Localizations.localeOf(context).languageCode) {
-          case 'it':
-            return 'Collisione con oggetto o danno causato dal conducente';
-          case 'en':
-            return 'Collision with object or self-caused damage';
-          case 'fr':
-            return 'Collision avec un objet ou dommage causé par le conducteur';
-          case 'de':
-          default:
-            return 'Kollision mit Objekt oder selbst verursachter Schaden';
-        }
-      case DamageType.other:
-        switch (Localizations.localeOf(context).languageCode) {
-          case 'it':
-            return 'Segnala problemi tecnici, spie o altri danni.';
-          case 'en':
-            return 'Report technical problems, warning lights or other damages.';
-          case 'fr':
-            return 'Signalez des problèmes techniques, voyants ou autres dommages.';
-          case 'de':
-          default:
-            return 'Melden Sie technische Probleme, Warnmeldungen oder sonstige Schäden.';
-        }
-      default:
-        return null;
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -3876,87 +3831,149 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _openDamageTypePicker(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
+    final languageCode = Localizations.localeOf(context).languageCode;
 
-    final selected = await showModalBottomSheet<DamageType>(
+    final selected = await _showDamagePickerSheet<CustomerIncidentEventType>(
+      context: context,
+      title: l10n.damage_type_title,
+      subtitle: l10n.damage_type_subtitle,
+      cancelText: l10n.cancel,
+      types: const [
+        CustomerIncidentEventType.glassDamage,
+        CustomerIncidentEventType.hail,
+        CustomerIncidentEventType.marten,
+        CustomerIncidentEventType.parkingDamage,
+        CustomerIncidentEventType.collision,
+        CustomerIncidentEventType.theft,
+        CustomerIncidentEventType.fire,
+        CustomerIncidentEventType.naturalEvent,
+        CustomerIncidentEventType.animalCollision,
+        CustomerIncidentEventType.other,
+      ],
+      iconFor: _customerDamageEventIcon,
+      labelFor: (type) => customerIncidentEventLabel(type, languageCode),
+    );
+
+    if (selected == null || !mounted || !context.mounted) return;
+
+    final subtypes = customerIncidentSubtypesFor(selected);
+    CustomerIncidentEventSubtype? selectedSubtype;
+    if (subtypes.isNotEmpty) {
+      selectedSubtype =
+          await _showDamagePickerSheet<CustomerIncidentEventSubtype>(
+        context: context,
+        title: selected == CustomerIncidentEventType.naturalEvent
+            ? _copy(
+                it: 'Quale evento naturale?',
+                de: 'Welches Naturereignis?',
+                fr: 'Quel événement naturel ?',
+                en: 'Which natural event?',
+              )
+            : _copy(
+                it: 'Quale tipo di furto?',
+                de: 'Welche Art von Diebstahl?',
+                fr: 'Quel type de vol ?',
+                en: 'Which type of theft?',
+              ),
+        subtitle: _copy(
+          it: 'Seleziona la voce che descrive meglio il danno.',
+          de: 'Wähle die Angabe, die den Schaden am besten beschreibt.',
+          fr: 'Choisissez l’option qui décrit le mieux le dommage.',
+          en: 'Choose the option that best describes the damage.',
+        ),
+        cancelText: l10n.cancel,
+        types: subtypes,
+        iconFor: _customerDamageSubtypeIcon,
+        labelFor: (subtype) =>
+            customerIncidentEventSubtypeLabel(subtype, languageCode),
+      );
+      if (selectedSubtype == null || !mounted || !context.mounted) return;
+    }
+
+    await _openCalendarSameLogic(selected, selectedSubtype, l10n);
+  }
+
+  Future<T?> _showDamagePickerSheet<T>({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required String cancelText,
+    required List<T> types,
+    required IconData Function(T type) iconFor,
+    required String Function(T type) labelFor,
+    String? Function(T type)? subtitleFor,
+  }) {
+    return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-          child: DamageTypePickerSheet(
-            title: l10n.damage_type_title,
-            subtitle: l10n.damage_type_subtitle,
-            cancelText: l10n.cancel,
-            types: const [
-              DamageType.glass,
-              DamageType.hail,
-              DamageType.marten,
-              DamageType.parking,
-              DamageType.comprehensive,
-              DamageType.other,
-            ],
-            selectedDamageType: null,
-            iconFor: (t) {
-              switch (t) {
-                case DamageType.glass:
-                  return Icons.grid_view_rounded;
-                case DamageType.hail:
-                  return Icons.grain_rounded;
-                case DamageType.marten:
-                  return Icons.pets_rounded;
-                case DamageType.parking:
-                  return Icons.local_parking_rounded;
-                case DamageType.comprehensive:
-                  return Icons.description_rounded;
-                case DamageType.other:
-                  return Icons.more_horiz_rounded;
-              }
-            },
-            labelFor: (t) {
-              switch (t) {
-                case DamageType.glass:
-                  return l10n.damage_glass;
-                case DamageType.hail:
-                  return l10n.damage_hail;
-                case DamageType.marten:
-                  return l10n.damage_marten;
-                case DamageType.parking:
-                  return l10n.damage_parking;
-                case DamageType.comprehensive:
-                  return customerIncidentEventLabel(
-                    CustomerIncidentEventType.collision,
-                    Localizations.localeOf(context).languageCode,
-                  );
-                case DamageType.other:
-                  return _damageOtherLabel(context);
-              }
-            },
-            subtitleFor: (t) => _damageCardSubtitle(context, t),
-            onSelected: (t) => Navigator.of(ctx).pop(t),
-          ),
-        );
-      },
+      builder: (sheetContext) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+        child: DamageTypePickerSheet<T>(
+          title: title,
+          subtitle: subtitle,
+          cancelText: cancelText,
+          types: types,
+          selectedDamageType: null,
+          iconFor: iconFor,
+          labelFor: labelFor,
+          subtitleFor: subtitleFor,
+          onSelected: (type) => Navigator.of(sheetContext).pop(type),
+        ),
+      ),
     );
+  }
 
-    if (selected == null) return;
+  IconData _customerDamageEventIcon(CustomerIncidentEventType type) {
+    return switch (type) {
+      CustomerIncidentEventType.glassDamage => Icons.grid_view_rounded,
+      CustomerIncidentEventType.hail => Icons.grain_rounded,
+      CustomerIncidentEventType.marten => Icons.pest_control_rodent_rounded,
+      CustomerIncidentEventType.parkingDamage => Icons.local_parking_rounded,
+      CustomerIncidentEventType.collision => Icons.car_crash_rounded,
+      CustomerIncidentEventType.theft => Icons.lock_open_rounded,
+      CustomerIncidentEventType.fire => Icons.local_fire_department_rounded,
+      CustomerIncidentEventType.naturalEvent => Icons.landscape_rounded,
+      CustomerIncidentEventType.animalCollision => Icons.pets_rounded,
+      CustomerIncidentEventType.other => Icons.more_horiz_rounded,
+    };
+  }
 
-    await _openCalendarSameLogic(selected, l10n);
+  IconData _customerDamageSubtypeIcon(CustomerIncidentEventSubtype subtype) {
+    return switch (subtype) {
+      CustomerIncidentEventSubtype.stolenVehicle => Icons.no_crash_outlined,
+      CustomerIncidentEventSubtype.attemptedTheft => Icons.lock_open_rounded,
+      CustomerIncidentEventSubtype.stolenPartsAccessories =>
+        Icons.build_circle_outlined,
+      CustomerIncidentEventSubtype.theftAttemptDamage =>
+        Icons.car_crash_outlined,
+      CustomerIncidentEventSubtype.stormWind => Icons.air_rounded,
+      CustomerIncidentEventSubtype.floodWater => Icons.water_rounded,
+      CustomerIncidentEventSubtype.landslideRockfall => Icons.landscape_rounded,
+      CustomerIncidentEventSubtype.snowPressure => Icons.ac_unit_rounded,
+      CustomerIncidentEventSubtype.otherNaturalEvent =>
+        Icons.more_horiz_rounded,
+    };
   }
 
   Future<void> _openCalendarSameLogic(
-    DamageType damageType,
+    CustomerIncidentEventType damageType,
+    CustomerIncidentEventSubtype? damageSubtype,
     AppLocalizations l10n,
   ) async {
     final serviceType = _damageServiceType(damageType);
-    final title =
-        '${l10n.damage_type_title} - ${_damageLabel(l10n, damageType)}';
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final detail = damageSubtype == null
+        ? ''
+        : ' · ${customerIncidentEventSubtypeLabel(damageSubtype, languageCode)}';
+    final title = '${l10n.damage_type_title} - '
+        '${customerIncidentEventLabel(damageType, languageCode)}$detail';
 
     await openWorkshopSelectionStep(
       context,
       title: title,
       serviceType: serviceType,
-      damageType: damageType.name,
+      damageType: damageSubtype?.code ?? damageType.code,
     );
     _refreshHomeData();
   }
@@ -4536,39 +4553,27 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  String _damageLabel(AppLocalizations l10n, DamageType type) {
+  String _damageServiceType(CustomerIncidentEventType type) {
     switch (type) {
-      case DamageType.glass:
-        return l10n.damage_glass;
-      case DamageType.hail:
-        return l10n.damage_hail;
-      case DamageType.marten:
-        return l10n.damage_marten;
-      case DamageType.parking:
-        return l10n.damage_parking;
-      case DamageType.comprehensive:
-        return customerIncidentEventLabel(
-          CustomerIncidentEventType.collision,
-          Localizations.localeOf(context).languageCode,
-        );
-      case DamageType.other:
-        return _damageOtherLabel(context);
-    }
-  }
-
-  String _damageServiceType(DamageType type) {
-    switch (type) {
-      case DamageType.glass:
+      case CustomerIncidentEventType.glassDamage:
         return 'damage_glass';
-      case DamageType.hail:
+      case CustomerIncidentEventType.hail:
         return 'damage_hail';
-      case DamageType.marten:
+      case CustomerIncidentEventType.marten:
         return 'damage_marten';
-      case DamageType.parking:
+      case CustomerIncidentEventType.parkingDamage:
         return 'damage_parking';
-      case DamageType.comprehensive:
+      case CustomerIncidentEventType.collision:
         return 'damage_comprehensive';
-      case DamageType.other:
+      case CustomerIncidentEventType.theft:
+        return 'damage_theft';
+      case CustomerIncidentEventType.fire:
+        return 'damage_fire';
+      case CustomerIncidentEventType.naturalEvent:
+        return 'damage_natural_event';
+      case CustomerIncidentEventType.animalCollision:
+        return 'damage_animal_collision';
+      case CustomerIncidentEventType.other:
         return 'damage_other';
     }
   }

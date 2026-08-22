@@ -9,10 +9,10 @@ enum DamageType {
   other,
 }
 
-typedef DamageTypeLabel = String Function(DamageType type);
-typedef DamageTypeSubtitle = String? Function(DamageType type);
+typedef DamageTypeLabel<T> = String Function(T type);
+typedef DamageTypeSubtitle<T> = String? Function(T type);
 
-class DamageTypePickerSheet extends StatelessWidget {
+class DamageTypePickerSheet<T> extends StatelessWidget {
   const DamageTypePickerSheet({
     super.key,
     required this.title,
@@ -29,12 +29,12 @@ class DamageTypePickerSheet extends StatelessWidget {
   final String title;
   final String subtitle;
   final String cancelText;
-  final List<DamageType> types;
-  final IconData Function(DamageType type) iconFor;
-  final DamageTypeLabel labelFor;
-  final DamageTypeSubtitle? subtitleFor;
-  final ValueChanged<DamageType> onSelected;
-  final DamageType? selectedDamageType;
+  final List<T> types;
+  final IconData Function(T type) iconFor;
+  final DamageTypeLabel<T> labelFor;
+  final DamageTypeSubtitle<T>? subtitleFor;
+  final ValueChanged<T> onSelected;
+  final Object? selectedDamageType;
 
   @override
   Widget build(BuildContext context) {
@@ -42,150 +42,170 @@ class DamageTypePickerSheet extends StatelessWidget {
 
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 12,
-          bottom: 12 + MediaQuery.of(context).viewInsets.bottom,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.9,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 42,
-                height: 5,
-                margin: const EdgeInsets.only(bottom: 14),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(99),
-                  color: theme.colorScheme.outlineVariant,
-                ),
-              ),
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        subtitle,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 12,
+            bottom: 12 + MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(99),
+                    color: theme.colorScheme.outlineVariant,
                   ),
                 ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
-                  tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                const spacing = 12.0;
-                final itemWidth = (constraints.maxWidth - spacing) / 2;
-                final itemHeight = itemWidth * 0.55;
-
-                return Wrap(
-                  spacing: spacing,
-                  runSpacing: spacing,
-                  children: types.map((t) {
-                    final selected = t == selectedDamageType;
-                    final cardSubtitle = subtitleFor?.call(t)?.trim();
-                    return SizedBox(
-                      width: itemWidth,
-                      height: itemHeight,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(18),
-                        onTap: () => onSelected(t),
-                        child: Ink(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(18),
-                            color: selected
-                                ? theme.colorScheme.primaryContainer
-                                : theme.colorScheme.surface,
-                            border: Border.all(
-                              color: selected
-                                  ? theme.colorScheme.primary
-                                  : theme.colorScheme.outlineVariant,
-                              width: selected ? 1.6 : 1.0,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.06),
-                                blurRadius: 16,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  iconFor(t),
-                                  size: 34,
-                                  color: theme.colorScheme.primary,
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  labelFor(t),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                if (cardSubtitle != null &&
-                                    cardSubtitle.isNotEmpty) ...[
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    cardSubtitle,
-                                    textAlign: TextAlign.center,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                      height: 1.25,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-            const SizedBox(height: 14),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child:
-                    Text(MaterialLocalizations.of(context).cancelButtonLabel),
+                        const SizedBox(height: 6),
+                        Text(
+                          subtitle,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                    tooltip:
+                        MaterialLocalizations.of(context).closeButtonTooltip,
+                  ),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 14),
+              Flexible(
+                child: SingleChildScrollView(
+                  key: const Key('damage_type_picker_scroll'),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      const spacing = 12.0;
+                      final itemWidth = (constraints.maxWidth - spacing) / 2;
+                      final itemHeight =
+                          (itemWidth * (subtitleFor == null ? 0.72 : 0.92))
+                              .clamp(118.0, 158.0)
+                              .toDouble();
+
+                      return Wrap(
+                        spacing: spacing,
+                        runSpacing: spacing,
+                        children: types.map((t) {
+                          final selected = t == selectedDamageType;
+                          final cardSubtitle = subtitleFor?.call(t)?.trim();
+                          return SizedBox(
+                            key: ValueKey<T>(t),
+                            width: itemWidth,
+                            height: itemHeight,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(18),
+                              onTap: () => onSelected(t),
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(18),
+                                  color: selected
+                                      ? theme.colorScheme.primaryContainer
+                                      : theme.colorScheme.surface,
+                                  border: Border.all(
+                                    color: selected
+                                        ? theme.colorScheme.primary
+                                        : theme.colorScheme.outlineVariant,
+                                    width: selected ? 1.6 : 1.0,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.06),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        iconFor(t),
+                                        size: 32,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        labelFor(t),
+                                        textAlign: TextAlign.center,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      if (cardSubtitle != null &&
+                                          cardSubtitle.isNotEmpty) ...[
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          cardSubtitle,
+                                          textAlign: TextAlign.center,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                            color: theme
+                                                .colorScheme.onSurfaceVariant,
+                                            height: 1.25,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    MaterialLocalizations.of(context).cancelButtonLabel,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
