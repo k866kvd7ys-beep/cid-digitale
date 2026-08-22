@@ -41,6 +41,7 @@ import 'services/appointment_requests_service.dart';
 import 'services/customer_incident_history_repository.dart';
 import 'services/incidents_sync_service.dart';
 import 'services/local_image_cache.dart';
+import 'services/cid_email_function_client.dart';
 import 'models/driver_personal_qr_data.dart';
 import 'models/personal_vehicle_data.dart';
 import 'models/customer_profile.dart';
@@ -3449,6 +3450,22 @@ Future<void> _syncClaimPayloadSnapshot(Incidente incident) async {
   }
 }
 
+Future<String?> _currentCidEmailAccessToken() async {
+  final auth = Supabase.instance.client.auth;
+  var session = auth.currentSession;
+  if (session == null) return null;
+  if (session.isExpired) {
+    try {
+      final refreshed = await auth.refreshSession();
+      session = refreshed.session ?? auth.currentSession;
+    } catch (error) {
+      debugPrint('[CIDEmail] session refresh failed: $error');
+      return null;
+    }
+  }
+  return session?.accessToken;
+}
+
 Future<dynamic> _invokeSendCidEmailEdgeFunction({
   required String claimId,
   required Incidente incident,
@@ -3456,25 +3473,35 @@ Future<dynamic> _invokeSendCidEmailEdgeFunction({
 }) async {
   debugPrint('[CIDEmail] start recipients=${recipients.length}');
 
-  await _syncClaimPayloadSnapshot(incident);
+  final accessToken = await _currentCidEmailAccessToken();
+  if (accessToken != null && accessToken.isNotEmpty) {
+    await _syncClaimPayloadSnapshot(incident);
+  }
+
+  final client = CidEmailFunctionClient(
+    supabaseUrl: supabaseUrl,
+    apiKey: supabaseAnonKey,
+    accessTokenProvider: () async => accessToken,
+  );
 
   try {
-    final result = await Supabase.instance.client.functions.invoke(
-      'send-cid-email',
-      body: {'claimId': claimId},
+    return await client.send(
+      claimId: claimId,
+      alreadySent: _cidEmailAlreadySent(incident),
     );
-    debugPrint('[CIDEmail] response status=${result.status}');
-    if (result.status >= 400) {
-      throw Exception('Edge function status ${result.status}: ${result.data}');
-    }
-    if (result.data is Map && (result.data as Map)['success'] == false) {
-      throw Exception((result.data as Map)['error'] ?? 'Invio non riuscito');
-    }
-    return result;
   } catch (_) {
     debugPrint('[CIDEmail] send failed');
     rethrow;
+  } finally {
+    client.close();
   }
+}
+
+String _cidEmailFailureMessage(Object error) {
+  if (error is CidEmailSendException && error.isUnauthorized) {
+    return 'Pratica salvata. Invio e-mail non autorizzato.';
+  }
+  return 'Pratica salvata. Invio email non riuscito: riprova più tardi.';
 }
 
 /// HOME ////////////////////////////////////////////////////////////////
@@ -7269,13 +7296,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         message: 'Pratica salvata e inviata correttamente.',
       );
       return currentIncident;
-    } catch (_) {
+    } catch (error) {
       debugPrint('[CIDEmail] send failed');
       currentIncident = await _persistIncidentEmailSendState(
         currentIncident,
         status: 'failed',
-        message:
-            'Pratica salvata. Invio email non riuscito: riprova più tardi.',
+        message: _cidEmailFailureMessage(error),
       );
       return currentIncident;
     }
@@ -14256,7 +14282,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       } else {
         incidente = workingIncident;
       }
-    } catch (_) {
+    } catch (error) {
       debugPrint('[CIDEmail] send failed');
       final offline = !await _hasInternetConnection();
       final updatedIncident = await _persistIncidentEmailSendState(
@@ -14264,7 +14290,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         status: offline ? 'pending_sync' : 'failed',
         message: offline
             ? _cidOfflinePendingMessage()
-            : 'Pratica salvata. Invio email non riuscito: riprova più tardi.',
+            : _cidEmailFailureMessage(error),
       );
       if (offline) {
         await _upsertPendingSyncEntry({
