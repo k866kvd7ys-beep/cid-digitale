@@ -128,19 +128,21 @@ class CustomerIncidentHistoryRepository {
       throw ArgumentError.value(userId, 'userId', 'User id is required');
     }
 
-    final localDrafts = localDraftEntries(localPayloads);
     try {
       final rows = await _remoteDataSource.loadClaims(normalizedUserId);
       final remoteEntries = _remoteEntries(rows);
       await _writeCache(normalizedUserId, remoteEntries);
       return CustomerIncidentHistoryLoadResult(
-        entries: mergeRemoteWithLocalDrafts(remoteEntries, localDrafts),
+        // Lo storico Cliente mostra soltanto record realmente persistiti.
+        // Le bozze locali e le righe DB create unicamente per gli allegati
+        // restano fuori finché il CID completo non viene salvato.
+        entries: remoteEntries,
         remoteSucceeded: true,
       );
     } catch (error) {
       final cachedEntries = await _readCache(normalizedUserId);
       return CustomerIncidentHistoryLoadResult(
-        entries: mergeRemoteWithLocalDrafts(cachedEntries, localDrafts),
+        entries: cachedEntries,
         remoteSucceeded: false,
         error: error,
       );
@@ -199,14 +201,14 @@ class CustomerIncidentHistoryRepository {
     final entries = <CustomerIncidentHistoryEntry>[];
     for (final row in rows) {
       final id = row['id']?.toString().trim() ?? '';
-      if (id.isEmpty) continue;
+      if (!_uuidPattern.hasMatch(id)) continue;
 
       final payloadSource = row['payload_json'];
+      if (payloadSource is! Map) continue;
       final payload = _normalizePayload(
-        payloadSource is Map
-            ? Map<String, dynamic>.from(payloadSource)
-            : const <String, dynamic>{},
+        Map<String, dynamic>.from(payloadSource),
       );
+      if (!_isSavedIncidentPayload(payload)) continue;
       payload['id'] = id;
       final status = row['status']?.toString().trim() ??
           payload['status']?.toString().trim() ??
@@ -228,6 +230,14 @@ class CustomerIncidentHistoryRepository {
 
     entries.sort((left, right) => right.createdAt.compareTo(left.createdAt));
     return entries;
+  }
+
+  bool _isSavedIncidentPayload(Map<String, dynamic> payload) {
+    // create_claim_draft inserisce inizialmente un payload vuoto. La data del
+    // sinistro viene scritta solo dal salvataggio esplicito del CID; usarla
+    // come discriminante evita che Incidente.fromJson debba inventare
+    // DateTime.now() per una pratica mai creata dall'utente.
+    return _parseDate(payload['dataOra']) != null;
   }
 
   Map<String, dynamic> _normalizePayload(Map<String, dynamic> source) {

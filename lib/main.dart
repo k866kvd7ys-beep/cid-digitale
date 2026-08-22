@@ -34,6 +34,8 @@ import 'screens/service/workshop_selector_screen.dart';
 import 'screens/support_request_screen.dart';
 import 'services/device_location_service.dart';
 import 'services/claim_draft_creation_guard.dart';
+import 'services/app_locale_service.dart';
+import 'services/customer_incident_prefill_service.dart';
 import 'services/supabase_service.dart';
 import 'services/appointment_requests_service.dart';
 import 'services/customer_incident_history_repository.dart';
@@ -42,7 +44,6 @@ import 'services/local_image_cache.dart';
 import 'models/driver_personal_qr_data.dart';
 import 'models/personal_vehicle_data.dart';
 import 'models/customer_profile.dart';
-import 'services/personal_vehicle_storage.dart';
 import 'services/customer_auth_service.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
@@ -1911,9 +1912,8 @@ Future<String?> getIndirizzoDaGps({Position? position}) async {
 
 /// ✅ LINGUA MANUALE
 
-const _supportedLangs = <String>['it', 'de', 'fr', 'en'];
-const _selectedLocaleKey = 'selected_locale';
-const _legacyLocaleKey = 'lang_preference';
+const _supportedLangs = AppLocaleService.supportedLanguageCodes;
+final AppLocaleService _appLocaleService = AppLocaleService();
 
 Locale _localeFromCode(String code) {
   if (_supportedLangs.contains(code)) return Locale(code);
@@ -1921,29 +1921,21 @@ Locale _localeFromCode(String code) {
 }
 
 Future<Locale> caricaLinguaPreferita() async {
-  final prefs = await SharedPreferences.getInstance();
-  final saved =
-      prefs.getString(_selectedLocaleKey) ?? prefs.getString(_legacyLocaleKey);
-  if (saved != null && _supportedLangs.contains(saved)) {
-    return Locale(saved);
-  }
-  // Usa la lingua di sistema se supportata, altrimenti italiano
-  final systemCode =
-      WidgetsBinding.instance.platformDispatcher.locale.languageCode;
-  if (_supportedLangs.contains(systemCode)) {
-    return Locale(systemCode);
-  }
-  return const Locale('de');
+  return _appLocaleService.load();
 }
 
 Future<void> salvaLinguaPreferita(String code) async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setString(_selectedLocaleKey, code);
-  await prefs.setString(_legacyLocaleKey, code);
+  await _appLocaleService.save(code);
 }
 
 ValueNotifier<Locale> linguaSelezionata =
     ValueNotifier<Locale>(const Locale('de'));
+
+void _selectApplicationLocale(String languageCode) {
+  if (!_supportedLangs.contains(languageCode)) return;
+  linguaSelezionata.value = Locale(languageCode);
+  unawaited(salvaLinguaPreferita(languageCode));
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -2039,6 +2031,7 @@ class _CidDigitaleAppState extends State<CidDigitaleApp>
           },
           home: const AuthGate(
             homeBuilder: _homeBuilder,
+            onLocaleSelected: _selectApplicationLocale,
           ),
         );
       },
@@ -3464,6 +3457,8 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  // Conservato per compatibilità con eventuali ingressi legacy al flusso.
+  // ignore: unused_element
   Future<PersonalVehicleData?> _showPersonalVehicleSelector(
     PersonalVehicleCollection collection,
   ) {
@@ -3579,25 +3574,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _vaiANuovoIncidente() async {
-    PersonalVehicleData? selectedVehicle;
-    try {
-      final collection = await PersonalVehicleStorage().loadOrMigrate();
-      if (!mounted) return;
-      if (collection.vehicles.length == 1) {
-        selectedVehicle = collection.vehicles.first;
-      } else if (collection.vehicles.length > 1) {
-        selectedVehicle = await _showPersonalVehicleSelector(collection);
-        if (selectedVehicle == null || !mounted) return;
-      }
-    } catch (_) {
-      selectedVehicle = null;
-    }
-    if (!mounted) return;
-
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => NuovaPraticaIncidentePage(
-          initialVehicle: selectedVehicle,
+          customerPrefillLoader: CustomerIncidentPrefillService(
+            authService: widget.authService,
+            fallbackProfile: _customerProfile,
+          ),
         ),
       ),
     );
@@ -5522,11 +5505,13 @@ class NuovaPraticaIncidentePage extends StatefulWidget {
   const NuovaPraticaIncidentePage({
     super.key,
     this.initialVehicle,
+    this.customerPrefillLoader,
     this.locationService = const DeviceLocationService(),
     this.reverseGeocodingClient,
   });
 
   final PersonalVehicleData? initialVehicle;
+  final CustomerIncidentPrefillLoader? customerPrefillLoader;
   final DeviceLocationService locationService;
   final http.Client? reverseGeocodingClient;
 
@@ -5558,6 +5543,13 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   bool _validazioneContattiAttiva = true;
   bool? _otherObjectDamage;
   bool? _otherVehicleDamage;
+  CustomerIncidentPrefillData? _customerPrefill;
+  PersonalVehicleCollection _savedVehicles =
+      const PersonalVehicleCollection.empty();
+  PersonalVehicleData? _selectedSavedVehicle;
+  Future<void>? _customerPrefillFuture;
+  bool _customerPrefillLoading = false;
+  Object? _customerPrefillError;
 
   final _nomeAController = TextEditingController();
   final _cognomeAController = TextEditingController();
@@ -5660,8 +5652,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     debugPrint('[AccidentGPS] init NuovaPraticaIncidentePage');
     final initialVehicle = widget.initialVehicle;
     if (initialVehicle != null) {
-      _targaAController.text = initialVehicle.targa;
-      _assicurazioneAController.text = initialVehicle.assicurazione;
+      _selectedSavedVehicle = initialVehicle;
+      _applySelectedVehicle(initialVehicle);
     }
     _audioPlayerSub = _audioPlayer.onPlayerComplete.listen((event) {
       if (mounted) {
@@ -5672,10 +5664,73 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     });
     _dataOra = DateTime.now();
     _testimoni.add(_newTestimoneFormData());
+    if (widget.customerPrefillLoader != null) {
+      _customerPrefillLoading = true;
+      _customerPrefillFuture = _loadCustomerPrefill();
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _luogoController.text.trim().isNotEmpty) return;
       debugPrint('[AccidentGPS] auto-populate on open');
       unawaited(_impostaLuogoAutomatico());
+    });
+  }
+
+  Future<void> _loadCustomerPrefill() async {
+    final loader = widget.customerPrefillLoader;
+    if (loader == null) return;
+
+    try {
+      final loaded = await loader.load();
+      if (!mounted) return;
+      final vehicles = loaded.vehicles;
+      PersonalVehicleData? selected = _selectedSavedVehicle;
+      final selectedId = selected?.id;
+      if (vehicles.vehicles.length == 1) {
+        selected = vehicles.vehicles.first;
+      } else if (selectedId != null &&
+          !vehicles.vehicles.any((vehicle) => vehicle.id == selectedId)) {
+        selected = null;
+      }
+
+      setState(() {
+        _customerPrefill = loaded;
+        _savedVehicles = vehicles;
+        _selectedSavedVehicle = selected;
+        _customerPrefillLoading = false;
+        _customerPrefillError =
+            loaded.vehicleLoadError ?? loaded.profileLoadError;
+        if (selected != null) _applySelectedVehicle(selected);
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _customerPrefillLoading = false;
+        _customerPrefillError = error;
+      });
+    }
+  }
+
+  void _retryCustomerPrefill() {
+    if (_customerPrefillLoading || widget.customerPrefillLoader == null) {
+      return;
+    }
+    setState(() {
+      _customerPrefillLoading = true;
+      _customerPrefillError = null;
+      _customerPrefillFuture = _loadCustomerPrefill();
+    });
+  }
+
+  void _applySelectedVehicle(PersonalVehicleData vehicle) {
+    _targaAController.text = vehicle.targa;
+    _assicurazioneAController.text = vehicle.assicurazione;
+  }
+
+  void _selectSavedVehicle(PersonalVehicleData? vehicle) {
+    if (vehicle == null) return;
+    setState(() {
+      _selectedSavedVehicle = vehicle;
+      _applySelectedVehicle(vehicle);
     });
   }
 
@@ -6058,14 +6113,31 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     required DriverQrDetectedCallback onDetected,
   }) async {
     DriverPersonalQrData? profile;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_personalQrProfileStorageKey)?.trim() ?? '';
-      if (raw.isNotEmpty) {
-        profile = driverPersonalQrDataFromQrPayload(raw);
+    final pendingPrefill = _customerPrefillFuture;
+    if (_customerPrefillLoading && pendingPrefill != null) {
+      try {
+        await pendingPrefill;
+      } catch (_) {}
+    }
+
+    final customerPrefill = _customerPrefill;
+    if (customerPrefill != null) {
+      profile = customerPrefill.driverDataForVehicle(
+        role == DriverPersonalQrImportRole.customerDriver
+            ? _selectedSavedVehicle
+            : null,
+      );
+    } else {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.reload();
+        final raw = prefs.getString(_personalQrProfileStorageKey)?.trim() ?? '';
+        if (raw.isNotEmpty) {
+          profile = driverPersonalQrDataFromQrPayload(raw);
+        }
+      } catch (_) {
+        profile = null;
       }
-    } catch (_) {
-      profile = null;
     }
 
     if (!mounted) return;
@@ -7781,6 +7853,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           const SizedBox(height: 12),
           _buildResponsivePair(
             TextFormField(
+              key: Key('incident_driver_${driverKey}_first_name'),
               controller: nomeController,
               decoration: InputDecoration(
                 labelText: _driverFirstNameFieldLabel(),
@@ -7830,6 +7903,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           const SizedBox(height: 12),
           _buildResponsivePair(
             TextFormField(
+              key: Key('incident_driver_${driverKey}_plate'),
               controller: targaController,
               decoration: InputDecoration(
                 labelText: _vehiclePlateLabel(driverKey),
@@ -7837,6 +7911,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               validator: targaValidator,
             ),
             TextFormField(
+              key: Key('incident_driver_${driverKey}_insurance'),
               controller: assicurazioneController,
               decoration: InputDecoration(
                 labelText: _vehicleInsuranceLabel(driverKey),
@@ -7940,6 +8015,174 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
   }
 
+  String _vehicleSelectionRequiredMessage() {
+    return _copyText(
+      it: 'Seleziona il veicolo da usare per il sinistro',
+      de: 'Wähle das Fahrzeug für den Unfall aus',
+      fr: 'Sélectionnez le véhicule concerné par l’accident',
+      en: 'Select the vehicle involved in the accident',
+    );
+  }
+
+  String _vehicleOptionLabel(PersonalVehicleData vehicle) {
+    final name = vehicle.displayName.trim();
+    return [
+      if (name.isNotEmpty) name,
+      if (vehicle.targa.trim().isNotEmpty) vehicle.targa.trim(),
+    ].join(' · ');
+  }
+
+  Widget _buildCustomerVehicleLoading() {
+    return _buildInnerCard(
+      child: Row(
+        key: const Key('incident_customer_prefill_loading'),
+        children: [
+          const SizedBox.square(
+            dimension: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _copyText(
+                it: 'Caricamento profilo e veicoli…',
+                de: 'Profil und Fahrzeuge werden geladen…',
+                fr: 'Chargement du profil et des véhicules…',
+                en: 'Loading profile and vehicles…',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomerPrefillWarning() {
+    return _buildInnerCard(
+      child: Row(
+        children: [
+          const Icon(Icons.cloud_off_outlined, color: Color(0xFFB45309)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _copyText(
+                it: 'Profilo e veicoli non sono stati caricati. Puoi riprovare o compilare manualmente.',
+                de: 'Profil und Fahrzeuge konnten nicht geladen werden. Du kannst es erneut versuchen oder manuell ausfüllen.',
+                fr: 'Le profil et les véhicules n’ont pas pu être chargés. Réessayez ou remplissez les champs manuellement.',
+                en: 'Profile and vehicles could not be loaded. Retry or enter the details manually.',
+              ),
+            ),
+          ),
+          TextButton(
+            key: const Key('incident_customer_prefill_retry'),
+            onPressed: _retryCustomerPrefill,
+            child: Text(
+              _copyText(
+                it: 'Riprova',
+                de: 'Erneut',
+                fr: 'Réessayer',
+                en: 'Retry',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomerVehicleSelector() {
+    final vehicles = _savedVehicles.vehicles;
+    final selected = _selectedSavedVehicle;
+    return _buildInnerCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            vehicles.length == 1
+                ? _copyText(
+                    it: 'Veicolo selezionato',
+                    de: 'Ausgewähltes Fahrzeug',
+                    fr: 'Véhicule sélectionné',
+                    en: 'Selected vehicle',
+                  )
+                : _copyText(
+                    it: 'Scegli il veicolo per il sinistro',
+                    de: 'Fahrzeug für den Unfall auswählen',
+                    fr: 'Choisissez le véhicule concerné',
+                    en: 'Choose the vehicle involved',
+                  ),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            key: const Key('incident_vehicle_selector'),
+            initialValue: selected?.id,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: _copyText(
+                it: 'Veicolo del Conducente A',
+                de: 'Fahrzeug von Fahrer A',
+                fr: 'Véhicule du conducteur A',
+                en: 'Driver A vehicle',
+              ),
+              prefixIcon: const Icon(Icons.directions_car_outlined),
+            ),
+            items: vehicles
+                .map(
+                  (vehicle) => DropdownMenuItem<String>(
+                    value: vehicle.id,
+                    child: Text(
+                      _vehicleOptionLabel(vehicle),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (vehicleId) {
+              if (vehicleId == null) return;
+              for (final vehicle in vehicles) {
+                if (vehicle.id == vehicleId) {
+                  _selectSavedVehicle(vehicle);
+                  return;
+                }
+              }
+            },
+            validator: (_) => vehicles.length > 1 && selected == null
+                ? _vehicleSelectionRequiredMessage()
+                : null,
+          ),
+          if (selected != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              key: const Key('incident_selected_vehicle_summary'),
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBFDBFE)),
+              ),
+              child: Text(
+                [
+                  if (selected.displayName.trim().isNotEmpty)
+                    selected.displayName.trim(),
+                  if (selected.targa.trim().isNotEmpty) selected.targa.trim(),
+                  if (selected.assicurazione.trim().isNotEmpty)
+                    selected.assicurazione.trim(),
+                  if (selected.numeroPolizza.trim().isNotEmpty)
+                    selected.numeroPolizza.trim(),
+                ].join(' · '),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildConducentiSection() {
     final widgets = <Widget>[
       _buildDriverFormCard(
@@ -7964,6 +8207,10 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           return null;
         },
         targaValidator: (value) {
+          if (_savedVehicles.vehicles.length > 1 &&
+              _selectedSavedVehicle == null) {
+            return _vehicleSelectionRequiredMessage();
+          }
           if (value == null || value.trim().isEmpty) {
             return txStatic('Inserisci la targa del veicolo A');
           }
@@ -8204,17 +8451,31 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     required DriverQrDetectedCallback onDetected,
   }) {
     return FilledButton.tonalIcon(
-      onPressed: () => unawaited(
-        _useMyPersonalProfile(role: role, onDetected: onDetected),
-      ),
-      icon: const Icon(Icons.person_outline),
+      onPressed: _customerPrefillLoading
+          ? null
+          : () => unawaited(
+                _useMyPersonalProfile(role: role, onDetected: onDetected),
+              ),
+      icon: _customerPrefillLoading
+          ? const SizedBox.square(
+              dimension: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.person_outline),
       label: Text(
-        _copyText(
-          it: 'Usa il mio profilo',
-          de: 'Mein Profil verwenden',
-          fr: 'Utiliser mon profil',
-          en: 'Use my profile',
-        ),
+        _customerPrefillLoading
+            ? _copyText(
+                it: 'Caricamento profilo…',
+                de: 'Profil wird geladen…',
+                fr: 'Chargement du profil…',
+                en: 'Loading profile…',
+              )
+            : _copyText(
+                it: 'Usa il mio profilo',
+                de: 'Mein Profil verwenden',
+                fr: 'Utiliser mon profil',
+                en: 'Use my profile',
+              ),
       ),
     );
   }
@@ -9350,8 +9611,10 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: _isSavingIncident ? null : _salvaIncidente,
-            icon: _isSavingIncident
+            onPressed: _isSavingIncident || _customerPrefillLoading
+                ? null
+                : _salvaIncidente,
+            icon: _isSavingIncident || _customerPrefillLoading
                 ? const SizedBox(
                     height: 18,
                     width: 18,
@@ -9855,6 +10118,17 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
   Future<void> _salvaIncidente() async {
     if (_isSavingIncident) return;
+    if (_customerPrefillLoading) {
+      _mostraSnack(
+        _copyText(
+          it: 'Attendi il caricamento di profilo e veicoli.',
+          de: 'Warte, bis Profil und Fahrzeuge geladen sind.',
+          fr: 'Attendez le chargement du profil et des véhicules.',
+          en: 'Wait for the profile and vehicles to load.',
+        ),
+      );
+      return;
+    }
     debugPrint('[Save] button tapped');
     setState(() {
       _isSavingIncident = true;
@@ -10237,6 +10511,16 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (_customerPrefillLoading) ...[
+                  _buildCustomerVehicleLoading(),
+                  const SizedBox(height: _incidentSectionSpacing),
+                ] else if (_savedVehicles.vehicles.isNotEmpty) ...[
+                  _buildCustomerVehicleSelector(),
+                  const SizedBox(height: _incidentSectionSpacing),
+                ] else if (_customerPrefillError != null) ...[
+                  _buildCustomerPrefillWarning(),
+                  const SizedBox(height: _incidentSectionSpacing),
+                ],
                 _buildLuogoSection(dataOraString),
                 const SizedBox(height: _incidentSectionSpacing),
                 _buildConducentiSection(),

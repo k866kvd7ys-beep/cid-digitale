@@ -58,7 +58,62 @@ Widget _app(Widget home) {
   );
 }
 
+class _LocaleAwareLoginApp extends StatefulWidget {
+  const _LocaleAwareLoginApp({required this.service});
+
+  final CustomerAuthService service;
+
+  @override
+  State<_LocaleAwareLoginApp> createState() => _LocaleAwareLoginAppState();
+}
+
+class _LocaleAwareLoginAppState extends State<_LocaleAwareLoginApp> {
+  Locale _locale = const Locale('it');
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      locale: _locale,
+      supportedLocales: const [
+        Locale('it'),
+        Locale('de'),
+        Locale('fr'),
+        Locale('en'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      home: LoginPage(
+        service: widget.service,
+        onLocaleSelected: (languageCode) {
+          setState(() => _locale = Locale(languageCode));
+        },
+      ),
+    );
+  }
+}
+
 void main() {
+  testWidgets('login exposes IT DE FR EN and changes existing auth copy',
+      (tester) async {
+    final service = FakeCustomerAuthService();
+    await tester.pumpWidget(_LocaleAwareLoginApp(service: service));
+
+    expect(find.byKey(const Key('login_language_selector')), findsOneWidget);
+    for (final language in const ['it', 'de', 'fr', 'en']) {
+      expect(find.byKey(Key('login_language_$language')), findsOneWidget);
+    }
+    expect(find.text('Benvenuto in CID Digitale'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('login_language_de')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Willkommen bei CID Digitale'), findsOneWidget);
+    await service.dispose();
+  });
+
   testWidgets('login validates and calls signInWithPassword abstraction',
       (tester) async {
     final service = FakeCustomerAuthService(profile: _completeProfile);

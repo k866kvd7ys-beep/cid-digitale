@@ -171,7 +171,14 @@ void main() {
         _row(
           id: _claimA,
           createdAt: '2026-08-01T06:12:10Z',
-          payload: const {'dataOra': 123, 'fotoDanni': 'invalid'},
+          payload: {
+            ..._payload(
+              id: _claimA,
+              dateTime: '2026-08-01T08:09:46.621',
+            ),
+            'luogo': 123,
+            'fotoDanni': 'invalid',
+          },
         ),
         _row(
           id: _claimB,
@@ -189,11 +196,11 @@ void main() {
     expect(result.remoteSucceeded, isTrue);
     expect(result.entries.map((entry) => entry.id), [_claimB, _claimA]);
     expect(result.entries.last.incidentPayload['id'], _claimA);
-    expect(result.entries.last.incidentPayload['dataOra'], '123');
+    expect(result.entries.last.incidentPayload['luogo'], '123');
     expect(result.entries.last.incidentPayload['fotoDanni'], isEmpty);
   });
 
-  test('remote wins over cache, duplicates disappear and draft remains',
+  test('remote wins and local drafts never appear in customer history',
       () async {
     final remotePayload = _payload(
       id: _claimA,
@@ -225,7 +232,7 @@ void main() {
       localPayloads: [localDuplicate, localDraft, localDraft],
     );
 
-    expect(result.entries, hasLength(2));
+    expect(result.entries, hasLength(1));
     expect(
       result.entries
           .singleWhere((entry) => entry.id == _claimA)
@@ -233,11 +240,30 @@ void main() {
       'Remote place',
     );
     expect(
-      result.entries
-          .singleWhere((entry) => entry.id == 'local-draft-1')
-          .isLocalDraft,
-      isTrue,
+      result.entries.where((entry) => entry.id == 'local-draft-1'),
+      isEmpty,
     );
+  });
+
+  test('empty database drafts are excluded instead of receiving current time',
+      () async {
+    final remote = _FakeRemoteDataSource()
+      ..rowsByUser[_userA] = [
+        _row(
+          id: _claimA,
+          createdAt: '2026-08-22T07:00:00Z',
+          payload: const <String, dynamic>{},
+        ),
+      ];
+    final repository = await _repository(remote);
+
+    final result = await repository.loadForUser(
+      userId: _userA,
+      localPayloads: const [],
+    );
+
+    expect(result.remoteSucceeded, isTrue);
+    expect(result.entries, isEmpty);
   });
 
   test('remote error returns only the same-user cache and permits retry',

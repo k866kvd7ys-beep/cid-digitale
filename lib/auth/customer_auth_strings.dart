@@ -42,6 +42,12 @@ class CustomerAuthStrings {
         fr: 'Connectez-vous en toute sécurité à votre espace Client.',
         en: 'Securely sign in to your Customer area.',
       );
+  String get languageSelector => _pick(
+        it: 'Seleziona lingua',
+        de: 'Sprache wählen',
+        fr: 'Choisir la langue',
+        en: 'Select language',
+      );
   String get email => _pick(
         it: 'E-mail',
         de: 'E-Mail',

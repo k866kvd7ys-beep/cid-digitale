@@ -35,11 +35,13 @@ class AuthGate extends StatefulWidget {
     required this.homeBuilder,
     this.service,
     this.passwordRecoveryRoute,
+    this.onLocaleSelected,
   });
 
   final AuthenticatedHomeBuilder homeBuilder;
   final CustomerAuthService? service;
   final bool? passwordRecoveryRoute;
+  final ValueChanged<String>? onLocaleSelected;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -299,6 +301,7 @@ class _AuthGateState extends State<AuthGate> {
       case AuthGateStatus.signedOut:
         return LoginPage(
           service: _service,
+          onLocaleSelected: widget.onLocaleSelected,
           initialError: _signedOutError,
           initialSuccessMessage: _showPasswordUpdatedMessage
               ? CustomerAuthStrings.of(context).passwordUpdated
