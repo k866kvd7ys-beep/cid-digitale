@@ -585,8 +585,15 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     driverA: "Fahrer A",
     driverB: "Fahrer B",
     name: "Name",
+    driver: "Fahrer",
+    vehicle: "Fahrzeug",
     plate: "Kennzeichen",
     insurance: "Versicherung",
+    policyNumber: "Policennummer",
+    vin: "FIN / VIN",
+    mileage: "Kilometerstand",
+    firstRegistration: "Erstzulassung",
+    claimNumberLabel: "Schadennummer",
     phone: "Telefon",
     email: "E-Mail",
     address: "Adresse",
@@ -628,8 +635,15 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     driverA: "Conducente A",
     driverB: "Conducente B",
     name: "Nome",
+    driver: "Conducente",
+    vehicle: "Veicolo",
     plate: "Targa",
     insurance: "Assicurazione",
+    policyNumber: "Numero polizza",
+    vin: "VIN / telaio",
+    mileage: "Chilometraggio",
+    firstRegistration: "Prima immatricolazione",
+    claimNumberLabel: "Numero sinistro",
     phone: "Telefono",
     email: "E-Mail",
     address: "Indirizzo",
@@ -671,8 +685,15 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     driverA: "Conducteur A",
     driverB: "Conducteur B",
     name: "Nom",
+    driver: "Conducteur",
+    vehicle: "Véhicule",
     plate: "Plaque",
     insurance: "Assurance",
+    policyNumber: "Numéro de police",
+    vin: "VIN / châssis",
+    mileage: "Kilométrage",
+    firstRegistration: "Première immatriculation",
+    claimNumberLabel: "Numéro de sinistre",
     phone: "Téléphone",
     email: "E-Mail",
     address: "Adresse",
@@ -714,8 +735,15 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     driverA: "Driver A",
     driverB: "Driver B",
     name: "Name",
+    driver: "Driver",
+    vehicle: "Vehicle",
     plate: "License plate",
     insurance: "Insurance",
+    policyNumber: "Policy number",
+    vin: "VIN",
+    mileage: "Mileage",
+    firstRegistration: "First registration",
+    claimNumberLabel: "Claim number",
     phone: "Phone",
     email: "E-Mail",
     address: "Address",
@@ -823,6 +851,104 @@ const getFullAddress = (payload: Record<string, any>, variant: "A" | "B") => {
   if (zipCity === "-") return street;
   return `${street}, ${zipCity}`;
 };
+
+type DriverVehicleData = {
+  brand: string;
+  model: string;
+  plate: string;
+  insurance: string;
+  policyNumber: string;
+  vin: string;
+  mileage: string;
+  firstRegistration: string;
+  claimNumber: string;
+};
+
+const firstNonEmptyValue = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const normalized = value.trim();
+    if (normalized.length > 0) return normalized;
+  }
+  return "";
+};
+
+const getDriverVehicle = (
+  payload: Record<string, any>,
+  variant: "A" | "B",
+): DriverVehicleData => {
+  const driver = payload?.[`driver${variant}`] ?? {};
+  const vehicle = driver?.vehicle ?? {};
+  const insuranceDetails = driver?.insurance_details ?? {};
+  return {
+    brand: firstNonEmptyValue(
+      payload?.[`marca${variant}`],
+      vehicle?.brand,
+      driver?.brand,
+    ),
+    model: firstNonEmptyValue(
+      payload?.[`modello${variant}`],
+      vehicle?.model,
+      driver?.model,
+    ),
+    plate: firstNonEmptyValue(
+      payload?.[`targa${variant}`],
+      vehicle?.plate,
+      driver?.plate,
+    ),
+    insurance: firstNonEmptyValue(
+      payload?.[`assicurazione${variant}`],
+      insuranceDetails?.company,
+      driver?.insurance,
+    ),
+    policyNumber: firstNonEmptyValue(
+      payload?.[`numeroPolizza${variant}`],
+      insuranceDetails?.policyNumber,
+      driver?.policy_number,
+    ),
+    vin: firstNonEmptyValue(
+      payload?.[`vin${variant}`],
+      vehicle?.vin,
+      driver?.vin,
+    ),
+    mileage: firstNonEmptyValue(
+      payload?.[`kilometraggio${variant}`],
+      vehicle?.mileage,
+      driver?.mileage,
+    ),
+    firstRegistration: firstNonEmptyValue(
+      payload?.[`primaImmatricolazione${variant}`],
+      vehicle?.firstRegistration,
+      driver?.first_registration,
+    ),
+    claimNumber: firstNonEmptyValue(
+      payload?.[`numeroSinistro${variant}`],
+      insuranceDetails?.claimNumber,
+      driver?.claim_number,
+    ),
+  };
+};
+
+const getAdditionalDrivers = (payload: Record<string, any>) =>
+  Array.isArray(payload?.conducentiAggiuntivi)
+    ? payload.conducentiAggiuntivi.filter((driver: unknown) =>
+      driver !== null && typeof driver === "object"
+    ) as Record<string, any>[]
+    : [];
+
+const getAdditionalDriverVehicle = (
+  driver: Record<string, any>,
+): DriverVehicleData => ({
+  brand: firstNonEmptyValue(driver?.marca),
+  model: firstNonEmptyValue(driver?.modello),
+  plate: firstNonEmptyValue(driver?.targa),
+  insurance: firstNonEmptyValue(driver?.assicurazione),
+  policyNumber: firstNonEmptyValue(driver?.numeroPolizza),
+  vin: firstNonEmptyValue(driver?.vin),
+  mileage: firstNonEmptyValue(driver?.kilometraggio),
+  firstRegistration: firstNonEmptyValue(driver?.primaImmatricolazione),
+  claimNumber: firstNonEmptyValue(driver?.numeroSinistro),
+});
 
 const excludedUiKeyFragments = [
   "syncstatus",
@@ -1258,6 +1384,9 @@ async function generatePdfFromPayload(
   const copy = getLocalizedCopy(lang, displayClaimId);
   const driverAName = getFullName(payload, "A");
   const driverBName = getFullName(payload, "B");
+  const driverAVehicle = getDriverVehicle(payload, "A");
+  const driverBVehicle = getDriverVehicle(payload, "B");
+  const additionalDrivers = getAdditionalDrivers(payload);
   const driverAAddress = getFullAddress(payload, "A");
   const driverBAddress = getFullAddress(payload, "B");
   const witnessesText = formatWitnesses(payload, lang);
@@ -1833,16 +1962,28 @@ async function generatePdfFromPayload(
 
   const driverARows: Array<[string, string]> = [
     [copy.name, driverAName],
-    [copy.plate, stringOrDash(payload?.targaA)],
-    [copy.insurance, stringOrDash(payload?.assicurazioneA)],
+    [copy.vehicle, joinNonEmpty([driverAVehicle.brand, driverAVehicle.model])],
+    [copy.plate, stringOrDash(driverAVehicle.plate)],
+    [copy.insurance, stringOrDash(driverAVehicle.insurance)],
+    [copy.policyNumber, stringOrDash(driverAVehicle.policyNumber)],
+    [copy.claimNumberLabel, stringOrDash(driverAVehicle.claimNumber)],
+    [copy.vin, stringOrDash(driverAVehicle.vin)],
+    [copy.mileage, stringOrDash(driverAVehicle.mileage)],
+    [copy.firstRegistration, stringOrDash(driverAVehicle.firstRegistration)],
     [copy.phone, stringOrDash(payload?.telefonoA)],
     [copy.email, stringOrDash(payload?.emailA)],
     [copy.address, driverAAddress],
   ];
   const driverBRows: Array<[string, string]> = [
     [copy.name, driverBName],
-    [copy.plate, stringOrDash(payload?.targaB)],
-    [copy.insurance, stringOrDash(payload?.assicurazioneB)],
+    [copy.vehicle, joinNonEmpty([driverBVehicle.brand, driverBVehicle.model])],
+    [copy.plate, stringOrDash(driverBVehicle.plate)],
+    [copy.insurance, stringOrDash(driverBVehicle.insurance)],
+    [copy.policyNumber, stringOrDash(driverBVehicle.policyNumber)],
+    [copy.claimNumberLabel, stringOrDash(driverBVehicle.claimNumber)],
+    [copy.vin, stringOrDash(driverBVehicle.vin)],
+    [copy.mileage, stringOrDash(driverBVehicle.mileage)],
+    [copy.firstRegistration, stringOrDash(driverBVehicle.firstRegistration)],
     [copy.phone, stringOrDash(payload?.telefonoB)],
     [copy.email, stringOrDash(payload?.emailB)],
     [copy.address, driverBAddress],
@@ -1870,6 +2011,38 @@ async function generatePdfFromPayload(
     background: white,
   });
   y -= driversHeight + cardGap;
+
+  for (const driver of additionalDrivers) {
+    const vehicle = getAdditionalDriverVehicle(driver);
+    const driverKey = firstNonEmptyValue(driver?.driverKey) || "-";
+    const rows: Array<[string, string]> = [
+      [copy.name, joinNonEmpty([driver?.nome, driver?.cognome])],
+      [copy.vehicle, joinNonEmpty([vehicle.brand, vehicle.model])],
+      [copy.plate, stringOrDash(vehicle.plate)],
+      [copy.insurance, stringOrDash(vehicle.insurance)],
+      [copy.policyNumber, stringOrDash(vehicle.policyNumber)],
+      [copy.vin, stringOrDash(vehicle.vin)],
+      [copy.mileage, stringOrDash(vehicle.mileage)],
+      [copy.firstRegistration, stringOrDash(vehicle.firstRegistration)],
+      [copy.claimNumberLabel, stringOrDash(vehicle.claimNumber)],
+    ];
+    const height = measureRowsCard(
+      `${copy.driver} ${driverKey}`,
+      rows,
+      contentWidth,
+    );
+    ensureSpace(height);
+    drawRowsCard({
+      x: margin,
+      yTop: y,
+      width: contentWidth,
+      height,
+      title: `${copy.driver} ${driverKey}`,
+      rows,
+      background: white,
+    });
+    y -= height + cardGap;
+  }
 
   const descriptionBlocks = [
     { text: stringOrDash(payload?.descrizione) },
@@ -2476,15 +2649,44 @@ async function handleRequest(req: Request): Promise<Response> {
 
     const driverAName = getFullName(payload, "A");
     const driverBName = getFullName(payload, "B");
+    const driverAVehicle = getDriverVehicle(payload, "A");
+    const driverBVehicle = getDriverVehicle(payload, "B");
+    const additionalDrivers = getAdditionalDrivers(payload);
     const formattedDateTime = formatDisplayDateTime(payload?.dataOra, lang);
-    const driverASummary = stringOrDash(driverAName) +
-      (stringOrDash(payload?.targaA) !== "-"
-        ? ` (${copy.plate}: ${stringOrDash(payload?.targaA)})`
-        : "");
-    const driverBSummary = stringOrDash(driverBName) +
-      (stringOrDash(payload?.targaB) !== "-"
-        ? ` (${copy.plate}: ${stringOrDash(payload?.targaB)})`
-        : "");
+    const compactDriverSummary = (
+      name: string,
+      vehicle: DriverVehicleData,
+    ) => [
+      stringOrDash(name),
+      joinNonEmpty([vehicle.brand, vehicle.model]),
+      stringOrDash(vehicle.plate),
+      stringOrDash(vehicle.insurance),
+    ].join(" · ");
+    const driverTextBlock = (
+      label: string,
+      name: string,
+      vehicle: DriverVehicleData,
+    ) => [
+      label,
+      `${copy.name}: ${stringOrDash(name)}`,
+      `${copy.vehicle}: ${joinNonEmpty([vehicle.brand, vehicle.model])}`,
+      `${copy.plate}: ${stringOrDash(vehicle.plate)}`,
+      `${copy.insurance}: ${stringOrDash(vehicle.insurance)}`,
+      `${copy.policyNumber}: ${stringOrDash(vehicle.policyNumber)}`,
+    ].join("\n");
+    const driverASummary = compactDriverSummary(driverAName, driverAVehicle);
+    const driverBSummary = compactDriverSummary(driverBName, driverBVehicle);
+    const additionalDriverPresentations = additionalDrivers.map((driver) => {
+      const driverKey = firstNonEmptyValue(driver?.driverKey) || "-";
+      const label = `${copy.driver} ${driverKey}`;
+      const name = joinNonEmpty([driver?.nome, driver?.cognome]);
+      const vehicle = getAdditionalDriverVehicle(driver);
+      return {
+        label,
+        summary: compactDriverSummary(name, vehicle),
+        textBlock: driverTextBlock(label, name, vehicle),
+      };
+    });
     const shouldShowAttachmentLimitNote = skippedForSizeLimitCount > 0;
 
     console.log("SEND CID EMAIL BODY VERSION: summary-v1");
@@ -2500,8 +2702,13 @@ async function handleRequest(req: Request): Promise<Response> {
       `${copy.dateTime}: ${formattedDateTime}`,
       `${copy.place}: ${stringOrDash(payload?.luogo)}`,
       "",
-      `${copy.driverA}: ${driverASummary}`,
-      `${copy.driverB}: ${driverBSummary}`,
+      driverTextBlock(copy.driverA, driverAName, driverAVehicle),
+      "",
+      driverTextBlock(copy.driverB, driverBName, driverBVehicle),
+      ...additionalDriverPresentations.flatMap((driver) => [
+        "",
+        driver.textBlock,
+      ]),
       "",
       copy.pdfSummaryNote,
       copy.photosSummaryNote,
@@ -2538,6 +2745,10 @@ async function handleRequest(req: Request): Promise<Response> {
       `<table style="width:100%;border-collapse:collapse;">${renderHtmlRows([
         [copy.driverA, driverASummary],
         [copy.driverB, driverBSummary],
+        ...additionalDriverPresentations.map((driver) => [
+          driver.label,
+          driver.summary,
+        ] as [string, string]),
       ])}</table>`,
     )}
 

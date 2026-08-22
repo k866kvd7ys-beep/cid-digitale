@@ -141,6 +141,18 @@ void main() {
       _field(tester, 'incident_driver_A_plate').controller?.text,
       'TI11111',
     );
+    expect(
+      _field(tester, 'incident_driver_A_brand').controller?.text,
+      'Volvo',
+    );
+    expect(
+      _field(tester, 'incident_driver_A_model').controller?.text,
+      'XC40',
+    );
+    expect(
+      _field(tester, 'incident_driver_A_insurance').controller?.text,
+      'AXA',
+    );
 
     final useProfile = find.text('Usa il mio profilo').first;
     await tester.ensureVisible(useProfile);
@@ -150,6 +162,10 @@ void main() {
     expect(
       _field(tester, 'incident_driver_A_first_name').controller?.text,
       'Anna',
+    );
+    expect(
+      _field(tester, 'incident_driver_A_policy').controller?.text,
+      'POL-ONE',
     );
   });
 
@@ -193,6 +209,22 @@ void main() {
       _field(tester, 'incident_driver_A_insurance').controller?.text,
       'AXA',
     );
+    expect(
+      _field(tester, 'incident_driver_A_brand').controller?.text,
+      'Volvo',
+    );
+    expect(
+      _field(tester, 'incident_driver_A_model').controller?.text,
+      'XC40',
+    );
+    expect(
+      _field(tester, 'incident_driver_A_vin').controller?.text,
+      'VIN-ONE',
+    );
+    expect(
+      _field(tester, 'incident_driver_A_policy').controller?.text,
+      'POL-ONE',
+    );
 
     await tester.tap(selector);
     await tester.pumpAndSettle();
@@ -207,6 +239,22 @@ void main() {
       _field(tester, 'incident_driver_A_insurance').controller?.text,
       'Zurich',
     );
-    expect(find.textContaining('POL-TWO'), findsOneWidget);
+    expect(
+      _field(tester, 'incident_driver_A_brand').controller?.text,
+      'BMW',
+    );
+    expect(
+      _field(tester, 'incident_driver_A_model').controller?.text,
+      'X3',
+    );
+    expect(
+      _field(tester, 'incident_driver_A_vin').controller?.text,
+      'VIN-TWO',
+    );
+    expect(
+      _field(tester, 'incident_driver_A_policy').controller?.text,
+      'POL-TWO',
+    );
+    expect(find.textContaining('POL-TWO'), findsWidgets);
   });
 }

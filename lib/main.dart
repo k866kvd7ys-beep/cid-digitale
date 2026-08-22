@@ -175,8 +175,7 @@ class OfficinaConfig {
   factory OfficinaConfig.fromJson(Map<String, dynamic> json) {
     return OfficinaConfig(
       carroNumero: json['carroNumero']?.toString() ?? '',
-      concessionariaNumero:
-          json['concessionariaNumero']?.toString() ?? '',
+      concessionariaNumero: json['concessionariaNumero']?.toString() ?? '',
       concessionariaEmail: json['concessionariaEmail']?.toString() ?? '',
     );
   }
@@ -583,7 +582,14 @@ class ConducenteAggiuntivo {
   final String zip;
   final String city;
   final String targa;
+  final String marca;
+  final String modello;
+  final String vin;
+  final String kilometraggio;
+  final String primaImmatricolazione;
   final String assicurazione;
+  final String numeroPolizza;
+  final String numeroSinistro;
   final String telefono;
   final String email;
   final String fotoLibrettoPath;
@@ -600,6 +606,13 @@ class ConducenteAggiuntivo {
     required this.assicurazione,
     required this.telefono,
     required this.email,
+    this.marca = '',
+    this.modello = '',
+    this.vin = '',
+    this.kilometraggio = '',
+    this.primaImmatricolazione = '',
+    this.numeroPolizza = '',
+    this.numeroSinistro = '',
     this.fotoLibrettoPath = '',
     this.fotoLibrettoCacheKey = '',
   });
@@ -612,7 +625,14 @@ class ConducenteAggiuntivo {
         'zip': zip,
         'city': city,
         'targa': targa,
+        'marca': marca,
+        'modello': modello,
+        'vin': vin,
+        'kilometraggio': kilometraggio,
+        'primaImmatricolazione': primaImmatricolazione,
         'assicurazione': assicurazione,
+        'numeroPolizza': numeroPolizza,
+        'numeroSinistro': numeroSinistro,
         'telefono': telefono,
         'email': email,
         'fotoLibrettoPath': fotoLibrettoPath,
@@ -628,7 +648,15 @@ class ConducenteAggiuntivo {
       zip: json['zip']?.toString() ?? '',
       city: json['city']?.toString() ?? '',
       targa: json['targa']?.toString() ?? '',
+      marca: json['marca']?.toString() ?? '',
+      modello: json['modello']?.toString() ?? '',
+      vin: json['vin']?.toString() ?? '',
+      kilometraggio: json['kilometraggio']?.toString() ?? '',
+      primaImmatricolazione:
+          json['primaImmatricolazione']?.toString() ?? '',
       assicurazione: json['assicurazione']?.toString() ?? '',
+      numeroPolizza: json['numeroPolizza']?.toString() ?? '',
+      numeroSinistro: json['numeroSinistro']?.toString() ?? '',
       telefono: json['telefono']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       fotoLibrettoPath: json['fotoLibrettoPath']?.toString() ?? '',
@@ -656,6 +684,13 @@ class Incidente {
   final String cognomeA;
   final String targaA;
   final String assicurazioneA;
+  final String marcaA;
+  final String modelloA;
+  final String vinA;
+  final String kilometraggioA;
+  final String primaImmatricolazioneA;
+  final String numeroPolizzaA;
+  final String numeroSinistroA;
 
   final String telefonoA;
   final String emailA;
@@ -667,6 +702,13 @@ class Incidente {
   final String cognomeB;
   final String targaB;
   final String assicurazioneB;
+  final String marcaB;
+  final String modelloB;
+  final String vinB;
+  final String kilometraggioB;
+  final String primaImmatricolazioneB;
+  final String numeroPolizzaB;
+  final String numeroSinistroB;
 
   final String telefonoB;
   final String emailB;
@@ -718,6 +760,13 @@ class Incidente {
     required this.cognomeA,
     required this.targaA,
     required this.assicurazioneA,
+    this.marcaA = '',
+    this.modelloA = '',
+    this.vinA = '',
+    this.kilometraggioA = '',
+    this.primaImmatricolazioneA = '',
+    this.numeroPolizzaA = '',
+    this.numeroSinistroA = '',
     required this.telefonoA,
     required this.emailA,
     required this.indirizzoA,
@@ -727,6 +776,13 @@ class Incidente {
     required this.cognomeB,
     required this.targaB,
     required this.assicurazioneB,
+    this.marcaB = '',
+    this.modelloB = '',
+    this.vinB = '',
+    this.kilometraggioB = '',
+    this.primaImmatricolazioneB = '',
+    this.numeroPolizzaB = '',
+    this.numeroSinistroB = '',
     required this.telefonoB,
     required this.emailB,
     required this.indirizzoB,
@@ -779,6 +835,13 @@ class Incidente {
     required String email,
     required String address,
     required String insurance,
+    required String brand,
+    required String model,
+    required String vin,
+    required String mileage,
+    required String firstRegistration,
+    required String policyNumber,
+    required String claimNumber,
   }) =>
       {
         'first_name': firstName,
@@ -788,8 +851,26 @@ class Incidente {
         'email': email,
         'address': address,
         'insurance': insurance,
-        'policy_number': '',
-        'claim_number': '',
+        'brand': brand,
+        'model': model,
+        'vin': vin,
+        'mileage': mileage,
+        'first_registration': firstRegistration,
+        'policy_number': policyNumber,
+        'claim_number': claimNumber,
+        'vehicle': <String, dynamic>{
+          'brand': brand,
+          'model': model,
+          'plate': plate,
+          'vin': vin,
+          'mileage': mileage,
+          'firstRegistration': firstRegistration,
+        },
+        'insurance_details': <String, dynamic>{
+          'company': insurance,
+          'policyNumber': policyNumber,
+          'claimNumber': claimNumber,
+        },
         'insurance_product': '',
         'coverage': '',
         'coverage_modules': <String>[],
@@ -803,7 +884,14 @@ class Incidente {
         'nomeA': nomeA,
         'cognomeA': cognomeA,
         'targaA': targaA,
+        'marcaA': marcaA,
+        'modelloA': modelloA,
+        'vinA': vinA,
+        'kilometraggioA': kilometraggioA,
+        'primaImmatricolazioneA': primaImmatricolazioneA,
         'assicurazioneA': assicurazioneA,
+        'numeroPolizzaA': numeroPolizzaA,
+        'numeroSinistroA': numeroSinistroA,
         'telefonoA': telefonoA,
         'emailA': emailA,
         'indirizzoA': indirizzoA,
@@ -812,7 +900,14 @@ class Incidente {
         'nomeB': nomeB,
         'cognomeB': cognomeB,
         'targaB': targaB,
+        'marcaB': marcaB,
+        'modelloB': modelloB,
+        'vinB': vinB,
+        'kilometraggioB': kilometraggioB,
+        'primaImmatricolazioneB': primaImmatricolazioneB,
         'assicurazioneB': assicurazioneB,
+        'numeroPolizzaB': numeroPolizzaB,
+        'numeroSinistroB': numeroSinistroB,
         'telefonoB': telefonoB,
         'emailB': emailB,
         'indirizzoB': indirizzoB,
@@ -855,6 +950,13 @@ class Incidente {
           email: emailA,
           address: _canonicalAddress(indirizzoA, zipA, cityA),
           insurance: assicurazioneA,
+          brand: marcaA,
+          model: modelloA,
+          vin: vinA,
+          mileage: kilometraggioA,
+          firstRegistration: primaImmatricolazioneA,
+          policyNumber: numeroPolizzaA,
+          claimNumber: numeroSinistroA,
         ),
         'driverB': _canonicalDriver(
           firstName: nomeB,
@@ -864,6 +966,13 @@ class Incidente {
           email: emailB,
           address: _canonicalAddress(indirizzoB, zipB, cityB),
           insurance: assicurazioneB,
+          brand: marcaB,
+          model: modelloB,
+          vin: vinB,
+          mileage: kilometraggioB,
+          firstRegistration: primaImmatricolazioneB,
+          policyNumber: numeroPolizzaB,
+          claimNumber: numeroSinistroB,
         ),
       };
 
@@ -905,14 +1014,59 @@ class Incidente {
           .toList();
     }
 
+    Map<String, dynamic> mapValue(Object? value) {
+      return value is Map ? Map<String, dynamic>.from(value) : const {};
+    }
+
+    String firstValue(Iterable<Object?> values) {
+      for (final value in values) {
+        final normalized = value?.toString().trim() ?? '';
+        if (normalized.isNotEmpty) return normalized;
+      }
+      return '';
+    }
+
+    final driverA = mapValue(json['driverA']);
+    final driverB = mapValue(json['driverB']);
+    final vehicleA = mapValue(driverA['vehicle']);
+    final vehicleB = mapValue(driverB['vehicle']);
+    final insuranceA = mapValue(driverA['insurance_details']);
+    final insuranceB = mapValue(driverB['insurance_details']);
+
     return Incidente(
       id: json['id']?.toString() ?? '',
       dataOra: DateTime.tryParse(json['dataOra'] ?? '') ?? DateTime.now(),
       luogo: json['luogo'] ?? '',
       nomeA: json['nomeA'] ?? '',
       cognomeA: json['cognomeA'] ?? '',
-      targaA: json['targaA'] ?? '',
-      assicurazioneA: json['assicurazioneA'] ?? '',
+      targaA: firstValue([json['targaA'], vehicleA['plate'], driverA['plate']]),
+      marcaA: firstValue([json['marcaA'], vehicleA['brand'], driverA['brand']]),
+      modelloA:
+          firstValue([json['modelloA'], vehicleA['model'], driverA['model']]),
+      vinA: firstValue([json['vinA'], vehicleA['vin'], driverA['vin']]),
+      kilometraggioA: firstValue(
+        [json['kilometraggioA'], vehicleA['mileage'], driverA['mileage']],
+      ),
+      primaImmatricolazioneA: firstValue([
+        json['primaImmatricolazioneA'],
+        vehicleA['firstRegistration'],
+        driverA['first_registration'],
+      ]),
+      assicurazioneA: firstValue([
+        json['assicurazioneA'],
+        insuranceA['company'],
+        driverA['insurance'],
+      ]),
+      numeroPolizzaA: firstValue([
+        json['numeroPolizzaA'],
+        insuranceA['policyNumber'],
+        driverA['policy_number'],
+      ]),
+      numeroSinistroA: firstValue([
+        json['numeroSinistroA'],
+        insuranceA['claimNumber'],
+        driverA['claim_number'],
+      ]),
       telefonoA: json['telefonoA'] ?? '',
       emailA: json['emailA'] ?? '',
       indirizzoA: json['indirizzoA'] ?? '',
@@ -920,8 +1074,34 @@ class Incidente {
       cityA: json['cityA'] ?? '',
       nomeB: json['nomeB'] ?? '',
       cognomeB: json['cognomeB'] ?? '',
-      targaB: json['targaB'] ?? '',
-      assicurazioneB: json['assicurazioneB'] ?? '',
+      targaB: firstValue([json['targaB'], vehicleB['plate'], driverB['plate']]),
+      marcaB: firstValue([json['marcaB'], vehicleB['brand'], driverB['brand']]),
+      modelloB:
+          firstValue([json['modelloB'], vehicleB['model'], driverB['model']]),
+      vinB: firstValue([json['vinB'], vehicleB['vin'], driverB['vin']]),
+      kilometraggioB: firstValue(
+        [json['kilometraggioB'], vehicleB['mileage'], driverB['mileage']],
+      ),
+      primaImmatricolazioneB: firstValue([
+        json['primaImmatricolazioneB'],
+        vehicleB['firstRegistration'],
+        driverB['first_registration'],
+      ]),
+      assicurazioneB: firstValue([
+        json['assicurazioneB'],
+        insuranceB['company'],
+        driverB['insurance'],
+      ]),
+      numeroPolizzaB: firstValue([
+        json['numeroPolizzaB'],
+        insuranceB['policyNumber'],
+        driverB['policy_number'],
+      ]),
+      numeroSinistroB: firstValue([
+        json['numeroSinistroB'],
+        insuranceB['claimNumber'],
+        driverB['claim_number'],
+      ]),
       telefonoB: json['telefonoB'] ?? '',
       emailB: json['emailB'] ?? '',
       indirizzoB: json['indirizzoB'] ?? '',
@@ -1178,7 +1358,7 @@ Future<Incidente> _syncPendingQueueEntry(Map<String, dynamic> entry) async {
   );
   final previousId = localId == incident.id ? null : localId;
 
-  debugPrint('SYNC CLAIM START: localId=$localId incidentId=${incident.id}');
+  debugPrint('SYNC CLAIM START');
 
   final queueSnapshot = Map<String, dynamic>.from(entry)
     ..['attempts'] = attempts + 1
@@ -1207,7 +1387,7 @@ Future<Incidente> _syncPendingQueueEntry(Map<String, dynamic> entry) async {
   var fotoLibrettoA = incident.fotoLibrettoA;
   var fotoLibrettoB = incident.fotoLibrettoB;
 
-  debugPrint('SYNC ATTACHMENTS START: claimId=$realClaimId');
+  debugPrint('SYNC ATTACHMENTS START');
 
   Future<String?> uploadQueuedAttachment(
     Map<String, dynamic>? descriptor, {
@@ -1291,9 +1471,8 @@ Future<Incidente> _syncPendingQueueEntry(Map<String, dynamic> entry) async {
       locale: linguaSelezionata.value.languageCode,
       deviceId: null,
     );
-  } catch (e, st) {
-    debugPrint('SYNC ERROR: uploadIncident $e');
-    debugPrint('$st');
+  } catch (_) {
+    debugPrint('SYNC ERROR: uploadIncident');
   }
 
   if (_cidEmailAlreadySent(incident)) {
@@ -1302,7 +1481,7 @@ Future<Incidente> _syncPendingQueueEntry(Map<String, dynamic> entry) async {
     if (kIsWeb) {
       await LocalImageCache.clearIncidentImages(localId);
     }
-    debugPrint('SYNC DONE: claimId=${incident.id}');
+    debugPrint('SYNC DONE');
     return incident;
   }
 
@@ -1318,7 +1497,7 @@ Future<Incidente> _syncPendingQueueEntry(Map<String, dynamic> entry) async {
     if (kIsWeb) {
       await LocalImageCache.clearIncidentImages(localId);
     }
-    debugPrint('SYNC DONE: claimId=${incident.id}');
+    debugPrint('SYNC DONE');
     return incident;
   }
 
@@ -1338,7 +1517,7 @@ Future<Incidente> _syncPendingQueueEntry(Map<String, dynamic> entry) async {
     if (kIsWeb) {
       await LocalImageCache.clearIncidentImages(localId);
     }
-    debugPrint('SYNC DONE: claimId=${incident.id}');
+    debugPrint('SYNC DONE');
     return incident;
   }
 
@@ -1360,7 +1539,7 @@ Future<Incidente> _syncPendingQueueEntry(Map<String, dynamic> entry) async {
   if (kIsWeb) {
     await LocalImageCache.clearIncidentImages(localId);
   }
-  debugPrint('SYNC DONE: claimId=${incident.id}');
+  debugPrint('SYNC DONE');
   return incident;
 }
 
@@ -1380,9 +1559,8 @@ Future<void> _syncPendingQueue() async {
 
     try {
       await _syncPendingQueueEntry(entry);
-    } catch (e, st) {
-      debugPrint('SYNC ERROR: $e');
-      debugPrint('$st');
+    } catch (_) {
+      debugPrint('SYNC ERROR');
       final incident = Incidente.fromJson(
         Map<String, dynamic>.from(entry['incident'] as Map),
       );
@@ -1504,6 +1682,13 @@ Future<Incidente> aggiornaHashIncidente(Incidente inc) async {
     cognomeA: inc.cognomeA,
     targaA: inc.targaA,
     assicurazioneA: inc.assicurazioneA,
+    marcaA: inc.marcaA,
+    modelloA: inc.modelloA,
+    vinA: inc.vinA,
+    kilometraggioA: inc.kilometraggioA,
+    primaImmatricolazioneA: inc.primaImmatricolazioneA,
+    numeroPolizzaA: inc.numeroPolizzaA,
+    numeroSinistroA: inc.numeroSinistroA,
     telefonoA: inc.telefonoA,
     emailA: inc.emailA,
     indirizzoA: inc.indirizzoA,
@@ -1513,6 +1698,13 @@ Future<Incidente> aggiornaHashIncidente(Incidente inc) async {
     cognomeB: inc.cognomeB,
     targaB: inc.targaB,
     assicurazioneB: inc.assicurazioneB,
+    marcaB: inc.marcaB,
+    modelloB: inc.modelloB,
+    vinB: inc.vinB,
+    kilometraggioB: inc.kilometraggioB,
+    primaImmatricolazioneB: inc.primaImmatricolazioneB,
+    numeroPolizzaB: inc.numeroPolizzaB,
+    numeroSinistroB: inc.numeroSinistroB,
     telefonoB: inc.telefonoB,
     emailB: inc.emailB,
     indirizzoB: inc.indirizzoB,
@@ -1560,6 +1752,13 @@ Incidente _copyIncidenteWithEmailSendState(
     cognomeA: inc.cognomeA,
     targaA: inc.targaA,
     assicurazioneA: inc.assicurazioneA,
+    marcaA: inc.marcaA,
+    modelloA: inc.modelloA,
+    vinA: inc.vinA,
+    kilometraggioA: inc.kilometraggioA,
+    primaImmatricolazioneA: inc.primaImmatricolazioneA,
+    numeroPolizzaA: inc.numeroPolizzaA,
+    numeroSinistroA: inc.numeroSinistroA,
     telefonoA: inc.telefonoA,
     emailA: inc.emailA,
     indirizzoA: inc.indirizzoA,
@@ -1569,6 +1768,13 @@ Incidente _copyIncidenteWithEmailSendState(
     cognomeB: inc.cognomeB,
     targaB: inc.targaB,
     assicurazioneB: inc.assicurazioneB,
+    marcaB: inc.marcaB,
+    modelloB: inc.modelloB,
+    vinB: inc.vinB,
+    kilometraggioB: inc.kilometraggioB,
+    primaImmatricolazioneB: inc.primaImmatricolazioneB,
+    numeroPolizzaB: inc.numeroPolizzaB,
+    numeroSinistroB: inc.numeroSinistroB,
     telefonoB: inc.telefonoB,
     emailB: inc.emailB,
     indirizzoB: inc.indirizzoB,
@@ -1614,11 +1820,7 @@ Future<Incidente> _persistIncidentEmailSendState(
     status: status,
     message: message,
   );
-  debugPrint(
-    'EMAIL STATUS SET: '
-    'status=$status claimId=${updated.id} '
-    'message=$message at=${updated.emailSendLastAttemptAt}',
-  );
+  debugPrint('EMAIL STATUS SET: status=$status');
 
   final index = incidentiSalvati.indexWhere(
     (e) => e.id == updated.id || (previousId != null && e.id == previousId),
@@ -1843,10 +2045,8 @@ Future<String?> _ensureWorkshopClaimLink(
         return token;
       }
     }
-  } catch (e, st) {
-    debugPrint('QR ERROR TYPE: ${e.runtimeType}');
-    debugPrint('QR ERROR: $e');
-    debugPrint('$st');
+  } catch (_) {
+    debugPrint('QR ERROR: existing link lookup failed');
   }
 
   debugPrint('QR STEP 3: create new claim_link');
@@ -1862,10 +2062,8 @@ Future<String?> _ensureWorkshopClaimLink(
         })
         .select('token')
         .single();
-  } catch (e, st) {
-    debugPrint('QR ERROR TYPE: ${e.runtimeType}');
-    debugPrint('QR ERROR: $e');
-    debugPrint('$st');
+  } catch (_) {
+    debugPrint('QR ERROR: link creation failed');
     rethrow;
   }
 
@@ -1947,8 +2145,8 @@ Future<void> main() async {
         authFlowType: AuthFlowType.pkce,
       ),
     );
-  } catch (e) {
-    debugPrint('Supabase init failed: $e');
+  } catch (_) {
+    debugPrint('Supabase init failed');
   }
   await caricaIncidenti();
   linguaSelezionata.value = await caricaLinguaPreferita();
@@ -2672,8 +2870,7 @@ const Map<String, Map<String, String>> _tMap = {
     'it': 'Impossibile caricare le impostazioni officina. Riprova.',
     'de':
         'Die Werkstatteinstellungen konnten nicht geladen werden. Bitte erneut versuchen.',
-    'fr':
-        'Impossible de charger les réglages du garage. Veuillez réessayer.',
+    'fr': 'Impossible de charger les réglages du garage. Veuillez réessayer.',
     'en': 'Workshop settings could not be loaded. Please try again.',
   },
   'Impostazioni officina salvate.': {
@@ -3246,13 +3443,9 @@ Future<void> _syncClaimPayloadSnapshot(Incidente incident) async {
       'workshop_code': incident.codiceOfficina,
       'hashed_token': incident.hashIntegrita,
     }).eq('id', incident.id);
-    debugPrint(
-      '[CIDEmail] payload ready claimId=${incident.id} '
-      'hash=${incident.hashIntegrita} workshop=${incident.codiceOfficina}',
-    );
-  } catch (e, st) {
-    debugPrint('[CIDEmail] payload sync warning: $e');
-    debugPrint('$st');
+    debugPrint('[CIDEmail] payload ready');
+  } catch (_) {
+    debugPrint('[CIDEmail] payload sync warning');
   }
 }
 
@@ -3261,10 +3454,7 @@ Future<dynamic> _invokeSendCidEmailEdgeFunction({
   required Incidente incident,
   required List<String> recipients,
 }) async {
-  final displayId = formatClaimDisplayId(incident);
-  debugPrint('[CIDEmail] start claimId=$claimId');
-  debugPrint('[CIDEmail] displayId $displayId');
-  debugPrint('[CIDEmail] recipient ${recipients.join(', ')}');
+  debugPrint('[CIDEmail] start recipients=${recipients.length}');
 
   await _syncClaimPayloadSnapshot(incident);
 
@@ -3273,9 +3463,7 @@ Future<dynamic> _invokeSendCidEmailEdgeFunction({
       'send-cid-email',
       body: {'claimId': claimId},
     );
-    debugPrint(
-      '[CIDEmail] resend response status=${result.status} data=${result.data}',
-    );
+    debugPrint('[CIDEmail] response status=${result.status}');
     if (result.status >= 400) {
       throw Exception('Edge function status ${result.status}: ${result.data}');
     }
@@ -3283,9 +3471,8 @@ Future<dynamic> _invokeSendCidEmailEdgeFunction({
       throw Exception((result.data as Map)['error'] ?? 'Invio non riuscito');
     }
     return result;
-  } catch (e, st) {
-    debugPrint('[CIDEmail] error full $e');
-    debugPrint('$st');
+  } catch (_) {
+    debugPrint('[CIDEmail] send failed');
     rethrow;
   }
 }
@@ -3431,8 +3618,8 @@ class _HomePageState extends State<HomePage> {
       );
       if (!mounted || widget.authService.currentAccount?.id != userId) return;
       setState(() => configOfficina = loaded);
-    } catch (error) {
-      debugPrint('Workshop settings unavailable: $error');
+    } catch (_) {
+      debugPrint('Workshop settings unavailable');
     }
   }
 
@@ -3444,8 +3631,8 @@ class _HomePageState extends State<HomePage> {
               request.requestStatus != 'completed' &&
               request.requestStatus != 'cancelled')
           .length;
-    } catch (e) {
-      debugPrint('open requests count unavailable: $e');
+    } catch (_) {
+      debugPrint('open requests count unavailable');
       return null;
     }
   }
@@ -5100,9 +5287,7 @@ class _ImpostazioniOfficinaPageState extends State<ImpostazioniOfficinaPage> {
   String? _validateEmail(String? value) {
     final trimmed = value?.trim() ?? '';
     if (trimmed.isEmpty) return null;
-    return _isValidSendEmail(trimmed)
-        ? null
-        : tx(context, 'Email non valida');
+    return _isValidSendEmail(trimmed) ? null : tx(context, 'Email non valida');
   }
 
   Future<void> _salva() async {
@@ -5206,8 +5391,7 @@ class _ImpostazioniOfficinaPageState extends State<ImpostazioniOfficinaPage> {
                 keyboardType: TextInputType.phone,
                 validator: _validatePhone,
                 decoration: InputDecoration(
-                  labelText:
-                      tx(context, 'Numero carrozzeria / concessionaria'),
+                  labelText: tx(context, 'Numero carrozzeria / concessionaria'),
                   hintText: tx(context, 'Es. +41...'),
                 ),
               ),
@@ -5219,8 +5403,7 @@ class _ImpostazioniOfficinaPageState extends State<ImpostazioniOfficinaPage> {
                 keyboardType: TextInputType.emailAddress,
                 validator: _validateEmail,
                 decoration: InputDecoration(
-                  labelText:
-                      tx(context, 'Email carrozzeria / concessionaria'),
+                  labelText: tx(context, 'Email carrozzeria / concessionaria'),
                   hintText: tx(context, 'nome@email.ch'),
                 ),
               ),
@@ -5368,7 +5551,14 @@ class _ConducenteExtraFormData {
   final TextEditingController cityController;
   final TextEditingController countryController;
   final TextEditingController targaController;
+  final TextEditingController marcaController;
+  final TextEditingController modelloController;
+  final TextEditingController vinController;
+  final TextEditingController kilometraggioController;
+  final TextEditingController primaImmatricolazioneController;
   final TextEditingController assicurazioneController;
+  final TextEditingController numeroPolizzaController;
+  final TextEditingController numeroSinistroController;
   final TextEditingController telefonoController;
   final TextEditingController emailController;
   String? fotoLibrettoPath;
@@ -5385,7 +5575,14 @@ class _ConducenteExtraFormData {
     required this.cityController,
     required this.countryController,
     required this.targaController,
+    required this.marcaController,
+    required this.modelloController,
+    required this.vinController,
+    required this.kilometraggioController,
+    required this.primaImmatricolazioneController,
     required this.assicurazioneController,
+    required this.numeroPolizzaController,
+    required this.numeroSinistroController,
     required this.telefonoController,
     required this.emailController,
   });
@@ -5399,7 +5596,14 @@ class _ConducenteExtraFormData {
         cityController.text.trim().isNotEmpty ||
         countryController.text.trim().isNotEmpty ||
         targaController.text.trim().isNotEmpty ||
+        marcaController.text.trim().isNotEmpty ||
+        modelloController.text.trim().isNotEmpty ||
+        vinController.text.trim().isNotEmpty ||
+        kilometraggioController.text.trim().isNotEmpty ||
+        primaImmatricolazioneController.text.trim().isNotEmpty ||
         assicurazioneController.text.trim().isNotEmpty ||
+        numeroPolizzaController.text.trim().isNotEmpty ||
+        numeroSinistroController.text.trim().isNotEmpty ||
         telefonoController.text.trim().isNotEmpty ||
         emailController.text.trim().isNotEmpty ||
         (fotoLibrettoPath?.trim().isNotEmpty ?? false) ||
@@ -5422,7 +5626,14 @@ class _ConducenteExtraFormData {
     cityController.dispose();
     countryController.dispose();
     targaController.dispose();
+    marcaController.dispose();
+    modelloController.dispose();
+    vinController.dispose();
+    kilometraggioController.dispose();
+    primaImmatricolazioneController.dispose();
     assicurazioneController.dispose();
+    numeroPolizzaController.dispose();
+    numeroSinistroController.dispose();
     telefonoController.dispose();
     emailController.dispose();
   }
@@ -5458,7 +5669,14 @@ class _DriverQrImportBundle {
   final TextEditingController cityController;
   final TextEditingController countryController;
   final TextEditingController targaController;
+  final TextEditingController marcaController;
+  final TextEditingController modelloController;
+  final TextEditingController vinController;
+  final TextEditingController kilometraggioController;
+  final TextEditingController primaImmatricolazioneController;
   final TextEditingController assicurazioneController;
+  final TextEditingController numeroPolizzaController;
+  final TextEditingController numeroSinistroController;
   final TextEditingController telefonoController;
   final TextEditingController emailController;
   final ValueChanged<_DriverCourtesy?> setCourtesy;
@@ -5471,7 +5689,14 @@ class _DriverQrImportBundle {
     required this.cityController,
     required this.countryController,
     required this.targaController,
+    required this.marcaController,
+    required this.modelloController,
+    required this.vinController,
+    required this.kilometraggioController,
+    required this.primaImmatricolazioneController,
     required this.assicurazioneController,
+    required this.numeroPolizzaController,
+    required this.numeroSinistroController,
     required this.telefonoController,
     required this.emailController,
     required this.setCourtesy,
@@ -5554,7 +5779,14 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   final _nomeAController = TextEditingController();
   final _cognomeAController = TextEditingController();
   final _targaAController = TextEditingController();
+  final _marcaAController = TextEditingController();
+  final _modelloAController = TextEditingController();
+  final _vinAController = TextEditingController();
+  final _kilometraggioAController = TextEditingController();
+  final _primaImmatricolazioneAController = TextEditingController();
   final _assicurazioneAController = TextEditingController();
+  final _numeroPolizzaAController = TextEditingController();
+  final _numeroSinistroAController = TextEditingController();
 
   final _telefonoAController = TextEditingController();
   final _emailAController = TextEditingController();
@@ -5567,7 +5799,14 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   final _nomeBController = TextEditingController();
   final _cognomeBController = TextEditingController();
   final _targaBController = TextEditingController();
+  final _marcaBController = TextEditingController();
+  final _modelloBController = TextEditingController();
+  final _vinBController = TextEditingController();
+  final _kilometraggioBController = TextEditingController();
+  final _primaImmatricolazioneBController = TextEditingController();
   final _assicurazioneBController = TextEditingController();
+  final _numeroPolizzaBController = TextEditingController();
+  final _numeroSinistroBController = TextEditingController();
 
   final _telefonoBController = TextEditingController();
   final _emailBController = TextEditingController();
@@ -5723,7 +5962,14 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
   void _applySelectedVehicle(PersonalVehicleData vehicle) {
     _targaAController.text = vehicle.targa;
+    _marcaAController.text = vehicle.marca;
+    _modelloAController.text = vehicle.modello;
+    _vinAController.text = vehicle.vin;
+    _kilometraggioAController.text = vehicle.kilometraggio;
+    _primaImmatricolazioneAController.text = vehicle.primaImmatricolazione;
     _assicurazioneAController.text = vehicle.assicurazione;
+    _numeroPolizzaAController.text = vehicle.numeroPolizza;
+    _numeroSinistroAController.text = vehicle.numeroSinistro;
   }
 
   void _selectSavedVehicle(PersonalVehicleData? vehicle) {
@@ -5741,7 +5987,14 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         _indirizzoBController.text.trim().isNotEmpty ||
         _driverBZipController.text.trim().isNotEmpty ||
         _targaBController.text.trim().isNotEmpty ||
+        _marcaBController.text.trim().isNotEmpty ||
+        _modelloBController.text.trim().isNotEmpty ||
+        _vinBController.text.trim().isNotEmpty ||
+        _kilometraggioBController.text.trim().isNotEmpty ||
+        _primaImmatricolazioneBController.text.trim().isNotEmpty ||
         _assicurazioneBController.text.trim().isNotEmpty ||
+        _numeroPolizzaBController.text.trim().isNotEmpty ||
+        _numeroSinistroBController.text.trim().isNotEmpty ||
         _telefonoBController.text.trim().isNotEmpty ||
         _emailBController.text.trim().isNotEmpty ||
         _driverBCityController.text.trim().isNotEmpty ||
@@ -5790,7 +6043,14 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       cityController: TextEditingController(),
       countryController: TextEditingController(),
       targaController: TextEditingController(),
+      marcaController: TextEditingController(),
+      modelloController: TextEditingController(),
+      vinController: TextEditingController(),
+      kilometraggioController: TextEditingController(),
+      primaImmatricolazioneController: TextEditingController(),
       assicurazioneController: TextEditingController(),
+      numeroPolizzaController: TextEditingController(),
+      numeroSinistroController: TextEditingController(),
       telefonoController: TextEditingController(),
       emailController: TextEditingController(),
     );
@@ -5862,7 +6122,15 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         cityController: _driverACityController,
         countryController: _driverACountryController,
         targaController: _targaAController,
+        marcaController: _marcaAController,
+        modelloController: _modelloAController,
+        vinController: _vinAController,
+        kilometraggioController: _kilometraggioAController,
+        primaImmatricolazioneController:
+            _primaImmatricolazioneAController,
         assicurazioneController: _assicurazioneAController,
+        numeroPolizzaController: _numeroPolizzaAController,
+        numeroSinistroController: _numeroSinistroAController,
         telefonoController: _telefonoAController,
         emailController: _emailAController,
         setCourtesy: (value) => _driverACourtesy = value,
@@ -5877,7 +6145,15 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         cityController: _driverBCityController,
         countryController: _driverBCountryController,
         targaController: _targaBController,
+        marcaController: _marcaBController,
+        modelloController: _modelloBController,
+        vinController: _vinBController,
+        kilometraggioController: _kilometraggioBController,
+        primaImmatricolazioneController:
+            _primaImmatricolazioneBController,
         assicurazioneController: _assicurazioneBController,
+        numeroPolizzaController: _numeroPolizzaBController,
+        numeroSinistroController: _numeroSinistroBController,
         telefonoController: _telefonoBController,
         emailController: _emailBController,
         setCourtesy: (value) => _driverBCourtesy = value,
@@ -5893,7 +6169,15 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       cityController: driver.cityController,
       countryController: driver.countryController,
       targaController: driver.targaController,
+      marcaController: driver.marcaController,
+      modelloController: driver.modelloController,
+      vinController: driver.vinController,
+      kilometraggioController: driver.kilometraggioController,
+      primaImmatricolazioneController:
+          driver.primaImmatricolazioneController,
       assicurazioneController: driver.assicurazioneController,
+      numeroPolizzaController: driver.numeroPolizzaController,
+      numeroSinistroController: driver.numeroSinistroController,
       telefonoController: driver.telefonoController,
       emailController: driver.emailController,
       setCourtesy: (value) => driver.courtesy = value,
@@ -5947,7 +6231,17 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       _writeDriverQrValue(bundle.telefonoController, data.telefono);
       _writeDriverQrValue(bundle.emailController, data.email);
       _writeDriverQrValue(bundle.targaController, data.targa);
+      _writeDriverQrValue(bundle.marcaController, data.marca);
+      _writeDriverQrValue(bundle.modelloController, data.modello);
+      _writeDriverQrValue(bundle.vinController, data.vin);
+      _writeDriverQrValue(bundle.kilometraggioController, data.kilometraggio);
+      _writeDriverQrValue(
+        bundle.primaImmatricolazioneController,
+        data.primaImmatricolazione,
+      );
       _writeDriverQrValue(bundle.assicurazioneController, data.assicurazione);
+      _writeDriverQrValue(bundle.numeroPolizzaController, data.numeroPolizza);
+      _writeDriverQrValue(bundle.numeroSinistroController, data.numeroSinistro);
     });
     debugPrint('[DriverQR] import completed target=$driverKey');
   }
@@ -6290,7 +6584,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       }
 
       debugPrint(
-        '[AccidentGPS] coordinates received lat=${position.latitude}, lng=${position.longitude}',
+        '[AccidentGPS] coordinates received',
       );
 
       if (!mounted) return;
@@ -6301,8 +6595,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         _geoMessage = tx(context, 'Indirizzo in caricamento...');
       });
       await _caricaIndirizzoDaPosizione(position);
-    } catch (e, st) {
-      debugPrint('[AccidentGPS] coordinates unavailable exception $e\n$st');
+    } catch (_) {
+      debugPrint('[AccidentGPS] coordinates unavailable exception');
       _setGeoError(
         _geoPermission,
         unavailableLocationMessage,
@@ -6345,9 +6639,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   }
 
   Future<void> _caricaIndirizzoDaPosizione(Position pos) async {
-    debugPrint(
-      '[AccidentGPS] reverse geocode start lat=${pos.latitude}, lng=${pos.longitude}',
-    );
+    debugPrint('[AccidentGPS] reverse geocode start');
     final unavailableLocationMessage = tx(context,
         'Non siamo riusciti a ottenere la posizione. Verifica che la geolocalizzazione sia attiva e riprova.');
 
@@ -6384,7 +6676,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
             _geoErrorMessage = null;
             _geoMessage = null;
             _luogoController.text = addr;
-            debugPrint('[AccidentGPS] reverse geocode success $addr');
+            debugPrint('[AccidentGPS] reverse geocode success');
           });
           return;
         }
@@ -6394,8 +6686,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           '[AccidentGPS] reverse geocode fail status-${res.statusCode}',
         );
       }
-    } catch (e, st) {
-      debugPrint('[AccidentGPS] reverse geocode fail $e\n$st');
+    } catch (_) {
+      debugPrint('[AccidentGPS] reverse geocode failed');
     }
 
     _setGeoError(_geoPermission, unavailableLocationMessage);
@@ -6527,7 +6819,14 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     _nomeAController.dispose();
     _cognomeAController.dispose();
     _targaAController.dispose();
+    _marcaAController.dispose();
+    _modelloAController.dispose();
+    _vinAController.dispose();
+    _kilometraggioAController.dispose();
+    _primaImmatricolazioneAController.dispose();
     _assicurazioneAController.dispose();
+    _numeroPolizzaAController.dispose();
+    _numeroSinistroAController.dispose();
     _telefonoAController.dispose();
     _emailAController.dispose();
     _indirizzoAController.dispose();
@@ -6538,7 +6837,14 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     _nomeBController.dispose();
     _cognomeBController.dispose();
     _targaBController.dispose();
+    _marcaBController.dispose();
+    _modelloBController.dispose();
+    _vinBController.dispose();
+    _kilometraggioBController.dispose();
+    _primaImmatricolazioneBController.dispose();
     _assicurazioneBController.dispose();
+    _numeroPolizzaBController.dispose();
+    _numeroSinistroBController.dispose();
     _telefonoBController.dispose();
     _emailBController.dispose();
     _indirizzoBController.dispose();
@@ -6765,7 +7071,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     Incidente incident, {
     required String localId,
   }) async {
-    debugPrint('OFFLINE SAVE START: localId=$localId');
+    debugPrint('OFFLINE SAVE START');
     final offlineIncident = await _persistIncidentEmailSendState(
       incident,
       status: 'pending_sync',
@@ -6775,8 +7081,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     await _upsertPendingSyncEntry(
       _buildPendingSyncEntry(offlineIncident, localId: localId),
     );
-    debugPrint(
-        'OFFLINE SAVE DONE: localId=$localId incidentId=${offlineIncident.id}');
+    debugPrint('OFFLINE SAVE DONE');
     return offlineIncident;
   }
 
@@ -6804,21 +7109,13 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       status: 'pending',
       message: 'Invio email in corso...',
     );
-    final availableContacts = {
-      'emailA': currentIncident.emailA.trim(),
-      'emailB': currentIncident.emailB.trim(),
-      'officinaEmail': configOfficina.concessionariaEmail.trim(),
-      'assicurazioneA': currentIncident.assicurazioneA.trim(),
-      'assicurazioneB': currentIncident.assicurazioneB.trim(),
-    };
     final recipients = _collectSendRecipients(
       emailA: currentIncident.emailA,
       emailB: currentIncident.emailB,
     );
-    debugPrint('SEND CONTACTS AVAILABLE: ${jsonEncode(availableContacts)}');
-    debugPrint('SEND RECIPIENTS FINAL: $recipients');
+    debugPrint('SEND RECIPIENTS COUNT: ${recipients.length}');
     if (recipients.isEmpty) {
-      debugPrint('SEND SKIPPED NO EMAIL: claimId=$claimId');
+      debugPrint('SEND SKIPPED NO EMAIL');
       currentIncident = await _persistIncidentEmailSendState(
         currentIncident,
         status: 'skipped',
@@ -6841,9 +7138,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         message: 'Pratica salvata e inviata correttamente.',
       );
       return currentIncident;
-    } catch (e, st) {
-      debugPrint('[CIDEmail] error full $e');
-      debugPrint('$st');
+    } catch (_) {
+      debugPrint('[CIDEmail] send failed');
       currentIncident = await _persistIncidentEmailSendState(
         currentIncident,
         status: 'failed',
@@ -6861,14 +7157,13 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       return;
     }
     try {
-      debugPrint('DAMAGE PHOTO DELETE STORAGE START: $path');
+      debugPrint('DAMAGE PHOTO DELETE STORAGE START');
       await _supabaseService.client.storage
           .from('claim_attachments')
           .remove([path]);
-      debugPrint('DAMAGE PHOTO DELETE STORAGE OK: $path');
-    } catch (e, st) {
-      debugPrint('DAMAGE PHOTO DELETE STORAGE ERROR: $e');
-      debugPrint('$st');
+      debugPrint('DAMAGE PHOTO DELETE STORAGE OK');
+    } catch (_) {
+      debugPrint('DAMAGE PHOTO DELETE STORAGE ERROR');
     }
   }
 
@@ -6879,12 +7174,11 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   }) async {
     if (!mounted) return;
     final claimId = _ensureDraftId();
-    final pathHint = 'claims/$claimId/damage/<ts>_$filename';
     setState(() {
       item.status = DamagePhotoStatus.uploading;
       item.error = null;
     });
-    debugPrint('DAMAGE PHOTO UPLOAD START pathHint=$pathHint');
+    debugPrint('DAMAGE PHOTO UPLOAD START');
     try {
       final uploadedUrl = await _supabaseService.uploadClaimImageBytes(
         claimId: claimId,
@@ -6896,7 +7190,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       final storagePath = _extractStoragePath(uploadedUrl);
       if (item.isRemoved) {
         debugPrint(
-            'DAMAGE PHOTO REMOVED DURING UPLOAD: cleanup remote file ($storagePath)');
+          'DAMAGE PHOTO REMOVED DURING UPLOAD: cleanup remote file',
+        );
         await _deleteDamagePhotoFromStorage(
           item..storagePath = storagePath,
         );
@@ -6908,14 +7203,14 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         item.remoteUrl = uploadedUrl;
         item.storagePath = storagePath;
       });
-      debugPrint('DAMAGE PHOTO UPLOAD OK: $uploadedUrl');
+      debugPrint('DAMAGE PHOTO UPLOAD OK');
     } catch (e) {
       if (!mounted) return;
       setState(() {
         item.status = DamagePhotoStatus.failed;
         item.error = e.toString();
       });
-      debugPrint('DAMAGE PHOTO UPLOAD ERROR: $e');
+      debugPrint('DAMAGE PHOTO UPLOAD ERROR');
     }
   }
 
@@ -7028,7 +7323,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         bestPlate = _selectBetterPlate(bestPlate, extractSwissPlate(b.text));
       }
       result['targa'] = bestPlate;
-      debugPrint('Anchor 15 found -> plate: ${bestPlate ?? '-'}');
+      debugPrint('Anchor 15 found');
     } else {
       debugPrint('Anchor 15 not found');
     }
@@ -7062,7 +7357,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         }
       }
       result['assicurazione'] = bestIns;
-      debugPrint('Anchor 09 found -> assicurazione: ${bestIns ?? '-'}');
+      debugPrint('Anchor 09 found');
     } else {
       debugPrint('Anchor 09 not found');
     }
@@ -7122,8 +7417,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       if (indirizzo != null) result['indirizzo'] = indirizzo;
       if (cap != null) result['cap'] = cap;
       if (city != null) result['city'] = city;
-      debugPrint(
-          'Anchor 01-06 found -> ${result['cognome'] ?? '-'} | ${result['nome'] ?? '-'} | ${indirizzo ?? '-'} | ${cap ?? '-'} ${city ?? '-'}');
+      debugPrint('Anchor 01-06 found');
     } else {
       debugPrint('Anchor 01-06 not found');
     }
@@ -7139,7 +7433,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         'ocr-libretto-cloud',
         body: {'imageBase64': b64},
       );
-      debugPrint('OCR cloud raw response: ${res.data}');
+      debugPrint('OCR cloud response received status=${res.status}');
       final data = res.data;
       List<_OcrBlock> blocks = [];
       if (data is Map && data['blocks'] is List) {
@@ -7194,8 +7488,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           blocks: blocks,
         );
       }
-    } catch (e, st) {
-      debugPrint('OCR cloud error: $e\n$st');
+    } catch (e) {
+      debugPrint('OCR cloud error');
       return _CloudOcrResult(
         success: false,
         error: 'exception',
@@ -7215,9 +7509,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     String? targa,
     String? assicurazione,
   }) {
-    debugPrint('OCR apply target=$quale parsed={'
-        'nome:$nome, cognome:$cognome, indirizzo:$indirizzo, cap:$cap, city:$city, '
-        'targa:$targa, assicurazione:$assicurazione}');
+    debugPrint('OCR apply target=$quale');
 
     final bundle = _driverFieldBundleForKey(quale);
     if (bundle == null) return false;
@@ -7245,13 +7537,13 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       final current = ctrl.text.trim();
       if (current.isEmpty) {
         ctrl.text = trimmed;
-        debugPrint('write $label = $trimmed');
+        debugPrint('write $label');
         changed = true;
         return;
       }
       if (isBetter != null && isBetter(trimmed)) {
         ctrl.text = trimmed;
-        debugPrint('replace $label = $trimmed');
+        debugPrint('replace $label');
         changed = true;
       }
     }
@@ -7328,9 +7620,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       );
       if (confirmed != true) return;
 
-      debugPrint(
-        'Foto $kind selezionata (quale: ${quale ?? '-'}) nome: $name',
-      );
+      debugPrint('Foto $kind selezionata (quale: ${quale ?? '-'})');
       debugPrint(
           '[Damage] bytes length=${bytes.length} platform=${kIsWeb ? 'web' : 'mobile'} kind=$kind');
 
@@ -7377,17 +7667,17 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
       if (kind == 'libretto') {
         uploadClaimId = await _ensureRemoteDraftClaimId();
-        debugPrint('UPLOAD LIBRETTO USING REAL CLAIM ID: $uploadClaimId');
+        debugPrint('UPLOAD LIBRETTO USING REMOTE CLAIM');
       }
 
-      final uploadedUrl = await _supabaseService.uploadClaimImageBytes(
+      await _supabaseService.uploadClaimImageBytes(
         claimId: uploadClaimId,
         bytes: bytes,
         filename: name,
         contentType: 'image/jpeg',
         kind: kind,
       );
-      debugPrint('Upload $kind completato -> $uploadedUrl');
+      debugPrint('Upload $kind completato');
 
       _mostraSnack('Foto caricata');
       await caricaIncidenti();
@@ -7408,8 +7698,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     setState(() {
       _damagePhotos.removeAt(index);
     });
-    debugPrint('[Damage] removed index=$index url=${removed.remoteUrl ?? '-'} '
-        'remaining=${_damagePhotos.length}');
+    debugPrint(
+      '[Damage] removed index=$index remaining=${_damagePhotos.length}',
+    );
     final shouldDeleteRemote = removed.status == DamagePhotoStatus.uploaded &&
         removed.storagePath != null &&
         removed.storagePath!.trim().isNotEmpty;
@@ -7704,6 +7995,69 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
   }
 
+  String _vehicleBrandLabel(String driverKey) {
+    return _copyText(
+      it: 'Marca veicolo $driverKey',
+      de: 'Marke Fahrzeug $driverKey',
+      fr: 'Marque véhicule $driverKey',
+      en: 'Vehicle $driverKey brand',
+    );
+  }
+
+  String _vehicleModelLabel(String driverKey) {
+    return _copyText(
+      it: 'Modello veicolo $driverKey',
+      de: 'Modell Fahrzeug $driverKey',
+      fr: 'Modèle véhicule $driverKey',
+      en: 'Vehicle $driverKey model',
+    );
+  }
+
+  String _vehicleVinLabel(String driverKey) {
+    return _copyText(
+      it: 'VIN / telaio veicolo $driverKey',
+      de: 'FIN / Fahrgestellnummer Fahrzeug $driverKey',
+      fr: 'VIN / châssis véhicule $driverKey',
+      en: 'Vehicle $driverKey VIN',
+    );
+  }
+
+  String _vehicleMileageLabel(String driverKey) {
+    return _copyText(
+      it: 'Chilometraggio veicolo $driverKey',
+      de: 'Kilometerstand Fahrzeug $driverKey',
+      fr: 'Kilométrage véhicule $driverKey',
+      en: 'Vehicle $driverKey mileage',
+    );
+  }
+
+  String _vehicleFirstRegistrationLabel(String driverKey) {
+    return _copyText(
+      it: 'Prima immatricolazione veicolo $driverKey',
+      de: 'Erstzulassung Fahrzeug $driverKey',
+      fr: 'Première immatriculation véhicule $driverKey',
+      en: 'Vehicle $driverKey first registration',
+    );
+  }
+
+  String _vehiclePolicyLabel(String driverKey) {
+    return _copyText(
+      it: 'Numero polizza veicolo $driverKey',
+      de: 'Policennummer Fahrzeug $driverKey',
+      fr: 'Numéro de police véhicule $driverKey',
+      en: 'Vehicle $driverKey policy number',
+    );
+  }
+
+  String _vehicleClaimLabel(String driverKey) {
+    return _copyText(
+      it: 'Numero sinistro veicolo $driverKey',
+      de: 'Schadennummer Fahrzeug $driverKey',
+      fr: 'Numéro de sinistre véhicule $driverKey',
+      en: 'Vehicle $driverKey claim number',
+    );
+  }
+
   String _driverPhoneLabel(String driverKey) {
     return _copyText(
       it: 'Telefono conducente $driverKey',
@@ -7747,7 +8101,14 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     required TextEditingController cityController,
     required TextEditingController countryController,
     required TextEditingController targaController,
+    required TextEditingController marcaController,
+    required TextEditingController modelloController,
+    required TextEditingController vinController,
+    required TextEditingController kilometraggioController,
+    required TextEditingController primaImmatricolazioneController,
     required TextEditingController assicurazioneController,
+    required TextEditingController numeroPolizzaController,
+    required TextEditingController numeroSinistroController,
     required TextEditingController telefonoController,
     required TextEditingController emailController,
     required String? fotoLibrettoPath,
@@ -7768,6 +8129,15 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               title: _driverTitle(driverKey),
               role: DriverPersonalQrImportRole.customerDriver,
               onDetected: personalQrImporter,
+              onDelete: onDelete,
+              deleteTooltip: onDelete == null
+                  ? null
+                  : _copyText(
+                      it: 'Elimina conducente',
+                      de: 'Fahrer entfernen',
+                      fr: 'Supprimer le conducteur',
+                      en: 'Remove driver',
+                    ),
             )
           else
             Row(
@@ -7903,6 +8273,23 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           const SizedBox(height: 12),
           _buildResponsivePair(
             TextFormField(
+              key: Key('incident_driver_${driverKey}_brand'),
+              controller: marcaController,
+              decoration: InputDecoration(
+                labelText: _vehicleBrandLabel(driverKey),
+              ),
+            ),
+            TextFormField(
+              key: Key('incident_driver_${driverKey}_model'),
+              controller: modelloController,
+              decoration: InputDecoration(
+                labelText: _vehicleModelLabel(driverKey),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildResponsivePair(
+            TextFormField(
               key: Key('incident_driver_${driverKey}_plate'),
               controller: targaController,
               decoration: InputDecoration(
@@ -7917,6 +8304,49 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                 labelText: _vehicleInsuranceLabel(driverKey),
                 hintText: _vehicleInsuranceHint(driverKey),
               ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildResponsivePair(
+            TextFormField(
+              key: Key('incident_driver_${driverKey}_policy'),
+              controller: numeroPolizzaController,
+              decoration: InputDecoration(
+                labelText: _vehiclePolicyLabel(driverKey),
+              ),
+            ),
+            TextFormField(
+              key: Key('incident_driver_${driverKey}_vin'),
+              controller: vinController,
+              decoration: InputDecoration(
+                labelText: _vehicleVinLabel(driverKey),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildResponsivePair(
+            TextFormField(
+              key: Key('incident_driver_${driverKey}_mileage'),
+              controller: kilometraggioController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: _vehicleMileageLabel(driverKey),
+              ),
+            ),
+            TextFormField(
+              key: Key('incident_driver_${driverKey}_first_registration'),
+              controller: primaImmatricolazioneController,
+              decoration: InputDecoration(
+                labelText: _vehicleFirstRegistrationLabel(driverKey),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            key: Key('incident_driver_${driverKey}_claim'),
+            controller: numeroSinistroController,
+            decoration: InputDecoration(
+              labelText: _vehicleClaimLabel(driverKey),
             ),
           ),
           const SizedBox(height: 12),
@@ -8195,7 +8625,15 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         cityController: _driverACityController,
         countryController: _driverACountryController,
         targaController: _targaAController,
+        marcaController: _marcaAController,
+        modelloController: _modelloAController,
+        vinController: _vinAController,
+        kilometraggioController: _kilometraggioAController,
+        primaImmatricolazioneController:
+            _primaImmatricolazioneAController,
         assicurazioneController: _assicurazioneAController,
+        numeroPolizzaController: _numeroPolizzaAController,
+        numeroSinistroController: _numeroSinistroAController,
         telefonoController: _telefonoAController,
         emailController: _emailAController,
         fotoLibrettoPath: _fotoLibrettoAPath,
@@ -8236,7 +8674,15 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         cityController: _driverBCityController,
         countryController: _driverBCountryController,
         targaController: _targaBController,
+        marcaController: _marcaBController,
+        modelloController: _modelloBController,
+        vinController: _vinBController,
+        kilometraggioController: _kilometraggioBController,
+        primaImmatricolazioneController:
+            _primaImmatricolazioneBController,
         assicurazioneController: _assicurazioneBController,
+        numeroPolizzaController: _numeroPolizzaBController,
+        numeroSinistroController: _numeroSinistroBController,
         telefonoController: _telefonoBController,
         emailController: _emailBController,
         fotoLibrettoPath: _fotoLibrettoBPath,
@@ -8293,7 +8739,15 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           cityController: driver.cityController,
           countryController: driver.countryController,
           targaController: driver.targaController,
+          marcaController: driver.marcaController,
+          modelloController: driver.modelloController,
+          vinController: driver.vinController,
+          kilometraggioController: driver.kilometraggioController,
+          primaImmatricolazioneController:
+              driver.primaImmatricolazioneController,
           assicurazioneController: driver.assicurazioneController,
+          numeroPolizzaController: driver.numeroPolizzaController,
+          numeroSinistroController: driver.numeroSinistroController,
           telefonoController: driver.telefonoController,
           emailController: driver.emailController,
           fotoLibrettoPath: driver.fotoLibrettoPath,
@@ -8327,6 +8781,10 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           },
           onScanQr: () => _scanDriverQr(driver.driverKey),
           onDelete: () => _removeConducenteAggiuntivo(driver),
+          personalQrImporter: (data) => importDriverQrData(
+            data,
+            DriverTarget.fromKey(driver.driverKey),
+          ),
         ),
       );
     }
@@ -9490,7 +9948,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                   final previewBytes = item.bytes;
                   final status = item.status;
                   debugPrint(
-                      '[DamagePreview] render ${previewBytes != null ? 'bytes' : isUrl ? 'url' : 'file'} $pathStr status=$status');
+                    '[DamagePreview] render ${previewBytes != null ? 'bytes' : isUrl ? 'url' : 'file'} status=$status',
+                  );
                   return AspectRatio(
                     aspectRatio: 4 / 3,
                     child: Stack(
@@ -9850,7 +10309,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
   Future<void> _leggiDatiDaLibretto(String imagePath, String quale) async {
     try {
-      debugPrint('OCR libretto start ($quale) path: $imagePath');
+      debugPrint('OCR libretto start ($quale)');
       final inputImage = InputImage.fromFilePath(imagePath);
       final textRecognizer =
           TextRecognizer(script: TextRecognitionScript.latin);
@@ -9859,8 +10318,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       await textRecognizer.close();
 
       final fullText = recognizedText.text;
-      debugPrint(
-          'OCR libretto ($quale) testo: ${fullText.replaceAll('\n', ' ')}');
+      debugPrint('OCR libretto ($quale) recognition completed');
 
       final targaTrovata = estraiTargaDaTesto(fullText);
       final extra = estraiNomeAssicurazioneIndirizzoDaTesto(
@@ -9873,8 +10331,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       final indirizzoTrovato = extra['indirizzo'];
       final capTrovato = extra['cap'];
       final cittaTrovata = extra['city'];
-      final marcaTrovata = extra['brand'];
-      final modelloTrovato = extra['model'];
 
       // Secondo pass: prova a trovare la targa nei singoli blocchi (più puliti)
       String? targaSecondoPass;
@@ -9883,10 +10339,10 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         if (targaSecondoPass != null) break;
       }
       final targaFinale = targaTrovata ?? targaSecondoPass;
-      debugPrint('Targa OCR ($quale): ${targaFinale ?? 'non trovata'}');
       debugPrint(
-        'OCR dati libretto -> nome: ${nomeTrovato ?? '-'}, cognome: ${cognomeTrovato ?? '-'}, cap: ${capTrovato ?? '-'}, city: ${cittaTrovata ?? '-'}, assicurazione: ${assicurazioneTrovata ?? '-'}, marca: ${marcaTrovata ?? '-'}, modello: ${modelloTrovato ?? '-'}',
+        'OCR libretto ($quale) plateFound=${targaFinale != null}',
       );
+      debugPrint('OCR dati libretto parsed');
 
       final parsed = _applyLibrettoParsedData(
         quale: quale,
@@ -9902,8 +10358,9 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       final campoTarga = quale == 'A'
           ? _targaAController.text.trim()
           : _targaBController.text.trim();
-      debugPrint('Campo targa $quale post OCR: '
-          '${campoTarga.isEmpty ? 'vuoto' : campoTarga}');
+      debugPrint(
+        'Campo targa $quale post OCR populated=${campoTarga.isNotEmpty}',
+      );
 
       final parsedAny = parsed ||
           _hasParsedData(
@@ -9950,8 +10407,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
 
       final fullText = recognizedText.text;
       final targaTrovata = estraiTargaDaTesto(fullText);
-      debugPrint('OCR foto danno testo: ${fullText.replaceAll('\n', ' ')}');
-      debugPrint('Targa da foto danno: ${targaTrovata ?? 'non trovata'}');
+      debugPrint('OCR foto danno recognition completed');
+      debugPrint('Targa da foto danno found=${targaTrovata != null}');
 
       if (!mounted) return;
 
@@ -10311,7 +10768,15 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
                   zip: driver.zipController.text.trim(),
                   city: driver.cityController.text.trim(),
                   targa: driver.targaController.text.trim(),
+                  marca: driver.marcaController.text.trim(),
+                  modello: driver.modelloController.text.trim(),
+                  vin: driver.vinController.text.trim(),
+                  kilometraggio: driver.kilometraggioController.text.trim(),
+                  primaImmatricolazione:
+                      driver.primaImmatricolazioneController.text.trim(),
                   assicurazione: driver.assicurazioneController.text.trim(),
+                  numeroPolizza: driver.numeroPolizzaController.text.trim(),
+                  numeroSinistro: driver.numeroSinistroController.text.trim(),
                   telefono: driver.telefonoController.text.trim(),
                   email: driver.emailController.text.trim(),
                   fotoLibrettoPath: driver.persistedFotoLibrettoReference,
@@ -10328,7 +10793,15 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         nomeA: _nomeAController.text.trim(),
         cognomeA: _cognomeAController.text.trim(),
         targaA: _targaAController.text.trim(),
+        marcaA: _marcaAController.text.trim(),
+        modelloA: _modelloAController.text.trim(),
+        vinA: _vinAController.text.trim(),
+        kilometraggioA: _kilometraggioAController.text.trim(),
+        primaImmatricolazioneA:
+            _primaImmatricolazioneAController.text.trim(),
         assicurazioneA: _assicurazioneAController.text.trim(),
+        numeroPolizzaA: _numeroPolizzaAController.text.trim(),
+        numeroSinistroA: _numeroSinistroAController.text.trim(),
         telefonoA: _telefonoAController.text.trim(),
         emailA: _emailAController.text.trim(),
         indirizzoA: _indirizzoAController.text.trim(),
@@ -10337,7 +10810,15 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         nomeB: _nomeBController.text.trim(),
         cognomeB: _cognomeBController.text.trim(),
         targaB: _targaBController.text.trim(),
+        marcaB: _marcaBController.text.trim(),
+        modelloB: _modelloBController.text.trim(),
+        vinB: _vinBController.text.trim(),
+        kilometraggioB: _kilometraggioBController.text.trim(),
+        primaImmatricolazioneB:
+            _primaImmatricolazioneBController.text.trim(),
         assicurazioneB: _assicurazioneBController.text.trim(),
+        numeroPolizzaB: _numeroPolizzaBController.text.trim(),
+        numeroSinistroB: _numeroSinistroBController.text.trim(),
         telefonoB: _telefonoBController.text.trim(),
         emailB: _emailBController.text.trim(),
         indirizzoB: _indirizzoBController.text.trim(),
@@ -10451,9 +10932,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           deviceId: null,
         );
         debugPrint('[Save] sync upload success');
-      } catch (e, st) {
-        debugPrint('[Save] sync upload skipped/failed: $e');
-        debugPrint('$st');
+      } catch (_) {
+        debugPrint('[Save] sync upload skipped/failed');
       }
 
       if (!mounted) return;
@@ -10464,10 +10944,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
               DettaglioIncidentePage(incidente: incidentWithEmailStatus),
         ),
       );
-    } catch (e, st) {
-      debugPrint('SAVE ERROR TYPE: ${e.runtimeType}');
-      debugPrint('SAVE ERROR: $e');
-      debugPrint('$st');
+    } catch (e) {
+      debugPrint('SAVE ERROR');
       if (nuovo != null && !(await _hasInternetConnection())) {
         final offlineIncident = await _saveIncidentOffline(
           nuovo,
@@ -10701,8 +11179,8 @@ class _StoricoPageState extends State<StoricoPage> {
             incident: Incidente.fromJson(entry.incidentPayload),
           ),
         );
-      } catch (error) {
-        debugPrint('Incident history payload skipped: $error');
+      } catch (_) {
+        debugPrint('Incident history payload skipped');
       }
     }
 
@@ -10743,10 +11221,15 @@ class _StoricoPageState extends State<StoricoPage> {
 
   String _driverSummary(
     String name,
+    String brand,
+    String model,
     String plate,
     String insurance,
   ) {
-    return [name, plate, insurance]
+    final vehicle = [brand, model]
+        .where((value) => value.trim().isNotEmpty)
+        .join(' ');
+    return [name, vehicle, plate, insurance]
         .where((value) => value.trim().isNotEmpty)
         .join(' · ');
   }
@@ -10869,11 +11352,15 @@ class _StoricoPageState extends State<StoricoPage> {
           final dataOra = formatDataOraLocale(context, inc.dataOra);
           final driverA = _driverSummary(
             formatNomeCompleto(inc.nomeA, inc.cognomeA),
+            inc.marcaA,
+            inc.modelloA,
             inc.targaA,
             inc.assicurazioneA,
           );
           final driverB = _driverSummary(
             formatNomeCompleto(inc.nomeB, inc.cognomeB),
+            inc.marcaB,
+            inc.modelloB,
             inc.targaB,
             inc.assicurazioneB,
           );
@@ -10905,6 +11392,18 @@ class _StoricoPageState extends State<StoricoPage> {
                       Text('${l10n.labelDriverA}: $driverA'),
                     if (driverB.isNotEmpty)
                       Text('${l10n.labelDriverB}: $driverB'),
+                    ...inc.conducentiAggiuntivi.map((driver) {
+                      final summary = _driverSummary(
+                        formatNomeCompleto(driver.nome, driver.cognome),
+                        driver.marca,
+                        driver.modello,
+                        driver.targa,
+                        driver.assicurazione,
+                      );
+                      return summary.isEmpty
+                          ? const SizedBox.shrink()
+                          : Text('${driver.driverKey}: $summary');
+                    }),
                     Text(
                       '${l10n.customerIncidentStatusLabel}: '
                       '${_statusLabel(l10n, item.entry)}',
@@ -11169,9 +11668,8 @@ class _QrCarrozzeriaPageState extends State<QrCarrozzeriaPage> {
         _qrData = qrData;
         _loadingQr = false;
       });
-    } catch (e) {
-      debugPrint('QR ERROR TYPE: ${e.runtimeType}');
-      debugPrint('QR ERROR: $e');
+    } catch (_) {
+      debugPrint('QR ERROR: workshop QR load failed');
       if (!mounted) return;
       setState(() {
         _qrError = _qrText(
@@ -11799,6 +12297,119 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     );
   }
 
+  String _detailValueOrDash(String value) {
+    final normalized = value.trim();
+    return normalized.isEmpty ? '-' : normalized;
+  }
+
+  String _detailVehicleName(String brand, String model) {
+    final value = [brand.trim(), model.trim()]
+        .where((part) => part.isNotEmpty)
+        .join(' ');
+    return value.isEmpty ? '-' : value;
+  }
+
+  Widget _buildDriverVehicleDetailCard({
+    required String driverKey,
+    required String firstName,
+    required String lastName,
+    required String brand,
+    required String model,
+    required String plate,
+    required String insurance,
+    required String policyNumber,
+    required String vin,
+    required String mileage,
+    required String firstRegistration,
+    required String claimNumber,
+  }) {
+    final name = _detailVehicleName(firstName, lastName);
+    final vehicle = _detailVehicleName(brand, model);
+    final compact = [
+      name,
+      vehicle,
+      _detailValueOrDash(plate),
+      _detailValueOrDash(insurance),
+    ].join(' · ');
+
+    Widget valueLine(String label, String value) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 5),
+        child: Text(
+          '$label: ${_detailValueOrDash(value)}',
+          style: const TextStyle(
+            fontSize: 12,
+            color: Color(0xFF475569),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      key: Key('incident-detail-driver-$driverKey'),
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${_detailText(it: 'Conducente', de: 'Fahrer', fr: 'Conducteur', en: 'Driver')} $driverKey',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(compact),
+          valueLine(
+            _detailText(
+              it: 'Numero polizza',
+              de: 'Policennummer',
+              fr: 'Numéro de police',
+              en: 'Policy number',
+            ),
+            policyNumber,
+          ),
+          if (vin.trim().isNotEmpty)
+            valueLine('VIN', vin),
+          if (mileage.trim().isNotEmpty)
+            valueLine(
+              _detailText(
+                it: 'Chilometraggio',
+                de: 'Kilometerstand',
+                fr: 'Kilométrage',
+                en: 'Mileage',
+              ),
+              mileage,
+            ),
+          if (firstRegistration.trim().isNotEmpty)
+            valueLine(
+              _detailText(
+                it: 'Prima immatricolazione',
+                de: 'Erstzulassung',
+                fr: 'Première immatriculation',
+                en: 'First registration',
+              ),
+              firstRegistration,
+            ),
+          if (claimNumber.trim().isNotEmpty)
+            valueLine(
+              _detailText(
+                it: 'Numero sinistro',
+                de: 'Schadennummer',
+                fr: 'Numéro de sinistre',
+                en: 'Claim number',
+              ),
+              claimNumber,
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSoftInfoBox({
     required IconData icon,
     required String title,
@@ -11848,7 +12459,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
   }
 
   Future<void> _retryPendingSync() async {
-    debugPrint('EMAIL RETRY START: claimId=${incidente.id}');
+    debugPrint('EMAIL RETRY START');
     final existingEntry = await _findPendingSyncEntry(incidente.id);
     if (existingEntry != null) {
       await _upsertPendingSyncEntry({
@@ -11870,11 +12481,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     } else {
       await _sendCidAutomatically(incidente.id);
     }
-    debugPrint(
-      'EMAIL RETRY RESULT: '
-      'status=${incidente.emailSendStatus} '
-      'message=${incidente.emailSendMessage}',
-    );
+    debugPrint('EMAIL RETRY RESULT: status=${incidente.emailSendStatus}');
   }
 
   Uint8List? _decodeBase64Image(String data) {
@@ -12295,6 +12902,27 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       return value ? yesLabel : noLabel;
     }
 
+    String pdfVehicleText({
+      required String it,
+      required String de,
+      required String fr,
+      required String en,
+    }) {
+      return switch (langCode) {
+        'it' => it,
+        'fr' => fr,
+        'en' => en,
+        _ => de,
+      };
+    }
+
+    String vehicleName(String brand, String model) {
+      final value = [brand.trim(), model.trim()]
+          .where((part) => part.isNotEmpty)
+          .join(' ');
+      return value.isEmpty ? '-' : value;
+    }
+
     String responsabilitaPdf;
     switch (incidente.colpevole) {
       case 'A':
@@ -12368,6 +12996,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     pw.Widget driverCard({
       required String title,
       required String name,
+      required String vehicle,
       required String plate,
       required String insuranceLabel,
       required String insuranceValue,
@@ -12377,14 +13006,68 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       required String emailValue,
       required String addressLabel,
       required String addressValue,
+      required String policyNumber,
+      required String vin,
+      required String mileage,
+      required String firstRegistration,
+      required String claimNumber,
     }) {
       return sectionBox(
         title: title,
         background: PdfColors.grey100,
         children: [
           detailLine(txStatic('Nome'), name),
+          detailLine(
+            pdfVehicleText(
+              it: 'Veicolo',
+              de: 'Fahrzeug',
+              fr: 'Véhicule',
+              en: 'Vehicle',
+            ),
+            vehicle,
+          ),
           detailLine(txStatic('Targa'), plate),
           detailLine(insuranceLabel, insuranceValue),
+          detailLine(
+            pdfVehicleText(
+              it: 'Numero polizza',
+              de: 'Policennummer',
+              fr: 'Numéro de police',
+              en: 'Policy number',
+            ),
+            policyNumber,
+          ),
+          if (vin.trim().isNotEmpty) detailLine('VIN', vin),
+          if (mileage.trim().isNotEmpty)
+            detailLine(
+              pdfVehicleText(
+                it: 'Chilometraggio',
+                de: 'Kilometerstand',
+                fr: 'Kilométrage',
+                en: 'Mileage',
+              ),
+              mileage,
+            ),
+          if (firstRegistration.trim().isNotEmpty)
+            detailLine(
+              pdfVehicleText(
+                it: 'Prima immatricolazione',
+                de: 'Erstzulassung',
+                fr: 'Première immatriculation',
+                en: 'First registration',
+              ),
+              firstRegistration,
+            ),
+          if (claimNumber.trim().isNotEmpty)
+            detailLine(
+              pdfVehicleText(
+                it: 'Numero sinistro',
+                de: 'Schadennummer',
+                fr: 'Numéro de sinistre',
+                en: 'Claim number',
+              ),
+              claimNumber,
+            ),
           detailLine(phoneLabel, phoneValue),
           detailLine(emailLabel, emailValue),
           detailLine(addressLabel, addressValue),
@@ -12545,6 +13228,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                   child: driverCard(
                     title: l10n.pdfDriverA,
                     name: driverAName,
+                    vehicle: vehicleName(incidente.marcaA, incidente.modelloA),
                     plate: incidente.targaA.isEmpty ? '-' : incidente.targaA,
                     insuranceLabel: insuranceALabel,
                     insuranceValue: incidente.assicurazioneA.isEmpty
@@ -12559,6 +13243,13 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                     addressLabel: driverAAddressLabel,
                     addressValue:
                         indirizzoACompleto.isEmpty ? '-' : indirizzoACompleto,
+                    policyNumber: incidente.numeroPolizzaA.isEmpty
+                        ? '-'
+                        : incidente.numeroPolizzaA,
+                    vin: incidente.vinA,
+                    mileage: incidente.kilometraggioA,
+                    firstRegistration: incidente.primaImmatricolazioneA,
+                    claimNumber: incidente.numeroSinistroA,
                   ),
                 ),
                 pw.SizedBox(width: 12),
@@ -12566,6 +13257,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                   child: driverCard(
                     title: l10n.pdfDriverB,
                     name: driverBName,
+                    vehicle: vehicleName(incidente.marcaB, incidente.modelloB),
                     plate: incidente.targaB.isEmpty ? '-' : incidente.targaB,
                     insuranceLabel: insuranceBLabel,
                     insuranceValue: incidente.assicurazioneB.isEmpty
@@ -12580,7 +13272,63 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                     addressLabel: driverBAddressLabel,
                     addressValue:
                         indirizzoBCompleto.isEmpty ? '-' : indirizzoBCompleto,
+                    policyNumber: incidente.numeroPolizzaB.isEmpty
+                        ? '-'
+                        : incidente.numeroPolizzaB,
+                    vin: incidente.vinB,
+                    mileage: incidente.kilometraggioB,
+                    firstRegistration: incidente.primaImmatricolazioneB,
+                    claimNumber: incidente.numeroSinistroB,
                   ),
+                ),
+              ],
+            ),
+            ...incidente.conducentiAggiuntivi.expand(
+              (driver) => <pw.Widget>[
+                pw.SizedBox(height: 12),
+                driverCard(
+                  title:
+                      '${pdfVehicleText(it: 'Conducente', de: 'Fahrer', fr: 'Conducteur', en: 'Driver')} ${driver.driverKey}',
+                  name: formatNomeCompleto(driver.nome, driver.cognome),
+                  vehicle: vehicleName(driver.marca, driver.modello),
+                  plate: driver.targa.isEmpty ? '-' : driver.targa,
+                  insuranceLabel: pdfVehicleText(
+                    it: 'Assicurazione',
+                    de: 'Versicherung',
+                    fr: 'Assurance',
+                    en: 'Insurance',
+                  ),
+                  insuranceValue: driver.assicurazione.isEmpty
+                      ? '-'
+                      : driver.assicurazione,
+                  phoneLabel: pdfVehicleText(
+                    it: 'Telefono',
+                    de: 'Telefon',
+                    fr: 'Téléphone',
+                    en: 'Phone',
+                  ),
+                  phoneValue:
+                      driver.telefono.isEmpty ? '-' : driver.telefono,
+                  emailLabel: 'Email',
+                  emailValue: driver.email.isEmpty ? '-' : driver.email,
+                  addressLabel: pdfVehicleText(
+                    it: 'Indirizzo',
+                    de: 'Adresse',
+                    fr: 'Adresse',
+                    en: 'Address',
+                  ),
+                  addressValue: formatFullAddress(
+                    driver.indirizzo,
+                    driver.zip,
+                    driver.city,
+                  ),
+                  policyNumber: driver.numeroPolizza.isEmpty
+                      ? '-'
+                      : driver.numeroPolizza,
+                  vin: driver.vin,
+                  mileage: driver.kilometraggio,
+                  firstRegistration: driver.primaImmatricolazione,
+                  claimNumber: driver.numeroSinistro,
                 ),
               ],
             ),
@@ -12739,13 +13487,27 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       return joined.isEmpty ? '-' : joined;
     }
 
-    String driverSummary(
-        String label, String nome, String cognome, String plate) {
-      final full = fullName(nome, cognome);
-      final plateValue = valueOrDash(plate);
-      return plateValue == '-'
-          ? '$label: $full'
-          : '$label: $full (${_detailText(it: 'Targa', de: 'Kennzeichen', fr: 'Plaque', en: 'Plate')}: $plateValue)';
+    String driverBlock({
+      required String label,
+      required String nome,
+      required String cognome,
+      required String brand,
+      required String model,
+      required String plate,
+      required String insurance,
+      required String policyNumber,
+    }) {
+      final vehicle = [brand.trim(), model.trim()]
+          .where((part) => part.isNotEmpty)
+          .join(' ');
+      return [
+        label,
+        '${_detailText(it: 'Nome', de: 'Name', fr: 'Nom', en: 'Name')}: ${fullName(nome, cognome)}',
+        '${_detailText(it: 'Veicolo', de: 'Fahrzeug', fr: 'Véhicule', en: 'Vehicle')}: ${valueOrDash(vehicle)}',
+        '${_detailText(it: 'Targa', de: 'Kennzeichen', fr: 'Plaque', en: 'Plate')}: ${valueOrDash(plate)}',
+        '${_detailText(it: 'Assicurazione', de: 'Versicherung', fr: 'Assurance', en: 'Insurance')}: ${valueOrDash(insurance)}',
+        '${_detailText(it: 'Polizza', de: 'Police', fr: 'Police', en: 'Policy')}: ${valueOrDash(policyNumber)}',
+      ].join('\n');
     }
 
     final lang = normalizeLang(Localizations.localeOf(context).languageCode);
@@ -12843,18 +13605,45 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       ..writeln('$dateTimeLabel: $dataOra')
       ..writeln('$placeLabel: ${valueOrDash(incidente.luogo)}')
       ..writeln()
-      ..writeln(driverSummary(
-        driverALabel,
-        incidente.nomeA,
-        incidente.cognomeA,
-        incidente.targaA,
+      ..writeln(driverBlock(
+        label: driverALabel,
+        nome: incidente.nomeA,
+        cognome: incidente.cognomeA,
+        brand: incidente.marcaA,
+        model: incidente.modelloA,
+        plate: incidente.targaA,
+        insurance: incidente.assicurazioneA,
+        policyNumber: incidente.numeroPolizzaA,
       ))
-      ..writeln(driverSummary(
-        driverBLabel,
-        incidente.nomeB,
-        incidente.cognomeB,
-        incidente.targaB,
-      ))
+      ..writeln()
+      ..writeln(driverBlock(
+        label: driverBLabel,
+        nome: incidente.nomeB,
+        cognome: incidente.cognomeB,
+        brand: incidente.marcaB,
+        model: incidente.modelloB,
+        plate: incidente.targaB,
+        insurance: incidente.assicurazioneB,
+        policyNumber: incidente.numeroPolizzaB,
+      ));
+
+    for (final driver in incidente.conducentiAggiuntivi) {
+      body
+        ..writeln()
+        ..writeln(driverBlock(
+          label:
+              '${_detailText(it: 'Conducente', de: 'Fahrer', fr: 'Conducteur', en: 'Driver')} ${driver.driverKey}',
+          nome: driver.nome,
+          cognome: driver.cognome,
+          brand: driver.marca,
+          model: driver.modello,
+          plate: driver.targa,
+          insurance: driver.assicurazione,
+          policyNumber: driver.numeroPolizza,
+        ));
+    }
+
+    body
       ..writeln()
       ..writeln(pdfNote)
       ..writeln()
@@ -12866,6 +13655,14 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       'subject': subject,
       'body': body.toString(),
     };
+  }
+
+  Future<Uint8List> buildIncidentPdfBytesForTesting() {
+    return _buildIncidentPdfBytes();
+  }
+
+  Map<String, String> buildLocalizedCidEmailContentForTesting() {
+    return _buildLocalizedCidEmailContent();
   }
 
   Future<void> _shareIncidentPdfAndPhotos() async {
@@ -12890,18 +13687,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       final damageLinks =
           incidente.fotoDanni.where(_isValidUrl).map((e) => e.trim()).toList();
 
-      for (final url in librettoUrls) {
-        debugPrint('EMAIL URL CHECK: $url');
-        debugPrint('EMAIL URL VALID: ${_isValidUrl(url)}');
-      }
-      for (final url in damageLinks) {
-        debugPrint('EMAIL URL CHECK: $url');
-        debugPrint('EMAIL URL VALID: ${_isValidUrl(url)}');
-      }
+      debugPrint('EMAIL LIBRETTO URL COUNT: ${librettoUrls.length}');
       debugPrint('EMAIL BODY DAMAGE COUNT: ${damageLinks.length}');
-      for (final url in damageLinks) {
-        debugPrint('EMAIL BODY DAMAGE URL: $url');
-      }
       final shareText = emailContent['body']!;
       final shareSubject = emailContent['subject']!;
 
@@ -12910,7 +13697,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       debugPrint('SHARE STEP 2b: pdf bytes=${pdfBytes.length}');
       debugPrint('ATTACH STEP 1: build pdf');
       debugPrint(
-          'ATTACH FILE READY: name=$pdfFileName mime=application/pdf size=${pdfBytes.length}');
+        'ATTACH FILE READY: mime=application/pdf size=${pdfBytes.length}',
+      );
 
       debugPrint('ATTACH STEP 2: collect libretto photos');
       final librettoPaths = <String>[
@@ -12923,7 +13711,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         for (final p in librettoPaths) {
           try {
             if (p.startsWith('http')) {
-              debugPrint('DOWNLOAD ATTACH START: $p');
+              debugPrint('DOWNLOAD ATTACH START');
               final resp = await http.get(Uri.parse(p));
               if (resp.statusCode == 200 && resp.bodyBytes.isNotEmpty) {
                 webLibrettoFiles.add(WebShareFile(
@@ -12932,17 +13720,19 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                   mimeType: 'image/jpeg',
                 ));
                 debugPrint(
-                    'DOWNLOAD ATTACH OK: $p bytes=${resp.bodyBytes.length}');
+                  'DOWNLOAD ATTACH OK: bytes=${resp.bodyBytes.length}',
+                );
                 debugPrint(
                     'ATTACH FILE READY: name=libretto_$idx.jpg mime=image/jpeg size=${resp.bodyBytes.length}');
                 idx++;
               } else {
                 debugPrint(
-                    'DOWNLOAD ATTACH FAIL: $p status=${resp.statusCode}');
+                  'DOWNLOAD ATTACH FAIL: status=${resp.statusCode}',
+                );
               }
             }
-          } catch (e) {
-            debugPrint('DOWNLOAD ATTACH FAIL: $p error=$e');
+          } catch (_) {
+            debugPrint('DOWNLOAD ATTACH FAIL');
           }
         }
       }
@@ -12955,20 +13745,22 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       int skipCount = 0;
       for (final url in damageUrls) {
         try {
-          debugPrint('DOWNLOAD ATTACH START: $url');
+          debugPrint('DOWNLOAD ATTACH START');
           final resp = await http.get(Uri.parse(url));
           if (resp.statusCode == 200 && resp.bodyBytes.isNotEmpty) {
             damagePhotosBytes.add(resp.bodyBytes);
             debugPrint(
-                'DOWNLOAD ATTACH OK: $url bytes=${resp.bodyBytes.length}');
+              'DOWNLOAD ATTACH OK: bytes=${resp.bodyBytes.length}',
+            );
           } else {
             skipCount++;
             debugPrint(
-                'DOWNLOAD ATTACH FAIL: $url status=${resp.statusCode} bytes=${resp.bodyBytes.length}');
+              'DOWNLOAD ATTACH FAIL: status=${resp.statusCode} bytes=${resp.bodyBytes.length}',
+            );
           }
-        } catch (e) {
+        } catch (_) {
           skipCount++;
-          debugPrint('DOWNLOAD ATTACH FAIL: $url error=$e');
+          debugPrint('DOWNLOAD ATTACH FAIL');
         }
       }
       debugPrint('ATTACHMENTS INCLUDED: ${damagePhotosBytes.length}');
@@ -13005,7 +13797,7 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
             'WEB SHARE navigator.share available: ${webNavigatorShareAvailable()}');
         debugPrint('WEB SHARE files count: 1');
         debugPrint('WEB SHARE PDF BYTES: ${pdfBytes.length}');
-        debugPrint('WEB SHARE FILE NAME: ${pdfWebFile.fileName}');
+        debugPrint('WEB SHARE PDF READY');
 
         final firstDamageOnly = webDamageFiles.isNotEmpty
             ? [webDamageFiles.first]
@@ -13043,7 +13835,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
               'WEB SHARE TRY $tryLabel (${attemptDescriptions[i]}): set size=${files.length}');
           for (final f in files) {
             debugPrint(
-                'ATTACH FILE READY: name=${f.fileName} mime=${f.mimeType} size=${f.bytes.length}');
+              'ATTACH FILE READY: mime=${f.mimeType} size=${f.bytes.length}',
+            );
           }
           try {
             shared = await shareFilesWeb(
@@ -13060,9 +13853,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
               }
               return;
             }
-          } catch (e, st) {
-            debugPrint('WEB SHARE TRY $tryLabel FAILED: $e');
-            debugPrint('$st');
+          } catch (_) {
+            debugPrint('WEB SHARE TRY $tryLabel FAILED');
           }
         }
 
@@ -13112,10 +13904,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
               librettoAdded++;
             }
           }
-        } catch (e, st) {
-          debugPrint('ATTACH ERROR TYPE: ${e.runtimeType}');
-          debugPrint('ATTACH ERROR: $e');
-          debugPrint('$st');
+        } catch (_) {
+          debugPrint('ATTACH ERROR');
         }
       }
 
@@ -13167,12 +13957,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
           ),
         );
       }
-    } catch (e, st) {
-      debugPrint('SHARE ERROR TYPE: ${e.runtimeType}');
-      debugPrint('SHARE ERROR: $e');
-      debugPrint('$st');
-      debugPrint('SHARE BUTTON ERROR TYPE: ${e.runtimeType}');
-      debugPrint('SHARE BUTTON ERROR: $e');
+    } catch (_) {
+      debugPrint('SHARE ERROR');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -13283,21 +14069,13 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         incidente = workingIncident;
       }
 
-      final availableContacts = {
-        'emailA': workingIncident.emailA.trim(),
-        'emailB': workingIncident.emailB.trim(),
-        'officinaEmail': configOfficina.concessionariaEmail.trim(),
-        'assicurazioneA': workingIncident.assicurazioneA.trim(),
-        'assicurazioneB': workingIncident.assicurazioneB.trim(),
-      };
       final recipients = _collectSendRecipients(
         emailA: workingIncident.emailA,
         emailB: workingIncident.emailB,
       );
-      debugPrint('SEND CONTACTS AVAILABLE: ${jsonEncode(availableContacts)}');
-      debugPrint('SEND RECIPIENTS FINAL: $recipients');
+      debugPrint('SEND RECIPIENTS COUNT: ${recipients.length}');
       if (recipients.isEmpty) {
-        debugPrint('SEND SKIPPED NO EMAIL: claimId=$realClaimId');
+        debugPrint('SEND SKIPPED NO EMAIL');
         workingIncident = await _persistIncidentEmailSendState(
           workingIncident,
           status: 'skipped',
@@ -13340,9 +14118,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       } else {
         incidente = workingIncident;
       }
-    } catch (e, st) {
-      debugPrint('[CIDEmail] error full $e');
-      debugPrint('$st');
+    } catch (_) {
+      debugPrint('[CIDEmail] send failed');
       final offline = !await _hasInternetConnection();
       final updatedIncident = await _persistIncidentEmailSendState(
         incidente,
@@ -13385,13 +14162,6 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
   Future<void> _invioEmailPrecompilata() async {
     debugPrint('MAIL STEP 1: collect recipients');
     final emailContent = _buildLocalizedCidEmailContent();
-    final availableContacts = {
-      'emailA': incidente.emailA.trim(),
-      'emailB': incidente.emailB.trim(),
-      'officinaEmail': configOfficina.concessionariaEmail.trim(),
-      'assicurazioneA': incidente.assicurazioneA.trim(),
-      'assicurazioneB': incidente.assicurazioneB.trim(),
-    };
     final recipients = _collectSendRecipients(
       emailA: incidente.emailA,
       emailB: incidente.emailB,
@@ -13401,10 +14171,9 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         incidente.assicurazioneB,
       ],
     );
-    debugPrint('SEND CONTACTS AVAILABLE: ${jsonEncode(availableContacts)}');
-    debugPrint('SEND RECIPIENTS FINAL: $recipients');
+    debugPrint('SEND RECIPIENTS COUNT: ${recipients.length}');
     if (recipients.isEmpty) {
-      debugPrint('SEND SKIPPED NO EMAIL: claimId=${incidente.id}');
+      debugPrint('SEND SKIPPED NO EMAIL');
     }
 
     final subject = Uri.encodeComponent(emailContent['subject']!);
@@ -13413,10 +14182,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     Uint8List pdfBytes;
     try {
       pdfBytes = await _buildIncidentPdfBytes();
-    } catch (e, st) {
-      debugPrint('MAIL ERROR TYPE: ${e.runtimeType}');
-      debugPrint('MAIL ERROR: $e');
-      debugPrint('$st');
+    } catch (_) {
+      debugPrint('MAIL ERROR');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -13498,10 +14265,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
           ),
         );
       }
-    } catch (e, st) {
-      debugPrint('MAIL ERROR TYPE: ${e.runtimeType}');
-      debugPrint('MAIL ERROR: $e');
-      debugPrint('$st');
+    } catch (_) {
+      debugPrint('MAIL ERROR');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -13545,6 +14310,13 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       cognomeA: incidente.cognomeA,
       targaA: incidente.targaA,
       assicurazioneA: incidente.assicurazioneA,
+      marcaA: incidente.marcaA,
+      modelloA: incidente.modelloA,
+      vinA: incidente.vinA,
+      kilometraggioA: incidente.kilometraggioA,
+      primaImmatricolazioneA: incidente.primaImmatricolazioneA,
+      numeroPolizzaA: incidente.numeroPolizzaA,
+      numeroSinistroA: incidente.numeroSinistroA,
       telefonoA: incidente.telefonoA,
       emailA: incidente.emailA,
       indirizzoA: incidente.indirizzoA,
@@ -13554,6 +14326,13 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       cognomeB: incidente.cognomeB,
       targaB: incidente.targaB,
       assicurazioneB: incidente.assicurazioneB,
+      marcaB: incidente.marcaB,
+      modelloB: incidente.modelloB,
+      vinB: incidente.vinB,
+      kilometraggioB: incidente.kilometraggioB,
+      primaImmatricolazioneB: incidente.primaImmatricolazioneB,
+      numeroPolizzaB: incidente.numeroPolizzaB,
+      numeroSinistroB: incidente.numeroSinistroB,
       telefonoB: incidente.telefonoB,
       emailB: incidente.emailB,
       indirizzoB: incidente.indirizzoB,
@@ -13624,6 +14403,13 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         cognomeA: incidente.cognomeA,
         targaA: incidente.targaA,
         assicurazioneA: incidente.assicurazioneA,
+        marcaA: incidente.marcaA,
+        modelloA: incidente.modelloA,
+        vinA: incidente.vinA,
+        kilometraggioA: incidente.kilometraggioA,
+        primaImmatricolazioneA: incidente.primaImmatricolazioneA,
+        numeroPolizzaA: incidente.numeroPolizzaA,
+        numeroSinistroA: incidente.numeroSinistroA,
         telefonoA: incidente.telefonoA,
         emailA: incidente.emailA,
         indirizzoA: incidente.indirizzoA,
@@ -13633,6 +14419,13 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
         cognomeB: incidente.cognomeB,
         targaB: incidente.targaB,
         assicurazioneB: incidente.assicurazioneB,
+        marcaB: incidente.marcaB,
+        modelloB: incidente.modelloB,
+        vinB: incidente.vinB,
+        kilometraggioB: incidente.kilometraggioB,
+        primaImmatricolazioneB: incidente.primaImmatricolazioneB,
+        numeroPolizzaB: incidente.numeroPolizzaB,
+        numeroSinistroB: incidente.numeroSinistroB,
         telefonoB: incidente.telefonoB,
         emailB: incidente.emailB,
         indirizzoB: incidente.indirizzoB,
@@ -13673,7 +14466,6 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       try {
         debugPrint('SIGNATURE SAVE START');
         debugPrint('SIGNATURE SIZE: ${result.base64Data.length}');
-        debugPrint('INCIDENT ID: ${incidente.id}');
 
         final client = Supabase.instance.client;
         await client
@@ -13688,9 +14480,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                     'timestampFirmaB': result.timestampUtcIso,
                   })
             .eq('id', incidente.id);
-      } catch (e, st) {
-        debugPrint('SIGNATURE SAVE ERROR: $e');
-        debugPrint('$st');
+      } catch (_) {
+        debugPrint('SIGNATURE SAVE ERROR');
       }
 
       final index = incidentiSalvati.indexWhere((e) => e.id == incidente.id);
@@ -14022,6 +14813,88 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                         backgroundColor: const Color(0xFFEFF6FF),
                         foregroundColor: const Color(0xFF1D4ED8),
                       ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            Card(
+              key: const Key('incident-detail-driver-vehicles'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 1,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.people_alt_outlined,
+                            color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Text(
+                          _detailText(
+                            it: 'Conducenti e veicoli',
+                            de: 'Fahrer und Fahrzeuge',
+                            fr: 'Conducteurs et véhicules',
+                            en: 'Drivers and vehicles',
+                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDriverVehicleDetailCard(
+                      driverKey: 'A',
+                      firstName: incidente.nomeA,
+                      lastName: incidente.cognomeA,
+                      brand: incidente.marcaA,
+                      model: incidente.modelloA,
+                      plate: incidente.targaA,
+                      insurance: incidente.assicurazioneA,
+                      policyNumber: incidente.numeroPolizzaA,
+                      vin: incidente.vinA,
+                      mileage: incidente.kilometraggioA,
+                      firstRegistration: incidente.primaImmatricolazioneA,
+                      claimNumber: incidente.numeroSinistroA,
+                    ),
+                    _buildDriverVehicleDetailCard(
+                      driverKey: 'B',
+                      firstName: incidente.nomeB,
+                      lastName: incidente.cognomeB,
+                      brand: incidente.marcaB,
+                      model: incidente.modelloB,
+                      plate: incidente.targaB,
+                      insurance: incidente.assicurazioneB,
+                      policyNumber: incidente.numeroPolizzaB,
+                      vin: incidente.vinB,
+                      mileage: incidente.kilometraggioB,
+                      firstRegistration: incidente.primaImmatricolazioneB,
+                      claimNumber: incidente.numeroSinistroB,
+                    ),
+                    ...incidente.conducentiAggiuntivi.map(
+                      (driver) => _buildDriverVehicleDetailCard(
+                        driverKey: driver.driverKey,
+                        firstName: driver.nome,
+                        lastName: driver.cognome,
+                        brand: driver.marca,
+                        model: driver.modello,
+                        plate: driver.targa,
+                        insurance: driver.assicurazione,
+                        policyNumber: driver.numeroPolizza,
+                        vin: driver.vin,
+                        mileage: driver.kilometraggio,
+                        firstRegistration: driver.primaImmatricolazione,
+                        claimNumber: driver.numeroSinistro,
+                      ),
+                    ),
                   ],
                 ),
               ),

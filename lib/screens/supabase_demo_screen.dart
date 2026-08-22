@@ -254,7 +254,7 @@ class _SupabaseDemoScreenState extends State<SupabaseDemoScreen> {
       }
       await _openClaimFromToken(token);
     } catch (e, _) {
-      debugPrint('QR import error: ${e.toString()}');
+      debugPrint('QR import error');
       if (mounted) {
         _showSnack('Errore import QR: ${e.toString()}');
       }
@@ -291,8 +291,7 @@ class _SupabaseDemoScreenState extends State<SupabaseDemoScreen> {
       }
 
       if (kDebugMode) {
-        debugPrint(
-            'claim ${result.claimId} payload keys: ${payloadMap.keys.join(",")}');
+        debugPrint('Claim payload loaded');
       }
 
       await _supabaseService.markClaimAsInLavorazioneIfWorkshop(result.claimId);
@@ -312,14 +311,13 @@ class _SupabaseDemoScreenState extends State<SupabaseDemoScreen> {
       final inc = Incidente.fromJson(payloadMap);
 
       if (kDebugMode) {
-        debugPrint(
-            'claim ${result.claimId} parsed nomeA=${inc.nomeA}, telA=${inc.telefonoA}');
+        debugPrint('Claim payload parsed');
       }
 
       if (!mounted) return;
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => _ImportedClaimDetailPage(incidente: inc),
+          builder: (_) => WorkshopImportedClaimDetailPage(incidente: inc),
         ),
       );
 
@@ -587,10 +585,58 @@ class _SupabaseDemoScreenState extends State<SupabaseDemoScreen> {
   }
 }
 
-class _ImportedClaimDetailPage extends StatelessWidget {
+class WorkshopImportedClaimDetailPage extends StatelessWidget {
   final Incidente incidente;
 
-  const _ImportedClaimDetailPage({required this.incidente});
+  const WorkshopImportedClaimDetailPage({
+    super.key,
+    required this.incidente,
+  });
+
+  String _valueOrDash(String value) {
+    final normalized = value.trim();
+    return normalized.isEmpty ? '-' : normalized;
+  }
+
+  Widget _driverCard({
+    required String driverKey,
+    required String firstName,
+    required String lastName,
+    required String brand,
+    required String model,
+    required String plate,
+    required String insurance,
+    required String policyNumber,
+  }) {
+    final name = [firstName.trim(), lastName.trim()]
+        .where((part) => part.isNotEmpty)
+        .join(' ');
+    final vehicle = [brand.trim(), model.trim()]
+        .where((part) => part.isNotEmpty)
+        .join(' ');
+    return Card(
+      key: Key('workshop-claim-driver-$driverKey'),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Conducente $driverKey',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${_valueOrDash(name)} · ${_valueOrDash(vehicle)} · '
+              '${_valueOrDash(plate)} · ${_valueOrDash(insurance)}',
+            ),
+            const SizedBox(height: 6),
+            Text('Polizza: ${_valueOrDash(policyNumber)}'),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -601,13 +647,37 @@ class _ImportedClaimDetailPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          ListTile(
-            title: const Text('Targa A'),
-            subtitle: Text(incidente.targaA.isEmpty ? '-' : incidente.targaA),
+          _driverCard(
+            driverKey: 'A',
+            firstName: incidente.nomeA,
+            lastName: incidente.cognomeA,
+            brand: incidente.marcaA,
+            model: incidente.modelloA,
+            plate: incidente.targaA,
+            insurance: incidente.assicurazioneA,
+            policyNumber: incidente.numeroPolizzaA,
           ),
-          ListTile(
-            title: const Text('Targa B'),
-            subtitle: Text(incidente.targaB.isEmpty ? '-' : incidente.targaB),
+          _driverCard(
+            driverKey: 'B',
+            firstName: incidente.nomeB,
+            lastName: incidente.cognomeB,
+            brand: incidente.marcaB,
+            model: incidente.modelloB,
+            plate: incidente.targaB,
+            insurance: incidente.assicurazioneB,
+            policyNumber: incidente.numeroPolizzaB,
+          ),
+          ...incidente.conducentiAggiuntivi.map(
+            (driver) => _driverCard(
+              driverKey: driver.driverKey,
+              firstName: driver.nome,
+              lastName: driver.cognome,
+              brand: driver.marca,
+              model: driver.modello,
+              plate: driver.targa,
+              insurance: driver.assicurazione,
+              policyNumber: driver.numeroPolizza,
+            ),
           ),
           ListTile(
             title: const Text('Luogo'),

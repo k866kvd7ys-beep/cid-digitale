@@ -46,6 +46,69 @@ class Ferito {
   }
 }
 
+class ConducenteAggiuntivo {
+  const ConducenteAggiuntivo({
+    required this.driverKey,
+    required this.nome,
+    required this.cognome,
+    required this.targa,
+    required this.assicurazione,
+    this.marca = '',
+    this.modello = '',
+    this.vin = '',
+    this.kilometraggio = '',
+    this.primaImmatricolazione = '',
+    this.numeroPolizza = '',
+    this.numeroSinistro = '',
+  });
+
+  final String driverKey;
+  final String nome;
+  final String cognome;
+  final String targa;
+  final String assicurazione;
+  final String marca;
+  final String modello;
+  final String vin;
+  final String kilometraggio;
+  final String primaImmatricolazione;
+  final String numeroPolizza;
+  final String numeroSinistro;
+
+  Map<String, dynamic> toJson() => {
+        'driverKey': driverKey,
+        'nome': nome,
+        'cognome': cognome,
+        'targa': targa,
+        'assicurazione': assicurazione,
+        'marca': marca,
+        'modello': modello,
+        'vin': vin,
+        'kilometraggio': kilometraggio,
+        'primaImmatricolazione': primaImmatricolazione,
+        'numeroPolizza': numeroPolizza,
+        'numeroSinistro': numeroSinistro,
+      };
+
+  factory ConducenteAggiuntivo.fromJson(Map<String, dynamic> json) {
+    String read(String key) => json[key]?.toString().trim() ?? '';
+    return ConducenteAggiuntivo(
+      driverKey: read('driverKey'),
+      nome: read('nome'),
+      cognome: read('cognome'),
+      targa: read('targa'),
+      assicurazione: read('assicurazione'),
+      marca: read('marca'),
+      modello: read('modello'),
+      vin: read('vin'),
+      kilometraggio: read('kilometraggio'),
+      primaImmatricolazione: read('primaImmatricolazione'),
+      numeroPolizza: read('numeroPolizza'),
+      numeroSinistro: read('numeroSinistro'),
+    );
+  }
+}
+
 class FirmaResult {
   final String path;
   final String timestampUtcIso;
@@ -65,6 +128,13 @@ class Incidente {
   final String cognomeA;
   final String targaA;
   final String assicurazioneA;
+  final String marcaA;
+  final String modelloA;
+  final String vinA;
+  final String kilometraggioA;
+  final String primaImmatricolazioneA;
+  final String numeroPolizzaA;
+  final String numeroSinistroA;
 
   final String telefonoA;
   final String emailA;
@@ -74,6 +144,13 @@ class Incidente {
   final String cognomeB;
   final String targaB;
   final String assicurazioneB;
+  final String marcaB;
+  final String modelloB;
+  final String vinB;
+  final String kilometraggioB;
+  final String primaImmatricolazioneB;
+  final String numeroPolizzaB;
+  final String numeroSinistroB;
 
   final String telefonoB;
   final String emailB;
@@ -85,6 +162,7 @@ class Incidente {
 
   final List<Testimone> testimoni;
   final List<Ferito> feriti;
+  final List<ConducenteAggiuntivo> conducentiAggiuntivi;
 
   final String notaVocaleA;
   final String notaVocaleB;
@@ -115,6 +193,13 @@ class Incidente {
     required this.cognomeA,
     required this.targaA,
     required this.assicurazioneA,
+    this.marcaA = '',
+    this.modelloA = '',
+    this.vinA = '',
+    this.kilometraggioA = '',
+    this.primaImmatricolazioneA = '',
+    this.numeroPolizzaA = '',
+    this.numeroSinistroA = '',
     required this.telefonoA,
     required this.emailA,
     required this.indirizzoA,
@@ -122,6 +207,13 @@ class Incidente {
     required this.cognomeB,
     required this.targaB,
     required this.assicurazioneB,
+    this.marcaB = '',
+    this.modelloB = '',
+    this.vinB = '',
+    this.kilometraggioB = '',
+    this.primaImmatricolazioneB = '',
+    this.numeroPolizzaB = '',
+    this.numeroSinistroB = '',
     required this.telefonoB,
     required this.emailB,
     required this.indirizzoB,
@@ -130,6 +222,7 @@ class Incidente {
     required this.danniVeicoloB,
     required this.testimoni,
     required this.feriti,
+    this.conducentiAggiuntivi = const [],
     required this.notaVocaleA,
     required this.notaVocaleB,
     required this.notaAudioAPath,
@@ -153,14 +246,28 @@ class Incidente {
         'nomeA': nomeA,
         'cognomeA': cognomeA,
         'targaA': targaA,
+        'marcaA': marcaA,
+        'modelloA': modelloA,
+        'vinA': vinA,
+        'kilometraggioA': kilometraggioA,
+        'primaImmatricolazioneA': primaImmatricolazioneA,
         'assicurazioneA': assicurazioneA,
+        'numeroPolizzaA': numeroPolizzaA,
+        'numeroSinistroA': numeroSinistroA,
         'telefonoA': telefonoA,
         'emailA': emailA,
         'indirizzoA': indirizzoA,
         'nomeB': nomeB,
         'cognomeB': cognomeB,
         'targaB': targaB,
+        'marcaB': marcaB,
+        'modelloB': modelloB,
+        'vinB': vinB,
+        'kilometraggioB': kilometraggioB,
+        'primaImmatricolazioneB': primaImmatricolazioneB,
         'assicurazioneB': assicurazioneB,
+        'numeroPolizzaB': numeroPolizzaB,
+        'numeroSinistroB': numeroSinistroB,
         'telefonoB': telefonoB,
         'emailB': emailB,
         'indirizzoB': indirizzoB,
@@ -169,6 +276,8 @@ class Incidente {
         'danniVeicoloB': danniVeicoloB,
         'testimoni': testimoni.map((t) => t.toJson()).toList(),
         'feriti': feriti.map((f) => f.toJson()).toList(),
+        'conducentiAggiuntivi':
+            conducentiAggiuntivi.map((driver) => driver.toJson()).toList(),
         'notaVocaleA': notaVocaleA,
         'notaVocaleB': notaVocaleB,
         'notaAudioAPath': notaAudioAPath,
@@ -215,21 +324,103 @@ class Incidente {
           .toList();
     }
 
+    final parsedDrivers = json['conducentiAggiuntivi'] is List
+        ? (json['conducentiAggiuntivi'] as List)
+            .whereType<Map>()
+            .map((item) => ConducenteAggiuntivo.fromJson(
+                  Map<String, dynamic>.from(item),
+                ))
+            .toList(growable: false)
+        : <ConducenteAggiuntivo>[];
+
+    Map<String, dynamic> mapValue(Object? value) {
+      return value is Map ? Map<String, dynamic>.from(value) : const {};
+    }
+
+    String firstValue(Iterable<Object?> values) {
+      for (final value in values) {
+        final normalized = value?.toString().trim() ?? '';
+        if (normalized.isNotEmpty) return normalized;
+      }
+      return '';
+    }
+
+    final driverA = mapValue(json['driverA']);
+    final driverB = mapValue(json['driverB']);
+    final vehicleA = mapValue(driverA['vehicle']);
+    final vehicleB = mapValue(driverB['vehicle']);
+    final insuranceA = mapValue(driverA['insurance_details']);
+    final insuranceB = mapValue(driverB['insurance_details']);
+
     return Incidente(
       id: json['id']?.toString() ?? '',
       dataOra: DateTime.tryParse(json['dataOra'] ?? '') ?? DateTime.now(),
       luogo: json['luogo'] ?? json['place'] ?? '',
       nomeA: json['nomeA'] ?? json['nome'] ?? '',
       cognomeA: json['cognomeA'] ?? '',
-      targaA: json['targaA'] ?? json['targa'] ?? '',
-      assicurazioneA: json['assicurazioneA'] ?? '',
+      targaA: firstValue(
+        [json['targaA'], json['targa'], vehicleA['plate'], driverA['plate']],
+      ),
+      marcaA: firstValue([json['marcaA'], vehicleA['brand'], driverA['brand']]),
+      modelloA:
+          firstValue([json['modelloA'], vehicleA['model'], driverA['model']]),
+      vinA: firstValue([json['vinA'], vehicleA['vin'], driverA['vin']]),
+      kilometraggioA: firstValue(
+        [json['kilometraggioA'], vehicleA['mileage'], driverA['mileage']],
+      ),
+      primaImmatricolazioneA: firstValue([
+        json['primaImmatricolazioneA'],
+        vehicleA['firstRegistration'],
+        driverA['first_registration'],
+      ]),
+      assicurazioneA: firstValue([
+        json['assicurazioneA'],
+        insuranceA['company'],
+        driverA['insurance'],
+      ]),
+      numeroPolizzaA: firstValue([
+        json['numeroPolizzaA'],
+        insuranceA['policyNumber'],
+        driverA['policy_number'],
+      ]),
+      numeroSinistroA: firstValue([
+        json['numeroSinistroA'],
+        insuranceA['claimNumber'],
+        driverA['claim_number'],
+      ]),
       telefonoA: json['telefonoA'] ?? json['telefono'] ?? '',
       emailA: json['emailA'] ?? json['email'] ?? '',
       indirizzoA: json['indirizzoA'] ?? '',
       nomeB: json['nomeB'] ?? '',
       cognomeB: json['cognomeB'] ?? '',
-      targaB: json['targaB'] ?? '',
-      assicurazioneB: json['assicurazioneB'] ?? '',
+      targaB: firstValue([json['targaB'], vehicleB['plate'], driverB['plate']]),
+      marcaB: firstValue([json['marcaB'], vehicleB['brand'], driverB['brand']]),
+      modelloB:
+          firstValue([json['modelloB'], vehicleB['model'], driverB['model']]),
+      vinB: firstValue([json['vinB'], vehicleB['vin'], driverB['vin']]),
+      kilometraggioB: firstValue(
+        [json['kilometraggioB'], vehicleB['mileage'], driverB['mileage']],
+      ),
+      primaImmatricolazioneB: firstValue([
+        json['primaImmatricolazioneB'],
+        vehicleB['firstRegistration'],
+        driverB['first_registration'],
+      ]),
+      assicurazioneB: firstValue([
+        json['assicurazioneB'],
+        insuranceB['company'],
+        driverB['insurance'],
+      ]),
+      numeroPolizzaB: firstValue([
+        json['numeroPolizzaB'],
+        insuranceB['policyNumber'],
+        driverB['policy_number'],
+      ]),
+      numeroSinistroB: firstValue([
+        json['numeroSinistroB'],
+        insuranceB['claimNumber'],
+        driverB['claim_number'],
+      ]),
       telefonoB: json['telefonoB'] ?? '',
       emailB: json['emailB'] ?? '',
       indirizzoB: json['indirizzoB'] ?? '',
@@ -238,6 +429,7 @@ class Incidente {
       danniVeicoloB: json['danniVeicoloB'] ?? '',
       testimoni: parsedTestimoni,
       feriti: parsedFeriti,
+      conducentiAggiuntivi: parsedDrivers,
       notaVocaleA: json['notaVocaleA'] ?? '',
       notaVocaleB: json['notaVocaleB'] ?? '',
       notaAudioAPath: json['notaAudioAPath'] ?? '',
