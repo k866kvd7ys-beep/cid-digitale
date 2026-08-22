@@ -13241,11 +13241,9 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
       };
     }
 
-    String vehicleName(String brand, String model) {
-      final value = [brand.trim(), model.trim()]
-          .where((part) => part.isNotEmpty)
-          .join(' ');
-      return value.isEmpty ? '-' : value;
+    String vehicleValue(String value) {
+      final normalized = value.trim();
+      return normalized.isEmpty ? '-' : normalized;
     }
 
     String responsabilitaPdf;
@@ -13321,7 +13319,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
     pw.Widget driverCard({
       required String title,
       required String name,
-      required String vehicle,
+      required String brand,
+      required String model,
       required String plate,
       required String insuranceLabel,
       required String insuranceValue,
@@ -13344,12 +13343,21 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
           detailLine(txStatic('Nome'), name),
           detailLine(
             pdfVehicleText(
-              it: 'Veicolo',
-              de: 'Fahrzeug',
-              fr: 'Véhicule',
-              en: 'Vehicle',
+              it: 'Marca',
+              de: 'Marke',
+              fr: 'Marque',
+              en: 'Make',
             ),
-            vehicle,
+            vehicleValue(brand),
+          ),
+          detailLine(
+            pdfVehicleText(
+              it: 'Modello',
+              de: 'Modell',
+              fr: 'Modèle',
+              en: 'Model',
+            ),
+            vehicleValue(model),
           ),
           detailLine(txStatic('Targa'), plate),
           detailLine(insuranceLabel, insuranceValue),
@@ -13553,7 +13561,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                   child: driverCard(
                     title: l10n.pdfDriverA,
                     name: driverAName,
-                    vehicle: vehicleName(incidente.marcaA, incidente.modelloA),
+                    brand: incidente.marcaA,
+                    model: incidente.modelloA,
                     plate: incidente.targaA.isEmpty ? '-' : incidente.targaA,
                     insuranceLabel: insuranceALabel,
                     insuranceValue: incidente.assicurazioneA.isEmpty
@@ -13582,7 +13591,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                   child: driverCard(
                     title: l10n.pdfDriverB,
                     name: driverBName,
-                    vehicle: vehicleName(incidente.marcaB, incidente.modelloB),
+                    brand: incidente.marcaB,
+                    model: incidente.modelloB,
                     plate: incidente.targaB.isEmpty ? '-' : incidente.targaB,
                     insuranceLabel: insuranceBLabel,
                     insuranceValue: incidente.assicurazioneB.isEmpty
@@ -13615,7 +13625,8 @@ class _DettaglioIncidentePageState extends State<DettaglioIncidentePage> {
                   title:
                       '${pdfVehicleText(it: 'Conducente', de: 'Fahrer', fr: 'Conducteur', en: 'Driver')} ${driver.driverKey}',
                   name: formatNomeCompleto(driver.nome, driver.cognome),
-                  vehicle: vehicleName(driver.marca, driver.modello),
+                  brand: driver.marca,
+                  model: driver.modello,
                   plate: driver.targa.isEmpty ? '-' : driver.targa,
                   insuranceLabel: pdfVehicleText(
                     it: 'Assicurazione',

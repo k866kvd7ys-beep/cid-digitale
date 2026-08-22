@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:cid_digitale/main.dart';
 import 'package:cid_digitale/models/driver_personal_qr_data.dart';
@@ -37,6 +40,35 @@ Widget _localizedApp(Widget home) {
 
 TextFormField _field(WidgetTester tester, String key) {
   return tester.widget<TextFormField>(find.byKey(Key(key)));
+}
+
+String _readCompressedPdfStreams(List<int> bytes) {
+  final source = latin1.decode(bytes, allowInvalid: true);
+  final decodedStreams = <String>[];
+
+  for (final match in RegExp(r'stream\r?\n').allMatches(source)) {
+    final dictionaryStart = source.lastIndexOf('<<', match.start);
+    if (dictionaryStart < 0) continue;
+    final dictionary = source.substring(dictionaryStart, match.start);
+    if (!dictionary.contains('/FlateDecode')) continue;
+
+    final endStream = source.indexOf('endstream', match.end);
+    if (endStream < 0) continue;
+    var dataEnd = endStream;
+    while (dataEnd > match.end &&
+        (bytes[dataEnd - 1] == 0x0A || bytes[dataEnd - 1] == 0x0D)) {
+      dataEnd--;
+    }
+
+    try {
+      final decoded = zlib.decode(bytes.sublist(match.end, dataEnd));
+      decodedStreams.add(latin1.decode(decoded, allowInvalid: true));
+    } on FormatException {
+      // Non-content streams are irrelevant for these text assertions.
+    }
+  }
+
+  return decodedStreams.join('\n');
 }
 
 const _driverBQr = DriverPersonalQrData(
@@ -328,6 +360,19 @@ void main() {
 
     final pdfBytes = await state.buildIncidentPdfBytesForTesting() as List<int>;
     expect(pdfBytes, isNotEmpty);
+    final pdfContent = _readCompressedPdfStreams(pdfBytes);
+    expect(
+      RegExp(r'\[\(Marke\)\]TJ').allMatches(pdfContent).length,
+      greaterThanOrEqualTo(2),
+    );
+    expect(pdfContent, contains('(Volvo)'));
+    expect(
+      RegExp(r'\[\(Modell\)\]TJ').allMatches(pdfContent).length,
+      greaterThanOrEqualTo(2),
+    );
+    expect(pdfContent, contains('(XC40)'));
+    expect(pdfContent, contains('(Audi)'));
+    expect(pdfContent, contains('(A4)'));
   });
 
   testWidgets('workshop detail shows the vehicle of every driver',
