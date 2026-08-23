@@ -1,6 +1,6 @@
 export type DriverVehicleIdentity = {
-  brand: string;
-  model: string;
+  brand: unknown;
+  model: unknown;
 };
 
 export type DriverVehicleIdentityLabels = {
@@ -8,8 +8,8 @@ export type DriverVehicleIdentityLabels = {
   model: string;
 };
 
-const valueOrDash = (value: string) => {
-  const normalized = value.trim();
+const valueOrDash = (value: unknown) => {
+  const normalized = typeof value === "string" ? value.trim() : "";
   return normalized.length > 0 ? normalized : "-";
 };
 

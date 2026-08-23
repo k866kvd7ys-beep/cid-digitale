@@ -39,4 +39,14 @@ test("real PDF rows use dashes when brand or model is unavailable", () => {
       ["Modell", "-"],
     ],
   );
+  assert.deepEqual(
+    buildDriverVehicleIdentityPdfRows(
+      { brand: "Marke", model: "Modell" },
+      { brand: null, model: undefined },
+    ),
+    [
+      ["Marke", "-"],
+      ["Modell", "-"],
+    ],
+  );
 });

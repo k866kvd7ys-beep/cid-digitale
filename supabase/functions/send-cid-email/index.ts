@@ -1807,7 +1807,7 @@ async function generatePdfFromPayload(
     });
     currentY -= 4;
     if (options.image) {
-      const checkText = "✓";
+      const checkText = "OK";
       const checkSize = 10;
       const checkWidth = fontBold.widthOfTextAtSize(checkText, checkSize);
       page.drawText(checkText, {
@@ -2409,8 +2409,11 @@ async function handleRequest(req: Request): Promise<Response> {
         attachmentCount: attachments.length,
         totalAttachmentBytes,
       }));
-    } catch (_err) {
-      console.error("SEND CID EMAIL pdf generation failed", { failed: true });
+    } catch (error) {
+      console.error("SEND CID EMAIL pdf generation failed", {
+        failed: true,
+        error: error instanceof Error ? error.message : String(error),
+      });
       try {
         const fallbackPdfBytes = await generateFallbackPdf(displayClaimId, payload);
         await savePdfToStorage(fallbackPdfBytes, claimId);
