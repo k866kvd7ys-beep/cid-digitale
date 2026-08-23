@@ -196,7 +196,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('new incident receives the category selected in the Home modal',
+  testWidgets('new incident opens the form directly without the damage modal',
       (tester) async {
     tester.view.physicalSize = const Size(430, 932);
     tester.view.devicePixelRatio = 1;
@@ -210,18 +210,12 @@ void main() {
     while (tester.takeException() != null) {}
 
     await tester.tap(find.text('Neuer Unfall'));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(
-        const ValueKey<CustomerIncidentEventType>(
-          CustomerIncidentEventType.collision,
-        ),
-      ),
-    );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.byType(NuovaPraticaIncidentePage), findsOneWidget);
+    expect(find.text('Neuer Unfallbericht'), findsOneWidget);
+    expect(find.text('Um welchen Schaden handelt es sich?'), findsNothing);
     expect(find.text('Was ist passiert?'), findsNothing);
     expect(find.text('Ereignisart'), findsNothing);
     final dynamic state = tester.state(

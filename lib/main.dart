@@ -3801,14 +3801,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _vaiANuovoIncidente() async {
-    final selectedEvent = await _selectCustomerIncidentEvent(context);
-    if (selectedEvent == null || !mounted) return;
-
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => NuovaPraticaIncidentePage(
-          initialIncidentEventType: selectedEvent.type,
-          initialIncidentEventSubtype: selectedEvent.subtype,
+          initialIncidentEventType: CustomerIncidentEventType.collision,
           customerPrefillLoader: CustomerIncidentPrefillService(
             authService: widget.authService,
             fallbackProfile: _customerProfile,
