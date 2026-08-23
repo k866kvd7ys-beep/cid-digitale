@@ -619,7 +619,7 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     attachmentsLimitNote:
       "Einige Fotos sind gegebenenfalls nur in der digitalen Schadenakte verfügbar, wenn das E-Mail-Anhangslimit überschritten wird.",
     closing: "Freundliche Grüße",
-    signatureSigned: "digital signiert",
+    signatureSigned: "Digital signiert",
     signatureMissing: "nicht vorhanden",
     signatureTimestamp: "UTC-Zeitstempel",
   },
@@ -1807,21 +1807,11 @@ async function generatePdfFromPayload(
     });
     currentY -= 4;
     if (options.image) {
-      const checkText = "OK";
-      const checkSize = 10;
-      const checkWidth = fontBold.widthOfTextAtSize(checkText, checkSize);
-      page.drawText(checkText, {
-        x: options.x + cardPadding,
-        y: currentY,
-        size: checkSize,
-        font: fontBold,
-        color: success,
-      });
       currentY = drawWrappedText({
         text: options.status,
-        x: options.x + cardPadding + checkWidth + 4,
+        x: options.x + cardPadding,
         y: currentY,
-        width: innerWidth - checkWidth - 4,
+        width: innerWidth,
         font: fontBold,
         size: 9.5,
         color: success,

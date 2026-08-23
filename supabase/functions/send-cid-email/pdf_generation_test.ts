@@ -149,11 +149,13 @@ Deno.test("complete Edge PDF keeps vehicle data, signatures and emergency fallba
         "SHA-256-Hash",
         "UTC-Zeitstempel",
         "Unterschriften",
-        "digital signiert",
+        "Digital signiert",
       ]
     ) {
       assert.match(completeText, new RegExp(value));
     }
+    assert.equal(completeText.match(/Digital signiert/g)?.length, 2);
+    assert.doesNotMatch(completeText, /OK digital signiert|✓/);
     assert.equal(completeText.match(/Porsche/g)?.length, 1);
     assert.equal(completeText.match(/Cayenne S/g)?.length, 1);
 
