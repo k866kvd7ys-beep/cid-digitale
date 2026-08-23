@@ -1,5 +1,6 @@
 import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:cid_digitale/main.dart';
+import 'package:cid_digitale/models/customer_incident_event.dart';
 import 'package:cid_digitale/services/device_location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,23 +25,15 @@ class _DeniedLocationService extends DeviceLocationService {
 
 Widget _app() {
   return const MaterialApp(
-    locale: Locale('it'),
+    locale: Locale('de'),
     supportedLocales: AppLocalizations.supportedLocales,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     home: NuovaPraticaIncidentePage(
+      initialIncidentEventType: CustomerIncidentEventType.naturalEvent,
+      initialIncidentEventSubtype: CustomerIncidentEventSubtype.stormWind,
       locationService: _DeniedLocationService(),
     ),
   );
-}
-
-Future<void> _showEventSelection(WidgetTester tester) async {
-  final finder = find.byKey(const Key('incident_event_type'));
-  await tester.scrollUntilVisible(
-    finder,
-    500,
-    scrollable: find.byType(Scrollable).first,
-  );
-  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -50,7 +43,8 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('customer selects all event types and conditional subtypes',
+  testWidgets(
+      'damage page hides the duplicate picker and keeps the Home category',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -59,48 +53,37 @@ void main() {
 
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
-    await _showEventSelection(tester);
 
-    expect(find.textContaining('Haftpflicht'), findsNothing);
-    expect(find.textContaining('Teilkasko'), findsNothing);
-    expect(find.textContaining('Vollkasko'), findsNothing);
-    expect(find.textContaining('copert', findRichText: true), findsNothing);
-    expect(find.textContaining('pagher', findRichText: true), findsNothing);
-
-    await tester.tap(find.byKey(const Key('incident_event_type')));
-    await tester.pumpAndSettle();
-    expect(find.text('Incidente / Collisione'), findsOneWidget);
-    expect(find.text('Incendio'), findsOneWidget);
-    expect(find.text('Collisione con animale'), findsOneWidget);
-    await tester.tap(find.text('Danno naturale').last);
-    await tester.pumpAndSettle();
-
-    final naturalSubtype =
-        find.byKey(const Key('incident_event_subtype_natural_event'));
-    expect(naturalSubtype, findsOneWidget);
-    await tester.tap(naturalSubtype);
-    await tester.pumpAndSettle();
-    expect(find.text('Tempesta / vento forte'), findsOneWidget);
-    expect(find.text('Altro evento naturale'), findsOneWidget);
-    await tester.tap(find.text('Tempesta / vento forte'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('incident_event_type')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Furto / tentato furto').last);
-    await tester.pumpAndSettle();
-
-    final theftSubtype = find.byKey(const Key('incident_event_subtype_theft'));
-    expect(theftSubtype, findsOneWidget);
-    await tester.tap(theftSubtype);
-    await tester.pumpAndSettle();
-    expect(find.text('Veicolo rubato'), findsOneWidget);
+    expect(find.text('Was ist passiert?'), findsNothing);
+    expect(find.text('Ereignisart'), findsNothing);
+    expect(find.byKey(const Key('incident_event_type')), findsNothing);
+    expect(find.text('Unfallbeschreibung'), findsOneWidget);
     expect(
-      find.text('Danni causati durante il furto/tentato furto'),
+      find.text('Gibt es Sachschäden an anderen Gegenständen?'),
       findsOneWidget,
     );
-    await tester.tap(find.text('Tentato furto'));
-    await tester.pumpAndSettle();
+    expect(
+      find.text('Gibt es Sachschäden an anderen Fahrzeugen?'),
+      findsOneWidget,
+    );
+
+    final description = find.byKey(const Key('incident_description'));
+    await tester.scrollUntilVisible(
+      description,
+      500,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.enterText(description, 'Sturmschaden am Fahrzeug');
+
+    final dynamic state = tester.state(
+      find.byType(NuovaPraticaIncidentePage),
+    );
+    expect(state.incidentEventTypeForTesting, 'natural_event');
+    expect(state.incidentEventSubtypeForTesting, 'storm_wind');
+    expect(
+      tester.widget<TextFormField>(description).controller?.text,
+      'Sturmschaden am Fahrzeug',
+    );
     expect(tester.takeException(), isNull);
   });
 

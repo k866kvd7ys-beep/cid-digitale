@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:cid_digitale/main.dart';
+import 'package:cid_digitale/models/customer_incident_event.dart';
 import 'package:cid_digitale/models/driver_personal_qr_data.dart';
 import 'package:cid_digitale/models/incidente.dart' as workshop_model;
 import 'package:cid_digitale/screens/supabase_demo_screen.dart';
@@ -100,8 +101,8 @@ Incidente _incident() {
     nomeA: 'Anna',
     cognomeA: 'Bianchi',
     targaA: 'TI11111',
-    marcaA: 'Volvo',
-    modelloA: 'XC40',
+    marcaA: 'Porsche',
+    modelloA: 'Cayenne S',
     vinA: 'VIN-A',
     kilometraggioA: '42000',
     primaImmatricolazioneA: '2022',
@@ -191,6 +192,7 @@ void main() {
     await tester.pumpWidget(
       _localizedApp(
         const NuovaPraticaIncidentePage(
+          initialIncidentEventType: CustomerIncidentEventType.collision,
           locationService: _DeniedLocationService(),
         ),
       ),
@@ -244,6 +246,7 @@ void main() {
     await tester.pumpWidget(
       _localizedApp(
         const NuovaPraticaIncidentePage(
+          initialIncidentEventType: CustomerIncidentEventType.collision,
           locationService: _DeniedLocationService(),
         ),
       ),
@@ -304,15 +307,24 @@ void main() {
     final json = incident.toJson();
     final restored = Incidente.fromJson(json);
 
-    expect(restored.marcaA, 'Volvo');
-    expect(restored.modelloA, 'XC40');
+    expect(restored.marcaA, 'Porsche');
+    expect(restored.modelloA, 'Cayenne S');
     expect(restored.numeroPolizzaA, 'POL-A');
     expect(restored.marcaB, 'Audi');
+    expect(restored.modelloB, 'A4');
     expect(restored.numeroSinistroB, 'SIN-B');
     expect(restored.conducentiAggiuntivi.single.marca, 'BMW');
     expect(
       (json['driverA'] as Map<String, dynamic>)['vehicle'],
-      containsPair('brand', 'Volvo'),
+      containsPair('brand', 'Porsche'),
+    );
+    expect(
+      (json['driverB'] as Map<String, dynamic>)['vehicle'],
+      containsPair('brand', 'Audi'),
+    );
+    expect(
+      (json['driverB'] as Map<String, dynamic>)['vehicle'],
+      containsPair('model', 'A4'),
     );
 
     final legacy = Map<String, dynamic>.from(json)
@@ -343,7 +355,7 @@ void main() {
     expect(find.byKey(const Key('incident-detail-driver-B')), findsOneWidget);
     expect(find.byKey(const Key('incident-detail-driver-C')), findsOneWidget);
     expect(
-      find.text('Anna Bianchi · Volvo XC40 · TI11111 · AXA'),
+      find.text('Anna Bianchi · Porsche Cayenne S · TI11111 · AXA'),
       findsOneWidget,
     );
     expect(
@@ -354,7 +366,7 @@ void main() {
     final dynamic state = tester.state(find.byType(DettaglioIncidentePage));
     final email =
         state.buildLocalizedCidEmailContentForTesting() as Map<String, String>;
-    expect(email['body'], contains('Veicolo: Volvo XC40'));
+    expect(email['body'], contains('Veicolo: Porsche Cayenne S'));
     expect(email['body'], contains('Targa: ZH222222'));
     expect(email['body'], contains('Polizza: POL-C'));
 
@@ -365,12 +377,17 @@ void main() {
       RegExp(r'\[\(Marke\)\]TJ').allMatches(pdfContent).length,
       greaterThanOrEqualTo(2),
     );
-    expect(pdfContent, contains('(Volvo)'));
+    expect(pdfContent, contains('(Porsche)'));
     expect(
       RegExp(r'\[\(Modell\)\]TJ').allMatches(pdfContent).length,
       greaterThanOrEqualTo(2),
     );
-    expect(pdfContent, contains('(XC40)'));
+    expect(
+      pdfContent,
+      matches(
+        RegExp(r'\[\(Cayenne\)\]TJ[\s\S]{0,120}\[\(S\)\]TJ'),
+      ),
+    );
     expect(pdfContent, contains('(Audi)'));
     expect(pdfContent, contains('(A4)'));
   });
@@ -393,7 +410,7 @@ void main() {
     expect(find.byKey(const Key('workshop-claim-driver-B')), findsOneWidget);
     expect(find.byKey(const Key('workshop-claim-driver-C')), findsOneWidget);
     expect(
-      find.text('Anna Bianchi · Volvo XC40 · TI11111 · AXA'),
+      find.text('Anna Bianchi · Porsche Cayenne S · TI11111 · AXA'),
       findsOneWidget,
     );
     expect(

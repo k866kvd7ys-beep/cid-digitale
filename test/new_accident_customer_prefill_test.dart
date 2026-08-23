@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:cid_digitale/main.dart';
+import 'package:cid_digitale/models/customer_incident_event.dart';
 import 'package:cid_digitale/models/customer_profile.dart';
 import 'package:cid_digitale/models/personal_vehicle_data.dart';
 import 'package:cid_digitale/services/customer_incident_prefill_service.dart';
@@ -98,6 +99,7 @@ Widget _app(CustomerIncidentPrefillLoader loader) {
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     theme: ThemeData(useMaterial3: true),
     home: NuovaPraticaIncidentePage(
+      initialIncidentEventType: CustomerIncidentEventType.collision,
       customerPrefillLoader: loader,
       locationService: const _DeniedLocationService(),
     ),

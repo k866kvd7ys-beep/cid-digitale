@@ -3801,9 +3801,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _vaiANuovoIncidente() async {
+    final selectedEvent = await _selectCustomerIncidentEvent(context);
+    if (selectedEvent == null || !mounted) return;
+
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => NuovaPraticaIncidentePage(
+          initialIncidentEventType: selectedEvent.type,
+          initialIncidentEventSubtype: selectedEvent.subtype,
           customerPrefillLoader: CustomerIncidentPrefillService(
             authService: widget.authService,
             fallbackProfile: _customerProfile,
@@ -3830,6 +3835,21 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _openDamageTypePicker(BuildContext context) async {
+    final selectedEvent = await _selectCustomerIncidentEvent(context);
+    if (selectedEvent == null || !mounted || !context.mounted) return;
+
+    await _openCalendarSameLogic(
+      selectedEvent.type,
+      selectedEvent.subtype,
+      AppLocalizations.of(context)!,
+    );
+  }
+
+  Future<
+      ({
+        CustomerIncidentEventType type,
+        CustomerIncidentEventSubtype? subtype,
+      })?> _selectCustomerIncidentEvent(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     final languageCode = Localizations.localeOf(context).languageCode;
 
@@ -3854,7 +3874,7 @@ class _HomePageState extends State<HomePage> {
       labelFor: (type) => customerIncidentEventLabel(type, languageCode),
     );
 
-    if (selected == null || !mounted || !context.mounted) return;
+    if (selected == null || !mounted || !context.mounted) return null;
 
     final subtypes = customerIncidentSubtypesFor(selected);
     CustomerIncidentEventSubtype? selectedSubtype;
@@ -3887,10 +3907,10 @@ class _HomePageState extends State<HomePage> {
         labelFor: (subtype) =>
             customerIncidentEventSubtypeLabel(subtype, languageCode),
       );
-      if (selectedSubtype == null || !mounted || !context.mounted) return;
+      if (selectedSubtype == null || !mounted || !context.mounted) return null;
     }
 
-    await _openCalendarSameLogic(selected, selectedSubtype, l10n);
+    return (type: selected, subtype: selectedSubtype);
   }
 
   Future<T?> _showDamagePickerSheet<T>({
@@ -5824,6 +5844,8 @@ enum _GeoPermissionState {
 class NuovaPraticaIncidentePage extends StatefulWidget {
   const NuovaPraticaIncidentePage({
     super.key,
+    required this.initialIncidentEventType,
+    this.initialIncidentEventSubtype,
     this.initialVehicle,
     this.customerPrefillLoader,
     this.locationService = const DeviceLocationService(),
@@ -5832,6 +5854,8 @@ class NuovaPraticaIncidentePage extends StatefulWidget {
     this.damagePhotoOcrReader,
   });
 
+  final CustomerIncidentEventType initialIncidentEventType;
+  final CustomerIncidentEventSubtype? initialIncidentEventSubtype;
   final PersonalVehicleData? initialVehicle;
   final CustomerIncidentPrefillLoader? customerPrefillLoader;
   final DeviceLocationService locationService;
@@ -5919,8 +5943,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
   final _descrizioneController = TextEditingController();
   final _damageVehicleAController = TextEditingController();
   final _damageVehicleBController = TextEditingController();
-  CustomerIncidentEventType? _selectedIncidentEventType;
-  CustomerIncidentEventSubtype? _selectedIncidentEventSubtype;
 
   final List<_TestimoneFormData> _testimoni = [];
   final List<_FeritoFormData> _feriti = [];
@@ -6015,6 +6037,12 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       unawaited(_impostaLuogoAutomatico());
     });
   }
+
+  String get incidentEventTypeForTesting =>
+      widget.initialIncidentEventType.code;
+
+  String get incidentEventSubtypeForTesting =>
+      widget.initialIncidentEventSubtype?.code ?? '';
 
   Future<void> _loadCustomerPrefill() async {
     final loader = widget.customerPrefillLoader;
@@ -10160,139 +10188,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
     );
   }
 
-  Widget _buildIncidentEventSelection() {
-    final languageCode = Localizations.localeOf(context).languageCode;
-    final selectedType = _selectedIncidentEventType;
-    final subtypes = selectedType == null
-        ? const <CustomerIncidentEventSubtype>[]
-        : customerIncidentSubtypesFor(selectedType);
-    final isNaturalEvent =
-        selectedType == CustomerIncidentEventType.naturalEvent;
-
-    return _buildInnerCard(
-      key: const Key('incident_event_selection'),
-      backgroundColor: const Color(0xFFF8FAFC),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            _copyText(
-              it: 'Cosa è successo?',
-              de: 'Was ist passiert?',
-              fr: 'Que s’est-il passé ?',
-              en: 'What happened?',
-            ),
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _copyText(
-              it: 'Scegli l’evento che descrive meglio ciò che è accaduto.',
-              de: 'Wähle das Ereignis, das am besten beschreibt, was passiert ist.',
-              fr: 'Choisissez l’événement qui décrit le mieux ce qui s’est passé.',
-              en: 'Choose the event that best describes what happened.',
-            ),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: _incidentMutedText,
-                  height: 1.35,
-                ),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<CustomerIncidentEventType>(
-            key: const Key('incident_event_type'),
-            initialValue: selectedType,
-            isExpanded: true,
-            menuMaxHeight: 420,
-            decoration: InputDecoration(
-              labelText: _copyText(
-                it: 'Tipo di evento',
-                de: 'Ereignisart',
-                fr: 'Type d’événement',
-                en: 'Event type',
-              ),
-            ),
-            items: customerIncidentEventTypes
-                .map(
-                  (type) => DropdownMenuItem(
-                    value: type,
-                    child: Text(
-                      customerIncidentEventLabel(type, languageCode),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                )
-                .toList(growable: false),
-            onChanged: (value) {
-              setState(() {
-                _selectedIncidentEventType = value;
-                _selectedIncidentEventSubtype = null;
-              });
-            },
-            validator: (value) => value == null
-                ? _copyText(
-                    it: 'Seleziona cosa è successo.',
-                    de: 'Wähle aus, was passiert ist.',
-                    fr: 'Sélectionnez ce qui s’est passé.',
-                    en: 'Select what happened.',
-                  )
-                : null,
-          ),
-          if (subtypes.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            DropdownButtonFormField<CustomerIncidentEventSubtype>(
-              key: ValueKey('incident_event_subtype_${selectedType!.code}'),
-              initialValue: _selectedIncidentEventSubtype,
-              isExpanded: true,
-              menuMaxHeight: 360,
-              decoration: InputDecoration(
-                labelText: isNaturalEvent
-                    ? _copyText(
-                        it: 'Evento naturale',
-                        de: 'Naturereignis',
-                        fr: 'Événement naturel',
-                        en: 'Natural event',
-                      )
-                    : _copyText(
-                        it: 'Tipo di furto',
-                        de: 'Art des Diebstahls',
-                        fr: 'Type de vol',
-                        en: 'Type of theft',
-                      ),
-              ),
-              items: subtypes
-                  .map(
-                    (subtype) => DropdownMenuItem(
-                      value: subtype,
-                      child: Text(
-                        customerIncidentEventSubtypeLabel(
-                          subtype,
-                          languageCode,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: (value) {
-                setState(() => _selectedIncidentEventSubtype = value);
-              },
-              validator: (value) => value == null
-                  ? _copyText(
-                      it: 'Seleziona una voce.',
-                      de: 'Wähle eine Option aus.',
-                      fr: 'Sélectionnez une option.',
-                      en: 'Select an option.',
-                    )
-                  : null,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
   Widget _buildDanniSection() {
     return _buildSectionCard(
       icon: Icons.car_repair_outlined,
@@ -10300,8 +10195,6 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildIncidentEventSelection(),
-          const SizedBox(height: 16),
           Text(
             tx(context, 'Descrizione incidente'),
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -10310,6 +10203,7 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
           ),
           const SizedBox(height: 10),
           TextFormField(
+            key: const Key('incident_description'),
             controller: _descrizioneController,
             maxLines: 4,
             decoration: InputDecoration(
@@ -11362,8 +11256,8 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         descrizione: _descrizioneController.text.trim(),
         danniVeicoloA: _damageVehicleAController.text.trim(),
         danniVeicoloB: _damageVehicleBController.text.trim(),
-        incidentEventType: _selectedIncidentEventType!.code,
-        incidentEventSubtype: _selectedIncidentEventSubtype?.code ?? '',
+        incidentEventType: widget.initialIncidentEventType.code,
+        incidentEventSubtype: widget.initialIncidentEventSubtype?.code ?? '',
         hasStructuredIncidentEvent: true,
         otherObjectDamage: _otherObjectDamage,
         otherVehicleDamage: _otherVehicleDamage,

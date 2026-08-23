@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:cid_digitale/l10n/app_localizations.dart';
 import 'package:cid_digitale/main.dart';
+import 'package:cid_digitale/models/customer_incident_event.dart';
 import 'package:cid_digitale/services/device_location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -97,6 +98,7 @@ Widget _app(
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     theme: ThemeData(useMaterial3: true),
     home: NuovaPraticaIncidentePage(
+      initialIncidentEventType: CustomerIncidentEventType.collision,
       locationService: locationService,
       reverseGeocodingClient: reverseGeocodingClient,
     ),

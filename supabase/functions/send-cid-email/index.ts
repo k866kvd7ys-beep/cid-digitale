@@ -6,6 +6,9 @@ import {
   rgb,
 } from "https://esm.sh/pdf-lib@1.17.1";
 import { formatIncidentDateTime } from "./incident_datetime.ts";
+import {
+  buildDriverVehicleIdentityPdfRows,
+} from "./driver_vehicle_pdf_rows.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -587,6 +590,8 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     name: "Name",
     driver: "Fahrer",
     vehicle: "Fahrzeug",
+    brand: "Marke",
+    model: "Modell",
     plate: "Kennzeichen",
     insurance: "Versicherung",
     policyNumber: "Policennummer",
@@ -637,6 +642,8 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     name: "Nome",
     driver: "Conducente",
     vehicle: "Veicolo",
+    brand: "Marca",
+    model: "Modello",
     plate: "Targa",
     insurance: "Assicurazione",
     policyNumber: "Numero polizza",
@@ -687,6 +694,8 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     name: "Nom",
     driver: "Conducteur",
     vehicle: "Véhicule",
+    brand: "Marque",
+    model: "Modèle",
     plate: "Plaque",
     insurance: "Assurance",
     policyNumber: "Numéro de police",
@@ -737,6 +746,8 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     name: "Name",
     driver: "Driver",
     vehicle: "Vehicle",
+    brand: "Make",
+    model: "Model",
     plate: "License plate",
     insurance: "Insurance",
     policyNumber: "Policy number",
@@ -1962,7 +1973,10 @@ async function generatePdfFromPayload(
 
   const driverARows: Array<[string, string]> = [
     [copy.name, driverAName],
-    [copy.vehicle, joinNonEmpty([driverAVehicle.brand, driverAVehicle.model])],
+    ...buildDriverVehicleIdentityPdfRows(
+      { brand: copy.brand, model: copy.model },
+      driverAVehicle,
+    ),
     [copy.plate, stringOrDash(driverAVehicle.plate)],
     [copy.insurance, stringOrDash(driverAVehicle.insurance)],
     [copy.policyNumber, stringOrDash(driverAVehicle.policyNumber)],
@@ -1976,7 +1990,10 @@ async function generatePdfFromPayload(
   ];
   const driverBRows: Array<[string, string]> = [
     [copy.name, driverBName],
-    [copy.vehicle, joinNonEmpty([driverBVehicle.brand, driverBVehicle.model])],
+    ...buildDriverVehicleIdentityPdfRows(
+      { brand: copy.brand, model: copy.model },
+      driverBVehicle,
+    ),
     [copy.plate, stringOrDash(driverBVehicle.plate)],
     [copy.insurance, stringOrDash(driverBVehicle.insurance)],
     [copy.policyNumber, stringOrDash(driverBVehicle.policyNumber)],
