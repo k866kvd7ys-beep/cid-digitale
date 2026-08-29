@@ -145,7 +145,11 @@ void main() {
     );
     expect(source, contains('const vehicle = String(payload?.vehicle ??'));
     expect(source, contains('vehicle.length > 0 ? vehicle : null'));
-    expect(source, contains(r'${escapeHtml(vehicle)}</td></tr>'));
+    expect(source, contains('vehicle: "Marca / Modello"'));
+    expect(
+      source,
+      contains('buildHtmlDetailRow(copy.vehicle, escapeHtml(vehicle))'),
+    );
     expect(
         source, contains('buildHtmlDetailRow(copy.plate, escapeHtml(plate))'));
     expect(
@@ -153,7 +157,9 @@ void main() {
       lessThan(source.indexOf(r'`${copy.plate}: ${plate}`')),
     );
     expect(
-      source.indexOf(r'${escapeHtml(vehicle)}</td></tr>'),
+      source.indexOf(
+        'buildHtmlDetailRow(copy.vehicle, escapeHtml(vehicle))',
+      ),
       lessThan(
         source.indexOf('buildHtmlDetailRow(copy.plate, escapeHtml(plate))'),
       ),

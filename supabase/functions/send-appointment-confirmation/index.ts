@@ -114,6 +114,7 @@ const copyByLocale = (locale: SupportedLang) => {
         name: "Nome",
         email: "E-mail",
         phone: "Telefono",
+        vehicle: "Marca / Modello",
         plate: "Targa",
         service: "Servizio",
         date: "Data",
@@ -142,6 +143,7 @@ const copyByLocale = (locale: SupportedLang) => {
         name: "Nom",
         email: "E-mail",
         phone: "Téléphone",
+        vehicle: "Marque / Modèle",
         plate: "Plaque",
         service: "Service",
         date: "Date",
@@ -170,6 +172,7 @@ const copyByLocale = (locale: SupportedLang) => {
         name: "Name",
         email: "Email",
         phone: "Phone",
+        vehicle: "Make / Model",
         plate: "License plate",
         service: "Service",
         date: "Date",
@@ -199,6 +202,7 @@ const copyByLocale = (locale: SupportedLang) => {
         name: "Name",
         email: "E-Mail",
         phone: "Telefon",
+        vehicle: "Marke / Modell",
         plate: "Kennzeichen",
         service: "Service",
         date: "Datum",
@@ -316,7 +320,7 @@ async function handleRequest(req: Request) {
     copy.sectionVehicle,
     [
       vehicle.length > 0
-        ? `<tr><td colspan="2" style="padding:0 0 12px 0;font-size:16px;line-height:1.5;color:#0f172a;font-weight:700;">${escapeHtml(vehicle)}</td></tr>`
+        ? buildHtmlDetailRow(copy.vehicle, escapeHtml(vehicle))
         : "",
       buildHtmlDetailRow(copy.plate, escapeHtml(plate)),
     ].join(""),
