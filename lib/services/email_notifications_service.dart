@@ -66,6 +66,7 @@ class EmailNotificationsService {
     return {
       'recipient': request.customerEmail,
       'name': request.customerName,
+      'phone': request.customerPhone,
       'plate': request.licensePlate,
       'service': cleaningPackage == null &&
               serviceDetail == null &&
