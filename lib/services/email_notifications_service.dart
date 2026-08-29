@@ -62,11 +62,16 @@ class EmailNotificationsService {
     final serviceLabel = _mapServiceLabel(request);
     final workshopLabel = _workshopLabel(request);
     final workshopFieldLabel = _workshopFieldLabel(locale);
+    final vehicle = [
+      request.vehicleBrand?.trim() ?? '',
+      request.vehicleModel?.trim() ?? '',
+    ].where((part) => part.isNotEmpty).join(' ');
 
     return {
       'recipient': request.customerEmail,
       'name': request.customerName,
       'phone': request.customerPhone,
+      if (vehicle.isNotEmpty) 'vehicle': vehicle,
       'plate': request.licensePlate,
       'service': cleaningPackage == null &&
               serviceDetail == null &&

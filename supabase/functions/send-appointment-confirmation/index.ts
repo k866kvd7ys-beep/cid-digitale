@@ -251,6 +251,7 @@ async function handleRequest(req: Request) {
   const customerName = stringOrDash(payload?.name);
   const customerEmail = stringOrDash(payload?.recipient);
   const customerPhone = stringOrDash(payload?.phone);
+  const vehicle = String(payload?.vehicle ?? "").trim();
   const plate = stringOrDash(payload?.plate);
   const appointmentDate = stringOrDash(payload?.date);
   const appointmentTime = stringOrDash(payload?.time);
@@ -271,6 +272,7 @@ async function handleRequest(req: Request) {
     ]),
     "",
     buildTextSection(copy.sectionVehicle, [
+      vehicle.length > 0 ? vehicle : null,
       `${copy.plate}: ${plate}`,
     ]),
     "",
@@ -312,7 +314,12 @@ async function handleRequest(req: Request) {
 
   const vehicleSection = buildHtmlSection(
     copy.sectionVehicle,
-    buildHtmlDetailRow(copy.plate, escapeHtml(plate)),
+    [
+      vehicle.length > 0
+        ? `<tr><td colspan="2" style="padding:0 0 12px 0;font-size:16px;line-height:1.5;color:#0f172a;font-weight:700;">${escapeHtml(vehicle)}</td></tr>`
+        : "",
+      buildHtmlDetailRow(copy.plate, escapeHtml(plate)),
+    ].join(""),
   );
 
   const serviceSection = buildHtmlSection(

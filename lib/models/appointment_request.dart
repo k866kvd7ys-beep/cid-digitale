@@ -13,6 +13,8 @@ class AppointmentRequest {
     this.customerPhone,
     this.customerEmail,
     this.licensePlate,
+    this.vehicleBrand,
+    this.vehicleModel,
     this.garageId,
     this.garageName,
     this.garageEmail,
@@ -97,6 +99,8 @@ class AppointmentRequest {
   final String? customerPhone;
   final String? customerEmail;
   final String? licensePlate;
+  final String? vehicleBrand;
+  final String? vehicleModel;
   final String? garageId;
   final String? garageName;
   final String? garageEmail;
@@ -502,6 +506,8 @@ class AppointmentRequest {
           map['customer_email'] ??
           map['customerEmail']) as String?,
       licensePlate: (map['license_plate'] ?? map['licensePlate']) as String?,
+      vehicleBrand: (map['vehicle_brand'] ?? map['vehicleBrand'])?.toString(),
+      vehicleModel: (map['vehicle_model'] ?? map['vehicleModel'])?.toString(),
       garageId: (resolvedGarageId?.isEmpty ?? true) ? null : resolvedGarageId,
       garageName:
           (resolvedGarageName?.isEmpty ?? true) ? null : resolvedGarageName,
@@ -676,6 +682,8 @@ class AppointmentRequest {
       'phone': customerPhone,
       'email': customerEmail,
       'license_plate': licensePlate,
+      'vehicle_brand': vehicleBrand,
+      'vehicle_model': vehicleModel,
       'garageId': garageId,
       'garage_id': garageId,
       'garageName': garageName,

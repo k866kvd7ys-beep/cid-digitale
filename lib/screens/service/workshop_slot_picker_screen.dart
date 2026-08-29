@@ -3830,6 +3830,20 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
     });
   }
 
+  PersonalVehicleData? _selectedBookingVehicle() {
+    final selectedId = _selectedProfileVehicleId;
+    final plate = _plateCtrl.text.trim().toUpperCase();
+    if (selectedId == null || plate.isEmpty) return null;
+
+    for (final vehicle in _profileVehicles.vehicles) {
+      if (vehicle.id == selectedId &&
+          vehicle.targa.trim().toUpperCase() == plate) {
+        return vehicle;
+      }
+    }
+    return null;
+  }
+
   String _profileVehicleLabel(
     BuildContext context,
     PersonalVehicleData vehicle,
@@ -4639,6 +4653,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
 
     try {
       final locale = Localizations.localeOf(context).languageCode;
+      final selectedVehicle = _selectedBookingVehicle();
       final resolvedCleaningPackage =
           widget.serviceSelectionKey == workshopServiceRepair
               ? normalizeWorkshopCleaningPackage(widget.cleaningPackage)
@@ -4660,6 +4675,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
         phone: _phoneCtrl.text.trim(),
         email: _emailCtrl.text.trim(),
         licensePlate: _plateCtrl.text.trim(),
+        vehicleBrand: selectedVehicle?.marca.trim(),
+        vehicleModel: selectedVehicle?.modello.trim(),
         garageId: widget.selectedWorkshop?.id,
         garageName: widget.selectedWorkshop?.name,
         garageEmail: widget.selectedWorkshop?.email,

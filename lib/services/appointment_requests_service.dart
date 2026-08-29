@@ -302,6 +302,8 @@ class AppointmentRequestsService {
     String? phone,
     String? email,
     String? licensePlate,
+    String? vehicleBrand,
+    String? vehicleModel,
     String? garageId,
     String? garageName,
     String? garageEmail,
@@ -384,6 +386,8 @@ class AppointmentRequestsService {
         phone: phone,
         email: email,
         licensePlate: licensePlate,
+        vehicleBrand: vehicleBrand,
+        vehicleModel: vehicleModel,
         garageId: garageId,
         garageName: garageName,
         garageEmail: garageEmail,
@@ -465,6 +469,8 @@ class AppointmentRequestsService {
         phone: phone,
         email: email,
         licensePlate: licensePlate,
+        vehicleBrand: vehicleBrand,
+        vehicleModel: vehicleModel,
         garageId: garageId,
         garageName: garageName,
         garageEmail: garageEmail,
@@ -544,6 +550,8 @@ class AppointmentRequestsService {
           phone: phone,
           email: email,
           licensePlate: licensePlate,
+          vehicleBrand: vehicleBrand,
+          vehicleModel: vehicleModel,
           garageId: garageId,
           garageName: garageName,
           garageEmail: garageEmail,
@@ -953,6 +961,8 @@ class AppointmentRequestsService {
           phone: localRequest.customerPhone,
           email: localRequest.customerEmail,
           licensePlate: localRequest.licensePlate,
+          vehicleBrand: localRequest.vehicleBrand,
+          vehicleModel: localRequest.vehicleModel,
           garageId: localRequest.garageId,
           garageName: localRequest.garageName,
           garageEmail: localRequest.garageEmail,
@@ -1099,6 +1109,8 @@ class AppointmentRequestsService {
     String? phone,
     String? email,
     String? licensePlate,
+    String? vehicleBrand,
+    String? vehicleModel,
     String? garageId,
     String? garageName,
     String? garageEmail,
@@ -1254,7 +1266,10 @@ class AppointmentRequestsService {
         .select()
         .single();
 
-    return AppointmentRequest.fromMap(Map<String, dynamic>.from(res));
+    final responseMap = Map<String, dynamic>.from(res);
+    responseMap['vehicle_brand'] = vehicleBrand;
+    responseMap['vehicle_model'] = vehicleModel;
+    return AppointmentRequest.fromMap(responseMap);
   }
 
   Future<AppointmentRequest> _updateRequestMetadata({
@@ -1362,7 +1377,10 @@ class AppointmentRequestsService {
         .select()
         .single();
 
-    return AppointmentRequest.fromMap(Map<String, dynamic>.from(res));
+    final responseMap = Map<String, dynamic>.from(res);
+    responseMap['vehicle_brand'] = existing.vehicleBrand;
+    responseMap['vehicle_model'] = existing.vehicleModel;
+    return AppointmentRequest.fromMap(responseMap);
   }
 
   String? _buildStructuredNotes({
@@ -2184,6 +2202,8 @@ class AppointmentRequestsService {
     String? phone,
     String? email,
     String? licensePlate,
+    String? vehicleBrand,
+    String? vehicleModel,
     String? garageId,
     String? garageName,
     String? garageEmail,
@@ -2315,6 +2335,8 @@ class AppointmentRequestsService {
       customerPhone: phone,
       customerEmail: email,
       licensePlate: licensePlate,
+      vehicleBrand: vehicleBrand,
+      vehicleModel: vehicleModel,
       garageId: garageId,
       garageName: garageName,
       garageEmail: garageEmail,

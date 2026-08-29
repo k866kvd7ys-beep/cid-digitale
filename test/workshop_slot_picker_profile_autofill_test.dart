@@ -506,6 +506,8 @@ void main() {
     expect(source, contains('phone: _phoneCtrl.text.trim(),'));
     expect(source, contains('email: _emailCtrl.text.trim(),'));
     expect(source, contains('licensePlate: _plateCtrl.text.trim(),'));
+    expect(source, contains('vehicleBrand: selectedVehicle?.marca.trim(),'));
+    expect(source, contains('vehicleModel: selectedVehicle?.modello.trim(),'));
     expect(source, contains('garageId: widget.selectedWorkshop?.id,'));
     expect(source, contains('garageName: widget.selectedWorkshop?.name,'));
     expect(source, isNot(contains('_customerAuthService.saveProfile(')));
