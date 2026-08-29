@@ -127,6 +127,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
   PersonalVehicleCollection _profileVehicles =
       const PersonalVehicleCollection.empty();
   String? _selectedProfileVehicleId;
+  PersonalVehicleData? _selectedProfileVehicle;
   List<String> _missingProfileFields = const [];
   List<DateTime> _bookedSlots = const [];
   final Set<String> _photoLoadingCategories = <String>{};
@@ -1173,6 +1174,14 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
         it: 'Cliente',
         en: 'Customer',
         fr: 'Client',
+      );
+
+  String _summaryVehicleNameLabel(BuildContext context) => _copy(
+        context: context,
+        de: 'Marke und Modell',
+        it: 'Marca e modello',
+        en: 'Brand and model',
+        fr: 'Marque et modèle',
       );
 
   String _confirmationLabel(BuildContext context) => _copy(
@@ -3793,6 +3802,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
         _loadedCustomerProfile = profile;
         _profileVehicles = vehicles;
         _selectedProfileVehicleId = selectedVehicle?.id;
+        _selectedProfileVehicle = selectedVehicle;
         _missingProfileFields = _findMissingProfileFields(
           profile,
           account,
@@ -3808,6 +3818,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
         _loadedCustomerProfile = null;
         _profileVehicles = const PersonalVehicleCollection.empty();
         _selectedProfileVehicleId = null;
+        _selectedProfileVehicle = null;
         _missingProfileFields = const [];
       });
     }
@@ -3826,23 +3837,24 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
 
     setState(() {
       _selectedProfileVehicleId = selected!.id;
+      _selectedProfileVehicle = selected;
       _plateCtrl.text = selected.targa.trim();
     });
   }
 
   PersonalVehicleData? _selectedBookingVehicle() {
-    final selectedId = _selectedProfileVehicleId;
-    final plate = _plateCtrl.text.trim().toUpperCase();
-    if (selectedId == null || plate.isEmpty) return null;
+    final selectedVehicle = _selectedProfileVehicle;
+    if (selectedVehicle == null) return null;
 
-    for (final vehicle in _profileVehicles.vehicles) {
-      if (vehicle.id == selectedId &&
-          vehicle.targa.trim().toUpperCase() == plate) {
-        return vehicle;
-      }
-    }
-    return null;
+    final selectedPlate = _normalizePlateForMatching(selectedVehicle.targa);
+    final bookingPlate = _normalizePlateForMatching(_plateCtrl.text);
+    return selectedPlate.isNotEmpty && selectedPlate == bookingPlate
+        ? selectedVehicle
+        : null;
   }
+
+  String _normalizePlateForMatching(String value) =>
+      value.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
 
   String _profileVehicleLabel(
     BuildContext context,
@@ -4249,6 +4261,7 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
   Widget _buildPremiumSummaryCard(BuildContext context) {
     final theme = Theme.of(context);
     final photoItems = _summaryPhotoCounts(context);
+    final vehicleName = _selectedBookingVehicle()?.displayName ?? '';
     final showConfirmationAccent = _canSubmitRequest && !_confirmationAccepted;
 
     return AnimatedSlide(
@@ -4298,6 +4311,13 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
                 icon: Icons.directions_car_outlined,
                 title: _summaryVehicleSectionTitle(context),
                 children: [
+                  if (vehicleName.isNotEmpty)
+                    _summaryInfoRow(
+                      context,
+                      label: _summaryVehicleNameLabel(context),
+                      value: vehicleName,
+                      emphasize: true,
+                    ),
                   _summaryInfoRow(
                     context,
                     label: AppLocalizations.of(context)!.license_plate_label,

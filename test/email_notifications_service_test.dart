@@ -26,7 +26,7 @@ void main() {
       customerName: 'Mario Rossi',
       customerPhone: phone,
       customerEmail: 'mario.rossi@example.com',
-      licensePlate: 'TI123456',
+      licensePlate: 'AG399854',
       vehicleBrand: vehicleBrand,
       vehicleModel: vehicleModel,
       garageName: 'Garage Test',
@@ -75,7 +75,7 @@ void main() {
     expect(payload['vehicle'], 'Audi e-tron');
     expect(payload['name'], 'Mario Rossi');
     expect(payload['recipient'], 'mario.rossi@example.com');
-    expect(payload['plate'], 'TI123456');
+    expect(payload['plate'], 'AG399854');
     expect(payload['service'], 'service_test');
     expect(payload['date'], '03.09.2026');
     expect(payload['time'], '14:30');
@@ -104,7 +104,7 @@ void main() {
     );
 
     expect(payload, isNot(contains('vehicle')));
-    expect(payload['plate'], 'TI123456');
+    expect(payload['plate'], 'AG399854');
     expect(payload['phone'], '+41 79 123 45 67');
   });
 
@@ -125,7 +125,7 @@ void main() {
 
     expect(restored.vehicleBrand, 'Audi');
     expect(restored.vehicleModel, 'e-tron');
-    expect(restored.licensePlate, 'TI123456');
+    expect(restored.licensePlate, 'AG399854');
   });
 
   test('email template uses the phone and falls back to a dash', () {

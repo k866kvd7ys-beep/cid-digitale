@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:cid_digitale/l10n/app_localizations.dart';
+import 'package:cid_digitale/models/appointment_request.dart';
 import 'package:cid_digitale/models/customer_profile.dart';
 import 'package:cid_digitale/models/personal_vehicle_data.dart';
 import 'package:cid_digitale/models/workshop_model.dart';
@@ -79,6 +81,19 @@ const _primaryVehicle = PersonalVehicleData(
   numeroSinistro: '',
 );
 
+const _bookingVehicle = PersonalVehicleData(
+  id: 'vehicle-booking',
+  targa: 'AG399854',
+  marca: 'Audi',
+  modello: 'e-tron',
+  vin: 'VIN-BOOKING',
+  kilometraggio: '24000',
+  primaImmatricolazione: '2023',
+  assicurazione: 'Zurich',
+  numeroPolizza: 'POL-BOOKING',
+  numeroSinistro: '',
+);
+
 const _workshop = WorkshopModel(
   id: 'workshop-one',
   name: 'Garage Lugano',
@@ -106,6 +121,52 @@ class _FakeAppointmentRequestsService extends AppointmentRequestsService {
     required DateTime day,
   }) async {
     return const [];
+  }
+}
+
+class _RecordingAppointmentRequestsService
+    implements AppointmentRequestsService {
+  final Completer<AppointmentRequest> _pendingRequest =
+      Completer<AppointmentRequest>();
+  Map<Symbol, dynamic>? createRequestArguments;
+  AppointmentRequest? createdRequest;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #fetchBookedSlots) {
+      return Future<List<DateTime>>.value(const []);
+    }
+    if (invocation.memberName == #createRequest) {
+      final arguments = invocation.namedArguments;
+      createRequestArguments = arguments;
+      final timestamp = DateTime.utc(2026, 8, 29, 12);
+      final request = AppointmentRequest(
+        id: 'request-booking',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        serviceType: arguments[#serviceType] as String,
+        appointmentDate: arguments[#appointmentDate] as DateTime,
+        appointmentTime: arguments[#appointmentTime] as String,
+        durationMinutes: arguments[#durationMinutes] as int,
+        customerName: arguments[#customerName] as String?,
+        customerPhone: arguments[#phone] as String?,
+        customerEmail: arguments[#email] as String?,
+        licensePlate: arguments[#licensePlate] as String?,
+        vehicleBrand: arguments[#vehicleBrand] as String?,
+        vehicleModel: arguments[#vehicleModel] as String?,
+        garageId: arguments[#garageId] as String?,
+        garageName: arguments[#garageName] as String?,
+        garageEmail: arguments[#garageEmail] as String?,
+        garagePhone: arguments[#garagePhone] as String?,
+        garageAddress: arguments[#garageAddress] as String?,
+        garageCity: arguments[#garageCity] as String?,
+        status: 'pending',
+        locale: arguments[#locale] as String?,
+      );
+      createdRequest = request;
+      return _pendingRequest.future;
+    }
+    return super.noSuchMethod(invocation);
   }
 }
 
@@ -141,6 +202,7 @@ Future<void> _pumpBooking(
   WidgetTester tester, {
   required FakeCustomerAuthService authService,
   required PersonalVehicleRepository vehicleRepository,
+  AppointmentRequestsService? appointmentService,
   Locale locale = const Locale('it'),
   Size physicalSize = const Size(900, 2200),
 }) async {
@@ -153,7 +215,8 @@ Future<void> _pumpBooking(
     _app(
       authService: authService,
       vehicleRepository: vehicleRepository,
-      appointmentService: _FakeAppointmentRequestsService(),
+      appointmentService:
+          appointmentService ?? _FakeAppointmentRequestsService(),
       locale: locale,
     ),
   );
@@ -340,6 +403,87 @@ void main() {
     expect(_fieldValue(tester, 'booking_plate_field'), _firstVehicle.targa);
     expect(jsonEncode(remote.rowsFor(_account.id)), rowsBefore);
     expect(auth.saveProfileCalls, 0);
+    _expectNoRemoteMutations(remote);
+  });
+
+  testWidgets(
+      'selected saved vehicle reaches summary and AppointmentRequest with normalized plate',
+      (tester) async {
+    final auth = FakeCustomerAuthService(
+      account: _account,
+      profile: _completeProfile,
+    );
+    final remote = FakePersonalVehicleRemoteDataSource(
+      authenticatedUserId: _account.id,
+    )..seed(
+        _account.id,
+        const PersonalVehicleCollection(
+          primaryVehicleId: 'vehicle-booking',
+          vehicles: [_bookingVehicle],
+        ),
+      );
+    final appointmentService = _RecordingAppointmentRequestsService();
+    addTearDown(auth.dispose);
+
+    await _pumpBooking(
+      tester,
+      authService: auth,
+      vehicleRepository: _repository(remote),
+      appointmentService: appointmentService,
+      physicalSize: const Size(390, 5200),
+    );
+    await _useProfile(tester);
+
+    expect(_fieldValue(tester, 'booking_plate_field'), 'AG399854');
+    await tester.enterText(
+      find.byKey(const Key('booking_plate_field')),
+      'AG 399854',
+    );
+    await tester.pump();
+    expect(find.text('Audi e-tron'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('booking_plate_field')),
+      'AG399854',
+    );
+    await tester.pump();
+
+    expect(find.text('Marca e modello'), findsOneWidget);
+    expect(find.text('Audi e-tron'), findsOneWidget);
+    expect(find.text('AG399854'), findsWidgets);
+
+    final firstSlot = find.widgetWithText(OutlinedButton, '08:00');
+    tester.widget<OutlinedButton>(firstSlot).onPressed!.call();
+    tester.widget<Checkbox>(find.byType(Checkbox).last).onChanged!.call(true);
+    await tester.pump();
+
+    final submitButton = find.ancestor(
+      of: find.byKey(const ValueKey('submit_idle')),
+      matching: find.byType(InkWell),
+    );
+    tester.widget<InkWell>(submitButton).onTap!.call();
+    await tester.pump();
+
+    expect(appointmentService.createRequestArguments?[#vehicleBrand], 'Audi');
+    expect(
+      appointmentService.createRequestArguments?[#vehicleModel],
+      'e-tron',
+    );
+    expect(
+      appointmentService.createRequestArguments?[#licensePlate],
+      'AG399854',
+    );
+    expect(
+      appointmentService.createRequestArguments?[#phone],
+      '+41 79 123 45 67',
+    );
+    expect(appointmentService.createdRequest?.vehicleBrand, 'Audi');
+    expect(appointmentService.createdRequest?.vehicleModel, 'e-tron');
+    expect(appointmentService.createdRequest?.licensePlate, 'AG399854');
+    expect(
+      appointmentService.createdRequest?.customerPhone,
+      '+41 79 123 45 67',
+    );
     _expectNoRemoteMutations(remote);
   });
 
