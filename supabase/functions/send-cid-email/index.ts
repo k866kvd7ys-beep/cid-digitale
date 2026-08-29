@@ -576,7 +576,7 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     emailHeading: "Digitale Schadenakte",
     pdfTitle: "Digitale Schadenakte",
     claimNumber: "Vorgangsnummer",
-    summaryHeading: "Kurzuebersicht",
+    summaryHeading: "Kurzübersicht",
     greeting: "Guten Tag,",
     intro: "Ihre digitale Schadenakte wurde erfolgreich registriert.",
     pdfSummaryNote:
@@ -608,6 +608,12 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     damage: "Beschädigung",
     vehicleA: "Fahrzeug A",
     vehicleB: "Fahrzeug B",
+    otherDamage: "Weitere Sachschäden",
+    otherObjectDamage: "Sachschäden an anderen Gegenständen",
+    otherVehicleDamage: "Sachschäden an anderen Fahrzeugen",
+    yes: "Ja",
+    no: "Nein",
+    notSpecified: "Nicht angegeben",
     liability: "Haftung (Angabe der Parteien)",
     signatures: "Unterschriften",
     workshopCode: "Werkstattcode",
@@ -660,6 +666,12 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     damage: "Danni",
     vehicleA: "Veicolo A",
     vehicleB: "Veicolo B",
+    otherDamage: "Ulteriori danni materiali",
+    otherObjectDamage: "Danni materiali ad altri oggetti",
+    otherVehicleDamage: "Danni materiali ad altri veicoli",
+    yes: "Sì",
+    no: "No",
+    notSpecified: "Non indicato",
     liability: "Responsabilità (dichiarazione delle parti)",
     signatures: "Firme",
     workshopCode: "Codice officina",
@@ -712,6 +724,12 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     damage: "Dommages",
     vehicleA: "Véhicule A",
     vehicleB: "Véhicule B",
+    otherDamage: "Autres dommages matériels",
+    otherObjectDamage: "Dommages matériels à d’autres objets",
+    otherVehicleDamage: "Dommages matériels à d’autres véhicules",
+    yes: "Oui",
+    no: "Non",
+    notSpecified: "Non indiqué",
     liability: "Responsabilité (déclaration des parties)",
     signatures: "Signatures",
     workshopCode: "Code atelier",
@@ -764,6 +782,12 @@ const getLocalizedCopy = (lang: SupportedLang, displayClaimId: string) => ({
     damage: "Damage",
     vehicleA: "Vehicle A",
     vehicleB: "Vehicle B",
+    otherDamage: "Other property damage",
+    otherObjectDamage: "Property damage to other objects",
+    otherVehicleDamage: "Property damage to other vehicles",
+    yes: "Yes",
+    no: "No",
+    notSpecified: "Not specified",
     liability: "Liability (party statement)",
     signatures: "Signatures",
     workshopCode: "Workshop code",
@@ -792,6 +816,12 @@ const escapeHtml = (value: string) =>
 const normalizePdfText = (value: string) =>
   value
     .normalize("NFD")
+    .replaceAll("a\u0308", "ä")
+    .replaceAll("o\u0308", "ö")
+    .replaceAll("u\u0308", "ü")
+    .replaceAll("A\u0308", "Ä")
+    .replaceAll("O\u0308", "Ö")
+    .replaceAll("U\u0308", "Ü")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[’‘]/g, "'")
     .replace(/[“”]/g, '"')
@@ -1403,6 +1433,11 @@ async function generatePdfFromPayload(
   const witnessesText = formatWitnesses(payload, lang);
   const injuriesText = formatInjuries(payload, lang);
   const liabilityText = getLocalizedLiability(payload, lang);
+  const optionalBooleanAnswer = (value: unknown) => {
+    if (value === true) return copy.yes;
+    if (value === false) return copy.no;
+    return copy.notSpecified;
+  };
   const formattedDateTime = formatDisplayDateTime(payload?.dataOra, lang);
   const signatureATimestamp = formatUtcTimestamp(getSignatureTimestamp(payload, "A"));
   const signatureBTimestamp = formatUtcTimestamp(getSignatureTimestamp(payload, "B"));
@@ -2072,6 +2107,33 @@ async function generatePdfFromPayload(
     background: white,
   });
   y -= descriptionHeight + cardGap;
+
+  const otherDamageBlocks = [
+    {
+      label: copy.otherObjectDamage,
+      text: optionalBooleanAnswer(payload?.otherObjectDamage),
+    },
+    {
+      label: copy.otherVehicleDamage,
+      text: optionalBooleanAnswer(payload?.otherVehicleDamage),
+    },
+  ];
+  const otherDamageHeight = measureTextCard(
+    copy.otherDamage,
+    otherDamageBlocks,
+    contentWidth,
+  );
+  ensureSpace(otherDamageHeight);
+  drawTextCard({
+    x: margin,
+    yTop: y,
+    width: contentWidth,
+    height: otherDamageHeight,
+    title: copy.otherDamage,
+    blocks: otherDamageBlocks,
+    background: white,
+  });
+  y -= otherDamageHeight + cardGap;
 
   const damageBlocks = [
     { label: copy.vehicleA, text: stringOrDash(payload?.danniVeicoloA) },

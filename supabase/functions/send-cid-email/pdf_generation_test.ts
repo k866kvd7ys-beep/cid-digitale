@@ -26,21 +26,31 @@ const completePayload: Record<string, unknown> = {
   modelloA: "Cayenne S",
   targaA: "AG123456",
   assicurazioneA: "AXA",
+  numeroPolizzaA: "POL-A-123",
+  vinA: "WPAZZZTEST0000001",
+  kilometraggioA: "42000",
+  primaImmatricolazioneA: "2021-05-10",
   telefonoA: "+41000000001",
   emailA: "antonio@example.com",
-  indirizzoA: "Teststrasse 1",
+  indirizzoA: "Großstraße 1",
   nomeB: "Fahrer B",
   cognomeB: "Test",
   marcaB: "Audi",
   modelloB: "A4",
   targaB: "ZG5555",
   assicurazioneB: "Zurich",
+  numeroPolizzaB: "POL-B-456",
+  vinB: "WAUZZZTEST0000002",
+  kilometraggioB: "31000",
+  primaImmatricolazioneB: "2022-04-11",
   telefonoB: "+41000000002",
   emailB: "fahrer-b@example.com",
   indirizzoB: "Testweg 2",
   descrizione: "Test collision",
   danniVeicoloA: "Frontschaden",
   danniVeicoloB: "Heckschaden",
+  otherObjectDamage: false,
+  otherVehicleDamage: false,
   colpevole: "B",
   hashIntegrita:
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
@@ -142,12 +152,34 @@ Deno.test("complete Edge PDF keeps vehicle data, signatures and emergency fallba
         "A4",
         "AG123456",
         "ZG5555",
+        "AXA",
+        "Zurich",
+        "POL-A-123",
+        "POL-B-456",
+        "WPAZZZTEST0000001",
+        "WAUZZZTEST0000002",
+        "antonio@example.com",
+        "fahrer-b@example.com",
+        "Großstraße 1",
+        "Kurzübersicht",
+        "Zusammenfassendes Dokument für",
         "Beschreibung",
-        "Beschadigung",
+        "Weitere Sachschäden",
+        "Sachschäden an anderen Gegenständen",
+        "Sachschäden an anderen Fahrzeugen",
+        "Beschädigung",
+        "Frontschaden",
+        "Heckschaden",
         "Haftung",
-        "Datenintegritat",
+        "Laut den Parteien ist Fahrer B der schuldige Fahrer.",
+        "Datenintegrität",
+        "Dokument geschützt durch",
         "SHA-256-Hash",
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
         "UTC-Zeitstempel",
+        "2026-08-23 10:05:00 UTC",
+        "2026-08-23 10:06:00 UTC",
+        "Werkstattcode",
         "Unterschriften",
         "Digital signiert",
       ]
@@ -158,6 +190,29 @@ Deno.test("complete Edge PDF keeps vehicle data, signatures and emergency fallba
     assert.doesNotMatch(completeText, /OK digital signiert|✓/);
     assert.equal(completeText.match(/Porsche/g)?.length, 1);
     assert.equal(completeText.match(/Cayenne S/g)?.length, 1);
+    assert.ok(completeText.includes("+41000000001"));
+    assert.ok(completeText.includes("+41000000002"));
+    assert.equal(completeText.match(/Nein/g)?.length, 2);
+    assert.doesNotMatch(
+      completeText,
+      /Kurzuebersicht|Beschadigung|Datenintegritat/,
+    );
+
+    const affirmativeBytes = await harness.generatePdfFromPayload(
+      {
+        ...completePayload,
+        otherObjectDamage: true,
+        otherVehicleDamage: false,
+        descrizione: "Ä Ö Ü ä ö ü ß",
+      },
+      "test-affirmative-other-damage",
+    );
+    const affirmativeText = await pdfText(affirmativeBytes);
+    assert.match(affirmativeText, /Sachschäden an anderen Gegenständen/);
+    assert.match(affirmativeText, /Sachschäden an anderen Fahrzeugen/);
+    assert.equal(affirmativeText.match(/Ja/g)?.length, 1);
+    assert.equal(affirmativeText.match(/Nein/g)?.length, 1);
+    assert.match(affirmativeText, /Ä Ö Ü ä ö ü ß/);
 
     const missingBytes = await harness.generatePdfFromPayload(
       {
