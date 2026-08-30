@@ -39,9 +39,9 @@ const _workshopCustomerProfile = CustomerProfile(
   profileCompleted: true,
 );
 
-Widget _app(Widget home) {
+Widget _app(Widget home, {Locale locale = const Locale('it')}) {
   return MaterialApp(
-    locale: const Locale('it'),
+    locale: locale,
     supportedLocales: const [
       Locale('it'),
       Locale('de'),
@@ -111,6 +111,68 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Willkommen bei CID Digitale'), findsOneWidget);
+    await service.dispose();
+  });
+
+  testWidgets('signed-out support link opens a localized mailto in IT DE FR EN',
+      (tester) async {
+    final service = FakeCustomerAuthService();
+    const localizedCopy = <String, (String, String)>{
+      'it': ('Hai bisogno di aiuto?', 'Assistenza CID Digitale'),
+      'de': ('Brauchst du Hilfe?', 'CID Digital Support'),
+      'fr': ('Besoin d’aide ?', 'Assistance CID Digitale'),
+      'en': ('Need help?', 'CID Digital Support'),
+    };
+
+    for (final entry in localizedCopy.entries) {
+      Uri? launchedUri;
+      await tester.pumpWidget(
+        _app(
+          LoginPage(
+            key: ValueKey(entry.key),
+            service: service,
+            launchUri: (uri) async {
+              launchedUri = uri;
+              return true;
+            },
+          ),
+          locale: Locale(entry.key),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text(entry.value.$1), findsOneWidget);
+      expect(find.text(entry.value.$2), findsOneWidget);
+      final supportLink = find.byKey(const Key('login_support_link'));
+      expect(supportLink, findsOneWidget);
+
+      await tester.ensureVisible(supportLink);
+      await tester.pumpAndSettle();
+      await tester.tap(supportLink);
+      await tester.pump();
+
+      expect(launchedUri?.scheme, 'mailto');
+      expect(launchedUri?.path, 'support@ciddigital.ch');
+      expect(launchedUri?.queryParameters['subject'], entry.value.$2);
+      expect(launchedUri?.queryParameters.containsKey('body'), isFalse);
+    }
+    await service.dispose();
+  });
+
+  testWidgets('existing forgot-password and registration links are unchanged',
+      (tester) async {
+    final service = FakeCustomerAuthService();
+    await tester.pumpWidget(_app(LoginPage(service: service)));
+
+    await tester.tap(find.text('Password dimenticata?'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('reset_email')), findsOneWidget);
+
+    Navigator.of(tester.element(find.byKey(const Key('reset_email')))).pop();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Registrati'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('register_submit')), findsOneWidget);
     await service.dispose();
   });
 
@@ -400,6 +462,7 @@ void main() {
 
     await tester.pumpWidget(_app(LoginPage(service: service)));
     expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('login_support_row')), findsOneWidget);
 
     await tester.pumpWidget(_app(RegisterPage(service: service)));
     await tester.pump();

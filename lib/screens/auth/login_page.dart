@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../auth/customer_auth_strings.dart';
 import '../../auth/customer_auth_validators.dart';
@@ -6,6 +7,8 @@ import '../../services/customer_auth_service.dart';
 import '../../widgets/auth/auth_page_shell.dart';
 import 'forgot_password_page.dart';
 import 'register_page.dart';
+
+typedef LoginUriLauncher = Future<bool> Function(Uri uri);
 
 class LoginPage extends StatefulWidget {
   const LoginPage({
@@ -15,6 +18,7 @@ class LoginPage extends StatefulWidget {
     this.onLocaleSelected,
     this.initialError,
     this.initialSuccessMessage,
+    this.launchUri,
   });
 
   final CustomerAuthService? service;
@@ -22,6 +26,7 @@ class LoginPage extends StatefulWidget {
   final ValueChanged<String>? onLocaleSelected;
   final Object? initialError;
   final String? initialSuccessMessage;
+  final LoginUriLauncher? launchUri;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -92,6 +97,22 @@ class _LoginPageState extends State<LoginPage> {
         builder: (_) => ForgotPasswordPage(service: _service),
       ),
     );
+  }
+
+  Future<void> _openSupportEmail() async {
+    final uri = Uri(
+      scheme: 'mailto',
+      path: 'support@ciddigital.ch',
+      queryParameters: {
+        'subject': CustomerAuthStrings.of(context).cidDigitalSupport,
+      },
+    );
+    final launcher = widget.launchUri;
+    if (launcher != null) {
+      await launcher(uri);
+      return;
+    }
+    await launchUrl(uri);
   }
 
   @override
@@ -214,6 +235,39 @@ class _LoginPageState extends State<LoginPage> {
                       TextButton(
                         onPressed: _loading ? null : _openRegistration,
                         child: Text(strings.register),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Wrap(
+                    key: const Key('login_support_row'),
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        strings.needHelp,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                      ),
+                      TextButton(
+                        key: const Key('login_support_link'),
+                        onPressed: _loading ? null : _openSupportEmail,
+                        style: TextButton.styleFrom(
+                          minimumSize: Size.zero,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          textStyle: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        child: Text(strings.cidDigitalSupport),
                       ),
                     ],
                   ),

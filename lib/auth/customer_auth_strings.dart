@@ -102,6 +102,18 @@ class CustomerAuthStrings {
         fr: 'Vous n’avez pas encore de compte ?',
         en: 'Don’t have an account yet?',
       );
+  String get needHelp => _pick(
+        it: 'Hai bisogno di aiuto?',
+        de: 'Brauchst du Hilfe?',
+        fr: 'Besoin d’aide ?',
+        en: 'Need help?',
+      );
+  String get cidDigitalSupport => _pick(
+        it: 'Assistenza CID Digitale',
+        de: 'CID Digital Support',
+        fr: 'Assistance CID Digitale',
+        en: 'CID Digital Support',
+      );
   String get haveAccount => _pick(
         it: 'Hai già un account?',
         de: 'Du hast bereits ein Konto?',
