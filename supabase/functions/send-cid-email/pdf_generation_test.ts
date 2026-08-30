@@ -27,6 +27,7 @@ const completePayload: Record<string, unknown> = {
   targaA: "AG123456",
   assicurazioneA: "AXA",
   numeroPolizzaA: "POL-A-123",
+  numeroSinistroA: "SCH-A-789",
   vinA: "WPAZZZTEST0000001",
   kilometraggioA: "42000",
   primaImmatricolazioneA: "2021-05-10",
@@ -40,6 +41,7 @@ const completePayload: Record<string, unknown> = {
   targaB: "ZG5555",
   assicurazioneB: "Zurich",
   numeroPolizzaB: "POL-B-456",
+  numeroSinistroB: "SCH-B-012",
   vinB: "WAUZZZTEST0000002",
   kilometraggioB: "31000",
   primaImmatricolazioneB: "2022-04-11",
@@ -144,6 +146,7 @@ Deno.test("complete Edge PDF keeps vehicle data, signatures and emergency fallba
         "CID DIGITALE",
         "Fahrer A",
         "Fahrer B",
+        "Vorgangsnummer",
         "Marke",
         "Modell",
         "Porsche",
@@ -156,6 +159,8 @@ Deno.test("complete Edge PDF keeps vehicle data, signatures and emergency fallba
         "Zurich",
         "POL-A-123",
         "POL-B-456",
+        "Policennummer",
+        "FIN / VIN",
         "WPAZZZTEST0000001",
         "WAUZZZTEST0000002",
         "antonio@example.com",
@@ -187,6 +192,10 @@ Deno.test("complete Edge PDF keeps vehicle data, signatures and emergency fallba
       assert.match(completeText, new RegExp(value));
     }
     assert.equal(completeText.match(/Digital signiert/g)?.length, 2);
+    assert.doesNotMatch(
+      completeText,
+      /Schadennummer|SCH-A-789|SCH-B-012/,
+    );
     assert.doesNotMatch(completeText, /OK digital signiert|✓/);
     assert.equal(completeText.match(/Porsche/g)?.length, 1);
     assert.equal(completeText.match(/Cayenne S/g)?.length, 1);
