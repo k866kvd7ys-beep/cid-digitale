@@ -7942,13 +7942,22 @@ class _NuovaPraticaIncidentePageState extends State<NuovaPraticaIncidentePage> {
         debugPrint('UPLOAD LIBRETTO USING REMOTE CLAIM');
       }
 
-      await _supabaseService.uploadClaimImageBytes(
+      final uploadedUrl = await _supabaseService.uploadClaimImageBytes(
         claimId: uploadClaimId,
         bytes: bytes,
         filename: name,
         contentType: 'image/jpeg',
         kind: kind,
       );
+      if (kind == 'libretto' && mounted) {
+        setState(() {
+          if (quale == 'A') {
+            _fotoLibrettoAPath = uploadedUrl;
+          } else if (quale == 'B') {
+            _fotoLibrettoBPath = uploadedUrl;
+          }
+        });
+      }
       debugPrint('Upload $kind completato');
 
       _mostraSnack('Foto caricata');
