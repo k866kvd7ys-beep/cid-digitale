@@ -122,39 +122,39 @@ String workshopServiceLabel(String locale, String? serviceKey) {
     case workshopServiceRepair:
       return _copy(
         locale,
-        de: 'Service und Reparaturarbeiten',
-        it: 'Service e riparazioni',
-        en: 'Service and repair work',
-        fr: 'Service et réparations',
+        de: 'Wartung und Reparatur',
+        it: 'Manutenzione e riparazione',
+        en: 'Maintenance and repair',
+        fr: 'Entretien et réparation',
       );
     case workshopServiceVehicleCheck:
       return _copy(
         locale,
-        de: 'Fahrzeug-Check ab CHF 59.-',
-        it: 'Check veicolo da CHF 59.-',
-        en: 'Vehicle check from CHF 59.-',
-        fr: 'Contrôle véhicule dès CHF 59.-',
+        de: 'Fahrzeug-Kurzcheck',
+        it: 'Controllo rapido del veicolo',
+        en: 'Vehicle quick check',
+        fr: 'Contrôle rapide du véhicule',
       );
     case workshopServiceClimate:
       return _copy(
         locale,
-        de: 'Klima Service ab CHF 98.-',
-        it: 'Servizio clima da CHF 98.-',
-        en: 'A/C service from CHF 98.-',
-        fr: 'Service climatisation dès CHF 98.-',
+        de: 'Klima-Service',
+        it: 'Servizio climatizzazione',
+        en: 'Air conditioning service',
+        fr: 'Service de climatisation',
       );
     case workshopServiceAlignment:
       return _copy(
         locale,
-        de: 'Fahrzeugvermessung ab CHF 195.-',
-        it: 'Geometria ruote da CHF 195.-',
-        en: 'Wheel alignment from CHF 195.-',
-        fr: 'Géométrie des roues dès CHF 195.-',
+        de: 'Achs- und Lenkgeometrie',
+        it: 'Geometria ruote e sterzo',
+        en: 'Wheel and steering alignment',
+        fr: 'Géométrie des roues et de la direction',
       );
     case workshopServiceMfk:
       return _copy(
         locale,
-        de: 'MFK-Bereitstellung',
+        de: 'MFK-Vorbereitung',
         it: 'Preparazione MFK',
         en: 'MFK preparation',
         fr: 'Préparation MFK',
@@ -203,34 +203,34 @@ String workshopServiceDescription(String locale, String serviceKey) {
     case workshopServiceRepair:
       return _copy(
         locale,
-        de: 'Wartung, Inspektion und Reparaturarbeiten für Ihr Fahrzeug.',
-        it: 'Manutenzione, ispezione e riparazioni per il tuo veicolo.',
-        en: 'Maintenance, inspection and repair work for your vehicle.',
-        fr: 'Entretien, inspection et réparations pour votre véhicule.',
+        de: 'Kontrollen, Wartungsarbeiten und Reparaturen nach Fahrzeugbedarf.',
+        it: 'Controlli, manutenzione e riparazioni secondo le esigenze del veicolo.',
+        en: 'Checks, maintenance and repairs based on the vehicle’s needs.',
+        fr: 'Contrôles, entretien et réparations selon les besoins du véhicule.',
       );
     case workshopServiceVehicleCheck:
       return _copy(
         locale,
-        de: 'Schneller Fahrzeug-Check mit professioneller Kontrolle.',
-        it: 'Controllo rapido del veicolo con verifica professionale.',
-        en: 'Quick vehicle check with professional inspection.',
-        fr: 'Contrôle rapide du véhicule avec vérification professionnelle.',
+        de: 'Kompakter Überblick über sicherheits- und alltagsrelevante Fahrzeugbereiche.',
+        it: 'Controllo sintetico delle parti importanti per sicurezza e uso quotidiano.',
+        en: 'A concise review of vehicle areas relevant to safety and everyday use.',
+        fr: 'Aperçu concis des éléments importants pour la sécurité et l’usage quotidien.',
       );
     case workshopServiceClimate:
       return _copy(
         locale,
-        de: 'Prüfung und Service der Klimaanlage.',
-        it: 'Controllo e servizio dell’impianto climatizzazione.',
-        en: 'Inspection and service of the air conditioning system.',
-        fr: 'Contrôle et entretien du système de climatisation.',
+        de: 'Funktions- und Zustandsprüfung der Klimaanlage nach Fahrzeugbedarf.',
+        it: 'Controllo di funzionamento e stato della climatizzazione secondo il veicolo.',
+        en: 'Functional and condition check of the air conditioning system as required.',
+        fr: 'Contrôle du fonctionnement et de l’état de la climatisation selon le véhicule.',
       );
     case workshopServiceAlignment:
       return _copy(
         locale,
-        de: 'Vermessung der kompletten Lenkgeometrie',
-        it: 'Controllo completo della geometria dello sterzo',
-        en: 'Complete steering geometry measurement',
-        fr: 'Contrôle complet de la géométrie de direction',
+        de: 'Prüfung von Radstellung, Achsen und Lenkgeometrie.',
+        it: 'Controllo di assetto ruote, assi e geometria dello sterzo.',
+        en: 'Check of wheel position, axles and steering geometry.',
+        fr: 'Contrôle de la position des roues, des essieux et de la direction.',
       );
     case workshopServiceMfk:
       return _copy(
@@ -265,6 +265,14 @@ String workshopServiceDescription(String locale, String serviceKey) {
       return '';
   }
 }
+
+String workshopPriceAccordingToWorkshop(String locale) => _copy(
+      locale,
+      de: 'Preis gemäss Werkstatt',
+      it: 'Prezzo secondo l’officina',
+      en: 'Price according to the workshop',
+      fr: 'Prix selon le garage',
+    );
 
 IconData workshopServiceIcon(String serviceKey) {
   switch (serviceKey) {

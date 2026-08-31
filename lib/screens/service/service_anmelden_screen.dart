@@ -123,6 +123,7 @@ class ServiceAnmeldenScreen extends StatelessWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => _ServiceRepairInfoScreen(
+                        locale: locale,
                         onBookNow: (cleaningPackage) => _openBooking(
                           context,
                           workshopServiceLabel(locale, serviceKey),
@@ -712,81 +713,81 @@ class _VehicleCheckInfoScreen extends StatelessWidget {
       _ServiceInfoBullet(
         title: _serviceFlowCopy(
           locale,
-          de: 'Innenraum',
-          it: 'Abitacolo',
-          en: 'Interior',
-          fr: 'Habitacle',
+          de: 'Sicherheit im Alltag',
+          it: 'Sicurezza nell’uso quotidiano',
+          en: 'Everyday safety',
+          fr: 'Sécurité au quotidien',
         ),
         detail: _serviceFlowCopy(
           locale,
-          de: '(u. a. Kontrolleuchten, Heizung, Gebläse, Klimaanlage)',
-          it: '(tra cui spie di controllo, riscaldamento, ventilazione, climatizzazione)',
-          en: '(including warning lights, heating, blower, air conditioning)',
-          fr: '(notamment voyants, chauffage, ventilation, climatisation)',
+          de: 'Bremsen, Beleuchtung, Warnanzeigen und freie Sicht',
+          it: 'Freni, illuminazione, spie e visibilità',
+          en: 'Brakes, lighting, warning indicators and visibility',
+          fr: 'Freins, éclairage, témoins et visibilité',
         ),
       ),
       _ServiceInfoBullet(
         title: _serviceFlowCopy(
           locale,
-          de: 'Motorraum',
-          it: 'Vano motore',
-          en: 'Engine bay',
-          fr: 'Compartiment moteur',
+          de: 'Reifen und Fahrverhalten',
+          it: 'Pneumatici e comportamento di guida',
+          en: 'Tires and handling',
+          fr: 'Pneumatiques et comportement routier',
         ),
         detail: _serviceFlowCopy(
           locale,
-          de: '(u. a. Batterie, Motorölstand)',
-          it: '(tra cui batteria, livello olio motore)',
-          en: '(including battery, engine oil level)',
-          fr: '(notamment batterie, niveau d’huile moteur)',
+          de: 'Profiltiefe, Luftdruck und auffälliges Verschleissbild',
+          it: 'Battistrada, pressione e usura anomala',
+          en: 'Tread depth, tire pressure and unusual wear',
+          fr: 'Profondeur du profil, pression et usure anormale',
         ),
       ),
       _ServiceInfoBullet(
         title: _serviceFlowCopy(
           locale,
-          de: 'Fahrzeugunterseite',
-          it: 'Sottoscocca',
-          en: 'Vehicle underside',
-          fr: 'Partie inférieure du véhicule',
+          de: 'Energie und Betriebsstoffe',
+          it: 'Energia e liquidi di esercizio',
+          en: 'Energy and operating fluids',
+          fr: 'Énergie et liquides de fonctionnement',
         ),
         detail: _serviceFlowCopy(
           locale,
-          de: '(u. a. Auspuff, Bremsen, Fahrwerk)',
-          it: '(tra cui scarico, freni, assetto)',
-          en: '(including exhaust, brakes, suspension)',
-          fr: '(notamment échappement, freins, train roulant)',
+          de: '12-V-Batterie und fahrzeugspezifische Füllstände',
+          it: 'Batteria 12 V e livelli specifici del veicolo',
+          en: '12 V battery and vehicle-specific fluid levels',
+          fr: 'Batterie 12 V et niveaux propres au véhicule',
         ),
       ),
       _ServiceInfoBullet(
         title: _serviceFlowCopy(
           locale,
-          de: 'Bereifung',
-          it: 'Pneumatici',
-          en: 'Tires',
-          fr: 'Pneumatiques',
+          de: 'Karosserie und Verglasung',
+          it: 'Carrozzeria e vetri',
+          en: 'Bodywork and glazing',
+          fr: 'Carrosserie et vitrages',
         ),
         detail: _serviceFlowCopy(
           locale,
-          de: '(u. a. Profiltiefe, Luftdruck)',
-          it: '(tra cui profondità battistrada, pressione)',
-          en: '(including tread depth, tire pressure)',
-          fr: '(notamment profondeur du profil, pression)',
+          de: 'Scheiben, Wischer und sichtbare äussere Schäden',
+          it: 'Vetri, tergicristalli e danni esterni visibili',
+          en: 'Windows, wipers and visible exterior damage',
+          fr: 'Vitres, essuie-glaces et dommages extérieurs visibles',
         ),
       ),
       _ServiceInfoBullet(
         title: _serviceFlowCopy(
           locale,
-          de: 'Karosserie',
-          it: 'Carrozzeria',
-          en: 'Bodywork',
-          fr: 'Carrosserie',
+          de: 'Fahrwerk und Unterseite',
+          it: 'Assetto e sottoscocca',
+          en: 'Suspension and underside',
+          fr: 'Train roulant et soubassement',
         ),
         detail: _serviceFlowCopy(
           locale,
-          de: '(u. a. Steinschlag, Windschutzscheibe, Wischerblätter)',
-          it: '(tra cui scheggiature, parabrezza, tergicristalli)',
-          en: '(including stone chips, windshield, wiper blades)',
-          fr: '(notamment impacts, pare-brise, balais d’essuie-glace)',
+          de: 'Zugängliche Bauteile, Befestigungen und sichtbare Undichtigkeiten',
+          it: 'Componenti accessibili, fissaggi e perdite visibili',
+          en: 'Accessible components, mountings and visible leaks',
+          fr: 'Composants accessibles, fixations et fuites visibles',
         ),
       ),
     ];
@@ -835,10 +836,10 @@ class _VehicleCheckInfoScreen extends StatelessWidget {
                     Text(
                       _serviceFlowCopy(
                         locale,
-                        de: 'Fahrzeug-Check',
-                        it: 'Check veicolo',
-                        en: 'Vehicle check',
-                        fr: 'Contrôle véhicule',
+                        de: 'Fahrzeug-Kurzcheck',
+                        it: 'Controllo rapido del veicolo',
+                        en: 'Vehicle quick check',
+                        fr: 'Contrôle rapide du véhicule',
                       ),
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w700,
@@ -849,10 +850,10 @@ class _VehicleCheckInfoScreen extends StatelessWidget {
                     Text(
                       _serviceFlowCopy(
                         locale,
-                        de: 'Der Fahrzeug-Check für CHF 59.- umfasst folgende Kontrollen:',
-                        it: 'Il check veicolo da CHF 59.- comprende i seguenti controlli:',
-                        en: 'The vehicle check for CHF 59.- includes the following inspections:',
-                        fr: 'Le contrôle véhicule à CHF 59.- comprend les contrôles suivants :',
+                        de: 'Kompakter Vorsorgecheck für sicherheits- und alltagsrelevante Bereiche.',
+                        it: 'Controllo preventivo essenziale delle parti rilevanti per sicurezza e uso quotidiano.',
+                        en: 'A concise preventive check of areas relevant to safety and everyday use.',
+                        fr: 'Contrôle préventif concis des éléments importants pour la sécurité et l’usage quotidien.',
                       ),
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: const Color(0xFF6B7280),
@@ -870,10 +871,10 @@ class _VehicleCheckInfoScreen extends StatelessWidget {
                     Text(
                       _serviceFlowCopy(
                         locale,
-                        de: 'Hier mehr erfahren',
-                        it: 'Scopri di più',
-                        en: 'Learn more here',
-                        fr: 'En savoir plus ici',
+                        de: 'Der genaue Umfang richtet sich nach Fahrzeug und Werkstatt.',
+                        it: 'L’ambito esatto dipende dal veicolo e dall’officina.',
+                        en: 'The exact scope depends on the vehicle and the workshop.',
+                        fr: 'L’étendue exacte dépend du véhicule et du garage.',
                       ),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: const Color(0xFF2563EB),
@@ -967,28 +968,28 @@ class _ClimateServiceScreenState extends State<_ClimateServiceScreen> {
                       widget.locale,
                       workshopClimateDetailStandard,
                     ),
-                    priceLabel: 'CHF 98.-',
+                    priceLabel: workshopPriceAccordingToWorkshop(widget.locale),
                     bullets: [
                       _serviceFlowCopy(
                         widget.locale,
-                        de: 'Funktionskontrolle der Klimaanlage',
-                        it: 'Controllo funzionale dell’impianto climatizzazione',
-                        en: 'Functional check of the air conditioning system',
-                        fr: 'Contrôle du fonctionnement de la climatisation',
+                        de: 'Kühlleistung und Bedienelemente prüfen',
+                        it: 'Controllo della resa e dei comandi',
+                        en: 'Check cooling performance and controls',
+                        fr: 'Contrôle des performances et des commandes',
                       ),
                       _serviceFlowCopy(
                         widget.locale,
-                        de: 'Reinigung des Verdampfers',
-                        it: 'Pulizia dell’evaporatore',
-                        en: 'Cleaning of the evaporator',
-                        fr: 'Nettoyage de l’évaporateur',
+                        de: 'Zugängliche Komponenten hygienisch behandeln',
+                        it: 'Trattamento igienico dei componenti accessibili',
+                        en: 'Hygienic treatment of accessible components',
+                        fr: 'Traitement hygiénique des composants accessibles',
                       ),
                       _serviceFlowCopy(
                         widget.locale,
-                        de: 'Pollenfilter prüfen und eventuell ersetzen (Material nicht eingeschlossen)',
-                        it: 'Controllo del filtro antipolline ed eventuale sostituzione (materiale non incluso)',
-                        en: 'Check pollen filter and replace if necessary (material not included)',
-                        fr: 'Contrôle du filtre à pollen et remplacement éventuel (matériel non inclus)',
+                        de: 'Pollenfilter beurteilen; Ersatz nur nach Rücksprache',
+                        it: 'Valutazione del filtro abitacolo; sostituzione solo previo accordo',
+                        en: 'Assess the cabin filter; replacement only after consultation',
+                        fr: 'Évaluer le filtre d’habitacle ; remplacement uniquement après accord',
                       ),
                     ],
                     selected: _selectedDetail == workshopClimateDetailStandard,
@@ -1004,35 +1005,35 @@ class _ClimateServiceScreenState extends State<_ClimateServiceScreen> {
                       widget.locale,
                       workshopClimateDetailPlus,
                     ),
-                    priceLabel: 'CHF 195.-',
+                    priceLabel: workshopPriceAccordingToWorkshop(widget.locale),
                     description: _serviceFlowCopy(
                       widget.locale,
-                      de: 'Der Klimaservice Plus umfasst zusätzlich zum normalen Klimaservice:',
-                      it: 'Il servizio clima Plus comprende inoltre, rispetto al normale servizio clima:',
-                      en: 'In addition to the standard A/C service, the A/C Service Plus includes:',
-                      fr: 'En plus du service climatisation standard, le service climatisation Plus comprend :',
+                      de: 'Erweiterte Prüfung nach Anlagenzustand und Werkstattausstattung:',
+                      it: 'Controllo esteso secondo lo stato dell’impianto e le dotazioni dell’officina:',
+                      en: 'Extended check based on system condition and workshop equipment:',
+                      fr: 'Contrôle étendu selon l’état du système et l’équipement du garage :',
                     ),
                     bullets: [
                       _serviceFlowCopy(
                         widget.locale,
-                        de: 'Druckkontrolle im Kältemittelkreislauf',
-                        it: 'Controllo della pressione nel circuito del refrigerante',
-                        en: 'Pressure check in the refrigerant circuit',
-                        fr: 'Contrôle de pression du circuit de réfrigérant',
+                        de: 'Druck- und Leistungswerte des Kältemittelkreislaufs prüfen',
+                        it: 'Controllo di pressione e prestazioni del circuito refrigerante',
+                        en: 'Check refrigerant circuit pressure and performance values',
+                        fr: 'Contrôle de la pression et des performances du circuit frigorifique',
                       ),
                       _serviceFlowCopy(
                         widget.locale,
-                        de: 'Evakuierung und Reinigung',
-                        it: 'Evacuazione e pulizia',
-                        en: 'Evacuation and cleaning',
-                        fr: 'Évacuation et nettoyage',
+                        de: 'Kältemittelservice nach Befund und Fahrzeugvorgabe',
+                        it: 'Servizio refrigerante secondo esito e specifiche del veicolo',
+                        en: 'Refrigerant service according to findings and vehicle specifications',
+                        fr: 'Service du fluide frigorigène selon le diagnostic et le véhicule',
                       ),
                       _serviceFlowCopy(
                         widget.locale,
-                        de: 'Nachfüllen des Kältemittels (wenn nötig)',
-                        it: 'Ricarica del refrigerante (se necessario)',
-                        en: 'Refill refrigerant (if necessary)',
-                        fr: 'Recharge du fluide frigorigène (si nécessaire)',
+                        de: 'Material und Zusatzarbeiten nur nach Rücksprache',
+                        it: 'Materiali e lavori aggiuntivi solo previo accordo',
+                        en: 'Materials and additional work only after consultation',
+                        fr: 'Matériel et travaux supplémentaires uniquement après accord',
                       ),
                     ],
                     selected: _selectedDetail == workshopClimateDetailPlus,
@@ -1108,10 +1109,10 @@ class _VehicleAlignmentInfoScreen extends StatelessWidget {
       ),
       _serviceFlowCopy(
         locale,
-        de: 'Weniger Kraftstoffverbrauch',
-        it: 'Minore consumo di carburante',
-        en: 'Lower fuel consumption',
-        fr: 'Réduction de la consommation de carburant',
+        de: 'Effizienteres Fahren durch korrekte Radstellung',
+        it: 'Guida più efficiente grazie al corretto assetto delle ruote',
+        en: 'More efficient driving through correct wheel alignment',
+        fr: 'Conduite plus efficace grâce au bon alignement des roues',
       ),
       _serviceFlowCopy(
         locale,
@@ -1174,10 +1175,10 @@ class _VehicleAlignmentInfoScreen extends StatelessWidget {
                     Text(
                       _serviceFlowCopy(
                         locale,
-                        de: 'Vermessung der kompletten Lenkgeometrie',
-                        it: 'Controllo completo della geometria dello sterzo',
-                        en: 'Complete steering geometry measurement',
-                        fr: 'Contrôle complet de la géométrie de direction',
+                        de: 'Prüfung von Radstellung, Achsen und Lenkgeometrie',
+                        it: 'Controllo di assetto ruote, assi e geometria dello sterzo',
+                        en: 'Check of wheel position, axles and steering geometry',
+                        fr: 'Contrôle de la position des roues, des essieux et de la direction',
                       ),
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: const Color(0xFF6B7280),
@@ -1293,167 +1294,28 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
   List<_MfkInfoItem> _items() {
     return [
       _MfkInfoItem(
-        icon: Icons.cleaning_services_outlined,
-        title: _serviceFlowCopy(
-          locale,
-          de: 'MFK-Reinigung',
-          it: 'Pulizia MFK',
-          en: 'MFK cleaning',
-          fr: 'Nettoyage MFK',
-        ),
-        lines: [
-          _serviceFlowCopy(
-            locale,
-            de: 'Motor- und Chassisreinigung',
-            it: 'Pulizia motore e telaio',
-            en: 'Engine and chassis cleaning',
-            fr: 'Nettoyage moteur et châssis',
-          ),
-          _serviceFlowCopy(
-            locale,
-            de: 'Maschinenwäsche aussen',
-            it: 'Lavaggio esterno automatico',
-            en: 'Exterior machine wash',
-            fr: 'Lavage extérieur en machine',
-          ),
-        ],
-      ),
-      _MfkInfoItem(
-        icon: Icons.tire_repair_outlined,
-        title: _serviceFlowCopy(
-          locale,
-          de: 'Räder, Aufhängung, Lenkung',
-          it: 'Ruote, sospensioni, sterzo',
-          en: 'Wheels, suspension, steering',
-          fr: 'Roues, suspension, direction',
-        ),
-        lines: [
-          _serviceFlowCopy(
-            locale,
-            de: 'Korrekte Bereifung',
-            it: 'Pneumatici corretti',
-            en: 'Correct tires',
-            fr: 'Pneumatiques conformes',
-          ),
-          _serviceFlowCopy(
-            locale,
-            de: 'Spiel',
-            it: 'Giochi',
-            en: 'Play',
-            fr: 'Jeu',
-          ),
-          _serviceFlowCopy(
-            locale,
-            de: 'Zustand von Gummis',
-            it: 'Stato di gommini',
-            en: 'Condition of rubber parts',
-            fr: 'État des caoutchoucs',
-          ),
-          _serviceFlowCopy(
-            locale,
-            de: 'Manschetten usw.',
-            it: 'Cuffie ecc.',
-            en: 'Boots etc.',
-            fr: 'Soufflets, etc.',
-          ),
-        ],
-      ),
-      _MfkInfoItem(
-        icon: Icons.precision_manufacturing_outlined,
-        title: _serviceFlowCopy(
-          locale,
-          de: 'Motor, Kraftübertragung',
-          it: 'Motore, trasmissione',
-          en: 'Engine, power transmission',
-          fr: 'Moteur, transmission',
-        ),
-        lines: [
-          _serviceFlowCopy(
-            locale,
-            de: 'Dichtheit',
-            it: 'Tenuta',
-            en: 'Leak tightness',
-            fr: 'Étanchéité',
-          ),
-          _serviceFlowCopy(
-            locale,
-            de: 'Funktion',
-            it: 'Funzionamento',
-            en: 'Function',
-            fr: 'Fonctionnement',
-          ),
-          _serviceFlowCopy(
-            locale,
-            de: 'Geräusche',
-            it: 'Rumori',
-            en: 'Noises',
-            fr: 'Bruits',
-          ),
-        ],
-      ),
-      _MfkInfoItem(
         icon: Icons.car_crash_outlined,
         title: _serviceFlowCopy(
           locale,
-          de: 'Bremsen',
-          it: 'Freni',
-          en: 'Brakes',
-          fr: 'Freins',
+          de: 'Bremsen und Fahrverhalten',
+          it: 'Freni e comportamento di guida',
+          en: 'Brakes and handling',
+          fr: 'Freins et comportement routier',
         ),
         lines: [
           _serviceFlowCopy(
             locale,
-            de: 'Kontrolle auf Bremsprüfstand',
-            it: 'Controllo al banco freni',
-            en: 'Check on brake test bench',
-            fr: 'Contrôle au banc de freinage',
+            de: 'Bremswirkung nach Werkstattverfahren',
+            it: 'Efficacia frenante secondo la procedura dell’officina',
+            en: 'Braking performance using the workshop procedure',
+            fr: 'Efficacité du freinage selon la procédure du garage',
           ),
           _serviceFlowCopy(
             locale,
-            de: 'Sichtkontrolle',
-            it: 'Controllo visivo',
-            en: 'Visual inspection',
-            fr: 'Contrôle visuel',
-          ),
-        ],
-      ),
-      _MfkInfoItem(
-        icon: Icons.directions_car_outlined,
-        title: _serviceFlowCopy(
-          locale,
-          de: 'Aufbau inkl. Glas',
-          it: 'Carrozzeria incl. vetri',
-          en: 'Body incl. glass',
-          fr: 'Carrosserie incl. vitrages',
-        ),
-        lines: [
-          _serviceFlowCopy(
-            locale,
-            de: 'Funktion',
-            it: 'Funzionamento',
-            en: 'Function',
-            fr: 'Fonctionnement',
-          ),
-          _serviceFlowCopy(
-            locale,
-            de: 'Spiel',
-            it: 'Giochi',
-            en: 'Play',
-            fr: 'Jeu',
-          ),
-          _serviceFlowCopy(
-            locale,
-            de: 'Rost',
-            it: 'Ruggine',
-            en: 'Rust',
-            fr: 'Rouille',
-          ),
-          _serviceFlowCopy(
-            locale,
-            de: 'Beschädigungen usw.',
-            it: 'Danni ecc.',
-            en: 'Damage etc.',
-            fr: 'Dommages, etc.',
+            de: 'Sichtbarer Zustand und auffälliges Fahrverhalten',
+            it: 'Stato visibile e anomalie nel comportamento di guida',
+            en: 'Visible condition and unusual handling',
+            fr: 'État visible et comportement routier inhabituel',
           ),
         ],
       ),
@@ -1461,58 +1323,25 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
         icon: Icons.lightbulb_outline,
         title: _serviceFlowCopy(
           locale,
-          de: 'Elektrische Anlage, Beleuchtung',
-          it: 'Impianto elettrico, illuminazione',
-          en: 'Electrical system, lighting',
-          fr: 'Installation électrique, éclairage',
+          de: 'Beleuchtung und Signale',
+          it: 'Illuminazione e segnalazione',
+          en: 'Lighting and signals',
+          fr: 'Éclairage et signalisation',
         ),
         lines: [
           _serviceFlowCopy(
             locale,
-            de: 'Funktion',
-            it: 'Funzionamento',
-            en: 'Function',
-            fr: 'Fonctionnement',
+            de: 'Scheinwerfer, Leuchten und Blinker',
+            it: 'Fari, luci e indicatori di direzione',
+            en: 'Headlights, lamps and indicators',
+            fr: 'Phares, feux et clignotants',
           ),
           _serviceFlowCopy(
             locale,
-            de: 'Einstellung',
-            it: 'Regolazione',
-            en: 'Adjustment',
-            fr: 'Réglage',
-          ),
-        ],
-      ),
-      _MfkInfoItem(
-        icon: Icons.health_and_safety_outlined,
-        title: _serviceFlowCopy(
-          locale,
-          de: 'Sicherheitssysteme',
-          it: 'Sistemi di sicurezza',
-          en: 'Safety systems',
-          fr: 'Systèmes de sécurité',
-        ),
-        lines: [
-          _serviceFlowCopy(
-            locale,
-            de: 'Gurten',
-            it: 'Cinture',
-            en: 'Seat belts',
-            fr: 'Ceintures',
-          ),
-          _serviceFlowCopy(
-            locale,
-            de: 'Airbag',
-            it: 'Airbag',
-            en: 'Airbag',
-            fr: 'Airbag',
-          ),
-          _serviceFlowCopy(
-            locale,
-            de: 'usw.',
-            it: 'ecc.',
-            en: 'etc.',
-            fr: 'etc.',
+            de: 'Einstellung und erkennbare Fehlanzeigen',
+            it: 'Regolazione e segnalazioni di errore visibili',
+            en: 'Adjustment and visible fault indications',
+            fr: 'Réglage et indications de défaut visibles',
           ),
         ],
       ),
@@ -1520,39 +1349,169 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
         icon: Icons.description_outlined,
         title: _serviceFlowCopy(
           locale,
-          de: 'Dokumente, Identifikation',
-          it: 'Documenti, identificazione',
-          en: 'Documents, identification',
-          fr: 'Documents, identification',
+          de: 'Dokumente und Identifikation',
+          it: 'Documenti e identificazione',
+          en: 'Documents and identification',
+          fr: 'Documents et identification',
         ),
         lines: [
           _serviceFlowCopy(
             locale,
-            de: 'Kennzeichen',
-            it: 'Targa',
-            en: 'License plate',
-            fr: 'Plaque d’immatriculation',
+            de: 'Kontrollschilder und Fahrzeugausweis',
+            it: 'Targhe e licenza di circolazione',
+            en: 'License plates and vehicle registration document',
+            fr: 'Plaques et permis de circulation',
           ),
           _serviceFlowCopy(
             locale,
-            de: 'Fahrzeugpapiere',
-            it: 'Documenti del veicolo',
-            en: 'Vehicle documents',
-            fr: 'Documents du véhicule',
+            de: 'FIN und erforderliche Zusatzdokumente',
+            it: 'VIN e documenti supplementari necessari',
+            en: 'VIN and required supplementary documents',
+            fr: 'VIN et documents complémentaires requis',
+          ),
+        ],
+      ),
+      _MfkInfoItem(
+        icon: Icons.tire_repair_outlined,
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Räder, Lenkung und Aufhängung',
+          it: 'Ruote, sterzo e sospensioni',
+          en: 'Wheels, steering and suspension',
+          fr: 'Roues, direction et suspension',
+        ),
+        lines: [
+          _serviceFlowCopy(
+            locale,
+            de: 'Bereifung und Radbefestigung',
+            it: 'Pneumatici e fissaggio delle ruote',
+            en: 'Tires and wheel fastening',
+            fr: 'Pneumatiques et fixation des roues',
           ),
           _serviceFlowCopy(
             locale,
-            de: 'Beiblätter',
-            it: 'Documenti supplementari',
-            en: 'Supplementary sheets',
-            fr: 'Documents complémentaires',
+            de: 'Erkennbare Spiele und zugängliche Bauteile',
+            it: 'Giochi rilevabili e componenti accessibili',
+            en: 'Detectable play and accessible components',
+            fr: 'Jeux détectables et composants accessibles',
+          ),
+        ],
+      ),
+      _MfkInfoItem(
+        icon: Icons.directions_car_outlined,
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Karosserie und Sicht',
+          it: 'Carrozzeria e visibilità',
+          en: 'Bodywork and visibility',
+          fr: 'Carrosserie et visibilité',
+        ),
+        lines: [
+          _serviceFlowCopy(
+            locale,
+            de: 'Scheiben, Spiegel und Wischer',
+            it: 'Vetri, specchi e tergicristalli',
+            en: 'Windows, mirrors and wipers',
+            fr: 'Vitres, rétroviseurs et essuie-glaces',
           ),
           _serviceFlowCopy(
             locale,
-            de: 'Fahrgestellnummer',
-            it: 'Numero di telaio',
-            en: 'Chassis number',
-            fr: 'Numéro de châssis',
+            de: 'Sichtbare Schäden oder Korrosion',
+            it: 'Danni visibili o corrosione',
+            en: 'Visible damage or corrosion',
+            fr: 'Dommages visibles ou corrosion',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Türen, Hauben und Befestigungen',
+            it: 'Porte, cofani e fissaggi',
+            en: 'Doors, lids and fastenings',
+            fr: 'Portes, capots et fixations',
+          ),
+        ],
+      ),
+      _MfkInfoItem(
+        icon: Icons.precision_manufacturing_outlined,
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Antrieb und Unterseite',
+          it: 'Propulsione e sottoscocca',
+          en: 'Drivetrain and underside',
+          fr: 'Chaîne cinématique et soubassement',
+        ),
+        lines: [
+          _serviceFlowCopy(
+            locale,
+            de: 'Sichtprüfung auf Undichtigkeiten',
+            it: 'Controllo visivo di eventuali perdite',
+            en: 'Visual check for leaks',
+            fr: 'Contrôle visuel des fuites',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Befestigungen und zugängliche Komponenten',
+            it: 'Fissaggi e componenti accessibili',
+            en: 'Fastenings and accessible components',
+            fr: 'Fixations et composants accessibles',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Prüfpunkte passend zur Antriebsart',
+            it: 'Controlli adeguati al tipo di propulsione',
+            en: 'Checks appropriate to the drivetrain type',
+            fr: 'Contrôles adaptés au type de motorisation',
+          ),
+        ],
+      ),
+      _MfkInfoItem(
+        icon: Icons.health_and_safety_outlined,
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Sicherheitsausstattung',
+          it: 'Dotazioni di sicurezza',
+          en: 'Safety equipment',
+          fr: 'Équipements de sécurité',
+        ),
+        lines: [
+          _serviceFlowCopy(
+            locale,
+            de: 'Sicherheitsgurte und Rückhaltesysteme',
+            it: 'Cinture e sistemi di ritenuta',
+            en: 'Seat belts and restraint systems',
+            fr: 'Ceintures et systèmes de retenue',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Warn- und Sicherheitseinrichtungen',
+            it: 'Dispositivi di avviso e sicurezza',
+            en: 'Warning and safety devices',
+            fr: 'Dispositifs d’alerte et de sécurité',
+          ),
+        ],
+      ),
+      _MfkInfoItem(
+        icon: Icons.cleaning_services_outlined,
+        title: _serviceFlowCopy(
+          locale,
+          de: 'Prüfbereitschaft',
+          it: 'Preparazione al controllo',
+          en: 'Inspection readiness',
+          fr: 'Préparation au contrôle',
+        ),
+        lines: [
+          _serviceFlowCopy(
+            locale,
+            de: 'Prüfrelevante Bereiche bei Bedarf reinigen',
+            it: 'Pulizia delle zone rilevanti, se necessaria',
+            en: 'Clean inspection-relevant areas if required',
+            fr: 'Nettoyer les zones utiles au contrôle si nécessaire',
+          ),
+          _serviceFlowCopy(
+            locale,
+            de: 'Notwendige Arbeiten nur nach Rücksprache',
+            it: 'Lavori necessari solo previo accordo',
+            en: 'Required work only after consultation',
+            fr: 'Travaux nécessaires uniquement après accord',
           ),
         ],
       ),
@@ -1565,7 +1524,11 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
     final isPhone = width < 600;
     final isTablet = width >= 600 && width < 1100;
-    final crossAxisCount = width >= 1100 ? 3 : 2;
+    final crossAxisCount = isPhone
+        ? 1
+        : width >= 1100
+            ? 3
+            : 2;
     final crossSpacing = isPhone ? 10.0 : 16.0;
     final mainSpacing = isPhone ? 10.0 : 12.0;
     final contentWidth = width >= 1100 ? 1120.0 : 980.0;
@@ -1599,10 +1562,10 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
                       child: Text(
                         _serviceFlowCopy(
                           locale,
-                          de: 'Die Vorbereitung für die Motorfahrzeugkontrolle beinhaltet folgende Punkte:',
-                          it: 'La preparazione per il controllo dei veicoli a motore comprende i seguenti punti:',
-                          en: 'Preparation for the motor vehicle inspection includes the following points:',
-                          fr: 'La préparation au contrôle des véhicules automobiles comprend les points suivants :',
+                          de: 'Gezielte Prüfung MFK-relevanter Bereiche; Zusatzarbeiten nur nach Rücksprache.',
+                          it: 'Controllo mirato delle parti rilevanti per la MFK; lavori aggiuntivi solo previo accordo.',
+                          en: 'Targeted review of MFK-relevant areas; additional work only after consultation.',
+                          fr: 'Contrôle ciblé des éléments utiles à la MFK ; travaux supplémentaires uniquement après accord.',
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -1641,10 +1604,10 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
                           Text(
                             _serviceFlowCopy(
                               locale,
-                              de: 'Die Vorbereitung für die Motorfahrzeugkontrolle beinhaltet folgende Punkte:',
-                              it: 'La preparazione per il controllo dei veicoli a motore comprende i seguenti punti:',
-                              en: 'Preparation for the motor vehicle inspection includes the following points:',
-                              fr: 'La préparation au contrôle des véhicules automobiles comprend les points suivants :',
+                              de: 'Gezielte Prüfung MFK-relevanter Bereiche; Zusatzarbeiten nur nach Rücksprache.',
+                              it: 'Controllo mirato delle parti rilevanti per la MFK; lavori aggiuntivi solo previo accordo.',
+                              en: 'Targeted review of MFK-relevant areas; additional work only after consultation.',
+                              fr: 'Contrôle ciblé des éléments utiles à la MFK ; travaux supplémentaires uniquement après accord.',
                             ),
                             style: theme.textTheme.bodyLarge?.copyWith(
                               fontSize: 17,
@@ -1665,10 +1628,10 @@ class _MfkPreparationInfoScreen extends StatelessWidget {
                       crossAxisSpacing: crossSpacing,
                       mainAxisSpacing: mainSpacing,
                       mainAxisExtent: isPhone
-                          ? 164
+                          ? 220
                           : isTablet
-                              ? 208
-                              : 214,
+                              ? 320
+                              : 360,
                     ),
                     itemBuilder: (context, index) {
                       return _MfkInfoCard(
@@ -2050,8 +2013,6 @@ class _MfkInfoCardState extends State<_MfkInfoCard> {
                     Expanded(
                       child: Text(
                         line,
-                        maxLines: isCompactPhone ? 1 : null,
-                        overflow: isCompactPhone ? TextOverflow.ellipsis : null,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: const Color(0xFF6B7280),
                           fontSize: isCompactPhone ? 11.6 : 15.2,
@@ -2071,8 +2032,12 @@ class _MfkInfoCardState extends State<_MfkInfoCard> {
 }
 
 class _ServiceRepairInfoScreen extends StatefulWidget {
-  const _ServiceRepairInfoScreen({required this.onBookNow});
+  const _ServiceRepairInfoScreen({
+    required this.locale,
+    required this.onBookNow,
+  });
 
+  final String locale;
   final ValueChanged<String> onBookNow;
 
   @override
@@ -2083,42 +2048,115 @@ class _ServiceRepairInfoScreen extends StatefulWidget {
 class _ServiceRepairInfoScreenState extends State<_ServiceRepairInfoScreen> {
   String _selectedCleaningPackage = workshopCleaningPackageBronze;
 
-  static const List<_ServiceRepairInfoItem> _items = [
-    _ServiceRepairInfoItem(
-      icon: Icons.search_outlined,
-      title: 'Außenbereich,\nMotor und\nUnterboden',
-      subtitle: 'Sichtkontrolle',
-    ),
-    _ServiceRepairInfoItem(
-      icon: Icons.opacity_outlined,
-      title: 'Flüssigkeiten',
-      subtitle: 'Kontrolle, Ölwechsel (wenn fällig)',
-    ),
-    _ServiceRepairInfoItem(
-      icon: Icons.fact_check_outlined,
-      title: 'Bremsen und\nStossdämpfer',
-      subtitle: 'Kontrolle und Messung auf dem Prüfstand (bei Bedarf)',
-    ),
-    _ServiceRepairInfoItem(
-      icon: Icons.highlight_outlined,
-      title: 'Beleuchtung',
-      subtitle: 'Funktionskontrolle und Einstellung',
-    ),
-    _ServiceRepairInfoItem(
-      icon: Icons.car_repair_outlined,
-      title: 'Karosserie,\nFahrwerk,\nAufhängung',
-      subtitle: 'Sichtkontrolle',
-    ),
-    _ServiceRepairInfoItem(
-      icon: Icons.settings_outlined,
-      title: 'Mechanik,\nGetriebe,\nMotor,\nAbgasanlage',
-      subtitle: 'Sichtkontrolle',
-    ),
-  ];
+  List<_ServiceRepairInfoItem> _items() => [
+        _ServiceRepairInfoItem(
+          icon: Icons.settings_outlined,
+          title: _serviceFlowCopy(
+            widget.locale,
+            de: 'Wartung und\nAntrieb',
+            it: 'Manutenzione e\npropulsione',
+            en: 'Maintenance and\ndrivetrain',
+            fr: 'Entretien et\nmotorisation',
+          ),
+          subtitle: _serviceFlowCopy(
+            widget.locale,
+            de: 'Wartung nach Vorgabe',
+            it: 'Manutenzione programmata',
+            en: 'Scheduled maintenance',
+            fr: 'Entretien programmé',
+          ),
+        ),
+        _ServiceRepairInfoItem(
+          icon: Icons.fact_check_outlined,
+          title: _serviceFlowCopy(
+            widget.locale,
+            de: 'Bremsen und\nSicherheit',
+            it: 'Freni e\nsicurezza',
+            en: 'Brakes and\nsafety',
+            fr: 'Freins et\nsécurité',
+          ),
+          subtitle: _serviceFlowCopy(
+            widget.locale,
+            de: 'Zustand und Funktion',
+            it: 'Stato e funzionamento',
+            en: 'Condition and function',
+            fr: 'État et fonctionnement',
+          ),
+        ),
+        _ServiceRepairInfoItem(
+          icon: Icons.tire_repair_outlined,
+          title: _serviceFlowCopy(
+            widget.locale,
+            de: 'Reifen und\nFahrwerk',
+            it: 'Pneumatici e\nassetto',
+            en: 'Tires and\nsuspension',
+            fr: 'Pneumatiques et\ntrain roulant',
+          ),
+          subtitle: _serviceFlowCopy(
+            widget.locale,
+            de: 'Reifen, Fahrwerk und Lenkung',
+            it: 'Pneumatici, assetto e sterzo',
+            en: 'Tires, suspension and steering',
+            fr: 'Pneus, châssis et direction',
+          ),
+        ),
+        _ServiceRepairInfoItem(
+          icon: Icons.highlight_outlined,
+          title: _serviceFlowCopy(
+            widget.locale,
+            de: 'Elektrik und\nBeleuchtung',
+            it: 'Elettrico e\nilluminazione',
+            en: 'Electrical and\nlighting',
+            fr: 'Électricité et\néclairage',
+          ),
+          subtitle: _serviceFlowCopy(
+            widget.locale,
+            de: 'Licht und Elektrik',
+            it: 'Luci e impianto elettrico',
+            en: 'Lighting and electrical',
+            fr: 'Éclairage et électricité',
+          ),
+        ),
+        _ServiceRepairInfoItem(
+          icon: Icons.opacity_outlined,
+          title: _serviceFlowCopy(
+            widget.locale,
+            de: 'Flüssigkeiten und\nIntervalle',
+            it: 'Liquidi e\nintervalli',
+            en: 'Fluids and\nservice intervals',
+            fr: 'Fluides et\nintervalles',
+          ),
+          subtitle: _serviceFlowCopy(
+            widget.locale,
+            de: 'Füllstände und Intervalle',
+            it: 'Livelli e intervalli',
+            en: 'Fluid levels and intervals',
+            fr: 'Niveaux et intervalles',
+          ),
+        ),
+        _ServiceRepairInfoItem(
+          icon: Icons.car_repair_outlined,
+          title: _serviceFlowCopy(
+            widget.locale,
+            de: 'Karosserie und\nSichtprüfung',
+            it: 'Carrozzeria e\ncontrollo visivo',
+            en: 'Bodywork and\nvisual check',
+            fr: 'Carrosserie et\ncontrôle visuel',
+          ),
+          subtitle: _serviceFlowCopy(
+            widget.locale,
+            de: 'Verglasung, Schäden und Unterseite',
+            it: 'Vetri, danni e sottoscocca',
+            en: 'Glazing, damage and underside',
+            fr: 'Vitrages, dommages et soubassement',
+          ),
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final items = _items();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -2126,7 +2164,7 @@ class _ServiceRepairInfoScreenState extends State<_ServiceRepairInfoScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         title: Text(
-          'Service und Reparaturarbeiten',
+          workshopServiceLabel(widget.locale, workshopServiceRepair),
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w700,
             color: const Color(0xFF111827),
@@ -2137,12 +2175,21 @@ class _ServiceRepairInfoScreenState extends State<_ServiceRepairInfoScreen> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final isDesktop = constraints.maxWidth >= 960;
-            final crossAxisCount = isDesktop ? 3 : 2;
+            final isPhone = constraints.maxWidth < 600;
+            final crossAxisCount = isDesktop
+                ? 3
+                : isPhone
+                    ? 1
+                    : 2;
             final outerPadding = isDesktop ? 28.0 : 16.0;
             final containerPadding = isDesktop ? 40.0 : 24.0;
             final gridSpacingX = isDesktop ? 60.0 : 24.0;
             final gridSpacingY = isDesktop ? 50.0 : 30.0;
-            final mainAxisExtent = isDesktop ? 182.0 : 208.0;
+            final mainAxisExtent = isDesktop
+                ? 182.0
+                : isPhone
+                    ? 170.0
+                    : 208.0;
 
             return SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
@@ -2177,7 +2224,13 @@ class _ServiceRepairInfoScreenState extends State<_ServiceRepairInfoScreen> {
                         ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 760),
                           child: Text(
-                            'Was beinhaltet ein Autoservice bei uns',
+                            _serviceFlowCopy(
+                              widget.locale,
+                              de: 'Was wird bei Wartung und Reparatur geprüft?',
+                              it: 'Cosa viene controllato per manutenzione e riparazione?',
+                              en: 'What is checked during maintenance and repair?',
+                              fr: 'Que contrôle-t-on lors de l’entretien et de la réparation ?',
+                            ),
                             style: theme.textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.w700,
                               color: const Color(0xFF111827),
@@ -2189,7 +2242,7 @@ class _ServiceRepairInfoScreenState extends State<_ServiceRepairInfoScreen> {
                         GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _items.length,
+                          itemCount: items.length,
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: crossAxisCount,
@@ -2198,7 +2251,7 @@ class _ServiceRepairInfoScreenState extends State<_ServiceRepairInfoScreen> {
                             mainAxisExtent: mainAxisExtent,
                           ),
                           itemBuilder: (context, index) {
-                            final item = _items[index];
+                            final item = items[index];
                             return _ServiceRepairInfoTile(item: item);
                           },
                         ),

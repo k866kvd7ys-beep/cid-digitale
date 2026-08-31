@@ -25,11 +25,19 @@ Widget _localizedApp(
   );
 }
 
-void _configureMobileSurface(WidgetTester tester) {
-  tester.view.physicalSize = const Size(390, 844);
+void _configureSurface(WidgetTester tester, Size size) {
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+}
+
+void _configureMobileSurface(WidgetTester tester) {
+  _configureSurface(tester, const Size(390, 844));
+}
+
+void _configureServiceDetailsSurface(WidgetTester tester) {
+  _configureSurface(tester, const Size(920, 1600));
 }
 
 AppointmentRequestImageInput _photo(int index) {
@@ -40,6 +48,32 @@ AppointmentRequestImageInput _photo(int index) {
     previewReference: 'cache:wheel_$index',
     cacheKey: 'wheel_$index',
   );
+}
+
+Future<void> _openServiceDetails(
+  WidgetTester tester, {
+  required Locale locale,
+  required String serviceLabel,
+}) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump();
+  await tester.pumpWidget(
+    _localizedApp(
+      const ServiceAnmeldenScreen(),
+      locale: locale,
+    ),
+  );
+  await tester.pumpAndSettle();
+  final service = find.text(serviceLabel);
+  await tester.scrollUntilVisible(
+    service,
+    250,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.ensureVisible(service.first);
+  await tester.pumpAndSettle();
+  await tester.tap(service.first);
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -124,6 +158,210 @@ void main() {
         ],
         expected[entry.key],
       );
+    }
+  });
+
+  test('core workshop services use neutral labels without fixed prices', () {
+    final expected = <String, List<String>>{
+      'de': [
+        'Wartung und Reparatur',
+        'Fahrzeug-Kurzcheck',
+        'Klima-Service',
+        'Achs- und Lenkgeometrie',
+        'MFK-Vorbereitung',
+        'Preis gemäss Werkstatt',
+      ],
+      'it': [
+        'Manutenzione e riparazione',
+        'Controllo rapido del veicolo',
+        'Servizio climatizzazione',
+        'Geometria ruote e sterzo',
+        'Preparazione MFK',
+        'Prezzo secondo l’officina',
+      ],
+      'fr': [
+        'Entretien et réparation',
+        'Contrôle rapide du véhicule',
+        'Service de climatisation',
+        'Géométrie des roues et de la direction',
+        'Préparation MFK',
+        'Prix selon le garage',
+      ],
+      'en': [
+        'Maintenance and repair',
+        'Vehicle quick check',
+        'Air conditioning service',
+        'Wheel and steering alignment',
+        'MFK preparation',
+        'Price according to the workshop',
+      ],
+    };
+
+    for (final entry in expected.entries) {
+      final actual = [
+        workshopServiceLabel(entry.key, workshopServiceRepair),
+        workshopServiceLabel(entry.key, workshopServiceVehicleCheck),
+        workshopServiceLabel(entry.key, workshopServiceClimate),
+        workshopServiceLabel(entry.key, workshopServiceAlignment),
+        workshopServiceLabel(entry.key, workshopServiceMfk),
+        workshopPriceAccordingToWorkshop(entry.key),
+      ];
+      expect(actual, entry.value);
+      expect(actual.join(' '), isNot(contains('CHF')));
+    }
+  });
+
+  final serviceDetailCopy = <String, Map<String, String>>{
+    'de': {
+      'repair': 'Wartung und Reparatur',
+      'repairIntro': 'Was wird bei Wartung und Reparatur geprüft?',
+      'vehicle': 'Fahrzeug-Kurzcheck',
+      'vehicleSection': 'Sicherheit im Alltag',
+      'climate': 'Klima-Service',
+      'price': 'Preis gemäss Werkstatt',
+      'mfk': 'MFK-Vorbereitung',
+      'mfkSection': 'Bremsen und Fahrverhalten',
+      'book': 'Termin buchen',
+    },
+    'it': {
+      'repair': 'Manutenzione e riparazione',
+      'repairIntro': 'Cosa viene controllato per manutenzione e riparazione?',
+      'vehicle': 'Controllo rapido del veicolo',
+      'vehicleSection': 'Sicurezza nell’uso quotidiano',
+      'climate': 'Servizio climatizzazione',
+      'price': 'Prezzo secondo l’officina',
+      'mfk': 'Preparazione MFK',
+      'mfkSection': 'Freni e comportamento di guida',
+      'book': 'Prenota appuntamento',
+    },
+    'fr': {
+      'repair': 'Entretien et réparation',
+      'repairIntro':
+          'Que contrôle-t-on lors de l’entretien et de la réparation ?',
+      'vehicle': 'Contrôle rapide du véhicule',
+      'vehicleSection': 'Sécurité au quotidien',
+      'climate': 'Service de climatisation',
+      'price': 'Prix selon le garage',
+      'mfk': 'Préparation MFK',
+      'mfkSection': 'Freins et comportement routier',
+      'book': 'Réserver un rendez-vous',
+    },
+    'en': {
+      'repair': 'Maintenance and repair',
+      'repairIntro': 'What is checked during maintenance and repair?',
+      'vehicle': 'Vehicle quick check',
+      'vehicleSection': 'Everyday safety',
+      'climate': 'Air conditioning service',
+      'price': 'Price according to the workshop',
+      'mfk': 'MFK preparation',
+      'mfkSection': 'Brakes and handling',
+      'book': 'Book appointment',
+    },
+  };
+
+  for (final entry in serviceDetailCopy.entries) {
+    testWidgets(
+        'rewritten service details stay localized and responsive in ${entry.key}',
+        (tester) async {
+      _configureServiceDetailsSurface(tester);
+      final locale = Locale(entry.key);
+      final copy = entry.value;
+
+      await _openServiceDetails(
+        tester,
+        locale: locale,
+        serviceLabel: copy['repair']!,
+      );
+      expect(find.text(copy['repairIntro']!), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      tester.view.physicalSize = const Size(320, 844);
+      await _openServiceDetails(
+        tester,
+        locale: locale,
+        serviceLabel: copy['vehicle']!,
+      );
+      expect(find.text(copy['vehicleSection']!), findsOneWidget);
+      expect(find.text(copy['book']!), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await _openServiceDetails(
+        tester,
+        locale: locale,
+        serviceLabel: copy['climate']!,
+      );
+      expect(find.text(copy['price']!), findsNWidgets(2));
+      expect(find.text(copy['book']!), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await _openServiceDetails(
+        tester,
+        locale: locale,
+        serviceLabel: copy['mfk']!,
+      );
+      expect(find.text(copy['mfkSection']!), findsOneWidget);
+      expect(find.text(copy['book']!), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  final mfkLabels = <String, Map<String, String>>{
+    'de': {
+      'service': 'MFK-Vorbereitung',
+      'drivetrain': 'Antrieb und Unterseite',
+      'readiness': 'Prüfbereitschaft',
+    },
+    'it': {
+      'service': 'Preparazione MFK',
+      'drivetrain': 'Propulsione e sottoscocca',
+      'readiness': 'Preparazione al controllo',
+    },
+    'fr': {
+      'service': 'Préparation MFK',
+      'drivetrain': 'Chaîne cinématique et soubassement',
+      'readiness': 'Préparation au contrôle',
+    },
+    'en': {
+      'service': 'MFK preparation',
+      'drivetrain': 'Drivetrain and underside',
+      'readiness': 'Inspection readiness',
+    },
+  };
+  final responsiveSizes = <String, Size>{
+    'narrow phone': const Size(320, 844),
+    'phone': const Size(390, 844),
+    'tablet': const Size(920, 1600),
+    'desktop': const Size(1200, 1600),
+  };
+
+  for (final localeEntry in mfkLabels.entries) {
+    for (final sizeEntry in responsiveSizes.entries) {
+      testWidgets(
+          'MFK cards wrap without overflow in ${localeEntry.key} on ${sizeEntry.key}',
+          (tester) async {
+        _configureSurface(tester, sizeEntry.value);
+        await _openServiceDetails(
+          tester,
+          locale: Locale(localeEntry.key),
+          serviceLabel: localeEntry.value['service']!,
+        );
+
+        expect(find.text(localeEntry.value['drivetrain']!), findsOneWidget);
+        expect(find.text(localeEntry.value['readiness']!), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+
+  test('service catalog contains no former fixed CHF prices', () {
+    final source = [
+      File('lib/utils/service_booking_helper.dart').readAsStringSync(),
+      File('lib/screens/service/service_anmelden_screen.dart')
+          .readAsStringSync(),
+    ].join('\n');
+
+    for (final fixedPrice in const ['CHF 59', 'CHF 98', 'CHF 195']) {
+      expect(source, isNot(contains(fixedPrice)));
     }
   });
 
