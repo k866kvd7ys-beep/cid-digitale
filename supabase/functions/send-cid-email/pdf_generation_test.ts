@@ -77,6 +77,7 @@ const loadPdfGenerators = async () => {
   await Promise.all([
     copyFile(sourceDirectory, targetDirectory, "incident_datetime.ts"),
     copyFile(sourceDirectory, targetDirectory, "driver_vehicle_pdf_rows.ts"),
+    copyFile(sourceDirectory, targetDirectory, "response_payloads.ts"),
   ]);
 
   const source = await Deno.readTextFile(join(sourceDirectory, "index.ts"));

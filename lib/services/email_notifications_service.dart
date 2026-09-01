@@ -21,7 +21,6 @@ class EmailNotificationsService {
   }) async {
     debugPrint('[EmailConfirm] start');
     final recipient = request.customerEmail?.trim() ?? '';
-    debugPrint('[EmailConfirm] recipient $recipient');
     if (recipient.isEmpty) {
       debugPrint('[EmailConfirm] send error missing recipient');
       return;
@@ -30,26 +29,31 @@ class EmailNotificationsService {
     final payload = _buildPayload(request);
     debugPrint('[EmailConfirm] payload ready');
 
-    final result = await _client.functions.invoke(functionName, body: payload);
+    late final FunctionResponse result;
+    try {
+      result = await _client.functions.invoke(functionName, body: payload);
+    } on FunctionException catch (error) {
+      debugPrint('[EmailConfirm] send error status=${error.status}');
+      throw Exception('Email send failed');
+    } catch (_) {
+      debugPrint('[EmailConfirm] send error invoking service');
+      throw Exception('Email send failed');
+    }
     final responseData = result.data;
 
     if (result.status >= 400) {
       debugPrint(
-        '[EmailConfirm] send error status=${result.status} data=$responseData',
+        '[EmailConfirm] send error status=${result.status}',
       );
       throw Exception('Edge function status ${result.status}');
     }
 
     if (responseData is Map && responseData['success'] == false) {
-      final errorMessage =
-          responseData['error']?.toString() ?? 'Email send failed';
-      debugPrint('[EmailConfirm] send error $errorMessage');
-      throw Exception(errorMessage);
+      debugPrint('[EmailConfirm] send error returned by service');
+      throw Exception('Email send failed');
     }
 
-    debugPrint(
-      '[EmailConfirm] send success status=${result.status} data=$responseData',
-    );
+    debugPrint('[EmailConfirm] send success status=${result.status}');
   }
 
   Map<String, dynamic> _buildPayload(AppointmentRequest request) {

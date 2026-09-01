@@ -9,6 +9,10 @@ import { formatIncidentDateTime } from "./incident_datetime.ts";
 import {
   buildDriverVehicleIdentityPdfRows,
 } from "./driver_vehicle_pdf_rows.ts";
+import {
+  buildCidEmailErrorPayload,
+  buildCidEmailSuccessPayload,
+} from "./response_payloads.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -292,14 +296,14 @@ async function downloadAttachmentBytes(
       }
       return { attachment: downloaded };
     }
-  } catch (err) {
+  } catch (_err) {
     console.error("SEND CID EMAIL attachment download error", {
       failureReason: storage ? "compression_error" : "download_error",
     });
     return {
       attachment: null,
       failureReason: storage ? "compression_error" : "download_error",
-      detail: String(err),
+      detail: "attachment_download_failed",
     };
   }
 
@@ -2307,7 +2311,7 @@ async function handleRequest(req: Request): Promise<Response> {
     }));
     if (!claimId) {
       return Response.json(
-        { error: "Missing claimId", success: false },
+        buildCidEmailErrorPayload("INVALID_REQUEST"),
         { status: 400 },
       );
     }
@@ -2326,21 +2330,14 @@ async function handleRequest(req: Request): Promise<Response> {
     });
 
     if (claimError || !claimRow) {
-      console.error("Claim fetch error", {
+      console.error("[CIDEmail] send failed", {
+        code: "CLAIM_NOT_FOUND",
         found: Boolean(claimRow),
         hasError: Boolean(claimError),
       });
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "CLAIM_NOT_FOUND",
-          claimId,
-          details: claimError ?? null,
-        }),
-        {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        },
+      return Response.json(
+        buildCidEmailErrorPayload("CLAIM_NOT_FOUND"),
+        { status: 404 },
       );
     }
 
@@ -2407,24 +2404,13 @@ async function handleRequest(req: Request): Promise<Response> {
     }));
 
     if (recipients.length === 0) {
-      console.error("[CIDEmail] error full", {
-        error: "NO_VALID_RECIPIENTS",
+      console.error("[CIDEmail] send failed", {
+        code: "NO_VALID_RECIPIENTS",
         recipientCount: recipients.length,
-        hasEmailA: Boolean(payload?.emailA ?? claimRow?.emailA),
-        hasEmailB: Boolean(payload?.emailB ?? claimRow?.emailB),
       });
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "NO_VALID_RECIPIENTS",
-          claimId,
-          emailA: payload?.emailA ?? null,
-          emailB: payload?.emailB ?? null,
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
+      return Response.json(
+        buildCidEmailErrorPayload("NO_VALID_RECIPIENTS"),
+        { status: 400 },
       );
     }
 
@@ -2459,10 +2445,9 @@ async function handleRequest(req: Request): Promise<Response> {
         attachmentCount: attachments.length,
         totalAttachmentBytes,
       }));
-    } catch (error) {
+    } catch (_error) {
       console.error("SEND CID EMAIL pdf generation failed", {
-        failed: true,
-        error: error instanceof Error ? error.message : String(error),
+        code: "PDF_GENERATION_FAILED",
       });
       try {
         const fallbackPdfBytes = await generateFallbackPdf(displayClaimId, payload);
@@ -2902,38 +2887,19 @@ async function handleRequest(req: Request): Promise<Response> {
       }),
     });
 
-    const resendResponseText = await res.text();
-    let resendResponseBody: unknown = resendResponseText;
-    try {
-      resendResponseBody = resendResponseText
-        ? JSON.parse(resendResponseText)
-        : null;
-    } catch (_err) {
-      // keep raw body
-    }
     console.log("[CIDEmail] resend response", JSON.stringify({
       ok: res.ok,
       status: res.status,
     }));
 
     if (!res.ok) {
-      const resendResult = resendResponseBody && typeof resendResponseBody === "object"
-        ? resendResponseBody as Record<string, unknown>
-        : null;
-      console.error("[CIDEmail] error full", {
+      console.error("[CIDEmail] send failed", {
+        code: "EMAIL_PROVIDER_ERROR",
         status: res.status,
       });
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: resendResult?.message ?? "Errore invio Resend",
-          resendStatus: res.status,
-          resendBody: resendResponseBody,
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
+      return Response.json(
+        buildCidEmailErrorPayload("EMAIL_PROVIDER_ERROR"),
+        { status: 400 },
       );
     }
 
@@ -2943,25 +2909,19 @@ async function handleRequest(req: Request): Promise<Response> {
       totalAttachmentBytes,
     }));
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Email inviata correttamente",
-        recipients,
-        claimId,
+    return Response.json(
+      buildCidEmailSuccessPayload({
         attachmentsCount: attachments.length,
         pdfAttached,
-        attachmentFilenames: attachments.map((a) => a.filename),
       }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      },
+      { status: 200 },
     );
   } catch (_err) {
-    console.error("[CIDEmail] error full", { failed: true });
+    console.error("[CIDEmail] send failed", {
+      code: "INTERNAL_ERROR",
+    });
     return Response.json(
-      { error: "Unexpected error", success: false },
+      buildCidEmailErrorPayload("INTERNAL_ERROR"),
       { status: 500 },
     );
   }

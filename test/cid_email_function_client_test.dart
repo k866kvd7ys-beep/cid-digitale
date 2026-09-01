@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cid_digitale/services/cid_email_function_client.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -83,7 +84,11 @@ void main() {
             .having(
               (error) => error.technicalDetails,
               'technicalDetails',
-              contains('<html>Unauthorized</html>'),
+              allOf(
+                contains('status=401'),
+                contains('code=unauthorized'),
+                isNot(contains('<html>Unauthorized</html>')),
+              ),
             ),
       ),
     );
@@ -106,7 +111,11 @@ void main() {
             .having(
               (error) => error.technicalDetails,
               'technicalDetails',
-              allOf(contains('text/html'), contains('Bad gateway')),
+              allOf(
+                contains('status=502'),
+                contains('code=http_error'),
+                isNot(contains('Bad gateway')),
+              ),
             ),
       ),
     );
@@ -133,7 +142,10 @@ void main() {
             .having(
               (error) => error.technicalDetails,
               'technicalDetails',
-              contains('JSON non valido'),
+              allOf(
+                contains('code=invalid_json'),
+                isNot(contains('temporarily unavailable')),
+              ),
             ),
       ),
     );
@@ -181,6 +193,11 @@ void main() {
         jsonEncode(<String, dynamic>{
           'success': true,
           'message': 'Email inviata correttamente',
+          'recipients': <String>['cliente.sensibile@example.com'],
+          'claimId': _claimId,
+          'attachmentsCount': 2,
+          'pdfAttached': true,
+          'attachmentFilenames': <String>['cid-$_claimId.pdf'],
         }),
         200,
         headers: <String, String>{'content-type': 'application/json'},
@@ -191,6 +208,64 @@ void main() {
 
     expect(result.payload['success'], isTrue);
     expect(result.payload['message'], 'Email inviata correttamente');
+    expect(result.payload['attachmentsCount'], 2);
+    expect(result.payload['pdfAttached'], isTrue);
+    expect(result.payload, isNot(contains('recipients')));
+    expect(result.payload, isNot(contains('claimId')));
+    expect(result.payload, isNot(contains('attachmentFilenames')));
+    expect(result.payload.toString(), isNot(contains('@example.com')));
+    expect(result.payload.toString(), isNot(contains(_claimId)));
+  });
+
+  test('errore HTTP non propaga body, email, claimId o segreti nei messaggi',
+      () async {
+    const sensitiveEmail = 'cliente.sensibile@example.com';
+    const sensitiveToken = 'secret-token-value';
+    final debugMessages = <String>[];
+    final previousDebugPrint = debugPrint;
+    debugPrint = (message, {wrapWidth}) {
+      if (message != null) debugMessages.add(message);
+    };
+    addTearDown(() => debugPrint = previousDebugPrint);
+
+    final httpClient = MockClient((_) async {
+      return http.Response(
+        jsonEncode(<String, dynamic>{
+          'success': false,
+          'error': 'Delivery failed for $sensitiveEmail',
+          'claimId': _claimId,
+          'resendBody': <String, dynamic>{
+            'token': sensitiveToken,
+            'signedUrl': 'https://storage.example.com/private?token=secret',
+          },
+        }),
+        400,
+        headers: <String, String>{'content-type': 'application/json'},
+      );
+    });
+
+    late CidEmailSendException captured;
+    try {
+      await _client(httpClient).send(claimId: _claimId);
+      fail('Expected CidEmailSendException');
+    } on CidEmailSendException catch (error) {
+      captured = error;
+    }
+
+    final exposedText = <String>[
+      captured.userMessage,
+      captured.technicalDetails,
+      captured.toString(),
+      ...debugMessages,
+    ].join('\n');
+    expect(captured.statusCode, 400);
+    expect(captured.userMessage, 'Invio e-mail non riuscito');
+    expect(captured.technicalDetails, contains('code=http_error'));
+    expect(exposedText, isNot(contains(sensitiveEmail)));
+    expect(exposedText, isNot(contains(_claimId)));
+    expect(exposedText, isNot(contains(sensitiveToken)));
+    expect(exposedText, isNot(contains('resendBody')));
+    expect(exposedText, isNot(contains('signedUrl')));
   });
 
   test('stato gia inviato non crea una seconda chiamata', () async {

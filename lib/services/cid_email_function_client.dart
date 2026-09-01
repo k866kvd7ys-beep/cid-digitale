@@ -100,17 +100,17 @@ class CidEmailFunctionClient {
             body: jsonEncode(<String, String>{'claimId': claimId}),
           )
           .timeout(timeout);
-    } on TimeoutException catch (error) {
-      final details = 'Timeout chiamata send-cid-email: $error';
+    } on TimeoutException {
+      const details = 'operation=send-cid-email, code=timeout';
       debugPrint('[CIDEmail] $details');
-      throw CidEmailSendException(
+      throw const CidEmailSendException(
         userMessage: 'Invio e-mail non riuscito',
         technicalDetails: details,
       );
-    } catch (error) {
-      final details = 'Errore rete chiamata send-cid-email: $error';
+    } catch (_) {
+      const details = 'operation=send-cid-email, code=network_error';
       debugPrint('[CIDEmail] $details');
-      throw CidEmailSendException(
+      throw const CidEmailSendException(
         userMessage: 'Invio e-mail non riuscito',
         technicalDetails: details,
       );
@@ -123,8 +123,7 @@ class CidEmailFunctionClient {
     if (statusCode == 401) {
       final details = _technicalResponseDetails(
         statusCode: statusCode,
-        contentType: contentType,
-        body: bodyText,
+        code: 'unauthorized',
       );
       debugPrint('[CIDEmail] Invio e-mail non autorizzato ($details)');
       throw CidEmailSendException(
@@ -141,12 +140,11 @@ class CidEmailFunctionClient {
         if (decoded is Map) {
           jsonBody = Map<String, dynamic>.from(decoded);
         }
-      } on FormatException catch (error) {
-        final details = '${_technicalResponseDetails(
+      } on FormatException {
+        final details = _technicalResponseDetails(
           statusCode: statusCode,
-          contentType: contentType,
-          body: bodyText,
-        )}; JSON non valido: $error';
+          code: 'invalid_json',
+        );
         debugPrint('[CIDEmail] risposta JSON non valida ($details)');
         throw CidEmailSendException(
           userMessage: 'Risposta non valida dal servizio e-mail',
@@ -159,8 +157,7 @@ class CidEmailFunctionClient {
     if (statusCode < 200 || statusCode >= 300) {
       final details = _technicalResponseDetails(
         statusCode: statusCode,
-        contentType: contentType,
-        body: bodyText,
+        code: 'http_error',
       );
       debugPrint('[CIDEmail] invio rifiutato ($details)');
       throw CidEmailSendException(
@@ -173,8 +170,7 @@ class CidEmailFunctionClient {
     if (jsonBody == null) {
       final details = _technicalResponseDetails(
         statusCode: statusCode,
-        contentType: contentType,
-        body: bodyText,
+        code: 'unexpected_response',
       );
       debugPrint('[CIDEmail] risposta non JSON ($details)');
       throw CidEmailSendException(
@@ -187,8 +183,7 @@ class CidEmailFunctionClient {
     if (jsonBody['success'] != true) {
       final details = _technicalResponseDetails(
         statusCode: statusCode,
-        contentType: contentType,
-        body: bodyText,
+        code: 'send_not_confirmed',
       );
       debugPrint('[CIDEmail] risposta senza conferma di invio ($details)');
       throw CidEmailSendException(
@@ -201,7 +196,7 @@ class CidEmailFunctionClient {
     debugPrint('[CIDEmail] response status=$statusCode');
     return CidEmailSendResult(
       statusCode: statusCode,
-      payload: jsonBody,
+      payload: _sanitizedSuccessPayload(jsonBody),
       alreadySent: jsonBody['alreadySent'] == true,
     );
   }
@@ -224,14 +219,27 @@ class CidEmailFunctionClient {
 
   static String _technicalResponseDetails({
     required int statusCode,
-    required String contentType,
-    required String body,
+    required String code,
   }) {
-    final normalizedBody = body.replaceAll(RegExp(r'\s+'), ' ').trim();
-    final safeBody = normalizedBody.length <= 500
-        ? normalizedBody
-        : '${normalizedBody.substring(0, 500)}…';
-    return 'status=$statusCode, content-type='
-        '${contentType.isEmpty ? '(assente)' : contentType}, body=$safeBody';
+    return 'operation=send-cid-email, status=$statusCode, code=$code';
+  }
+
+  static Map<String, dynamic> _sanitizedSuccessPayload(
+    Map<String, dynamic> payload,
+  ) {
+    final sanitized = <String, dynamic>{'success': true};
+    if (payload.containsKey('message')) {
+      sanitized['message'] = 'Email inviata correttamente';
+    }
+    if (payload['alreadySent'] is bool) {
+      sanitized['alreadySent'] = payload['alreadySent'];
+    }
+    if (payload['attachmentsCount'] is int) {
+      sanitized['attachmentsCount'] = payload['attachmentsCount'];
+    }
+    if (payload['pdfAttached'] is bool) {
+      sanitized['pdfAttached'] = payload['pdfAttached'];
+    }
+    return sanitized;
   }
 }

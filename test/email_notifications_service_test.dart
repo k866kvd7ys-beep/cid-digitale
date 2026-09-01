@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:cid_digitale/models/appointment_request.dart';
 import 'package:cid_digitale/services/email_notifications_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -126,6 +127,106 @@ void main() {
     expect(restored.vehicleBrand, 'Audi');
     expect(restored.vehicleModel, 'e-tron');
     expect(restored.licensePlate, 'AG399854');
+  });
+
+  test('service error does not propagate recipient or raw response body',
+      () async {
+    const sensitiveEmail = 'cliente.sensibile@example.com';
+    const sensitiveClaimId = 'claim-sensitive-123';
+    final debugMessages = <String>[];
+    final previousDebugPrint = debugPrint;
+    debugPrint = (message, {wrapWidth}) {
+      if (message != null) debugMessages.add(message);
+    };
+    addTearDown(() => debugPrint = previousDebugPrint);
+
+    final client = SupabaseClient(
+      'https://appointment-email-test.supabase.co',
+      'appointment-email-test-anon-key',
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
+      httpClient: MockClient((incomingRequest) async {
+        return http.Response(
+          jsonEncode(<String, dynamic>{
+            'success': false,
+            'error': 'Delivery failed for $sensitiveEmail',
+            'claimId': sensitiveClaimId,
+            'rawBody': <String, dynamic>{'recipient': sensitiveEmail},
+          }),
+          200,
+          headers: <String, String>{'content-type': 'application/json'},
+          request: incomingRequest,
+        );
+      }),
+    );
+    addTearDown(client.dispose);
+
+    Object? capturedError;
+    try {
+      await EmailNotificationsService(client: client)
+          .sendAppointmentConfirmation(request: request());
+    } catch (error) {
+      capturedError = error;
+    }
+
+    expect(capturedError, isNotNull);
+    final exposedText = <String>[
+      capturedError.toString(),
+      ...debugMessages,
+    ].join('\n');
+    expect(exposedText, contains('Email send failed'));
+    expect(exposedText, isNot(contains(sensitiveEmail)));
+    expect(exposedText, isNot(contains(sensitiveClaimId)));
+    expect(exposedText, isNot(contains('rawBody')));
+  });
+
+  test('HTTP error does not propagate FunctionException details', () async {
+    const sensitiveEmail = 'cliente.http@example.com';
+    const sensitiveClaimId = 'claim-http-sensitive-456';
+    final debugMessages = <String>[];
+    final previousDebugPrint = debugPrint;
+    debugPrint = (message, {wrapWidth}) {
+      if (message != null) debugMessages.add(message);
+    };
+    addTearDown(() => debugPrint = previousDebugPrint);
+
+    final client = SupabaseClient(
+      'https://appointment-email-test.supabase.co',
+      'appointment-email-test-anon-key',
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
+      httpClient: MockClient((incomingRequest) async {
+        return http.Response(
+          jsonEncode(<String, dynamic>{
+            'success': false,
+            'error': 'Delivery failed for $sensitiveEmail',
+            'claimId': sensitiveClaimId,
+            'rawBody': <String, dynamic>{'recipient': sensitiveEmail},
+          }),
+          400,
+          headers: <String, String>{'content-type': 'application/json'},
+          request: incomingRequest,
+        );
+      }),
+    );
+    addTearDown(client.dispose);
+
+    Object? capturedError;
+    try {
+      await EmailNotificationsService(client: client)
+          .sendAppointmentConfirmation(request: request());
+    } catch (error) {
+      capturedError = error;
+    }
+
+    expect(capturedError, isNotNull);
+    final exposedText = <String>[
+      capturedError.toString(),
+      ...debugMessages,
+    ].join('\n');
+    expect(exposedText, contains('Email send failed'));
+    expect(exposedText, contains('status=400'));
+    expect(exposedText, isNot(contains(sensitiveEmail)));
+    expect(exposedText, isNot(contains(sensitiveClaimId)));
+    expect(exposedText, isNot(contains('rawBody')));
   });
 
   test('email template uses the phone and falls back to a dash', () {
