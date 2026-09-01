@@ -711,7 +711,7 @@ abstract class AppLocalizations {
   /// No description provided for @service_type_service.
   ///
   /// In de, this message translates to:
-  /// **'Service anmelden'**
+  /// **'Service'**
   String get service_type_service;
 
   /// No description provided for @service_type_tires.
@@ -725,6 +725,114 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Schaden'**
   String get service_type_damage;
+
+  /// No description provided for @request_history_load_error.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Daten konnten nicht geladen werden. Bitte versuchen Sie es erneut.'**
+  String get request_history_load_error;
+
+  /// No description provided for @request_detail_title.
+  ///
+  /// In de, this message translates to:
+  /// **'Anfragedetails'**
+  String get request_detail_title;
+
+  /// No description provided for @request_detail_date.
+  ///
+  /// In de, this message translates to:
+  /// **'Datum'**
+  String get request_detail_date;
+
+  /// No description provided for @request_detail_time.
+  ///
+  /// In de, this message translates to:
+  /// **'Uhrzeit'**
+  String get request_detail_time;
+
+  /// No description provided for @request_detail_workshop.
+  ///
+  /// In de, this message translates to:
+  /// **'Werkstatt'**
+  String get request_detail_workshop;
+
+  /// No description provided for @request_detail_notes.
+  ///
+  /// In de, this message translates to:
+  /// **'Notizen'**
+  String get request_detail_notes;
+
+  /// No description provided for @request_detail_last_updated.
+  ///
+  /// In de, this message translates to:
+  /// **'Letzte Aktualisierung'**
+  String get request_detail_last_updated;
+
+  /// No description provided for @request_detail_appointment_date.
+  ///
+  /// In de, this message translates to:
+  /// **'Termindatum'**
+  String get request_detail_appointment_date;
+
+  /// No description provided for @request_detail_cancel_appointment.
+  ///
+  /// In de, this message translates to:
+  /// **'Termin stornieren'**
+  String get request_detail_cancel_appointment;
+
+  /// No description provided for @request_detail_cancel_title.
+  ///
+  /// In de, this message translates to:
+  /// **'Termin stornieren?'**
+  String get request_detail_cancel_title;
+
+  /// No description provided for @request_detail_cancel_message.
+  ///
+  /// In de, this message translates to:
+  /// **'Möchten Sie diese Anfrage wirklich stornieren?'**
+  String get request_detail_cancel_message;
+
+  /// No description provided for @request_detail_cancel_error.
+  ///
+  /// In de, this message translates to:
+  /// **'Der Termin konnte nicht storniert werden. Bitte versuchen Sie es erneut.'**
+  String get request_detail_cancel_error;
+
+  /// No description provided for @request_detail_photo_unavailable.
+  ///
+  /// In de, this message translates to:
+  /// **'Foto nicht verfügbar'**
+  String get request_detail_photo_unavailable;
+
+  /// No description provided for @request_status_pending.
+  ///
+  /// In de, this message translates to:
+  /// **'Anfrage gesendet'**
+  String get request_status_pending;
+
+  /// No description provided for @request_status_confirmed.
+  ///
+  /// In de, this message translates to:
+  /// **'Termin bestätigt'**
+  String get request_status_confirmed;
+
+  /// No description provided for @request_status_in_progress.
+  ///
+  /// In de, this message translates to:
+  /// **'Fahrzeug in Bearbeitung'**
+  String get request_status_in_progress;
+
+  /// No description provided for @request_status_completed.
+  ///
+  /// In de, this message translates to:
+  /// **'Reparatur abgeschlossen'**
+  String get request_status_completed;
+
+  /// No description provided for @request_status_cancelled.
+  ///
+  /// In de, this message translates to:
+  /// **'Termin storniert'**
+  String get request_status_cancelled;
 
   /// No description provided for @damageTitle.
   ///

@@ -15,11 +15,13 @@ class MyRequestsPage extends StatefulWidget {
     this.incidentsTab = const SizedBox.shrink(),
     this.initialTabIndex = 0,
     this.onIncidentsTabSelected,
+    this.appointmentRequestsService,
   });
 
   final Widget incidentsTab;
   final int initialTabIndex;
   final VoidCallback? onIncidentsTabSelected;
+  final AppointmentRequestsService? appointmentRequestsService;
 
   @override
   State<MyRequestsPage> createState() => _MyRequestsPageState();
@@ -78,7 +80,7 @@ class _MyRequestsPageState extends State<MyRequestsPage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          const _AppointmentsTab(),
+          _AppointmentsTab(service: widget.appointmentRequestsService),
           widget.incidentsTab,
         ],
       ),
@@ -89,14 +91,16 @@ class _MyRequestsPageState extends State<MyRequestsPage>
 enum _RequestsFilter { all, service, tires, damage }
 
 class _AppointmentsTab extends StatefulWidget {
-  const _AppointmentsTab();
+  const _AppointmentsTab({this.service});
+
+  final AppointmentRequestsService? service;
 
   @override
   State<_AppointmentsTab> createState() => _AppointmentsTabState();
 }
 
 class _AppointmentsTabState extends State<_AppointmentsTab> {
-  final _service = AppointmentRequestsService();
+  late final AppointmentRequestsService _service;
   final _df = DateFormat('dd.MM.yyyy');
   final _tf = DateFormat('HH:mm');
   Timer? _refreshTimer;
@@ -108,6 +112,7 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
   @override
   void initState() {
     super.initState();
+    _service = widget.service ?? AppointmentRequestsService();
     _load();
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 30),
@@ -129,10 +134,11 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
       final list = await _service.fetchMyRequests(serviceFilter: _filter.name);
       if (!mounted) return;
       setState(() => _items = list);
-    } catch (e) {
+    } catch (_) {
       if (!mounted || silent) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Errore caricamento: $e')),
+        SnackBar(content: Text(l10n.request_history_load_error)),
       );
     } finally {
       if (mounted && !silent) setState(() => _loading = false);
@@ -299,7 +305,9 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
       return '${l10n.service_type_damage}: ${_damageLabel(l10n, damageType)}';
     }
     if (serviceType == workshopServiceInspection) {
-      final locale = normalizeWorkshopServiceLocale(r.locale);
+      final locale = normalizeWorkshopServiceLocale(
+        Localizations.localeOf(context).languageCode,
+      );
       final baseLabel = workshopServiceLabel(locale, workshopServiceInspection);
       if (r.serviceDetail?.trim().isNotEmpty != true) {
         return '${l10n.service_type_service}: $baseLabel';
@@ -308,7 +316,9 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
       return '${l10n.service_type_service}: $baseLabel • ${workshopInspectionSelectionFieldLabel(locale)}: $detail';
     }
     if (serviceType == 'service_anmelden') {
-      final locale = normalizeWorkshopServiceLocale(r.locale);
+      final locale = normalizeWorkshopServiceLocale(
+        Localizations.localeOf(context).languageCode,
+      );
       final detail = workshopServiceLabel(locale, r.serviceSelectionKey);
       final selection = workshopServiceDetailLabel(
         locale,
@@ -387,48 +397,19 @@ class _AppointmentsTabState extends State<_AppointmentsTab> {
   }
 
   String _statusLabel(BuildContext context, String status) {
+    final l10n = AppLocalizations.of(context)!;
     switch (status) {
       case 'confirmed':
-        return _copy(
-          context,
-          de: 'Termin bestaetigt',
-          it: 'Appuntamento confermato',
-          en: 'Appointment confirmed',
-          fr: 'Rendez-vous confirme',
-        );
+        return l10n.request_status_confirmed;
       case 'in_progress':
-        return _copy(
-          context,
-          de: 'Fahrzeug in Bearbeitung',
-          it: 'Veicolo in lavorazione',
-          en: 'Vehicle in progress',
-          fr: 'Vehicule en reparation',
-        );
+        return l10n.request_status_in_progress;
       case 'completed':
-        return _copy(
-          context,
-          de: 'Reparatur abgeschlossen',
-          it: 'Riparazione completata',
-          en: 'Repair completed',
-          fr: 'Reparation terminee',
-        );
+        return l10n.request_status_completed;
       case 'cancelled':
-        return _copy(
-          context,
-          de: 'Termin storniert',
-          it: 'Appuntamento annullato',
-          en: 'Appointment cancelled',
-          fr: 'Rendez-vous annule',
-        );
+        return l10n.request_status_cancelled;
       case 'pending':
       default:
-        return _copy(
-          context,
-          de: 'Anfrage gesendet',
-          it: 'Richiesta inviata',
-          en: 'Request sent',
-          fr: 'Demande envoyee',
-        );
+        return l10n.request_status_pending;
     }
   }
 

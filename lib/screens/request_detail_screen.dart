@@ -15,16 +15,21 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 class RequestDetailScreen extends StatefulWidget {
-  const RequestDetailScreen({super.key, required this.request});
+  const RequestDetailScreen({
+    super.key,
+    required this.request,
+    this.appointmentRequestsService,
+  });
 
   final AppointmentRequest request;
+  final AppointmentRequestsService? appointmentRequestsService;
 
   @override
   State<RequestDetailScreen> createState() => _RequestDetailScreenState();
 }
 
 class _RequestDetailScreenState extends State<RequestDetailScreen> {
-  final _service = AppointmentRequestsService();
+  late final AppointmentRequestsService _service;
   final _premiumPdfService = PremiumWorkshopPdfService();
   bool _busy = false;
   bool _pdfBusy = false;
@@ -65,6 +70,9 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   bool get _supportsPremiumWorkshopPdf => _hasDamagePhotoSections;
   bool get _isTireRequest => isTireAppointmentService(request.serviceType);
   String get _tireLocaleCode => tireLocaleCode(context);
+  String get _workshopLocaleCode => normalizeWorkshopServiceLocale(
+        Localizations.localeOf(context).languageCode,
+      );
 
   String _copy({
     required String de,
@@ -102,23 +110,23 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       );
 
   String get _serviceSelectionLabel => workshopServiceLabel(
-        normalizeWorkshopServiceLocale(request.locale),
+        _workshopLocaleCode,
         request.serviceSelectionKey,
       );
 
   String get _serviceInspectionDetailFieldLabel =>
       workshopInspectionSelectionFieldLabel(
-        normalizeWorkshopServiceLocale(request.locale),
+        _workshopLocaleCode,
       );
 
   String get _serviceDetailFieldLabel => workshopServiceDetailFieldLabel(
-        normalizeWorkshopServiceLocale(request.locale),
+        _workshopLocaleCode,
         request.serviceSelectionKey,
       );
 
   String get _serviceDetailLabel =>
       workshopServiceDetailLabel(
-        normalizeWorkshopServiceLocale(request.locale),
+        _workshopLocaleCode,
         serviceType: request.serviceType,
         serviceSelectionKey: request.serviceSelectionKey,
         serviceDetail: request.serviceDetail,
@@ -130,12 +138,12 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
 
   String get _additionalServicesFieldLabel =>
       workshopAdditionalServicesFieldLabel(
-        normalizeWorkshopServiceLocale(request.locale),
+        _workshopLocaleCode,
       );
 
   String get _additionalServicesLabel {
     if (request.additionalServices.isEmpty) return '-';
-    final locale = normalizeWorkshopServiceLocale(request.locale);
+    final locale = _workshopLocaleCode;
     return request.additionalServices
         .map(
             (service) => '- ${workshopAdditionalServiceLabel(locale, service)}')
@@ -143,15 +151,15 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   }
 
   String get _vehicleCleaningFieldLabel => workshopVehicleCleaningFieldLabel(
-        normalizeWorkshopServiceLocale(request.locale),
+        _workshopLocaleCode,
       );
 
   String get _packageShortLabel => workshopPackageShortLabel(
-        normalizeWorkshopServiceLocale(request.locale),
+        _workshopLocaleCode,
       );
 
   String get _cleaningPackageLabel => workshopCleaningPackageLabel(
-        normalizeWorkshopServiceLocale(request.locale),
+        _workshopLocaleCode,
         request.cleaningPackage,
       );
 
@@ -163,38 +171,38 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       );
 
   String get _closeGlassPhotosTitle => _copy(
-        de: 'Nahaufnahme Glas',
-        it: 'Foto vetro vicino',
+        de: 'Nahaufnahme des Glases',
+        it: 'Foto ravvicinata del vetro',
         en: 'Close-up glass photo',
-        fr: 'Photo rapprochee du verre',
+        fr: 'Photo rapprochée du vitrage',
       );
 
   String get _frontVehiclePhotosTitle => _copy(
         de: 'Frontfoto des Fahrzeugs',
-        it: 'Foto frontale della macchina',
+        it: 'Foto frontale del veicolo',
         en: 'Front vehicle photo',
-        fr: 'Photo frontale du vehicule',
+        fr: 'Photo frontale du véhicule',
       );
 
   String get _currentKmPhotosTitle => _copy(
-        de: 'Foto aktueller KM-Stand',
-        it: 'Foto stato attuale KM',
+        de: 'Foto des aktuellen Kilometerstands',
+        it: 'Foto del chilometraggio attuale',
         en: 'Current mileage photo',
-        fr: 'Photo kilometrage actuel',
+        fr: 'Photo du kilométrage actuel',
       );
 
   String get _hailDamagePhotosTitle => _copy(
-        de: 'Foto Hagelschaden',
+        de: 'Foto des Hagelschadens',
         it: 'Foto dei danni da grandine',
         en: 'Hail damage photo',
-        fr: 'Photo degats grele',
+        fr: 'Photo des dégâts de grêle',
       );
 
   String get _hailOverviewPhotosTitle => _copy(
-        de: 'Uebersichtsfoto Fahrzeug',
+        de: 'Übersichtsfoto des Fahrzeugs',
         it: 'Foto panoramica veicolo',
         en: 'Vehicle overview photo',
-        fr: 'Photo generale du vehicule',
+        fr: 'Vue générale du véhicule',
       );
 
   String get _hailVehicleDocumentPhotosTitle => _copy(
@@ -205,10 +213,10 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       );
 
   String get _hailExtraPhotosTitle => _copy(
-        de: 'Zusaetzliches Foto',
+        de: 'Zusätzliches Foto',
         it: 'Foto aggiuntiva',
         en: 'Additional photo',
-        fr: 'Photo supplementaire',
+        fr: 'Photo supplémentaire',
       );
 
   String get _marderVehicleDocumentPhotosTitle => _copy(
@@ -229,14 +237,14 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         de: 'Foto beschädigte Kabel',
         it: 'Foto cavi danneggiati',
         en: 'Damaged cable photo',
-        fr: 'Photo cables endommages',
+        fr: 'Photo des câbles endommagés',
       );
 
   String get _marderExtraPhotosTitle => _copy(
-        de: 'Zusaetzliches Foto',
+        de: 'Zusätzliches Foto',
         it: 'Foto aggiuntiva',
         en: 'Additional photo',
-        fr: 'Photo supplementaire',
+        fr: 'Photo supplémentaire',
       );
 
   String get _fullVehicleDocumentPhotosTitle => _copy(
@@ -247,24 +255,24 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       );
 
   String get _fullClosePhotosTitle => _copy(
-        de: 'Foto Schaden Nahaufnahme',
-        it: 'Foto danno ravvicinata',
+        de: 'Nahaufnahme des Schadens',
+        it: 'Foto ravvicinata del danno',
         en: 'Damage close-up photo',
         fr: 'Photo gros plan du dommage',
       );
 
   String get _fullOverviewPhotosTitle => _copy(
-        de: 'Foto Gesamtansicht Fahrzeug',
+        de: 'Gesamtansicht des Fahrzeugs',
         it: 'Foto panoramica veicolo',
         en: 'Vehicle overview photo',
-        fr: 'Photo vue d ensemble du véhicule',
+        fr: 'Vue d’ensemble du véhicule',
       );
 
   String get _fullExtraPhotosTitle => _copy(
-        de: 'Zusaetzliches Foto',
+        de: 'Zusätzliches Foto',
         it: 'Foto aggiuntiva',
         en: 'Additional photo',
-        fr: 'Photo supplementaire',
+        fr: 'Photo supplémentaire',
       );
 
   String get _otherVehicleDocumentPhotosTitle => _copy(
@@ -275,31 +283,31 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       );
 
   String get _otherProblemPhotosTitle => _copy(
-        de: 'Foto Problem / Schaden',
+        de: 'Foto des Problems / Schadens',
         it: 'Foto problema / danno',
         en: 'Problem / damage photo',
         fr: 'Photo problème / dommage',
       );
 
   String get _otherExtraPhotosTitle => _copy(
-        de: 'Zusaetzliches Foto',
+        de: 'Zusätzliches Foto',
         it: 'Foto aggiuntiva',
         en: 'Additional photo',
-        fr: 'Photo supplementaire',
+        fr: 'Photo supplémentaire',
       );
 
   String get _parkingDamagePhotosTitle => _copy(
-        de: 'Foto Parkschaden',
-        it: 'Foto danno parcheggio',
+        de: 'Foto des Parkschadens',
+        it: 'Foto del danno da parcheggio',
         en: 'Parking damage photo',
-        fr: 'Photo dommage parking',
+        fr: 'Photo du dommage de stationnement',
       );
 
   String get _parkingOverviewPhotosTitle => _copy(
-        de: 'Uebersichtsfoto Fahrzeug',
+        de: 'Übersichtsfoto des Fahrzeugs',
         it: 'Foto panoramica veicolo',
         en: 'Vehicle overview photo',
-        fr: 'Photo generale du vehicule',
+        fr: 'Vue générale du véhicule',
       );
 
   String get _parkingVehicleDocumentPhotosTitle => _copy(
@@ -310,10 +318,10 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       );
 
   String get _parkingExtraPhotosTitle => _copy(
-        de: 'Zusaetzliches Foto',
+        de: 'Zusätzliches Foto',
         it: 'Foto aggiuntiva',
         en: 'Additional photo',
-        fr: 'Photo supplementaire',
+        fr: 'Photo supplémentaire',
       );
 
   String get _noPhotosText => _copy(
@@ -332,9 +340,9 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
 
   String get _damageTownFieldLabel => _copy(
         de: 'Ort',
-        it: 'Localita',
+        it: 'Località',
         en: 'Town',
-        fr: 'Localite',
+        fr: 'Localité',
       );
 
   String get _damageDateFieldLabel => _copy(
@@ -393,36 +401,16 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         fr: 'Description du problème',
       );
 
-  String _requestStatusLabel(String status) => _copy(
-        de: switch (status) {
-          'confirmed' => 'Termin bestaetigt',
-          'in_progress' => 'Fahrzeug in Bearbeitung',
-          'completed' => 'Reparatur abgeschlossen',
-          'cancelled' => 'Termin storniert',
-          _ => 'Anfrage gesendet',
-        },
-        it: switch (status) {
-          'confirmed' => 'Appuntamento confermato',
-          'in_progress' => 'Veicolo in lavorazione',
-          'completed' => 'Riparazione completata',
-          'cancelled' => 'Appuntamento annullato',
-          _ => 'Richiesta inviata',
-        },
-        en: switch (status) {
-          'confirmed' => 'Appointment confirmed',
-          'in_progress' => 'Vehicle in progress',
-          'completed' => 'Repair completed',
-          'cancelled' => 'Appointment cancelled',
-          _ => 'Request sent',
-        },
-        fr: switch (status) {
-          'confirmed' => 'Rendez-vous confirme',
-          'in_progress' => 'Vehicule en reparation',
-          'completed' => 'Reparation terminee',
-          'cancelled' => 'Rendez-vous annule',
-          _ => 'Demande envoyee',
-        },
-      );
+  String _requestStatusLabel(String status) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (status) {
+      'confirmed' => l10n.request_status_confirmed,
+      'in_progress' => l10n.request_status_in_progress,
+      'completed' => l10n.request_status_completed,
+      'cancelled' => l10n.request_status_cancelled,
+      _ => l10n.request_status_pending,
+    };
+  }
 
   String _statusUpdatedSnackBarText() => _copy(
         de: 'Anfragestatus aktualisiert',
@@ -463,19 +451,11 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     }
   }
 
-  String _lastUpdatedLabel() => _copy(
-        de: 'Letzte Aktualisierung',
-        it: 'Ultimo aggiornamento',
-        en: 'Last update',
-        fr: 'Derniere mise a jour',
-      );
+  String _lastUpdatedLabel() =>
+      AppLocalizations.of(context)!.request_detail_last_updated;
 
-  String _appointmentDateLabel() => _copy(
-        de: 'Termindatum',
-        it: 'Data appuntamento',
-        en: 'Appointment date',
-        fr: 'Date du rendez-vous',
-      );
+  String _appointmentDateLabel() =>
+      AppLocalizations.of(context)!.request_detail_appointment_date;
 
   String _pdfActionsTitle() => _copy(
         de: 'PDF',
@@ -540,13 +520,6 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         fr: 'Atelier partenaire CrashForm',
       );
 
-  String _workshopFieldLabel() => _copy(
-        de: 'Werkstatt',
-        it: 'Officina',
-        en: 'Workshop',
-        fr: 'Atelier',
-      );
-
   String _selectedWorkshopDetailValue() {
     final lines = [
       request.garageName?.trim() ?? '',
@@ -600,6 +573,8 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _service =
+        widget.appointmentRequestsService ?? AppointmentRequestsService();
     _request = widget.request;
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 30),
@@ -824,11 +799,6 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     } catch (_) {
       return trimmed;
     }
-  }
-
-  String _shortUrl(String url) {
-    if (url.length <= 90) return url;
-    return '${url.substring(0, 87)}...';
   }
 
   List<String> _readImageListFromNotes(String key) {
@@ -1143,6 +1113,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
           itemBuilder: (context, index) {
             final image = images[index];
             return InkWell(
+              key: Key('request-photo-$index'),
               borderRadius: BorderRadius.circular(12),
               onTap: () => _openPhotoViewer(image),
               child: ClipRRect(
@@ -1222,21 +1193,13 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                                         size: 42,
                                       ),
                                       const SizedBox(height: 12),
-                                      const Text(
-                                        'Foto non caricata',
-                                        style: TextStyle(
+                                      Text(
+                                        AppLocalizations.of(context)!
+                                            .request_detail_photo_unavailable,
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 16,
                                           fontWeight: FontWeight.w700,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        _shortUrl(url),
-                                        style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 12,
                                         ),
                                         textAlign: TextAlign.center,
                                       ),
@@ -2042,7 +2005,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       }
       if (serviceType == workshopServiceInspection) {
         return workshopServiceLabel(
-          normalizeWorkshopServiceLocale(request.locale),
+          _workshopLocaleCode,
           workshopServiceInspection,
         );
       }
@@ -2057,7 +2020,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Anfrage Details'),
+        title: Text(l10n.request_detail_title),
       ),
       body: Stack(
         children: [
@@ -2096,17 +2059,17 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                               _wheelRepairDescription != null)
                             _row(
                               workshopWheelDescriptionFieldLabel(
-                                normalizeWorkshopServiceLocale(request.locale),
+                                _workshopLocaleCode,
                               ),
                               _wheelRepairDescription!,
                             ),
                           if (request.serviceType == workshopServiceInspection)
                             _row(
                               workshopCleaningPackageFieldLabel(
-                                normalizeWorkshopServiceLocale(request.locale),
+                                _workshopLocaleCode,
                               ),
                               workshopCleaningPackageLabel(
-                                normalizeWorkshopServiceLocale(request.locale),
+                                _workshopLocaleCode,
                                 request.cleaningPackage,
                               ),
                             ),
@@ -2129,15 +2092,17 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                               _tireServiceTypeFieldLabel,
                               _tireServiceTypeLabel,
                             ),
-                          _row('Datum', dateLabel()),
-                          _row('Uhrzeit', timeLabel()),
-                          _row(_workshopFieldLabel(),
+                          _row(l10n.request_detail_date, dateLabel()),
+                          _row(l10n.request_detail_time, timeLabel()),
+                          _row(l10n.request_detail_workshop,
                               _selectedWorkshopDetailValue()),
                           _row(l10n.license_plate_label,
                               request.licensePlate ?? ''),
-                          _row('Name', request.customerName ?? ''),
-                          _row('Telefon', request.customerPhone ?? ''),
-                          _row('E-Mail', request.customerEmail ?? ''),
+                          _row(l10n.customer_name, request.customerName ?? ''),
+                          _row(
+                              l10n.customer_phone, request.customerPhone ?? ''),
+                          _row(
+                              l10n.customer_email, request.customerEmail ?? ''),
                           if (_damageTownValue().isNotEmpty)
                             _row(_damageTownFieldLabel, _damageTownValue()),
                           if (_damageDateValue().isNotEmpty)
@@ -2200,12 +2165,12 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                                   .isNotEmpty)
                             _row(_otherDescriptionFieldLabel,
                                 request.otherDamageDescription!.trim()),
-                          _row('Status',
+                          _row(l10n.customerIncidentStatusLabel,
                               _requestStatusLabel(request.requestStatus)),
                           if ((request.notes ?? '').isNotEmpty) ...[
                             const SizedBox(height: 8),
                             Text(
-                              'Notizen',
+                              l10n.request_detail_notes,
                               style: Theme.of(context)
                                   .textTheme
                                   .titleSmall
@@ -2242,24 +2207,29 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       height: 52,
       child: OutlinedButton.icon(
         icon: const Icon(Icons.cancel_outlined),
-        label: const Text('Termin stornieren'),
+        label: Text(
+          AppLocalizations.of(context)!.request_detail_cancel_appointment,
+        ),
         onPressed: (_busy || _pdfBusy)
             ? null
             : () async {
                 final ok = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('Termin stornieren?'),
-                    content: const Text(
-                        'Möchtest du diese Anfrage wirklich stornieren?'),
+                    title: Text(
+                      AppLocalizations.of(ctx)!.request_detail_cancel_title,
+                    ),
+                    content: Text(
+                      AppLocalizations.of(ctx)!.request_detail_cancel_message,
+                    ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('Nein'),
+                        child: Text(AppLocalizations.of(ctx)!.no),
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('Ja'),
+                        child: Text(AppLocalizations.of(ctx)!.yes),
                       ),
                     ],
                   ),
@@ -2272,10 +2242,15 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                   await _service.cancelRequest(request.id);
                   if (!mounted) return;
                   Navigator.of(this.context).pop('cancelled');
-                } catch (e) {
+                } catch (_) {
                   if (!mounted) return;
                   ScaffoldMessenger.of(this.context).showSnackBar(
-                    SnackBar(content: Text('❌ Fehler: $e')),
+                    SnackBar(
+                      content: Text(
+                        AppLocalizations.of(this.context)!
+                            .request_detail_cancel_error,
+                      ),
+                    ),
                   );
                 } finally {
                   if (mounted) setState(() => _busy = false);

@@ -147,7 +147,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get damage_parking => 'Dommage parking';
 
   @override
-  String get damage_comprehensive => 'Vollkasko';
+  String get damage_comprehensive => 'Dommage casco complète';
 
   @override
   String get license_plate_label => 'Plaque';
@@ -336,13 +336,70 @@ class AppLocalizationsFr extends AppLocalizations {
   String get my_requests_filter_damage => 'Dommage';
 
   @override
-  String get service_type_service => 'Service anmelden';
+  String get service_type_service => 'Service';
 
   @override
   String get service_type_tires => 'Changement de pneus';
 
   @override
-  String get service_type_damage => 'Schaden';
+  String get service_type_damage => 'Dommage';
+
+  @override
+  String get request_history_load_error =>
+      'Impossible de charger les données. Veuillez réessayer.';
+
+  @override
+  String get request_detail_title => 'Détails de la demande';
+
+  @override
+  String get request_detail_date => 'Date';
+
+  @override
+  String get request_detail_time => 'Heure';
+
+  @override
+  String get request_detail_workshop => 'Atelier';
+
+  @override
+  String get request_detail_notes => 'Notes';
+
+  @override
+  String get request_detail_last_updated => 'Dernière mise à jour';
+
+  @override
+  String get request_detail_appointment_date => 'Date du rendez-vous';
+
+  @override
+  String get request_detail_cancel_appointment => 'Annuler le rendez-vous';
+
+  @override
+  String get request_detail_cancel_title => 'Annuler le rendez-vous ?';
+
+  @override
+  String get request_detail_cancel_message =>
+      'Voulez-vous vraiment annuler cette demande ?';
+
+  @override
+  String get request_detail_cancel_error =>
+      'Impossible d’annuler le rendez-vous. Veuillez réessayer.';
+
+  @override
+  String get request_detail_photo_unavailable => 'Photo non disponible';
+
+  @override
+  String get request_status_pending => 'Demande envoyée';
+
+  @override
+  String get request_status_confirmed => 'Rendez-vous confirmé';
+
+  @override
+  String get request_status_in_progress => 'Véhicule en réparation';
+
+  @override
+  String get request_status_completed => 'Réparation terminée';
+
+  @override
+  String get request_status_cancelled => 'Rendez-vous annulé';
 
   @override
   String get damageTitle => 'Dommages';

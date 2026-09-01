@@ -334,13 +334,70 @@ class AppLocalizationsDe extends AppLocalizations {
   String get my_requests_filter_damage => 'Schaden';
 
   @override
-  String get service_type_service => 'Service anmelden';
+  String get service_type_service => 'Service';
 
   @override
   String get service_type_tires => 'Reifenwechsel';
 
   @override
   String get service_type_damage => 'Schaden';
+
+  @override
+  String get request_history_load_error =>
+      'Die Daten konnten nicht geladen werden. Bitte versuchen Sie es erneut.';
+
+  @override
+  String get request_detail_title => 'Anfragedetails';
+
+  @override
+  String get request_detail_date => 'Datum';
+
+  @override
+  String get request_detail_time => 'Uhrzeit';
+
+  @override
+  String get request_detail_workshop => 'Werkstatt';
+
+  @override
+  String get request_detail_notes => 'Notizen';
+
+  @override
+  String get request_detail_last_updated => 'Letzte Aktualisierung';
+
+  @override
+  String get request_detail_appointment_date => 'Termindatum';
+
+  @override
+  String get request_detail_cancel_appointment => 'Termin stornieren';
+
+  @override
+  String get request_detail_cancel_title => 'Termin stornieren?';
+
+  @override
+  String get request_detail_cancel_message =>
+      'Möchten Sie diese Anfrage wirklich stornieren?';
+
+  @override
+  String get request_detail_cancel_error =>
+      'Der Termin konnte nicht storniert werden. Bitte versuchen Sie es erneut.';
+
+  @override
+  String get request_detail_photo_unavailable => 'Foto nicht verfügbar';
+
+  @override
+  String get request_status_pending => 'Anfrage gesendet';
+
+  @override
+  String get request_status_confirmed => 'Termin bestätigt';
+
+  @override
+  String get request_status_in_progress => 'Fahrzeug in Bearbeitung';
+
+  @override
+  String get request_status_completed => 'Reparatur abgeschlossen';
+
+  @override
+  String get request_status_cancelled => 'Termin storniert';
 
   @override
   String get damageTitle => 'Beschädigung';

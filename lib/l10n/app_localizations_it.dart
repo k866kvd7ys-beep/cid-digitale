@@ -145,7 +145,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get damage_parking => 'Danno parcheggio';
 
   @override
-  String get damage_comprehensive => 'Vollkasko';
+  String get damage_comprehensive => 'Danno casco totale';
 
   @override
   String get license_plate_label => 'Targa';
@@ -323,7 +323,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get my_requests_filter_all => 'Tutti';
 
   @override
-  String get my_requests_filter_service => 'Service';
+  String get my_requests_filter_service => 'Servizio';
 
   @override
   String get my_requests_filter_tires => 'Cambio gomme';
@@ -332,13 +332,70 @@ class AppLocalizationsIt extends AppLocalizations {
   String get my_requests_filter_damage => 'Danno';
 
   @override
-  String get service_type_service => 'Service anmelden';
+  String get service_type_service => 'Servizio';
 
   @override
   String get service_type_tires => 'Cambio gomme';
 
   @override
-  String get service_type_damage => 'Schaden';
+  String get service_type_damage => 'Danno';
+
+  @override
+  String get request_history_load_error =>
+      'Impossibile caricare i dati. Riprova.';
+
+  @override
+  String get request_detail_title => 'Dettagli richiesta';
+
+  @override
+  String get request_detail_date => 'Data';
+
+  @override
+  String get request_detail_time => 'Ora';
+
+  @override
+  String get request_detail_workshop => 'Officina';
+
+  @override
+  String get request_detail_notes => 'Note';
+
+  @override
+  String get request_detail_last_updated => 'Ultimo aggiornamento';
+
+  @override
+  String get request_detail_appointment_date => 'Data appuntamento';
+
+  @override
+  String get request_detail_cancel_appointment => 'Annulla appuntamento';
+
+  @override
+  String get request_detail_cancel_title => 'Annullare l’appuntamento?';
+
+  @override
+  String get request_detail_cancel_message =>
+      'Desideri davvero annullare questa richiesta?';
+
+  @override
+  String get request_detail_cancel_error =>
+      'Impossibile annullare l’appuntamento. Riprova.';
+
+  @override
+  String get request_detail_photo_unavailable => 'Foto non disponibile';
+
+  @override
+  String get request_status_pending => 'Richiesta inviata';
+
+  @override
+  String get request_status_confirmed => 'Appuntamento confermato';
+
+  @override
+  String get request_status_in_progress => 'Veicolo in lavorazione';
+
+  @override
+  String get request_status_completed => 'Riparazione completata';
+
+  @override
+  String get request_status_cancelled => 'Appuntamento annullato';
 
   @override
   String get damageTitle => 'Danni';
