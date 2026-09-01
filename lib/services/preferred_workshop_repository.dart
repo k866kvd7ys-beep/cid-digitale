@@ -2,6 +2,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/workshop_model.dart';
 
+const Set<String> legacyMockWorkshopIds = {
+  'garage-europa-ag',
+  'autocentro-ticino',
+  'officine-mendrisio',
+  'carrosserie-lac',
+};
+
+bool isLegacyMockWorkshop(WorkshopModel? workshop) {
+  final id = workshop?.id.trim().toLowerCase() ?? '';
+  return legacyMockWorkshopIds.contains(id);
+}
+
 abstract interface class PreferredWorkshopRepository {
   Future<WorkshopModel?> load();
 
@@ -34,11 +46,13 @@ class SupabasePreferredWorkshopRepository
         .select('preferred_workshop')
         .eq('user_id', _userId)
         .maybeSingle();
-    return _decodeWorkshop(response?['preferred_workshop']);
+    final workshop = _decodeWorkshop(response?['preferred_workshop']);
+    return isLegacyMockWorkshop(workshop) ? null : workshop;
   }
 
   @override
   Future<void> save(WorkshopModel workshop) async {
+    if (isLegacyMockWorkshop(workshop)) return;
     await _client
         .from('customer_profiles')
         .update({'preferred_workshop': _encodeWorkshop(workshop)})

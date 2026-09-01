@@ -6,13 +6,14 @@ import 'package:cid_digitale/services/device_location_service.dart';
 import 'package:cid_digitale/services/appointment_requests_service.dart';
 import 'package:cid_digitale/services/places_workshop_search_service.dart';
 import 'package:cid_digitale/services/preferred_workshop_repository.dart';
-import 'package:cid_digitale/services/workshop_catalog_service.dart';
 import 'package:cid_digitale/widgets/preferred_workshop_card.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 
 import 'workshop_slot_picker_screen.dart';
+
+typedef WorkshopSlotPickerBuilder = Widget Function(WorkshopModel workshop);
 
 Future<void> openWorkshopSelectionStep(
   BuildContext context, {
@@ -60,6 +61,9 @@ class WorkshopSelectorScreen extends StatefulWidget {
     this.preselectedWorkshop,
     this.selectionOnly = false,
     this.preferredWorkshopRepository,
+    this.placesWorkshopSearchService,
+    this.deviceLocationService,
+    this.slotPickerBuilder,
   });
 
   final String title;
@@ -74,6 +78,9 @@ class WorkshopSelectorScreen extends StatefulWidget {
   final WorkshopModel? preselectedWorkshop;
   final bool selectionOnly;
   final PreferredWorkshopRepository? preferredWorkshopRepository;
+  final PlacesWorkshopSearchService? placesWorkshopSearchService;
+  final DeviceLocationService? deviceLocationService;
+  final WorkshopSlotPickerBuilder? slotPickerBuilder;
 
   @override
   State<WorkshopSelectorScreen> createState() => _WorkshopSelectorScreenState();
@@ -87,15 +94,11 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
   static const Color _textGray = Color(0xFF64748B);
   static const Color _border = Color(0xFFDCE7F5);
 
-  final WorkshopCatalogService _catalogService = WorkshopCatalogService();
-  final DeviceLocationService _deviceLocationService =
-      const DeviceLocationService();
-  final PlacesWorkshopSearchService _placesService =
-      PlacesWorkshopSearchService();
+  late final DeviceLocationService _deviceLocationService;
+  late final PlacesWorkshopSearchService _placesService;
   final TextEditingController _searchController = TextEditingController();
 
   Timer? _searchDebounce;
-  List<WorkshopModel> _catalogWorkshops = const [];
   List<WorkshopModel> _nearbyRemoteWorkshops = const [];
   List<WorkshopModel> _textRemoteWorkshops = const [];
   WorkshopModel? _selectedWorkshop;
@@ -104,7 +107,6 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
   PreferredWorkshopRepository? _preferredWorkshopRepository;
 
   String _query = '';
-  bool _isLoadingCatalog = true;
   bool _isResolvingLocation = false;
   bool _isSearchingNearby = false;
   bool _isSearchingText = false;
@@ -260,10 +262,16 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
   @override
   void initState() {
     super.initState();
+    _deviceLocationService =
+        widget.deviceLocationService ?? const DeviceLocationService();
+    _placesService =
+        widget.placesWorkshopSearchService ?? PlacesWorkshopSearchService();
+    final preselectedWorkshop = widget.preselectedWorkshop;
     _selectedWorkshop =
-        widget.selectionOnly ? null : widget.preselectedWorkshop;
+        widget.selectionOnly || isLegacyMockWorkshop(preselectedWorkshop)
+            ? null
+            : preselectedWorkshop;
     _searchController.addListener(_handleSearchChanged);
-    _loadCatalog();
     if (!widget.selectionOnly) {
       _preferredWorkshopRepository = widget.preferredWorkshopRepository ??
           SupabasePreferredWorkshopRepository();
@@ -280,21 +288,13 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
     super.dispose();
   }
 
-  Future<void> _loadCatalog() async {
-    final workshops = await _catalogService.fetchWorkshops();
-    if (!mounted) return;
-
-    setState(() {
-      _catalogWorkshops = _withDistance(workshops, _currentPosition);
-      _isLoadingCatalog = false;
-    });
-  }
-
   Future<void> _loadPreferredWorkshop() async {
     try {
       final workshop = await _preferredWorkshopRepository!.load();
       if (!mounted) return;
-      setState(() => _preferredWorkshop = workshop);
+      setState(() {
+        _preferredWorkshop = isLegacyMockWorkshop(workshop) ? null : workshop;
+      });
     } catch (_) {
       // The normal workshop search remains fully available.
     }
@@ -398,7 +398,6 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
         '[WorkshopGPS] coordinates received lat=${position.latitude}, lng=${position.longitude}',
       );
 
-      final localWithDistance = _withDistance(_catalogWorkshops, position);
       final cityHint = await _deviceLocationService.resolveCityHint(position);
       debugPrint('[WorkshopGPS] search nearby started');
 
@@ -427,7 +426,6 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
       if (!mounted) return;
       setState(() {
         _currentPosition = position;
-        _catalogWorkshops = localWithDistance;
         _nearbyRemoteWorkshops = nearbyResults;
         _didRunNearbySearch = true;
         _isResolvingLocation = false;
@@ -450,27 +448,6 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
       });
       _showLocationErrorSnack();
     }
-  }
-
-  List<WorkshopModel> _withDistance(
-    List<WorkshopModel> workshops,
-    Position? position,
-  ) {
-    return workshops.map((workshop) {
-      if (position == null || !workshop.hasCoordinates) {
-        return workshop.copyWith(clearDistanceKm: true);
-      }
-
-      final distanceKm = Geolocator.distanceBetween(
-            position.latitude,
-            position.longitude,
-            workshop.latitude!,
-            workshop.longitude!,
-          ) /
-          1000;
-
-      return workshop.copyWith(distanceKm: distanceKm);
-    }).toList(growable: false);
   }
 
   void _showLocationErrorSnack() {
@@ -525,48 +502,36 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => WorkshopSlotPickerScreen(
-          title: widget.title,
-          serviceType: widget.serviceType,
-          damageType: widget.damageType,
-          tireServiceType: widget.tireServiceType,
-          serviceSelectionKey: widget.serviceSelectionKey,
-          serviceDetail: widget.serviceDetail,
-          cleaningPackage: widget.cleaningPackage,
-          additionalServices: widget.additionalServices,
-          wheelRepairImages: widget.wheelRepairImages,
-          selectedWorkshop: workshop,
-        ),
+        builder: (_) =>
+            widget.slotPickerBuilder?.call(workshop) ??
+            WorkshopSlotPickerScreen(
+              title: widget.title,
+              serviceType: widget.serviceType,
+              damageType: widget.damageType,
+              tireServiceType: widget.tireServiceType,
+              serviceSelectionKey: widget.serviceSelectionKey,
+              serviceDetail: widget.serviceDetail,
+              cleaningPackage: widget.cleaningPackage,
+              additionalServices: widget.additionalServices,
+              wheelRepairImages: widget.wheelRepairImages,
+              selectedWorkshop: workshop,
+            ),
       ),
     );
   }
 
   void _usePreferredWorkshop() {
     final workshop = _preferredWorkshop;
-    if (workshop == null) return;
+    if (workshop == null || isLegacyMockWorkshop(workshop)) return;
     setState(() => _selectedWorkshop = workshop);
   }
 
   List<WorkshopModel> _visibleWorkshops() {
-    final localMatches = _query.trim().isEmpty
-        ? _catalogWorkshops
-        : _catalogWorkshops
-            .where((workshop) => workshop.matchesQuery(_query))
-            .toList(growable: false);
-
     final remoteMatches =
         _query.trim().isEmpty ? _nearbyRemoteWorkshops : _textRemoteWorkshops;
-
-    final merged = <String, WorkshopModel>{};
-    for (final workshop in [...remoteMatches, ...localMatches]) {
-      final key = _mergeKey(workshop);
-      final existing = merged[key];
-      merged[key] = existing == null
-          ? workshop
-          : _mergeWorkshopRecords(existing, workshop);
-    }
-
-    final results = merged.values.toList(growable: false);
+    final results = remoteMatches
+        .where((workshop) => !isLegacyMockWorkshop(workshop))
+        .toList(growable: false);
     results.sort((left, right) {
       final leftDistance = left.distanceKm;
       final rightDistance = right.distanceKm;
@@ -594,42 +559,6 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
     });
 
     return results;
-  }
-
-  WorkshopModel _mergeWorkshopRecords(
-    WorkshopModel primary,
-    WorkshopModel secondary,
-  ) {
-    final preferredDistance =
-        switch ((primary.distanceKm, secondary.distanceKm)) {
-      (final double left, final double right) => left < right ? left : right,
-      (final double left, null) => left,
-      (null, final double right) => right,
-      _ => null,
-    };
-
-    return primary.copyWith(
-      email: primary.hasEmail ? primary.email : secondary.email,
-      phone: primary.hasPhone ? primary.phone : secondary.phone,
-      address: primary.address.trim().isNotEmpty
-          ? primary.address
-          : secondary.address,
-      city: primary.city.trim().isNotEmpty ? primary.city : secondary.city,
-      rating: primary.rating ?? secondary.rating,
-      isOpen: primary.isOpen ?? secondary.isOpen,
-      latitude: primary.latitude ?? secondary.latitude,
-      longitude: primary.longitude ?? secondary.longitude,
-      distanceKm: preferredDistance,
-    );
-  }
-
-  String _mergeKey(WorkshopModel workshop) {
-    final normalizedName = workshop.name.trim().toLowerCase();
-    final normalizedAddress = workshop.address.trim().toLowerCase();
-    if (normalizedName.isNotEmpty && normalizedAddress.isNotEmpty) {
-      return '$normalizedName|$normalizedAddress';
-    }
-    return workshop.id.trim().toLowerCase();
   }
 
   String? _distanceLabelFor(WorkshopModel workshop) {
@@ -792,11 +721,7 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
                   ],
                 ),
               ),
-              child: _isLoadingCatalog
-                  ? const Center(
-                      child: CircularProgressIndicator(color: _primary),
-                    )
-                  : ListView(
+              child: ListView(
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 136),
                       children: [

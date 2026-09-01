@@ -6,11 +6,17 @@ import 'package:cid_digitale/models/workshop_model.dart';
 import 'package:cid_digitale/screens/auth/customer_profile_page.dart';
 import 'package:cid_digitale/screens/service/workshop_selector_screen.dart';
 import 'package:cid_digitale/services/customer_auth_service.dart';
+import 'package:cid_digitale/services/device_location_service.dart';
+import 'package:cid_digitale/services/places_workshop_search_service.dart';
+import 'package:cid_digitale/services/preferred_workshop_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 
 import 'helpers/fake_customer_auth_service.dart';
+import 'helpers/fake_places_workshop_search_service.dart';
 import 'helpers/fake_preferred_workshop_repository.dart';
+import 'helpers/workshop_fixtures.dart';
 
 const _account = CustomerAccount(
   id: 'preferred-workshop-customer',
@@ -34,18 +40,38 @@ const _profile = CustomerProfile(
   profileCompleted: true,
 );
 
-const _favorite = WorkshopModel(
-  id: 'favorite-workshop',
-  name: 'Garage Preferito SA',
-  email: 'preferito@example.com',
-  phone: '+41 91 555 12 34',
-  address: 'Via Officina 8',
-  city: '6900 Lugano',
-  rating: 4.9,
-  isOpen: true,
-  latitude: 46.0037,
-  longitude: 8.9511,
-);
+const _favorite = realPreferredWorkshopFixture;
+
+class _SuccessfulDeviceLocationService extends DeviceLocationService {
+  const _SuccessfulDeviceLocationService();
+
+  @override
+  Future<DeviceLocationResult> requestCurrentPosition({
+    LocationAccuracy accuracy = LocationAccuracy.high,
+    Duration timeout = const Duration(seconds: 10),
+  }) async {
+    return DeviceLocationResult(
+      serviceEnabled: true,
+      permission: LocationPermission.whileInUse,
+      position: Position(
+        latitude: 46.0037,
+        longitude: 8.9511,
+        timestamp: DateTime(2026, 8, 31, 12),
+        accuracy: 4,
+        altitude: 0,
+        altitudeAccuracy: 0,
+        heading: 0,
+        headingAccuracy: 0,
+        speed: 0,
+        speedAccuracy: 0,
+        isMocked: true,
+      ),
+    );
+  }
+
+  @override
+  Future<String?> resolveCityHint(Position position) async => 'Lugano';
+}
 
 Widget _localizedApp({
   required Widget home,
@@ -65,6 +91,7 @@ Future<void> _pumpProfile(
   required FakeCustomerAuthService auth,
   required FakePreferredWorkshopRepository repository,
   Locale locale = const Locale('it'),
+  FakePlacesWorkshopSearchService? placesService,
 }) async {
   tester.view.physicalSize = const Size(900, 2000);
   tester.view.devicePixelRatio = 1;
@@ -80,6 +107,7 @@ Future<void> _pumpProfile(
         initialProfile: _profile,
         isOnboarding: false,
         preferredWorkshopRepository: repository,
+        placesWorkshopSearchService: placesService,
       ),
     ),
   );
@@ -99,19 +127,23 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
-      'profile chooses with the existing selector, persists and removes only the favorite',
+      'profile chooses a Google Places result, persists and removes only the favorite',
       (tester) async {
     final auth = FakeCustomerAuthService(
       account: _account,
       profile: _profile,
     );
     final repository = FakePreferredWorkshopRepository();
+    final placesService = FakePlacesWorkshopSearchService(
+      textResults: const [realPlacesWorkshopFixture],
+    );
     addTearDown(auth.dispose);
 
     await _pumpProfile(
       tester,
       auth: auth,
       repository: repository,
+      placesService: placesService,
     );
 
     expect(find.text('Officina preferita'), findsOneWidget);
@@ -127,25 +159,28 @@ void main() {
     );
 
     await tester.tap(find.text('Scegli officina'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 220));
+    await tester.pumpAndSettle();
 
     expect(find.byType(WorkshopSelectorScreen), findsOneWidget);
     expect(find.text('Scegli la tua officina'), findsWidgets);
     expect(find.text('Usa la mia posizione'), findsOneWidget);
     expect(find.byType(TextField), findsWidgets);
 
-    final selectButton = find.descendant(
-      of: find.byKey(const Key('workshop_option_garage-europa-ag')),
-      matching: find.text('Seleziona'),
-    );
-    await tester.ensureVisible(selectButton);
-    await tester.tap(selectButton);
+    await tester.enterText(find.byType(TextField).first, 'Garage Reale');
+    await tester.pump(const Duration(milliseconds: 421));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+
+    final workshopOption = find.byKey(
+      const Key('workshop_option_google-place-real-workshop'),
+    );
+    expect(workshopOption, findsOneWidget);
+    expect(placesService.textSearchCalls, 1);
+    await tester.ensureVisible(workshopOption);
+    await tester.tap(workshopOption);
+    await tester.pumpAndSettle();
 
     expect(repository.saveCalls, 1);
-    expect(repository.stored?.name, 'Garage Europa AG');
+    expect(repository.stored?.id, realPlacesWorkshopFixture.id);
     expect(auth.saveProfileCalls, 0);
     expect(find.byType(CustomerProfilePage), findsOneWidget);
     expect(find.byType(WorkshopSelectorScreen), findsNothing);
@@ -154,33 +189,29 @@ void main() {
     expect(
       find.descendant(
         of: profileCard,
-        matching: find.text('Garage Europa AG'),
+        matching: find.text(realPlacesWorkshopFixture.name),
       ),
       findsOneWidget,
     );
     expect(
       find.descendant(
         of: profileCard,
-        matching: find.text('Via Cantonale 10, 6900 Lugano'),
+        matching: find.text(
+          '${realPlacesWorkshopFixture.address}, '
+          '${realPlacesWorkshopFixture.city}',
+        ),
       ),
       findsOneWidget,
     );
     expect(
       find.descendant(
         of: profileCard,
-        matching: find.text('+41 91 555 10 10'),
+        matching: find.text(realPlacesWorkshopFixture.phone!),
       ),
       findsOneWidget,
     );
     expect(
-      find.descendant(
-        of: profileCard,
-        matching: find.text('garage.europa@email.ch'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: profileCard, matching: find.text('4.9')),
+      find.descendant(of: profileCard, matching: find.text('4.6')),
       findsOneWidget,
     );
     expect(
@@ -220,7 +251,6 @@ void main() {
     expect(
         find.text('${_favorite.address}, ${_favorite.city}'), findsOneWidget);
     expect(find.text(_favorite.phone!), findsOneWidget);
-    expect(find.text(_favorite.email!), findsOneWidget);
     expect(find.text('4.9'), findsOneWidget);
     expect(find.text('Aperto'), findsOneWidget);
 
@@ -230,11 +260,12 @@ void main() {
 
     expect(find.byType(WorkshopSelectorScreen), findsOneWidget);
     expect(find.text('Scegli la tua officina'), findsWidgets);
-    expect(find.text('Seleziona'), findsWidgets);
+    for (final mockName in legacyMockWorkshopNames) {
+      expect(find.text(mockName), findsNothing);
+    }
   });
 
-  testWidgets(
-      'booking shows favorite before the list and temporary choices never persist',
+  testWidgets('booking uses a real favorite without persisting temporary state',
       (tester) async {
     final repository = FakePreferredWorkshopRepository(stored: _favorite);
     tester.view.physicalSize = const Size(900, 1800);
@@ -256,14 +287,7 @@ void main() {
 
     final favoriteCard =
         find.byKey(const Key('booking_preferred_workshop_card'));
-    final firstWorkshop =
-        find.byKey(const Key('workshop_option_garage-europa-ag'));
     expect(favoriteCard, findsOneWidget);
-    expect(firstWorkshop, findsOneWidget);
-    expect(
-      tester.getBottomLeft(favoriteCard).dy,
-      lessThan(tester.getTopLeft(firstWorkshop).dy),
-    );
     expect(find.text('La tua officina preferita'), findsOneWidget);
     expect(find.text(_favorite.name), findsOneWidget);
 
@@ -276,23 +300,20 @@ void main() {
 
     continueButton = tester.widget<FilledButton>(_buttonWithText('Continua'));
     expect(continueButton.onPressed, isNotNull);
-    expect(firstWorkshop, findsOneWidget);
     expect(repository.saveCalls, 0);
     expect(repository.removeCalls, 0);
-
-    await tester.ensureVisible(firstWorkshop);
-    await tester.tap(firstWorkshop);
-    await tester.pump();
-
     expect(repository.stored?.id, _favorite.id);
     expect(repository.saveCalls, 0);
     expect(repository.removeCalls, 0);
   });
 
-  testWidgets('favorite load failure leaves the normal workshop list usable',
+  testWidgets('favorite load failure leaves Google Places search usable',
       (tester) async {
     final repository = FakePreferredWorkshopRepository()
       ..loadError = StateError('network unavailable');
+    final placesService = FakePlacesWorkshopSearchService(
+      textResults: const [realPlacesWorkshopFixture],
+    );
     tester.view.physicalSize = const Size(900, 1800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -304,6 +325,7 @@ void main() {
           title: 'Servizio officina',
           serviceType: 'service_inspection',
           preferredWorkshopRepository: repository,
+          placesWorkshopSearchService: placesService,
         ),
       ),
     );
@@ -314,10 +336,209 @@ void main() {
       find.byKey(const Key('booking_preferred_workshop_card')),
       findsNothing,
     );
+    await tester.enterText(find.byType(TextField), 'Garage Reale');
+    await tester.pump(const Duration(milliseconds: 421));
+    await tester.pump();
     expect(
-      find.byKey(const Key('workshop_option_garage-europa-ag')),
+      find.byKey(
+        const Key('workshop_option_google-place-real-workshop'),
+      ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('production selector starts empty without legacy mock workshops',
+      (tester) async {
+    final repository = FakePreferredWorkshopRepository();
+
+    await tester.pumpWidget(
+      _localizedApp(
+        home: WorkshopSelectorScreen(
+          title: 'Servizio officina',
+          serviceType: 'service_inspection',
+          preferredWorkshopRepository: repository,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    for (final mockName in legacyMockWorkshopNames) {
+      expect(find.text(mockName), findsNothing);
+    }
+    expect(
+        find.byKey(const Key('booking_preferred_workshop_card')), findsNothing);
+    expect(find.byKey(const Key('workshop_option_garage-europa-ag')),
+        findsNothing);
+    expect(
+      tester.widget<FilledButton>(_buttonWithText('Continua')).onPressed,
+      isNull,
+    );
+  });
+
+  testWidgets(
+      'unconfigured Google Places leaves an empty selector without invented fallback',
+      (tester) async {
+    await tester.pumpWidget(
+      _localizedApp(
+        home: WorkshopSelectorScreen(
+          title: 'Servizio officina',
+          serviceType: 'service_inspection',
+          preferredWorkshopRepository: FakePreferredWorkshopRepository(),
+          placesWorkshopSearchService: PlacesWorkshopSearchService(apiKey: ''),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.enterText(find.byType(TextField), 'Garage');
+    await tester.pump(const Duration(milliseconds: 421));
+    await tester.pump();
+
+    for (final mockName in legacyMockWorkshopNames) {
+      expect(find.text(mockName), findsNothing);
+    }
+    expect(find.byKey(const Key('workshop_option_garage-europa-ag')),
+        findsNothing);
+    expect(
+      tester.widget<FilledButton>(_buttonWithText('Continua')).onPressed,
+      isNull,
+    );
+  });
+
+  testWidgets(
+      'simulated Google Places result is selectable and reaches the calendar route',
+      (tester) async {
+    final placesService = FakePlacesWorkshopSearchService(
+      textResults: const [realPlacesWorkshopFixture],
+    );
+    WorkshopModel? routedWorkshop;
+
+    await tester.pumpWidget(
+      _localizedApp(
+        home: WorkshopSelectorScreen(
+          title: 'Servizio officina',
+          serviceType: 'service_inspection',
+          preferredWorkshopRepository: FakePreferredWorkshopRepository(),
+          placesWorkshopSearchService: placesService,
+          slotPickerBuilder: (workshop) {
+            routedWorkshop = workshop;
+            return Scaffold(
+              body: Text(
+                'calendar:${workshop.id}',
+                key: const Key('calendar-route-result'),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.enterText(find.byType(TextField), 'Garage Reale');
+    await tester.pump(const Duration(milliseconds: 421));
+    await tester.pump();
+
+    final option = find.byKey(
+      const Key('workshop_option_google-place-real-workshop'),
+    );
+    expect(option, findsOneWidget);
+    expect(find.text(realPlacesWorkshopFixture.name), findsOneWidget);
+    expect(placesService.textSearchCalls, 1);
+
+    await tester.ensureVisible(option);
+    await tester.tap(option);
+    await tester.pump();
+    await tester.tap(_buttonWithText('Continua'));
+    await tester.pumpAndSettle();
+
+    expect(routedWorkshop?.id, realPlacesWorkshopFixture.id);
+    expect(find.byKey(const Key('calendar-route-result')), findsOneWidget);
+  });
+
+  testWidgets('nearby search keeps using Google Places results',
+      (tester) async {
+    final placesService = FakePlacesWorkshopSearchService(
+      nearbyResults: const [realPlacesWorkshopFixture],
+    );
+
+    await tester.pumpWidget(
+      _localizedApp(
+        home: WorkshopSelectorScreen(
+          title: 'Servizio officina',
+          serviceType: 'service_inspection',
+          preferredWorkshopRepository: FakePreferredWorkshopRepository(),
+          placesWorkshopSearchService: placesService,
+          deviceLocationService: const _SuccessfulDeviceLocationService(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('Usa la mia posizione'));
+    await tester.pumpAndSettle();
+
+    expect(placesService.nearbySearchCalls, 1);
+    expect(
+      find.byKey(
+        const Key('workshop_option_google-place-real-workshop'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('legacy mock favorite and preselection are ignored',
+      (tester) async {
+    final auth = FakeCustomerAuthService(
+      account: _account,
+      profile: _profile,
+    );
+    final repository = FakePreferredWorkshopRepository(
+      stored: legacyMockWorkshopFixture,
+    );
+    addTearDown(auth.dispose);
+
+    await _pumpProfile(
+      tester,
+      auth: auth,
+      repository: repository,
+    );
+
+    expect(find.text(legacyMockWorkshopFixture.name), findsNothing);
+    expect(
+      find.text('Nessuna officina preferita selezionata.'),
+      findsOneWidget,
+    );
+
+    await tester.pumpWidget(
+      _localizedApp(
+        home: WorkshopSelectorScreen(
+          title: 'Servizio officina',
+          serviceType: 'service_inspection',
+          preselectedWorkshop: legacyMockWorkshopFixture,
+          preferredWorkshopRepository: repository,
+          placesWorkshopSearchService: FakePlacesWorkshopSearchService(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text(legacyMockWorkshopFixture.name), findsNothing);
+    expect(
+        find.byKey(const Key('booking_preferred_workshop_card')), findsNothing);
+    expect(
+      tester.widget<FilledButton>(_buttonWithText('Continua')).onPressed,
+      isNull,
+    );
+  });
+
+  test('all four legacy mock workshop IDs are rejected', () {
+    expect(legacyMockWorkshopIds, hasLength(4));
+    for (final workshop in legacyMockWorkshopFixtures) {
+      expect(isLegacyMockWorkshop(workshop), isTrue, reason: workshop.id);
+    }
+    expect(isLegacyMockWorkshop(realPreferredWorkshopFixture), isFalse);
   });
 
   testWidgets('preferred workshop copy is localized in all four languages',
@@ -383,6 +604,9 @@ void main() {
     );
     expect(repositorySource, isNot(contains('customer_vehicles')));
     expect(repositorySource, isNot(contains('SharedPreferences')));
+    expect(repositorySource, contains('legacyMockWorkshopIds'));
+    expect(selectorSource, isNot(contains('WorkshopCatalogService')));
+    expect(selectorSource, isNot(contains('_catalogWorkshops')));
     expect(
       selectorSource,
       contains('selectedWorkshop: workshop,'),

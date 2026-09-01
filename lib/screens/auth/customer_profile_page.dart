@@ -10,6 +10,7 @@ import '../../models/workshop_model.dart';
 import '../../screens/legal/legal_document_page.dart';
 import '../../screens/service/workshop_selector_screen.dart';
 import '../../services/customer_auth_service.dart';
+import '../../services/places_workshop_search_service.dart';
 import '../../services/preferred_workshop_repository.dart';
 import '../../widgets/auth/auth_page_shell.dart';
 import '../../widgets/preferred_workshop_card.dart';
@@ -23,6 +24,7 @@ class CustomerProfilePage extends StatefulWidget {
     this.initialProfile,
     this.onSaved,
     this.preferredWorkshopRepository,
+    this.placesWorkshopSearchService,
   });
 
   final CustomerAuthService service;
@@ -31,6 +33,7 @@ class CustomerProfilePage extends StatefulWidget {
   final bool isOnboarding;
   final ValueChanged<CustomerProfile>? onSaved;
   final PreferredWorkshopRepository? preferredWorkshopRepository;
+  final PlacesWorkshopSearchService? placesWorkshopSearchService;
 
   @override
   State<CustomerProfilePage> createState() => _CustomerProfilePageState();
@@ -147,7 +150,7 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
       final workshop = await _preferredWorkshopRepository!.load();
       if (!mounted) return;
       setState(() {
-        _preferredWorkshop = workshop;
+        _preferredWorkshop = isLegacyMockWorkshop(workshop) ? null : workshop;
         _preferredWorkshopLoading = false;
       });
     } catch (_) {
@@ -168,10 +171,11 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
           serviceType: 'preferred_workshop',
           selectionOnly: true,
           preselectedWorkshop: _preferredWorkshop,
+          placesWorkshopSearchService: widget.placesWorkshopSearchService,
         ),
       ),
     );
-    if (selected == null || !mounted) return;
+    if (selected == null || isLegacyMockWorkshop(selected) || !mounted) return;
 
     setState(() {
       _preferredWorkshopLoading = true;
