@@ -140,8 +140,7 @@ class SupabaseService {
       }
     } catch (_) {}
 
-    debugPrint('CLAIM FROM DB: ${claimRow?['id']}');
-    debugPrint('RESOLVED CLAIM ID: $resolvedClaimId');
+    debugPrint('CLAIM LOOKUP COMPLETED');
     if (resolvedClaimId.isEmpty) {
       throw Exception('Claim non trovato su database: $rawClaimId');
     }
@@ -149,11 +148,8 @@ class SupabaseService {
     final ts = DateTime.now().millisecondsSinceEpoch;
     final safeName = filename.replaceAll(' ', '_');
     final path = 'claims/$resolvedClaimId/$kind/${ts}_$safeName';
-    debugPrint('FINAL CLAIM ID USED: $resolvedClaimId');
     debugPrint('UPLOAD KIND: $kind');
-    debugPrint('PATH: $path');
-    debugPrint('UPLOAD BUCKET: $bucket');
-    debugPrint('UPLOAD PATH: $path');
+    debugPrint('ATTACHMENT UPLOAD STARTED');
 
     await client.storage.from(bucket).uploadBinary(
           path,
@@ -167,7 +163,6 @@ class SupabaseService {
     final publicUrl = client.storage.from(bucket).getPublicUrl(path);
     if (resolvedClaimId.isEmpty) {
       debugPrint('ERRORE: claimId non risolto');
-      debugPrint('SUPABASE PUBLIC URL GENERATED: $publicUrl');
       if (publicUrl.isEmpty) {
         throw Exception('Impossibile ottenere URL pubblico per $path');
       }
@@ -177,13 +172,7 @@ class SupabaseService {
     try {
       final currentUserId = client.auth.currentUser?.id;
 
-      debugPrint(
-        'CLAIM_ATTACHMENT_INSERT_TRY: claim_id=$resolvedClaimId '
-        'is_uuid=${resolvedClaimId.contains('-')} kind=$kind file_path=$path',
-      );
-      debugPrint('TRY INSERT attachment claim_id=$resolvedClaimId path=$path');
-      debugPrint('INSERT ATTACHMENT claim_id=$resolvedClaimId path=$path');
-      debugPrint('FINAL INSERT claim_id=$resolvedClaimId path=$path');
+      debugPrint('CLAIM ATTACHMENT METADATA INSERT STARTED');
 
       final dynamic insertResult =
           await client.from('claim_attachments').insert({
@@ -197,16 +186,15 @@ class SupabaseService {
       debugPrint('INSERT DONE');
       try {
         if (insertResult.error != null) {
-          debugPrint('INSERT ERROR: ${insertResult.error}');
+          debugPrint('INSERT ERROR');
         }
       } catch (_) {}
-      debugPrint('CLAIM_ATTACHMENT_INSERT_OK: $insertResult');
-    } catch (e, st) {
-      debugPrint('CLAIM_ATTACHMENT_INSERT_ERROR: $e');
-      debugPrint('CLAIM_ATTACHMENT_INSERT_STACK: $st');
+      debugPrint('CLAIM_ATTACHMENT_INSERT_OK');
+    } catch (_) {
+      debugPrint('CLAIM_ATTACHMENT_INSERT_ERROR');
     }
 
-    debugPrint('SUPABASE PUBLIC URL GENERATED: $publicUrl');
+    debugPrint('ATTACHMENT UPLOAD COMPLETED');
     if (publicUrl.isEmpty) {
       throw Exception('Impossibile ottenere URL pubblico per $path');
     }
@@ -312,8 +300,8 @@ class SupabaseService {
       if (update.isEmpty) return;
 
       await client.from('claims').update(update).eq('id', claimId);
-    } catch (e) {
-      debugPrint('markClaimAsInLavorazioneIfWorkshop failed: $e');
+    } catch (_) {
+      debugPrint('markClaimAsInLavorazioneIfWorkshop failed');
     }
   }
 

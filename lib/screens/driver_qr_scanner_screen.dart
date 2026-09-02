@@ -62,7 +62,7 @@ class _DriverQrScannerScreenState extends State<DriverQrScannerScreen> {
     if (rawValue.isEmpty) return;
 
     _handlingDetection = true;
-    debugPrint('[DriverQR] scan detected rawLength=${rawValue.length}');
+    debugPrint('[DriverQR] scan detected');
     await _controller.stop();
 
     final parsedData = driverPersonalQrDataFromQrPayload(rawValue);
@@ -79,8 +79,8 @@ class _DriverQrScannerScreenState extends State<DriverQrScannerScreen> {
       await widget.onDetected(parsedData);
       if (!mounted) return;
       Navigator.of(context).pop(true);
-    } catch (e, st) {
-      debugPrint('[DriverQR] import failed $e\n$st');
+    } catch (_) {
+      debugPrint('[DriverQR] import failed');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(widget.invalidMessage)),

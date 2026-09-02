@@ -107,8 +107,7 @@ String? extractSwissPlate(String text) {
   cleaned = cleaned.replaceAll('\n', ' ');
   cleaned = cleaned.replaceAll(RegExp(r'[\-_:;.,/]'), ' ');
   cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
-  debugPrint('[OCR] Swiss plate input: '
-      '${cleaned.length > 200 ? cleaned.substring(0, 200) : cleaned}');
+  debugPrint('[OCR] Swiss plate scan started');
 
   final chRegex = RegExp(r'\b([A-Z]{2})\s*([0-9]{1,6})\b');
   String? best;
@@ -125,7 +124,7 @@ String? extractSwissPlate(String text) {
     }
   }
   if (best != null) {
-    debugPrint('[OCR] Swiss plate candidate chosen -> $best');
+    debugPrint('[OCR] Swiss plate candidate found');
   }
 
   return best;
@@ -675,10 +674,7 @@ Map<String, String?> estraiNomeAssicurazioneIndirizzoDaTesto(
 
   // EDGE CASE: se il libretto ha più indirizzi (es. aziendale + sede), il parser
   // prenderà solo il primo che soddisfa il pattern; valutare gestione multipla in futuro.
-  debugPrint('[OCR] Parsed libretto -> '
-      'nome: ${nome ?? '-'}, cognome: ${cognome ?? '-'}, '
-      'indirizzo: ${indirizzo ?? '-'}, cap: ${cap ?? '-'}, city: ${city ?? '-'}, '
-      'assicurazione: ${assicurazione ?? '-'}, marca: ${marcaAuto ?? '-'}, modello: ${modelloAuto ?? '-'}');
+  debugPrint('[OCR] Libretto fields parsed');
 
   return {
     'nome': nome,

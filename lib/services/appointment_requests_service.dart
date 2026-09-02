@@ -269,8 +269,8 @@ class AppointmentRequestsService {
       final res = await query.order('created_at', ascending: false).limit(200);
       final list = (res as List).cast<Map<String, dynamic>>();
       remoteItems.addAll(list.map(AppointmentRequest.fromMap));
-    } catch (e) {
-      debugPrint('fetchMyRequests remote failed: $e');
+    } catch (_) {
+      debugPrint('fetchMyRequests remote failed');
     }
 
     final localItems = await _loadPendingRequestsFromQueue(
@@ -725,17 +725,15 @@ class AppointmentRequestsService {
           parkingDamageCurrentKmImages: uploadedImages.parkingCurrentKmImages,
           parkingDamageExtraImages: uploadedImages.parkingExtraImages,
         );
-      } catch (e) {
-        debugPrint('Damage image upload failed: $e');
+      } catch (_) {
+        debugPrint('Damage image upload failed');
       }
     }
 
     try {
       await _emailNotifications.sendAppointmentConfirmation(request: record);
-    } catch (e) {
-      debugPrint(
-        '[EmailConfirm] send error requestId=${record.id} recipient=${record.customerEmail ?? ''} error=$e',
-      );
+    } catch (_) {
+      debugPrint('[EmailConfirm] send error');
     }
 
     return record;
@@ -798,8 +796,8 @@ class AppointmentRequestsService {
           .eq('id', id)
           .single();
       return AppointmentRequest.fromMap(Map<String, dynamic>.from(res));
-    } catch (e) {
-      debugPrint('fetchRequestById failed for $id: $e');
+    } catch (_) {
+      debugPrint('fetchRequestById failed');
       return null;
     }
   }
@@ -1078,24 +1076,22 @@ class AppointmentRequestsService {
                   uploadedImages.parkingCurrentKmImages,
               parkingDamageExtraImages: uploadedImages.parkingExtraImages,
             );
-          } catch (e) {
-            debugPrint('syncPendingRequests image upload failed: $e');
+          } catch (_) {
+            debugPrint('syncPendingRequests image upload failed');
           }
         }
 
         try {
           await _emailNotifications.sendAppointmentConfirmation(
               request: record);
-        } catch (e) {
-          debugPrint(
-            '[EmailConfirm] send error requestId=${record.id} recipient=${record.customerEmail ?? ''} error=$e',
-          );
+        } catch (_) {
+          debugPrint('[EmailConfirm] send error');
         }
 
         await _removeQueueEntry(localRequest.id);
         await _cleanupQueuedImages(imageDescriptors);
-      } catch (e) {
-        debugPrint('syncPendingRequests failed for ${localRequest.id}: $e');
+      } catch (_) {
+        debugPrint('syncPendingRequests failed');
       }
     }
   }
@@ -2558,8 +2554,8 @@ class AppointmentRequestsService {
           .whereType<Map>()
           .map((entry) => Map<String, dynamic>.from(entry))
           .toList();
-    } catch (e) {
-      debugPrint('load appointment queue failed: $e');
+    } catch (_) {
+      debugPrint('load appointment queue failed');
       return <Map<String, dynamic>>[];
     }
   }

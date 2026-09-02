@@ -375,7 +375,8 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
         return;
       }
 
-      if (!locationResult.permissionGranted || locationResult.position == null) {
+      if (!locationResult.permissionGranted ||
+          locationResult.position == null) {
         debugPrint(
           locationResult.permissionGranted
               ? '[WorkshopGPS] permission granted but coordinates unavailable'
@@ -395,7 +396,7 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
         '[WorkshopGPS] permission granted ${locationResult.permission}',
       );
       debugPrint(
-        '[WorkshopGPS] coordinates received lat=${position.latitude}, lng=${position.longitude}',
+        '[WorkshopGPS] coordinates received',
       );
 
       final cityHint = await _deviceLocationService.resolveCityHint(position);
@@ -419,8 +420,8 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
             '[WorkshopGPS] search nearby success count=${nearbyResults.length}',
           );
         }
-      } catch (error, stackTrace) {
-        debugPrint('[WorkshopGPS] search nearby fail $error\n$stackTrace');
+      } catch (_) {
+        debugPrint('[WorkshopGPS] search nearby failed');
       }
 
       if (!mounted) return;
@@ -432,15 +433,16 @@ class _WorkshopSelectorScreenState extends State<WorkshopSelectorScreen> {
         _isSearchingNearby = false;
       });
     } on TimeoutException {
-      debugPrint('[WorkshopGPS] search nearby fail timeout while requesting coordinates');
+      debugPrint(
+          '[WorkshopGPS] search nearby fail timeout while requesting coordinates');
       if (!mounted) return;
       setState(() {
         _isResolvingLocation = false;
         _isSearchingNearby = false;
       });
       _showLocationErrorSnack();
-    } catch (error, stackTrace) {
-      debugPrint('[WorkshopGPS] search nearby fail $error\n$stackTrace');
+    } catch (_) {
+      debugPrint('[WorkshopGPS] search nearby failed');
       if (!mounted) return;
       setState(() {
         _isResolvingLocation = false;

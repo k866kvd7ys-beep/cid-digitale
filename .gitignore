@@ -31,6 +31,8 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+.vercel/
+supabase/.temp/
 
 # Symbolication related
 app.*.symbols

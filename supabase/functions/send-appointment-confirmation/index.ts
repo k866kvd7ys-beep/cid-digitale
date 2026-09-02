@@ -439,8 +439,6 @@ async function handleRequest(req: Request) {
   if (!resendResponse.ok) {
     console.error("SEND APPOINTMENT CONFIRMATION Resend error", {
       status: resendResponse.status,
-      body: resendBody,
-      recipient,
     });
     return Response.json(
       {

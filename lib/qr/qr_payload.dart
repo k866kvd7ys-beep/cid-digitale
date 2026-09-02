@@ -21,9 +21,8 @@ class QrPayload {
     return uuid.hasMatch(t);
   }
 
-  static void debugLog(String token) {
+  static void debugLog(String _) {
     if (!kDebugMode) return;
-    debugPrint('CLIENT_QR_TOKEN_LEN=${token.trim().length}');
-    debugPrint('CLIENT_QR_DATA=${cid1(token)}');
+    debugPrint('[CLIENT_QR] payload prepared');
   }
 }

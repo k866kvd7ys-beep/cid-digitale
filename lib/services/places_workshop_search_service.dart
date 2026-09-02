@@ -134,7 +134,7 @@ class PlacesWorkshopSearchService {
       }
 
       return _finishEmptySearch();
-    } catch (error, stackTrace) {
+    } catch (error) {
       _recordIssue(
         PlacesSearchIssue(
           type: PlacesSearchIssueType.networkError,
@@ -143,7 +143,6 @@ class PlacesWorkshopSearchService {
           query: requestQuery,
           responseBody: error.toString(),
         ),
-        stackTrace: stackTrace,
       );
       return _finishEmptySearch();
     } finally {
@@ -192,7 +191,7 @@ class PlacesWorkshopSearchService {
       }
 
       return _finishEmptySearch();
-    } catch (error, stackTrace) {
+    } catch (error) {
       _recordIssue(
         PlacesSearchIssue(
           type: PlacesSearchIssueType.networkError,
@@ -201,7 +200,6 @@ class PlacesWorkshopSearchService {
           query: trimmedQuery,
           responseBody: error.toString(),
         ),
-        stackTrace: stackTrace,
       );
       return _finishEmptySearch();
     } finally {
@@ -568,22 +566,17 @@ class PlacesWorkshopSearchService {
     required String query,
   }) async {
     try {
-      debugPrint(
-        '[Places] requestHeaders type=$requestType headers=${_maskedHeaders(headers)}',
-      );
-      debugPrint(
-        '[Places] request type=$requestType query="$query" url=$uri body=$body',
-      );
+      debugPrint('[Places] request started type=$requestType');
       final response = await client.post(
         uri,
         headers: headers,
         body: body,
       );
       debugPrint(
-        '[Places] response type=$requestType statusCode=${response.statusCode} body=${response.body}',
+        '[Places] response type=$requestType statusCode=${response.statusCode}',
       );
       return response;
-    } catch (error, stackTrace) {
+    } catch (error) {
       _recordIssue(
         PlacesSearchIssue(
           type: PlacesSearchIssueType.networkError,
@@ -592,7 +585,6 @@ class PlacesWorkshopSearchService {
           query: query,
           responseBody: error.toString(),
         ),
-        stackTrace: stackTrace,
       );
       return null;
     }
@@ -606,21 +598,16 @@ class PlacesWorkshopSearchService {
     required String query,
   }) async {
     try {
-      debugPrint(
-        '[Places] requestHeaders type=$requestType headers=${_maskedHeaders(headers)}',
-      );
-      debugPrint(
-        '[Places] request type=$requestType query="$query" url=$uri',
-      );
+      debugPrint('[Places] request started type=$requestType');
       final response = await client.get(
         uri,
         headers: headers,
       );
       debugPrint(
-        '[Places] response type=$requestType statusCode=${response.statusCode} body=${response.body}',
+        '[Places] response type=$requestType statusCode=${response.statusCode}',
       );
       return response;
-    } catch (error, stackTrace) {
+    } catch (error) {
       _recordIssue(
         PlacesSearchIssue(
           type: PlacesSearchIssueType.networkError,
@@ -629,7 +616,6 @@ class PlacesWorkshopSearchService {
           query: query,
           responseBody: error.toString(),
         ),
-        stackTrace: stackTrace,
       );
       return null;
     }
@@ -835,36 +821,9 @@ class PlacesWorkshopSearchService {
   }
 
   void _logApiKeyDiagnostics() {
-    final apiKey = _apiKey;
-    final firstCharacters = apiKey.isEmpty
-        ? ''
-        : apiKey.substring(0, apiKey.length < 5 ? apiKey.length : 5);
-    final lastCharacters = apiKey.isEmpty
-        ? ''
-        : apiKey.substring(apiKey.length < 5 ? 0 : apiKey.length - 5);
-
     debugPrint(
-      '[Places] apiKey.isEmpty=${apiKey.isEmpty} apiKey.length=${apiKey.length} apiKey.first5=$firstCharacters apiKey.last5=$lastCharacters',
+      '[Places] apiKey.configured=${_apiKey.isNotEmpty}',
     );
-  }
-
-  Map<String, String> _maskedHeaders(Map<String, String> headers) {
-    return headers.map((key, value) {
-      if (key.toLowerCase() == 'x-goog-api-key') {
-        return MapEntry(key, _maskedKeyPreview(value));
-      }
-      return MapEntry(key, value);
-    });
-  }
-
-  String _maskedKeyPreview(String value) {
-    if (value.isEmpty) {
-      return '<empty>';
-    }
-
-    final start = value.substring(0, value.length < 5 ? value.length : 5);
-    final end = value.substring(value.length < 5 ? 0 : value.length - 5);
-    return '$start...$end';
   }
 
   bool _ensureConfigured({
@@ -916,18 +875,12 @@ class PlacesWorkshopSearchService {
     _recordIssue(issue);
   }
 
-  void _recordIssue(
-    PlacesSearchIssue issue, {
-    StackTrace? stackTrace,
-  }) {
+  void _recordIssue(PlacesSearchIssue issue) {
     _pendingIssue = issue;
 
     final buffer = StringBuffer('[Places] ${issue.message}');
     if (issue.requestType?.isNotEmpty == true) {
       buffer.write(' requestType=${issue.requestType}');
-    }
-    if (issue.query?.isNotEmpty == true) {
-      buffer.write(' query="${issue.query}"');
     }
     if (issue.statusCode != null) {
       buffer.write(' statusCode=${issue.statusCode}');
@@ -937,13 +890,6 @@ class PlacesWorkshopSearchService {
         buffer.write(' googleError=true');
       }
     }
-    if (issue.responseBody?.isNotEmpty == true) {
-      buffer.write(' body=${issue.responseBody}');
-    }
-
     debugPrint(buffer.toString());
-    if (stackTrace != null) {
-      debugPrint('[Places] stackTrace=$stackTrace');
-    }
   }
 }

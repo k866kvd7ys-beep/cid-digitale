@@ -1154,7 +1154,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
 
   Future<void> _openPhotoViewer(String source) async {
     final url = _resolvedPhotoUrl(source);
-    debugPrint('OPEN GLASS PHOTO URL: $url');
+    debugPrint('OPEN GLASS PHOTO');
     if (!mounted) return;
     await showDialog<void>(
       context: context,

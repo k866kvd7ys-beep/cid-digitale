@@ -124,8 +124,9 @@ class _ScannerLibrettoPageState extends State<ScannerLibrettoPage> {
       final result = await recognizer.processImage(input);
       await recognizer.close();
 
-      debugPrint('OCR fullText: ${result.text}');
-      debugPrint('OCR blocks: ${result.blocks.map((b) => b.text).toList()}');
+      debugPrint(
+        '[OCR] Text recognition completed blocks=${result.blocks.length}',
+      );
 
       final blocks = result.blocks.map((b) => b.text).toList();
       final targa = estraiTargaDaTesto(result.text) ??

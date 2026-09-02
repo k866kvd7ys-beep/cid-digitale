@@ -27,29 +27,29 @@ class LocalImageCache {
   static Future<void> saveImageLocally(String key, Uint8List bytes) async {
     if (!kIsWeb) return;
     try {
-      debugPrint('CACHE SAVE IMAGE: $key');
+      debugPrint('CACHE SAVE IMAGE');
       final db = await _openDb();
       if (db == null) return;
       final txn = db.transaction(_storeName, idbModeReadWrite);
       await txn.objectStore(_storeName).put(bytes, key);
       await txn.completed;
-    } catch (e) {
-      debugPrint('CACHE SAVE IMAGE ERROR: $e');
+    } catch (_) {
+      debugPrint('CACHE SAVE IMAGE ERROR');
     }
   }
 
   static Future<Uint8List?> getImage(String key) async {
     if (!kIsWeb) return null;
     try {
-      debugPrint('CACHE LOAD IMAGE: $key');
+      debugPrint('CACHE LOAD IMAGE');
       final db = await _openDb();
       if (db == null) return null;
       final txn = db.transaction(_storeName, idbModeReadOnly);
       final result = await txn.objectStore(_storeName).getObject(key);
       await txn.completed;
       if (result is Uint8List) return result;
-    } catch (e) {
-      debugPrint('CACHE LOAD IMAGE ERROR: $e');
+    } catch (_) {
+      debugPrint('CACHE LOAD IMAGE ERROR');
     }
     return null;
   }
@@ -62,15 +62,15 @@ class LocalImageCache {
       final txn = db.transaction(_storeName, idbModeReadWrite);
       await txn.objectStore(_storeName).delete(key);
       await txn.completed;
-    } catch (e) {
-      debugPrint('CACHE DELETE IMAGE ERROR: $e');
+    } catch (_) {
+      debugPrint('CACHE DELETE IMAGE ERROR');
     }
   }
 
   static Future<void> clearIncidentImages(String incidentId) async {
     if (!kIsWeb) return;
     try {
-      debugPrint('CACHE CLEAR INCIDENT: $incidentId');
+      debugPrint('CACHE CLEAR INCIDENT');
       final db = await _openDb();
       if (db == null) return;
       final txn = db.transaction(_storeName, idbModeReadWrite);
@@ -83,8 +83,8 @@ class LocalImageCache {
         }
       }
       await txn.completed;
-    } catch (e) {
-      debugPrint('CACHE CLEAR INCIDENT ERROR: $e');
+    } catch (_) {
+      debugPrint('CACHE CLEAR INCIDENT ERROR');
     }
   }
 }

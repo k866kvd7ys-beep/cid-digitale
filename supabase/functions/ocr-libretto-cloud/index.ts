@@ -27,7 +27,6 @@ type VisionResponse = {
 serve(async (req) => {
   console.log("ocr-libretto-cloud: request received", {
     method: req.method,
-    url: req.url,
   });
 
   if (req.method !== "POST") {
@@ -84,7 +83,6 @@ serve(async (req) => {
     const googleStatus = visionRes.status;
     const visionBodyText = await visionRes.text();
     console.log("ocr-libretto-cloud: vision status", googleStatus);
-    console.log("ocr-libretto-cloud: vision raw body", visionBodyText);
 
     if (!visionRes.ok) {
       return new Response(
@@ -102,7 +100,7 @@ serve(async (req) => {
     try {
       visionJson = JSON.parse(visionBodyText) as VisionResponse;
     } catch (e) {
-      console.error("ocr-libretto-cloud: failed to parse vision json", e);
+      console.error("ocr-libretto-cloud: failed to parse vision json");
       return new Response(
         JSON.stringify({
           success: false,
@@ -123,7 +121,7 @@ serve(async (req) => {
     );
 
     if (apiError) {
-      console.error("ocr-libretto-cloud: api error", apiError);
+      console.error("ocr-libretto-cloud: api error", { status: googleStatus });
       return new Response(JSON.stringify({
         success: false,
         error: "google_vision_error",
@@ -179,7 +177,7 @@ serve(async (req) => {
       { headers: { "Content-Type": "application/json" } },
     );
   } catch (e) {
-    console.error("ocr-libretto-cloud: exception", e);
+    console.error("ocr-libretto-cloud: exception");
     return new Response(JSON.stringify({ success: false, error: String(e) }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
