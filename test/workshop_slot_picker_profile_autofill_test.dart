@@ -154,6 +154,8 @@ class _RecordingAppointmentRequestsService
         licensePlate: arguments[#licensePlate] as String?,
         vehicleBrand: arguments[#vehicleBrand] as String?,
         vehicleModel: arguments[#vehicleModel] as String?,
+        insurance: arguments[#insurance] as String?,
+        policyNumber: arguments[#policyNumber] as String?,
         garageId: arguments[#garageId] as String?,
         garageName: arguments[#garageName] as String?,
         garageEmail: arguments[#garageEmail] as String?,
@@ -470,6 +472,14 @@ void main() {
       'e-tron',
     );
     expect(
+      appointmentService.createRequestArguments?[#insurance],
+      'Zurich',
+    );
+    expect(
+      appointmentService.createRequestArguments?[#policyNumber],
+      'POL-BOOKING',
+    );
+    expect(
       appointmentService.createRequestArguments?[#licensePlate],
       'AG399854',
     );
@@ -652,6 +662,14 @@ void main() {
     expect(source, contains('licensePlate: _plateCtrl.text.trim(),'));
     expect(source, contains('vehicleBrand: selectedVehicle?.marca.trim(),'));
     expect(source, contains('vehicleModel: selectedVehicle?.modello.trim(),'));
+    expect(
+      source,
+      contains('insurance: selectedVehicle?.assicurazione.trim(),'),
+    );
+    expect(
+      source,
+      contains('policyNumber: selectedVehicle?.numeroPolizza.trim(),'),
+    );
     expect(source, contains('garageId: widget.selectedWorkshop?.id,'));
     expect(source, contains('garageName: widget.selectedWorkshop?.name,'));
     expect(source, isNot(contains('_customerAuthService.saveProfile(')));

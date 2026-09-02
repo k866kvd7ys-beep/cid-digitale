@@ -15,6 +15,8 @@ class AppointmentRequest {
     this.licensePlate,
     this.vehicleBrand,
     this.vehicleModel,
+    this.insurance,
+    this.policyNumber,
     this.garageId,
     this.garageName,
     this.garageEmail,
@@ -101,6 +103,8 @@ class AppointmentRequest {
   final String? licensePlate;
   final String? vehicleBrand;
   final String? vehicleModel;
+  final String? insurance;
+  final String? policyNumber;
   final String? garageId;
   final String? garageName;
   final String? garageEmail;
@@ -486,6 +490,23 @@ class AppointmentRequest {
             structuredNotes['workshop_city'])
         ?.toString()
         .trim();
+    final resolvedVehicleBrand = (map['vehicle_brand'] ??
+            map['vehicleBrand'] ??
+            structuredNotes['vehicle_brand'])
+        ?.toString()
+        .trim();
+    final resolvedVehicleModel = (map['vehicle_model'] ??
+            map['vehicleModel'] ??
+            structuredNotes['vehicle_model'])
+        ?.toString()
+        .trim();
+    final resolvedInsurance =
+        (map['insurance'] ?? structuredNotes['insurance'])?.toString().trim();
+    final resolvedPolicyNumber = (map['policy_number'] ??
+            map['policyNumber'] ??
+            structuredNotes['policy_number'])
+        ?.toString()
+        .trim();
 
     return AppointmentRequest(
       id: (map['id'] ?? '').toString(),
@@ -506,8 +527,15 @@ class AppointmentRequest {
           map['customer_email'] ??
           map['customerEmail']) as String?,
       licensePlate: (map['license_plate'] ?? map['licensePlate']) as String?,
-      vehicleBrand: (map['vehicle_brand'] ?? map['vehicleBrand'])?.toString(),
-      vehicleModel: (map['vehicle_model'] ?? map['vehicleModel'])?.toString(),
+      vehicleBrand:
+          (resolvedVehicleBrand?.isEmpty ?? true) ? null : resolvedVehicleBrand,
+      vehicleModel:
+          (resolvedVehicleModel?.isEmpty ?? true) ? null : resolvedVehicleModel,
+      insurance:
+          (resolvedInsurance?.isEmpty ?? true) ? null : resolvedInsurance,
+      policyNumber: (resolvedPolicyNumber?.isEmpty ?? true)
+          ? null
+          : resolvedPolicyNumber,
       garageId: (resolvedGarageId?.isEmpty ?? true) ? null : resolvedGarageId,
       garageName:
           (resolvedGarageName?.isEmpty ?? true) ? null : resolvedGarageName,
@@ -684,6 +712,8 @@ class AppointmentRequest {
       'license_plate': licensePlate,
       'vehicle_brand': vehicleBrand,
       'vehicle_model': vehicleModel,
+      'insurance': insurance,
+      'policy_number': policyNumber,
       'garageId': garageId,
       'garage_id': garageId,
       'garageName': garageName,

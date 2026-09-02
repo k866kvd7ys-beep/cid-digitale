@@ -4697,6 +4697,8 @@ class _WorkshopSlotPickerScreenState extends State<WorkshopSlotPickerScreen>
         licensePlate: _plateCtrl.text.trim(),
         vehicleBrand: selectedVehicle?.marca.trim(),
         vehicleModel: selectedVehicle?.modello.trim(),
+        insurance: selectedVehicle?.assicurazione.trim(),
+        policyNumber: selectedVehicle?.numeroPolizza.trim(),
         garageId: widget.selectedWorkshop?.id,
         garageName: widget.selectedWorkshop?.name,
         garageEmail: widget.selectedWorkshop?.email,

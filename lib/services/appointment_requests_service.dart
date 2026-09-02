@@ -304,6 +304,8 @@ class AppointmentRequestsService {
     String? licensePlate,
     String? vehicleBrand,
     String? vehicleModel,
+    String? insurance,
+    String? policyNumber,
     String? garageId,
     String? garageName,
     String? garageEmail,
@@ -388,6 +390,8 @@ class AppointmentRequestsService {
         licensePlate: licensePlate,
         vehicleBrand: vehicleBrand,
         vehicleModel: vehicleModel,
+        insurance: insurance,
+        policyNumber: policyNumber,
         garageId: garageId,
         garageName: garageName,
         garageEmail: garageEmail,
@@ -471,6 +475,8 @@ class AppointmentRequestsService {
         licensePlate: licensePlate,
         vehicleBrand: vehicleBrand,
         vehicleModel: vehicleModel,
+        insurance: insurance,
+        policyNumber: policyNumber,
         garageId: garageId,
         garageName: garageName,
         garageEmail: garageEmail,
@@ -552,6 +558,8 @@ class AppointmentRequestsService {
           licensePlate: licensePlate,
           vehicleBrand: vehicleBrand,
           vehicleModel: vehicleModel,
+          insurance: insurance,
+          policyNumber: policyNumber,
           garageId: garageId,
           garageName: garageName,
           garageEmail: garageEmail,
@@ -841,6 +849,10 @@ class AppointmentRequestsService {
       'status': normalizedStatus,
       'notes': _buildStructuredNotes(
         notes: existing.notes,
+        vehicleBrand: existing.vehicleBrand,
+        vehicleModel: existing.vehicleModel,
+        insurance: existing.insurance,
+        policyNumber: existing.policyNumber,
         tireServiceType: existing.tireServiceType,
         garageId: existing.garageId,
         garageName: existing.garageName,
@@ -963,6 +975,8 @@ class AppointmentRequestsService {
           licensePlate: localRequest.licensePlate,
           vehicleBrand: localRequest.vehicleBrand,
           vehicleModel: localRequest.vehicleModel,
+          insurance: localRequest.insurance,
+          policyNumber: localRequest.policyNumber,
           garageId: localRequest.garageId,
           garageName: localRequest.garageName,
           garageEmail: localRequest.garageEmail,
@@ -1111,6 +1125,8 @@ class AppointmentRequestsService {
     String? licensePlate,
     String? vehicleBrand,
     String? vehicleModel,
+    String? insurance,
+    String? policyNumber,
     String? garageId,
     String? garageName,
     String? garageEmail,
@@ -1191,6 +1207,10 @@ class AppointmentRequestsService {
       'status': requestStatus,
       'notes': _buildStructuredNotes(
         notes: notes,
+        vehicleBrand: vehicleBrand,
+        vehicleModel: vehicleModel,
+        insurance: insurance,
+        policyNumber: policyNumber,
         tireServiceType: tireServiceType,
         garageId: garageId,
         garageName: garageName,
@@ -1269,6 +1289,8 @@ class AppointmentRequestsService {
     final responseMap = Map<String, dynamic>.from(res);
     responseMap['vehicle_brand'] = vehicleBrand;
     responseMap['vehicle_model'] = vehicleModel;
+    responseMap['insurance'] = insurance;
+    responseMap['policy_number'] = policyNumber;
     return AppointmentRequest.fromMap(responseMap);
   }
 
@@ -1309,6 +1331,10 @@ class AppointmentRequestsService {
         .update({
           'notes': _buildStructuredNotes(
             notes: existing.notes,
+            vehicleBrand: existing.vehicleBrand,
+            vehicleModel: existing.vehicleModel,
+            insurance: existing.insurance,
+            policyNumber: existing.policyNumber,
             tireServiceType: existing.tireServiceType,
             garageId: existing.garageId,
             garageName: existing.garageName,
@@ -1380,11 +1406,17 @@ class AppointmentRequestsService {
     final responseMap = Map<String, dynamic>.from(res);
     responseMap['vehicle_brand'] = existing.vehicleBrand;
     responseMap['vehicle_model'] = existing.vehicleModel;
+    responseMap['insurance'] = existing.insurance;
+    responseMap['policy_number'] = existing.policyNumber;
     return AppointmentRequest.fromMap(responseMap);
   }
 
   String? _buildStructuredNotes({
     String? notes,
+    String? vehicleBrand,
+    String? vehicleModel,
+    String? insurance,
+    String? policyNumber,
     String? tireServiceType,
     String? garageId,
     String? garageName,
@@ -1451,6 +1483,10 @@ class AppointmentRequestsService {
     List<String> parkingDamageExtraImages = const [],
   }) {
     final trimmedNotes = notes?.trim();
+    final trimmedVehicleBrand = vehicleBrand?.trim();
+    final trimmedVehicleModel = vehicleModel?.trim();
+    final trimmedInsurance = insurance?.trim();
+    final trimmedPolicyNumber = policyNumber?.trim();
     final trimmedTireServiceType = tireServiceType?.trim();
     final trimmedGarageId = garageId?.trim();
     final trimmedGarageName = garageName?.trim();
@@ -1629,7 +1665,11 @@ class AppointmentRequestsService {
       cleanedParkingExtraImages,
     ]);
 
-    final hasStructuredData = (trimmedGlassTown?.isNotEmpty ?? false) ||
+    final hasStructuredData = (trimmedVehicleBrand?.isNotEmpty ?? false) ||
+        (trimmedVehicleModel?.isNotEmpty ?? false) ||
+        (trimmedInsurance?.isNotEmpty ?? false) ||
+        (trimmedPolicyNumber?.isNotEmpty ?? false) ||
+        (trimmedGlassTown?.isNotEmpty ?? false) ||
         (trimmedGlassDate?.isNotEmpty ?? false) ||
         (trimmedTireServiceType?.isNotEmpty ?? false) ||
         (trimmedGarageId?.isNotEmpty ?? false) ||
@@ -1703,6 +1743,14 @@ class AppointmentRequestsService {
 
     return jsonEncode({
       if (trimmedNotes?.isNotEmpty ?? false) 'text': trimmedNotes,
+      if (trimmedVehicleBrand?.isNotEmpty ?? false)
+        'vehicle_brand': trimmedVehicleBrand,
+      if (trimmedVehicleModel?.isNotEmpty ?? false)
+        'vehicle_model': trimmedVehicleModel,
+      if (trimmedInsurance?.isNotEmpty ?? false)
+        'insurance': trimmedInsurance,
+      if (trimmedPolicyNumber?.isNotEmpty ?? false)
+        'policy_number': trimmedPolicyNumber,
       if (trimmedTireServiceType?.isNotEmpty ?? false)
         'tire_service_type': trimmedTireServiceType,
       if (trimmedTireServiceType?.isNotEmpty ?? false)
@@ -2204,6 +2252,8 @@ class AppointmentRequestsService {
     String? licensePlate,
     String? vehicleBrand,
     String? vehicleModel,
+    String? insurance,
+    String? policyNumber,
     String? garageId,
     String? garageName,
     String? garageEmail,
@@ -2337,6 +2387,8 @@ class AppointmentRequestsService {
       licensePlate: licensePlate,
       vehicleBrand: vehicleBrand,
       vehicleModel: vehicleModel,
+      insurance: insurance,
+      policyNumber: policyNumber,
       garageId: garageId,
       garageName: garageName,
       garageEmail: garageEmail,
